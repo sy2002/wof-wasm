@@ -21,3 +21,6 @@ __pycache__/
 *.o
 *.dylib
 .DS_Store
+
+# test runner
+.pytest_cache/
