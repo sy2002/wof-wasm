@@ -17,6 +17,8 @@ import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { AUDIO_WATCH } from './audiowatch.mjs';
+
 const DEFAULT_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -81,7 +83,6 @@ const chrome = spawn(chromePath, [
     '--no-default-browser-check',
     '--disable-extensions',
     '--mute-audio',
-    '--autoplay-policy=no-user-gesture-required',
     '--user-data-dir=' + profile,
     '--remote-debugging-port=0',
     '--window-size=1280,900',
@@ -133,8 +134,31 @@ try {
         for (const domain of ['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable']) {
             await cdp.send(domain, {}, session);
         }
+        await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+                       { source: '(' + AUDIO_WATCH + ')();' }, session);
+        await cdp.send('Page.bringToFront', {}, session);
         await cdp.send('Page.navigate', { url }, session);
         await sleep(1500);
+    }
+
+    /* Real key events through the DevTools protocol, not synthesised ones: only a real
+       event activates the page, and activation is what the shell waits for before it
+       touches Web Audio. */
+    const KEYS = {
+        backquote: { key: '`', code: 'Backquote', text: '`' },
+        space: { key: ' ', code: 'Space', text: ' ' },
+        meta: { key: 'Meta', code: 'MetaLeft' },
+    };
+
+    /* Deliberately no windowsVirtualKeyCode and no modifiers: given those, headless Chrome
+       answers a single modifier press with a flood of phantom keydown repeats carrying a
+       different key, which drowns the very measurement this pass is here to make. */
+    async function press(session, name) {
+        const k = KEYS[name];
+        await cdp.send('Input.dispatchKeyEvent',
+                       { type: k.text ? 'keyDown' : 'rawKeyDown', key: k.key, code: k.code, text: k.text },
+                       session);
+        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k.key, code: k.code }, session);
     }
 
     async function evaluateIn(session, expression) {
@@ -149,13 +173,14 @@ try {
 
     const evaluate = (expression) => evaluateIn(sessionId, expression);
 
-    /* The overlay is opened with the same keypress that is the gesture starting the audio. */
-    const OPEN_OVERLAY = "window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backquote' }))";
-
     await open(sessionId, 'file://' + pagePath);
 
-    await evaluate(OPEN_OVERLAY);
+    report.audioBeforeKey = await evaluate('window.__wofAudio');
+
+    /* The same keypress opens the overlay and is the gesture that starts the audio. */
+    await press(sessionId, 'backquote');
     await sleep(2000);
+    report.audioAfterKey = await evaluate('window.__wofAudio');
 
     /* Rows 30 and 50 of the first band are the tick bar and the VBlank bar of the test
        pattern; both have to be somewhere else a moment later, or nothing is running. */
@@ -242,13 +267,51 @@ try {
     })).sessionId;
 
     await open(fallbackSession, 'file://' + pagePath + '?audio=buffers');
-    await evaluateIn(fallbackSession, OPEN_OVERLAY);
+    await press(fallbackSession, 'backquote');
     await sleep(2000);
     report.fallback = {
         overlay: await evaluateIn(fallbackSession, "document.getElementById('overlay').textContent"),
         requests: channel(fallbackSession).requests,
         console: channel(fallbackSession).console,
     };
+
+    /* A modifier on its own is the case that cost a session of silence: Command, pressed to
+       open the console, is a keydown that activates nothing.  The page must build no
+       AudioContext there and must go on saying that sound is off; the next real key must
+       then start it. */
+    const modifierTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const modifierSession = (await cdp.send('Target.attachToTarget', {
+        targetId: modifierTarget.targetId, flatten: true,
+    })).sessionId;
+    await open(modifierSession, 'file://' + pagePath);
+
+    const promptShown = async () => !(await evaluateIn(modifierSession,
+        "document.getElementById('gesture').classList.contains('off')"));
+
+    await press(modifierSession, 'meta');
+    await sleep(800);
+    const afterModifier = {
+        promptShown: await promptShown(),
+        audio: await evaluateIn(modifierSession, 'window.__wofAudio'),
+        states: await evaluateIn(modifierSession, 'window.__wofContexts.map((c) => c.state)'),
+        events: await evaluateIn(modifierSession, 'window.__wofEvents'),
+    };
+
+    await press(modifierSession, 'space');
+    await sleep(2000);
+    const afterSpace = {
+        promptShown: await promptShown(),
+        audio: await evaluateIn(modifierSession, 'window.__wofAudio'),
+        states: await evaluateIn(modifierSession, 'window.__wofContexts.map((c) => c.state)'),
+        events: await evaluateIn(modifierSession, 'window.__wofEvents'),
+    };
+
+    await press(modifierSession, 'backquote');
+    await sleep(600);
+    afterSpace.overlay = await evaluateIn(modifierSession,
+        "document.getElementById('overlay').textContent");
+
+    report.modifierFirst = { afterModifier, afterSpace };
 } finally {
     chrome.kill();
     await sleep(200);

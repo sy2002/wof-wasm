@@ -14,7 +14,10 @@ import sys
 
 import pytest
 
-from conftest import overlay_audio, overlay_number
+from conftest import (assert_a_modifier_alone_starts_nothing,
+                      assert_the_next_real_key_starts_the_sound,
+                      assert_web_audio_waits_for_a_gesture,
+                      overlay_audio, overlay_number)
 
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
@@ -93,6 +96,18 @@ def test_the_scheduled_buffer_fallback_also_plays(loaded):
     assert re.search(r'buffer\s+[\d.]+ ms queued, 0 underruns', fallback['overlay']), fallback['overlay']
     assert fallback['console'] == []
     assert all(url.startswith('file://') for url in fallback['requests']), fallback['requests']
+
+
+def test_web_audio_waits_for_a_gesture(loaded):
+    assert_web_audio_waits_for_a_gesture(loaded)
+
+
+def test_a_modifier_alone_starts_nothing(loaded):
+    assert_a_modifier_alone_starts_nothing(loaded)
+
+
+def test_the_next_real_key_starts_the_sound(loaded):
+    assert_the_next_real_key_starts_the_sound(loaded)
 
 
 def test_the_gesture_prompt_goes_away(loaded):

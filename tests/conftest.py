@@ -170,6 +170,38 @@ def overlay_audio(overlay):
     return found.group(1), found.group(2), int(found.group(3))
 
 
+def assert_web_audio_waits_for_a_gesture(report):
+    """Nothing may build an AudioContext before the page has been activated: one built
+    without activation is born suspended and never plays, whatever is pressed afterwards.
+    That is what a browser's autoplay warning is about, and browsers do not hand that
+    warning to WebDriver, so the invariant is watched directly (tests/audiowatch.mjs)."""
+    assert report['audioBeforeKey'] == [], (
+        'the shell touched Web Audio before any gesture: %s' % report['audioBeforeKey'])
+    after = report['audioAfterKey']
+    assert [call['call'] for call in after] == ['construct', 'resume'], after
+    assert all(call['activated'] for call in after), after
+
+
+def assert_a_modifier_alone_starts_nothing(report):
+    """The case that cost a session of silence: Command pressed to open the console is a
+    keydown that activates nothing.  The page must build no context there, and must go on
+    saying that the sound is off."""
+    after = report['modifierFirst']['afterModifier']
+    assert after['events'] == ['keydown:Meta'], (
+        'the page saw %d events for one key press' % len(after['events']))
+    assert after['audio'] == [], 'a modifier alone built an AudioContext: %s' % after['audio']
+    assert after['states'] == []
+    assert after['promptShown'], 'the page stopped asking for a key although no sound started'
+
+
+def assert_the_next_real_key_starts_the_sound(report):
+    after = report['modifierFirst']['afterSpace']
+    assert [call['call'] for call in after['audio']] == ['construct', 'resume'], after['audio']
+    assert all(call['activated'] for call in after['audio']), after['audio']
+    assert after['states'] == ['running'], 'the context is %s' % after['states']
+    assert not after['promptShown'], 'the prompt is still up although the sound is running'
+
+
 @pytest.fixture(scope='session')
 def native_core_factory(built):
     def make(seed, blob=b''):

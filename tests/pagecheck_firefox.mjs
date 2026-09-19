@@ -20,6 +20,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { AUDIO_WATCH } from './audiowatch.mjs';
+
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
 const visible = args.includes('--visible');
@@ -92,30 +94,7 @@ try {
        it is watched directly instead: the AudioContext constructor and resume are wrapped
        before any page script runs, and each call records whether the page had been
        activated by then. */
-    await send(socket, 'script.addPreloadScript', {
-        functionDeclaration: `() => {
-            window.__wofAudio = [];
-            const Native = window.AudioContext || window.webkitAudioContext;
-            if (!Native) {
-                return;
-            }
-            const activated = () => !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
-            class Watched extends Native {
-                constructor(...args) {
-                    super(...args);
-                    window.__wofAudio.push({ call: 'construct', activated: activated() });
-                }
-                resume() {
-                    window.__wofAudio.push({ call: 'resume', activated: activated() });
-                    return super.resume();
-                }
-            }
-            window.AudioContext = Watched;
-            if (window.webkitAudioContext) {
-                window.webkitAudioContext = Watched;
-            }
-        }`,
-    });
+    await send(socket, 'script.addPreloadScript', { functionDeclaration: AUDIO_WATCH });
 
     const tree = await send(socket, 'browsingContext.getTree', {});
     const context = tree.contexts[0].context;
@@ -125,9 +104,9 @@ try {
 
     /* BiDi serialises objects as remote-value trees, so the page hands back JSON text and
        this side parses it.  The caller writes an ordinary expression. */
-    async function evaluate(expression) {
+    async function evaluateIn(where, expression) {
         const result = await send(socket, 'script.evaluate', {
-            expression: 'JSON.stringify(' + expression + ')', target: { context }, awaitPromise: true,
+            expression: 'JSON.stringify(' + expression + ')', target: { context: where }, awaitPromise: true,
         });
         if (result.type === 'exception') {
             throw new Error(result.exceptionDetails.text);
@@ -135,20 +114,31 @@ try {
         return JSON.parse(result.result.value);
     }
 
+    const evaluate = (expression) => evaluateIn(context, expression);
+
+    /* WebDriver key codes.  A press through input.performActions is a real event and
+       activates the page, where a synthesised KeyboardEvent would not. */
+    const KEY_META = '\uE03D';
+    const KEY_SPACE = ' ';
+    const KEY_BACKQUOTE = '`';
+
+    function press(where, value) {
+        return send(socket, 'input.performActions', {
+            context: where,
+            actions: [{
+                type: 'key',
+                id: 'keyboard',
+                actions: [{ type: 'keyDown', value }, { type: 'keyUp', value }],
+            }],
+        });
+    }
+
     /* What the console holds before anything has been pressed: an autoplay warning here
        would mean the shell touched Web Audio on its own. */
     report.logsBeforeKey = logs.slice();
     report.audioBeforeKey = await evaluate('window.__wofAudio');
 
-    /* A real key press, so that the page sees a user gesture and not a synthetic event. */
-    await send(socket, 'input.performActions', {
-        context,
-        actions: [{
-            type: 'key',
-            id: 'keyboard',
-            actions: [{ type: 'keyDown', value: '`' }, { type: 'keyUp', value: '`' }],
-        }],
-    });
+    await press(context, KEY_BACKQUOTE);
     await sleep(2500);
 
     const PICTURE = `(() => {
@@ -197,6 +187,43 @@ try {
     report.gestureHidden = await evaluate(
         "document.getElementById('gesture').classList.contains('off')");
 
+    /* A modifier on its own is the case that cost a session of silence: Command, pressed to
+       open the console, is a keydown that activates nothing.  The page must build no
+       AudioContext there and must go on saying that sound is off; the next real key must
+       then start it. */
+    const modifierTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'browsingContext.activate', { context: modifierTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: modifierTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+
+    const promptShown = async () => !(await evaluateIn(modifierTab,
+        "document.getElementById('gesture').classList.contains('off')"));
+
+    await press(modifierTab, KEY_META);
+    await sleep(800);
+    const afterModifier = {
+        promptShown: await promptShown(),
+        audio: await evaluateIn(modifierTab, 'window.__wofAudio'),
+        states: await evaluateIn(modifierTab, 'window.__wofContexts.map((c) => c.state)'),
+        events: await evaluateIn(modifierTab, 'window.__wofEvents'),
+    };
+
+    await press(modifierTab, KEY_SPACE);
+    await sleep(2000);
+    const afterSpace = {
+        promptShown: await promptShown(),
+        audio: await evaluateIn(modifierTab, 'window.__wofAudio'),
+        states: await evaluateIn(modifierTab, 'window.__wofContexts.map((c) => c.state)'),
+        events: await evaluateIn(modifierTab, 'window.__wofEvents'),
+    };
+
+    await press(modifierTab, KEY_BACKQUOTE);
+    await sleep(600);
+    afterSpace.overlay = await evaluateIn(modifierTab, "document.getElementById('overlay').textContent");
+
+    report.modifierFirst = { afterModifier, afterSpace };
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

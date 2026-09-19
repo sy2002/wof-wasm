@@ -15,7 +15,11 @@ import subprocess
 
 import pytest
 
-from conftest import ROOT, overlay_audio, overlay_number
+from conftest import (ROOT,
+                      assert_a_modifier_alone_starts_nothing,
+                      assert_the_next_real_key_starts_the_sound,
+                      assert_web_audio_waits_for_a_gesture,
+                      overlay_audio, overlay_number)
 
 FIREFOX = os.environ.get('WOF_FIREFOX', '/Applications/Firefox.app/Contents/MacOS/firefox')
 HARNESS = ROOT / 'tests' / 'pagecheck_firefox.mjs'
@@ -56,20 +60,18 @@ def test_page_loads_without_errors(loaded_firefox):
     assert errors == []
 
 
-def test_web_audio_is_untouched_before_the_first_gesture(loaded_firefox):
-    """What Firefox's autoplay warning is about.  The warning itself is a browser message
-    that WebDriver does not deliver, so the invariant behind it is asserted instead: the
-    AudioContext constructor and resume are wrapped before any page script runs, and must
-    not be reached until the page has been activated."""
-    assert loaded_firefox['audioBeforeKey'] == [], (
-        'the shell touched Web Audio before any gesture: %s' % loaded_firefox['audioBeforeKey'])
-
-    after = loaded_firefox['audioAfterKey']
-    assert [call['call'] for call in after] == ['construct', 'resume'], after
-    assert all(call['activated'] for call in after), after
-
+def test_web_audio_waits_for_a_gesture(loaded_firefox):
+    assert_web_audio_waits_for_a_gesture(loaded_firefox)
     autoplay = [entry for entry in loaded_firefox['logs'] if 'autoplay' in entry['text'].lower()]
     assert autoplay == [], autoplay
+
+
+def test_a_modifier_alone_starts_nothing(loaded_firefox):
+    assert_a_modifier_alone_starts_nothing(loaded_firefox)
+
+
+def test_the_next_real_key_starts_the_sound(loaded_firefox):
+    assert_the_next_real_key_starts_the_sound(loaded_firefox)
 
 
 def test_the_test_pattern_is_on_the_canvas(loaded_firefox):
