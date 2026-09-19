@@ -11,8 +11,11 @@ Run from the repository root. Always use the project environment, never the syst
 .venv/bin/python tools/skel.py 010228     # control-flow skeleton of one routine (address or name)
 .venv/bin/python tools/oracle.py          # 68000 oracle self-test, must print PASSED
 .venv/bin/python tools/mdcheck.py SPEC.md # Markdown safety check, run on every .md that was edited
-.venv/bin/python -m ziglang cc -target wasm32-freestanding -O2 -nostdlib -Wl,--no-entry -o core.wasm src/*.c
+.venv/bin/python tools/build.py --native  # build dist/wof.html, dist/core.wasm and tests/libwofcore.dylib
+.venv/bin/python -m pytest tests/         # full suite; the page tests need Google Chrome
 ```
+
+`tools/build.py` compiles the core with `.venv/bin/python -m ziglang cc -target wasm32-freestanding`; nothing else needs to be installed.
 
 ## Session protocol
 
@@ -21,7 +24,8 @@ Work one milestone, or one clearly bounded part of one, per session. The reposit
 - **Start:** read the `SPEC.md` sections for the milestone and every file in `re/notes/` that touches it.
 - **Never load `re/Wings.lst` whole.** It is about 1.6 MB. Use `tools/skel.py`, `grep`, or an address range.
 - **End:** names into `re/names.txt`, findings into `re/notes/`, `status` in `re/functions.csv`, tests green, and `SPEC.md` corrected wherever it stated something that turned out different.
-- **Stop and report to the user instead of retrying** when: an oracle test still fails after two fix attempts; a routine in the hand-written assembly region (`0x010000`–`0x015D62`) is not understood after reading it in full; a change would alter a struct layout, the core interface or a porting rule.
+- **Worker sessions do not ask the user for anything.** When a controller session assigned your task, everything goes to the controller: the report, questions, and any request that needs the user's eyes, ears or decision (a manual test, a listening check, a choice). Put such requests into your report for the controller to relay. The user watches the controller chat and will miss a request made anywhere else.
+- **Stop and report instead of retrying** (to the controller if you have one, otherwise to the user) when: an oracle test still fails after two fix attempts; a routine in the hand-written assembly region (`0x010000`–`0x015D62`) is not understood after reading it in full; a change would alter a struct layout, the core interface or a porting rule.
 
 ## Rules
 

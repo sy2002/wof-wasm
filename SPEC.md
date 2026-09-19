@@ -39,9 +39,9 @@ re/libbases.txt         hand-maintained map of library base variables
 re/notes/               one Markdown note per understood subsystem
 ref/sheets/             contact sheets of decoded shapes (visual reference)
 tools/                  Python tooling (section 4)
-src/                    C core                         (to be written)
-web/                    shell template: HTML, JS, CSS  (to be written)
-tests/                  oracle and replay tests        (to be written)
+src/                    C core
+web/                    shell: page template, JavaScript modules, CSS
+tests/                  pytest suite: core in Node and natively, the page in a browser
 dist/wof.html           build output
 .venv/                  project-local Python environment
 ```
@@ -215,12 +215,12 @@ Run everything with `.venv/bin/python` from the repository root.
 
 ## 5. Build
 
-`tools/build.py` (to be written) produces `dist/wof.html` in these steps:
+`tools/build.py` produces `dist/wof.html` in these steps (`--native` also builds the test library):
 
 1. **Extract tables.** `tools/extract_tables.py` reads `re/tables.toml`, a manifest of (name, address, element type, count) entries, and writes `src/gen/tables.c` and `src/gen/tables.h` from the bytes of `original/disk/Wings_of_Fury/Wings`. Every constant table, name list, text and tuning array the port needs from the DATA or CODE hunk is obtained this way. Byte order is converted during extraction. `src/gen/` is ignored by version control.
-2. **Pack the file system.** All game files from section 3.1 except the executable and the non-game files are concatenated into one blob with a directory (name, offset, length). Files stay in their original formats; the core contains the ported loaders.
+2. **Pack the file system.** All game files from section 3.1 except the executable and the non-game files are concatenated into one blob. Left out are `Wings`, `UFXintro`, `wingt`, every `.info` file and every dotfile, which leaves 55 files. Files stay in their original formats; the core contains the ported loaders. The container is big-endian like everything else the project reads: the magic `WOFS`, a u32 version, a u32 file count, a u32 directory offset, then 40-byte directory entries of a 32-byte NUL-padded name, a u32 offset and a u32 length. Names are paths relative to the disk's `Wings_of_Fury` directory, which is the original's current directory, so the ported loaders use the original's own file names.
 3. **Compile the core** to `core.wasm` with the command in section 2, plus `-Wl,--export-dynamic` or explicit export attributes.
-4. **Assemble the page.** `web/index.html` is the template. The build inlines the CSS, the JavaScript, the base64 of `core.wasm` and the base64 of the file-system blob. The page instantiates the module with `WebAssembly.instantiate(bytes, imports)`; streaming instantiation is not available from `file://`.
+4. **Assemble the page.** `web/index.html` is the template. The build inlines the CSS, the JavaScript, the base64 of `core.wasm` and the base64 of the file-system blob. The files in `web/` are real ES modules, which a `file://` page cannot load from files; the build concatenates them in dependency order into one scope, strips whole-line imports and leading `export` keywords, and then fails if any module syntax is left or an imported name is not defined. The page instantiates the module with `WebAssembly.instantiate(bytes, imports)`; streaming instantiation is not available from `file://`.
 
 Expected output size is below 2 MB.
 
@@ -246,25 +246,38 @@ void            wof_set_video_hz(int hz);          /* 60 (default) or 50 */
 void            wof_vblank(uint8_t raw);           /* call once per emulated VBlank, see 6.2 */
 void            wof_pass(void);                    /* one pass of the main program, see 6.3 */
 const uint8_t  *wof_framebuffer(void);             /* indexed pixels, see 6.4 */
+uint32_t        wof_framebuffer_width(void);       /* the shell queries geometry, never hard-codes it */
+uint32_t        wof_framebuffer_height(void);
 const uint16_t *wof_palette_rows(void);            /* palette index per output row, see 6.4 */
-const uint32_t *wof_palettes(void);
+const uint32_t *wof_palettes(void);                /* wof_palette_count() tables of wof_palette_colours() entries */
+uint32_t        wof_palette_count(void);
+uint32_t        wof_palette_colours(void);
 const void     *wof_display_list(uint32_t *count);
 void            wof_audio_render(int16_t *stereo, uint32_t frames, uint32_t rate);
 uint32_t        wof_state_size(void);              /* save states, replays, tests */
 void            wof_state_save(uint8_t *dst);
 void            wof_state_load(const uint8_t *src);
+uint8_t        *wof_alloc(uint32_t bytes);         /* static arena; how the shell hands the file blob to the core */
+void            wof_arena_reset(void);
+uint32_t        wof_arena_size(void);
+uint32_t        wof_arena_used(void);
+uint32_t        wof_vblank_count(void);            /* counters for the diagnostics overlay and the tests */
+uint32_t        wof_tick_count(void);
+uint32_t        wof_pass_count(void);
 ```
+
+A palette entry is RGBA in memory order, which canvas `ImageData` takes without conversion. `wof_init` does not reset the arena, because the shell allocates the file blob from it before calling `wof_init`. `wof_state_load` checks a magic and a version and leaves the running state untouched when they do not match. A save state is the bytes of the core's state struct, which holds no pointers and no padding; this is valid between little-endian hosts, which both targets are.
 
 `wof_vblank` is the port of `vblank_server` together with `vblank_every_frame`. It takes the **raw controller state** of that VBlank, not a finished input byte: bit 0 down, bit 1 up, bit 2 right, bit 3 left, bit 4 fire button currently down. The core runs the fire-button press timer, cancels opposing directions, applies the reversed-vertical option, assembles the input byte, counts to 4 and queues it, including the 6-entry limit and demo playback and recording. Keeping the tap and hold discrimination inside the core is required for fidelity, because it is evaluated at 60 Hz while sampling happens at 15 Hz (`re/notes/input.md`).
 
 ### 6.2 Shell
 
-Plain JavaScript modules, no framework, no bundler other than the build script.
+Plain JavaScript modules, no framework, no bundler other than the build script (section 5, step 4).
 
-- **Clock.** A fixed-rate accumulator driven by `requestAnimationFrame` issues `wof_vblank` calls at 60 Hz (or 50) of emulated time, then `wof_pass` calls. After a stall, at most 24 VBlanks are replayed, which matches the original's queue limit of 6 ticks.
+- **Clock.** A fixed-rate accumulator driven by `requestAnimationFrame` issues `wof_vblank` calls at 60 Hz (or 50) of emulated time, each followed by one `wof_pass`, independent of the monitor's refresh rate. One pass per VBlank is provisional: the original runs passes as fast as the machine allows, and whether that matters is point 2 of section 10. After a stall, at most 24 VBlanks are replayed, which matches the original's queue limit of 6 ticks.
 - **Video.** Canvas 2D or WebGL. The indexed framebuffer is converted through the per-row palettes to RGBA. Integer scaling, optional 4:3 aspect correction for the 320 x 200 picture, fullscreen.
-- **Input.** Keyboard and Gamepad API are merged into the raw state word passed to `wof_vblank`. A button that goes down and up again between two VBlanks is held sticky until the next `wof_vblank`, so short taps survive; the original samples a level, so this only compensates for the browser's coarser event timing. Menu and text-entry keys take the second path: the shell maps `KeyboardEvent.code`, which is positional, to raw Amiga key codes, which are also positional, and feeds the core's key buffer. The key map is configurable and stored locally.
-- **Audio.** The shell pulls PCM from `wof_audio_render` in blocks that correspond to emulated time and plays them through an `AudioWorklet` loaded from a Blob URL, fed by `postMessage`. Scheduled `AudioBufferSourceNode` blocks are the fallback. Audio starts on the first user gesture.
+- **Input.** Keyboard and Gamepad API are merged into the raw state word passed to `wof_vblank`. A button that goes down and up again between two VBlanks is held sticky until the next `wof_vblank`, so short taps survive; the original samples a level, so this only compensates for the browser's coarser event timing. Menu and text-entry keys take the second path: the shell maps `KeyboardEvent.code`, which is positional, to raw Amiga key codes, which are also positional, and feeds the core's key buffer. The key map is configurable and stored locally. No modifier key may ever be mapped: with Control as fire and W as up, firing while climbing is Ctrl+W, which closes the tab and which a page cannot prevent.
+- **Audio.** The shell pulls PCM from `wof_audio_render` in blocks that correspond to emulated time and plays them through an `AudioWorklet`, fed by `postMessage`. The worklet module is inlined and loaded from a `data:` URL on a `file://` page, where a Blob URL is refused as a cross-origin load, and from a Blob URL elsewhere. Scheduled `AudioBufferSourceNode` blocks are the fallback; the query `?audio=buffers` forces it so that the tests can exercise it. Audio starts on the first user gesture.
 - **Storage.** `highscore` and saved games are written through the virtual file system to `localStorage`, base64-encoded, under a `wof:` prefix.
 - **Pause** when the page is hidden.
 
@@ -284,7 +297,7 @@ The original display is planar. The port uses **8-bit indexed framebuffers** and
 - All drawing primitives of the original (shape blit with transparency, masked and clipped variants, scrolling, text, screen copies) are reimplemented on indexed pixels with identical clipping and identical draw order.
 - The original composes its picture from more than one ViewPort: the 320-pixel low-resolution playfield with 32 colours, and a 640-pixel high-resolution dashboard with its own palette (`iff-dash`, `nightdash` are 640 x 37). The viewport constructor is the C routine around `0x01F7BE`; geometry and colour-table handling are to be established from its callers. The shell output is 640 pixels wide with playfield pixels doubled.
 - `wof_palette_rows` tells the shell which palette applies to each output row.
-- **Display list.** Every shape draw also appends (shape name, x, y, layer or order, flags, owner object id) to a per-pass list. The classic renderer ignores it. It exists so that an enhanced renderer can be added later.
+- **Display list.** Every shape draw also appends a `wof_draw_t` record (4-character shape name, x, y, layer, flags, owner object id) to a per-pass list. The classic renderer ignores it. It exists so that an enhanced renderer can be added later.
 
 If any game logic reads pixels or mask buffers back (the executable names a `MaskBuffer`), those buffers must be kept bit-exact and the logic must read them, not a substitute.
 
@@ -350,7 +363,7 @@ If the blitter turns out to be driven only from a few assembly routines, the hea
 
 ## 9. Milestones
 
-Each milestone ends with a working `dist/wof.html` and green tests.
+Each milestone ends with a working `dist/wof.html` and green tests. **M0 is complete**; the framebuffer it reports, 640 x 200, is provisional until point 6 of section 10 is settled.
 
 | # | Deliverable | Accepted when |
 |---|---|---|
