@@ -14,12 +14,15 @@
  * Keys are read from KeyboardEvent.code, which is positional, like the raw Amiga key codes
  * the menus will need in M3. */
 
+/* No Control key is a fire key: with KeyW mapped to up, firing while climbing would be
+   Ctrl+W, which closes the tab in every mainstream browser and which a page cannot prevent.
+   Do not add them back. */
 const KEYS = {
     ArrowDown: 0x01, KeyS: 0x01,
     ArrowUp: 0x02, KeyW: 0x02,
     ArrowRight: 0x04, KeyD: 0x04,
     ArrowLeft: 0x08, KeyA: 0x08,
-    Space: 0x10, ControlLeft: 0x10, ControlRight: 0x10, KeyZ: 0x10,
+    Space: 0x10, KeyZ: 0x10,
 };
 
 const PAD_BUTTONS = { 12: 0x02, 13: 0x01, 14: 0x08, 15: 0x04 };  /* d-pad up down left right */
@@ -88,5 +91,7 @@ export function createInput(target) {
         return bits;
     }
 
-    return { consume, raw: () => (held | sticky) & 0x1f };
+    /* What the next consume() would return, without consuming the latch: the overlay has to
+       show gamepad input too, and must not eat a press on its way past. */
+    return { consume, raw: () => (held | sticky | gamepad()) & 0x1f };
 }
