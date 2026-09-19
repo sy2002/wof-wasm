@@ -17,9 +17,17 @@ import pytest
 
 from conftest import (ROOT,
                       assert_a_modifier_alone_starts_nothing,
+                      assert_the_box_has_the_display_aspect,
+                      assert_the_box_is_the_largest_that_fits,
+                      assert_the_canvas_shows_the_picture,
                       assert_the_next_real_key_starts_the_sound,
+                      assert_the_screenshot_shows_the_picture,
                       assert_web_audio_waits_for_a_gesture,
-                      overlay_audio, overlay_number)
+                      measured_box, overlay_audio, overlay_number)
+
+# What the shell was showing when each measurement was taken.
+STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL',
+               'tall': 'PAL', 'small': 'PAL', 'playScreen': 'PAL'}
 
 FIREFOX = os.environ.get('WOF_FIREFOX', '/Applications/Firefox.app/Contents/MacOS/firefox')
 HARNESS = ROOT / 'tests' / 'pagecheck_firefox.mjs'
@@ -94,11 +102,67 @@ def test_the_play_screen_stacks_three_viewports(loaded_firefox):
 
 
 def test_the_emulated_clock_is_steady(loaded_firefox):
+    """PAL by default: 50 VBlanks, 50 passes and 12.5 ticks a second."""
     overlay = loaded_firefox['overlay']
-    assert abs(overlay_number(overlay, 'vblanks/s') - 60) <= 2
-    assert abs(overlay_number(overlay, 'passes/s') - 60) <= 2
-    assert abs(overlay_number(overlay, 'ticks/s') - 15) <= 1
+    assert abs(overlay_number(overlay, 'vblanks/s') - 50) <= 2
+    assert abs(overlay_number(overlay, 'passes/s') - 50) <= 2
+    assert abs(overlay_number(overlay, 'ticks/s') - 12.5) <= 1
     assert 'exactly 4: yes' in overlay
+
+
+def test_the_ntsc_standard_runs_the_clock_at_60(loaded_firefox):
+    ntsc = loaded_firefox['box']['ntsc']['overlay']
+    assert abs(overlay_number(ntsc, 'vblanks/s') - 60) <= 2
+    assert abs(overlay_number(ntsc, 'passes/s') - 60) <= 2
+    assert abs(overlay_number(ntsc, 'ticks/s') - 15) <= 1
+    back = loaded_firefox['box']['palAgain']['overlay']
+    assert abs(overlay_number(back, 'vblanks/s') - 50) <= 2
+    assert abs(overlay_number(back, 'ticks/s') - 12.5) <= 1
+
+
+# ------------------------------------------------------------------ the picture on the page
+
+def test_the_picture_is_shown_in_the_display_aspect(loaded_firefox):
+    for name, standard in STANDARD_OF.items():
+        assert_the_box_has_the_display_aspect(loaded_firefox['box'][name]['geometry'],
+                                              standard, name)
+
+
+def test_the_picture_fills_the_window(loaded_firefox):
+    for name, standard in STANDARD_OF.items():
+        assert_the_box_is_the_largest_that_fits(loaded_firefox['box'][name]['geometry'],
+                                                standard, name)
+
+
+def test_the_picture_follows_a_resize(loaded_firefox):
+    seen = {}
+    for name in ('default', 'wide', 'tall', 'small'):
+        geometry = loaded_firefox['box'][name]['geometry']
+        seen[name] = (geometry['window']['width'], geometry['window']['height'])
+    assert len(set(seen.values())) == len(seen), seen
+
+    wide = measured_box(loaded_firefox['box']['wide']['geometry'])
+    assert abs(wide['height'] - wide['available_height']) <= 1 and wide['width'] < wide['available_width']
+    tall = measured_box(loaded_firefox['box']['tall']['geometry'])
+    assert abs(tall['width'] - tall['available_width']) <= 1 and tall['height'] < tall['available_height']
+
+
+def test_the_canvas_on_the_page_shows_the_picture(loaded_firefox):
+    for name in STANDARD_OF:
+        assert_the_canvas_shows_the_picture(loaded_firefox['box'][name]['display'], name)
+
+
+def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded_firefox):
+    for name in ('default', 'wide', 'playScreen'):
+        seen = loaded_firefox['box'][name]
+        assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
+                                                seen['display'], name)
+
+
+def test_the_hint_bar_shares_the_diagnostics_key(loaded_firefox):
+    assert loaded_firefox['hintVisibleWithOverlay']
+    for name in ('default', 'wide', 'playScreen'):
+        assert loaded_firefox['box'][name]['hintVisible'] is False, name
 
 
 def test_audio_is_running_after_the_key_press(loaded_firefox):
@@ -115,9 +179,34 @@ def test_the_visible_canvas_shows_the_picture(loaded_firefox_visible):
     """The one check headless cannot make.  In GPU-composited Firefox an accelerated 2D
     canvas never shows what putImageData wrote and reads back as a single colour, which is
     the black screen a player would see; web/video.js asks for a software-backed canvas to
-    avoid it."""
+    avoid it.  This is the canvas putImageData writes to."""
     picture = loaded_firefox_visible['picture']
     assert picture['colours'] > 1, 'the shipped canvas reads back as one colour'
     assert picture['colours'] >= 8
     rows = loaded_firefox_visible['playScreen']['rows']
     assert rows['playfield'] > 0 and rows['dashboard'] > 0 and rows['ticker'] > 0, rows
+
+
+def test_the_visible_page_shows_the_picture_it_was_given(loaded_firefox_visible):
+    """The canvas on the page, not the one putImageData writes to: it is drawn into and
+    composited, which is the path the fault above lives on, and in a real window it is the
+    accelerated one.  At the size the window opens at and after a resize."""
+    for name in ('default', 'wide'):
+        assert_the_canvas_shows_the_picture(loaded_firefox_visible['box'][name]['display'], name)
+
+
+def test_the_visible_compositor_shows_the_picture(loaded_firefox_visible):
+    """And what the compositor really puts on the screen, which no canvas read-back can
+    answer for: inside the box the picture, outside it black."""
+    for name in ('default', 'wide', 'playScreen'):
+        seen = loaded_firefox_visible['box'][name]
+        assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
+                                                seen['display'], name)
+
+
+def test_the_visible_window_shows_it_in_the_display_aspect(loaded_firefox_visible):
+    for name in ('default', 'wide'):
+        assert_the_box_has_the_display_aspect(
+            loaded_firefox_visible['box'][name]['geometry'], 'PAL', name)
+        assert_the_box_is_the_largest_that_fits(
+            loaded_firefox_visible['box'][name]['geometry'], 'PAL', name)

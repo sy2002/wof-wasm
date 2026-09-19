@@ -8,7 +8,9 @@ ctypes, which is the path every later milestone's oracle tests will use.
 """
 import base64
 import ctypes
+import io
 import json
+import math
 import pathlib
 import re
 import subprocess
@@ -360,3 +362,170 @@ class Ported:
 @pytest.fixture(scope='session')
 def ported(built, blob):
     return Ported(blob)
+
+
+# ------------------------------------------------- the display box, SPEC 6.2 bullet Video
+
+# The box one 640 x 214 framebuffer is shown in, per video standard.  Both are the machine's,
+# not a preference: a low-resolution pixel is 16/15 as wide as tall on PAL and 5/6 on NTSC.
+BOXES = {'PAL': (1024, 642), 'NTSC': (800, 642)}
+
+# Everything about the box is judged in device pixels and to within one of them, because that
+# is the unit the shell rounds to and the smallest difference anybody could see.
+DEVICE_PIXEL = 1.0
+
+# How far a colour read back off the page may be from the framebuffer pixel it belongs to.
+# The sample points sit in flat neighbourhoods (tests/pagemeasure.mjs), so the smooth
+# reduction has nothing to blend there and the difference should be nothing at all; this
+# leaves room for a rounding step, not for a wrong picture.
+CANVAS_TOLERANCE = 8
+
+# A screenshot is what the compositor shows, and it may carry a colour transform the canvas
+# read-back does not.  The tolerance is therefore wider - but still far from black.
+SCREENSHOT_TOLERANCE = 32
+BLACK = 12
+
+
+def measured_box(geometry):
+    """The DOM's own numbers, converted to device pixels: what the page really shows."""
+    dpr = geometry['dpr']
+    rect = geometry['rect']
+    return {
+        'left': rect['left'] * dpr,
+        'top': rect['top'] * dpr,
+        'width': rect['width'] * dpr,
+        'height': rect['height'] * dpr,
+        'available_width': math.floor(geometry['window']['width'] * dpr),
+        'available_height': math.floor(geometry['window']['height'] * dpr),
+        'dpr': dpr,
+    }
+
+
+def _where(geometry, note):
+    return '%s: window %s at dpr %s, canvas %s, backing %s, the shell says %s' % (
+        note, geometry['window'], geometry['dpr'], geometry['rect'], geometry['backing'],
+        geometry['shellSays'])
+
+
+def assert_the_box_has_the_display_aspect(geometry, standard, note=''):
+    """SPEC 6.2: 1024 : 642 on PAL, 800 : 642 on NTSC - never square framebuffer pixels,
+    which would give a strip three times as wide as it is high."""
+    box = measured_box(geometry)
+    wide, high = BOXES[standard]
+    wanted = box['height'] * wide / high
+    assert abs(box['width'] - wanted) <= DEVICE_PIXEL, (
+        'the box is %.2f x %.2f device pixels, which is %.4f : 1, not %d : %d (%.2f x %.2f) - %s'
+        % (box['width'], box['height'], box['width'] / box['height'], wide, high,
+           wanted, box['height'], _where(geometry, note)))
+
+
+def assert_the_box_is_the_largest_that_fits(geometry, standard, note=''):
+    """The largest box of that ratio the window holds, centred, on whole device pixels, with
+    the backing store in device pixels so that nothing is resampled a third time."""
+    box = measured_box(geometry)
+    wide, high = BOXES[standard]
+    available_width = box['available_width']
+    available_height = box['available_height']
+
+    if available_width * high >= available_height * wide:
+        assert abs(box['height'] - available_height) <= DEVICE_PIXEL, (
+            'the window is wider than the box, so the box must be as high as the window - %s'
+            % _where(geometry, note))
+    else:
+        assert abs(box['width'] - available_width) <= DEVICE_PIXEL, (
+            'the window is taller than the box, so the box must be as wide as the window - %s'
+            % _where(geometry, note))
+    assert box['width'] <= available_width + DEVICE_PIXEL, _where(geometry, note)
+    assert box['height'] <= available_height + DEVICE_PIXEL, _where(geometry, note)
+
+    assert abs(box['left'] - (available_width - box['width']) / 2) <= DEVICE_PIXEL, (
+        'the box is not centred sideways - %s' % _where(geometry, note))
+    assert abs(box['top'] - (available_height - box['height']) / 2) <= DEVICE_PIXEL, (
+        'the box is not centred up and down - %s' % _where(geometry, note))
+
+    assert abs(geometry['backing']['width'] - box['width']) <= DEVICE_PIXEL, (
+        'the backing store is not the CSS width in device pixels - %s' % _where(geometry, note))
+    assert abs(geometry['backing']['height'] - box['height']) <= DEVICE_PIXEL, (
+        'the backing store is not the CSS height in device pixels - %s' % _where(geometry, note))
+
+    for name in ('left', 'top', 'width', 'height'):
+        assert abs(box[name] - round(box[name])) <= 0.25, (
+            'the box does not land on whole device pixels (%s is %.3f) - %s'
+            % (name, box[name], _where(geometry, note)))
+
+
+def assert_the_samples_are_a_real_picture(display, note=''):
+    """A sample set of one colour would pass against a canvas that drew nothing."""
+    points = display['points']
+    assert len(points) >= 12, '%s: only %d sample points' % (note, len(points))
+    colours = {tuple(point['source']) for point in points}
+    lit = [colour for colour in colours if max(colour) > BLACK]
+    assert len(colours) >= 3 and len(lit) >= 2, (
+        '%s: the sample points carry %s, which is too little of a picture to prove anything'
+        % (note, sorted(colours)))
+
+
+def assert_the_canvas_shows_the_picture(display, note=''):
+    """The canvas the browser composites carries the framebuffer, read back pixel by pixel at
+    the centres of framebuffer pixels that sit in a flat neighbourhood."""
+    assert_the_samples_are_a_real_picture(display, note)
+    worst = None
+    for point in display['points']:
+        delta = max(abs(a - b) for a, b in zip(point['source'], point['display']))
+        if worst is None or delta > worst[0]:
+            worst = (delta, point)
+    assert worst[0] <= CANVAS_TOLERANCE, (
+        '%s: at framebuffer pixel (%d, %d) the page shows %s where the framebuffer has %s'
+        % (note, worst[1]['x'], worst[1]['y'], worst[1]['display'], worst[1]['source']))
+    assert display['displayColours'] >= 8, (
+        '%s: the canvas on the page has %d colours' % (note, display['displayColours']))
+
+
+def screenshot_image(encoded):
+    from PIL import Image
+    return Image.open(io.BytesIO(base64.b64decode(encoded))).convert('RGB')
+
+
+def assert_the_screenshot_shows_the_picture(encoded, geometry, display, note=''):
+    """What the compositor puts on the screen, which a canvas read-back is not: inside the box
+    the screenshot carries the picture, outside it there is black and nothing else."""
+    assert_the_samples_are_a_real_picture(display, note)
+    image = screenshot_image(encoded)
+    dpr = geometry['dpr']
+    rect = geometry['rect']
+    # The screenshot need not be in device pixels; what it is in is decided by comparing it
+    # with the viewport it shows.
+    scale = image.width / geometry['window']['width']
+
+    def shot_pixel(css_x, css_y):
+        x = min(image.width - 1, max(0, int(css_x * scale)))
+        y = min(image.height - 1, max(0, int(css_y * scale)))
+        return image.getpixel((x, y))
+
+    worst = None
+    for point in display['points']:
+        got = shot_pixel(rect['left'] + point['dx'] / dpr, rect['top'] + point['dy'] / dpr)
+        delta = max(abs(a - b) for a, b in zip(point['source'], got))
+        if worst is None or delta > worst[0]:
+            worst = (delta, point, got)
+    assert worst[0] <= SCREENSHOT_TOLERANCE, (
+        '%s: the screenshot shows %s at framebuffer pixel (%d, %d), where the framebuffer has '
+        '%s' % (note, list(worst[2]), worst[1]['x'], worst[1]['y'], worst[1]['source']))
+
+    outside = []
+    margin_left = rect['left']
+    margin_top = rect['top']
+    if margin_left >= 4:
+        outside.append((margin_left / 2, rect['top'] + rect['height'] / 2))
+        outside.append((rect['left'] + rect['width'] + margin_left / 2,
+                        rect['top'] + rect['height'] / 2))
+    if margin_top >= 4:
+        outside.append((rect['left'] + rect['width'] / 2, margin_top / 2))
+        outside.append((rect['left'] + rect['width'] / 2,
+                        rect['top'] + rect['height'] + margin_top / 2))
+    assert outside, '%s: the box fills the window, so there is nothing outside it' % note
+    for css_x, css_y in outside:
+        got = shot_pixel(css_x, css_y)
+        assert max(got) <= BLACK, (
+            '%s: outside the box, at (%.0f, %.0f) css, the screenshot is %s, not black'
+            % (note, css_x, css_y, list(got)))

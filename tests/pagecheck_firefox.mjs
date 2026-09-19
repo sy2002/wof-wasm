@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -122,6 +123,8 @@ try {
     const KEY_SPACE = ' ';
     const KEY_BACKQUOTE = '`';
     const KEY_RIGHT = '\uE014';
+    const KEY_FIVE = '5';
+    const KEY_SIX = '6';
 
     function press(where, value) {
         return send(socket, 'input.performActions', {
@@ -141,43 +144,6 @@ try {
 
     await press(context, KEY_BACKQUOTE);
     await sleep(2500);
-
-    /* The picture, and the rows that tell the three viewports of SPEC 6.4 apart: the
-       playfield, the dashboard at line 163 and the ticker at line 201, with lines 162 and
-       200 blank because the copper drops BPLCON0 for the line above each lower viewport. */
-    const PICTURE = `(() => {
-        const canvas = document.getElementById('screen');
-        const ctx = canvas.getContext('2d');
-        const image = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        const colours = new Set();
-        let hash = 0;
-        for (let i = 0; i < image.length; i += 4) {
-            colours.add(image[i] << 16 | image[i + 1] << 8 | image[i + 2]);
-            hash = (hash * 31 + image[i] + image[i + 1] * 3 + image[i + 2] * 7) >>> 0;
-        }
-        const lit = (y) => {
-            let n = 0;
-            for (let x = 0; x < canvas.width; x++) {
-                const i = (y * canvas.width + x) * 4;
-                if (image[i] || image[i + 1] || image[i + 2]) n++;
-            }
-            return n;
-        };
-        return {
-            width: canvas.width,
-            height: canvas.height,
-            cssWidth: canvas.style.width,
-            colours: colours.size,
-            hash,
-            rows: {
-                playfield: lit(80) + lit(120),
-                blankAboveDash: lit(162),
-                dashboard: lit(180),
-                blankAboveTicker: lit(200),
-                ticker: lit(205),
-            },
-        };
-    })()`;
 
     report.audioAfterKey = await evaluate('window.__wofAudio');
     report.picture = await evaluate(PICTURE);
@@ -199,6 +165,86 @@ try {
         "!document.getElementById('overlay').classList.contains('off')");
     report.gestureHidden = await evaluate(
         "document.getElementById('gesture').classList.contains('off')");
+
+    /* ----------------------------------------------------------------- the display box
+     *
+     * SPEC 6.2: the picture is shown in the machine's proportions, as large as the window
+     * allows, centred, on whole device pixels.  Measured off the DOM and judged in
+     * tests/conftest.py, the same way as in Chrome (tests/pagemeasure.mjs).
+     *
+     * In the visible run this is the check that a canvas read-back cannot make on its own:
+     * the screenshot comes from the compositor, which is where Firefox's accelerated canvas
+     * once showed a black picture that every headless test called green.
+     */
+    async function viewport(width, height) {
+        await send(socket, 'browsingContext.setViewport', {
+            context, viewport: { width, height },
+        });
+        await sleep(500);
+    }
+
+    async function look(label, withScreenshot) {
+        const seen = { label, geometry: await evaluate(GEOMETRY), display: await evaluate(DISPLAY) };
+        if (withScreenshot) {
+            /* Nothing may lie over the picture: the overlay and the hint bar go away on the
+               key that brought them, and come back afterwards. */
+            await press(context, KEY_BACKQUOTE);
+            await sleep(400);
+            seen.hintVisible = await evaluate(
+                "!document.getElementById('hint').classList.contains('off')");
+            seen.screenshot = (await send(socket, 'browsingContext.captureScreenshot',
+                                          { context })).data;
+            await press(context, KEY_BACKQUOTE);
+            await sleep(400);
+        }
+        return seen;
+    }
+
+    const overlayText = () => evaluate("document.getElementById('overlay').textContent");
+
+    report.hintVisibleWithOverlay = await evaluate(
+        "!document.getElementById('hint').classList.contains('off')");
+
+    /* The title picture rather than the publisher logo the viewer starts on, which is almost
+       entirely black and would let a canvas that drew nothing but black pass. */
+    await press(context, KEY_RIGHT);
+    await sleep(400);
+
+    report.box = { default: await look('default', true) };
+    report.box.default.present = await evaluate(PRESENT_COST);
+
+    await press(context, KEY_SIX);
+    await sleep(1800);
+    report.box.ntsc = { label: 'ntsc', geometry: await evaluate(GEOMETRY) };
+    report.box.ntsc.overlay = await overlayText();
+    report.box.ntsc.display = await evaluate(DISPLAY);
+
+    await press(context, KEY_FIVE);
+    await sleep(1800);
+    report.box.palAgain = { label: 'pal again', geometry: await evaluate(GEOMETRY) };
+    report.box.palAgain.overlay = await overlayText();
+    report.box.palAgain.display = await evaluate(DISPLAY);
+
+    /* One resize with a screenshot, which is what the visible run is here for, and two more
+       shapes of window to show that the box follows any of them. */
+    await viewport(1100, 500);
+    report.box.wide = await look('wide', true);
+    report.box.wide.present = await evaluate(PRESENT_COST);
+    await viewport(600, 860);
+    report.box.tall = await look('tall', false);
+    await viewport(420, 320);
+    report.box.small = await look('small', false);
+
+    await send(socket, 'browsingContext.setViewport', { context, viewport: null });
+    await sleep(500);
+
+    /* The play screen as well as the title picture: three viewports of different depths,
+       stacked, with two blank lines between them. */
+    for (let i = 0; i < 4; i++) {
+        await press(context, KEY_RIGHT);
+        await sleep(250);
+    }
+    report.box.playScreen = await look('play screen', true);
 
     /* A modifier on its own is the case that cost a session of silence: Command, pressed to
        open the console, is a keydown that activates nothing.  The page must build no

@@ -16,9 +16,17 @@ import sys
 import pytest
 
 from conftest import (assert_a_modifier_alone_starts_nothing,
+                      assert_the_box_has_the_display_aspect,
+                      assert_the_box_is_the_largest_that_fits,
+                      assert_the_canvas_shows_the_picture,
                       assert_the_next_real_key_starts_the_sound,
+                      assert_the_screenshot_shows_the_picture,
                       assert_web_audio_waits_for_a_gesture,
-                      overlay_audio, overlay_number)
+                      measured_box, overlay_audio, overlay_number)
+
+# What the shell was showing when each measurement was taken.
+STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL',
+               'tall': 'PAL', 'small': 'PAL', 'retina': 'PAL', 'playScreen': 'PAL'}
 
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
@@ -52,11 +60,6 @@ def test_the_picture_is_the_core_geometry(loaded):
     assert picture['colours'] >= 8, 'the publisher logo has almost no colours in it'
 
 
-def test_the_canvas_is_scaled_by_a_whole_number(loaded):
-    factor = int(loaded['picture']['cssWidth'].replace('px', '')) / loaded['picture']['width']
-    assert factor == int(factor) and factor >= 1
-
-
 def test_the_three_pictures_are_on_the_canvas(loaded):
     """The M1 acceptance criterion: the publisher logo, the title and the credit picture,
     each decoded by the ported ILBM reader with its own colours."""
@@ -87,11 +90,100 @@ def test_the_play_screen_stacks_three_viewports(loaded):
 
 
 def test_the_emulated_clock_is_steady(loaded):
-    assert abs(overlay_number(loaded['overlay'], 'vblanks/s') - 60) <= 2
-    assert abs(overlay_number(loaded['overlay'], 'passes/s') - 60) <= 2
-    assert abs(overlay_number(loaded['overlay'], 'ticks/s') - 15) <= 1
+    """PAL is the default video standard, so the page runs at 50 VBlanks, 50 passes and
+    12.5 ticks a second.  A counted rate of something that happens 12.5 times a second is a
+    whole number either way; the cumulative ratio is the exact statement."""
+    assert abs(overlay_number(loaded['overlay'], 'vblanks/s') - 50) <= 2
+    assert abs(overlay_number(loaded['overlay'], 'passes/s') - 50) <= 2
+    assert abs(overlay_number(loaded['overlay'], 'ticks/s') - 12.5) <= 1
     assert 'exactly 4: yes' in loaded['overlay']
     assert overlay_number(loaded['overlay'], 'animation/s') > 30
+
+
+def test_the_ntsc_standard_runs_the_clock_at_60(loaded):
+    """One setting: key 6 is the 800 : 642 box and 60 Hz together, key 5 is PAL again."""
+    ntsc = loaded['box']['ntsc']['overlay']
+    assert abs(overlay_number(ntsc, 'vblanks/s') - 60) <= 2
+    assert abs(overlay_number(ntsc, 'passes/s') - 60) <= 2
+    assert abs(overlay_number(ntsc, 'ticks/s') - 15) <= 1
+    assert 'exactly 4: yes' in ntsc
+
+    back = loaded['box']['palAgain']['overlay']
+    assert abs(overlay_number(back, 'vblanks/s') - 50) <= 2
+    assert abs(overlay_number(back, 'passes/s') - 50) <= 2
+    assert abs(overlay_number(back, 'ticks/s') - 12.5) <= 1
+
+
+# ------------------------------------------------------------------ the picture on the page
+
+def test_the_picture_is_shown_in_the_display_aspect(loaded):
+    """SPEC 6.2: 1024 : 642 on PAL and 800 : 642 on NTSC, measured off the DOM.  Square
+    framebuffer pixels would give 640 : 214, a strip three times as wide as it is high."""
+    for name, standard in STANDARD_OF.items():
+        assert_the_box_has_the_display_aspect(loaded['box'][name]['geometry'], standard, name)
+
+
+def test_the_picture_fills_the_window(loaded):
+    """The largest box of that ratio that fits, centred, on whole device pixels."""
+    for name, standard in STANDARD_OF.items():
+        assert_the_box_is_the_largest_that_fits(loaded['box'][name]['geometry'], standard, name)
+
+
+def test_the_picture_follows_a_resize(loaded):
+    """A wide, a tall and a small viewport, each set through the driver: in the wide one the
+    box is as high as the window, in the tall one as wide, which the assertions above decide
+    for each.  What is left to prove here is that the viewport really did change and that the
+    box is not simply the same rectangle every time."""
+    seen = {}
+    for name in ('default', 'wide', 'tall', 'small', 'retina'):
+        geometry = loaded['box'][name]['geometry']
+        seen[name] = (geometry['window']['width'], geometry['window']['height'],
+                      geometry['dpr'], geometry['backing']['width'], geometry['backing']['height'])
+    assert len(set(seen.values())) == len(seen), seen
+
+    wide = measured_box(loaded['box']['wide']['geometry'])
+    assert abs(wide['height'] - wide['available_height']) <= 1 and wide['width'] < wide['available_width']
+    tall = measured_box(loaded['box']['tall']['geometry'])
+    assert abs(tall['width'] - tall['available_width']) <= 1 and tall['height'] < tall['available_height']
+
+
+def test_a_retina_backing_store_is_the_css_size_times_two(loaded):
+    """devicePixelRatio 2, emulated through the DevTools protocol: the canvas has to carry
+    twice as many pixels in each direction as its CSS size, or the picture is resampled by
+    the browser on top of everything the shell did."""
+    geometry = loaded['box']['retina']['geometry']
+    assert geometry['dpr'] == 2, geometry
+    assert geometry['backing']['width'] == round(geometry['rect']['width'] * 2), geometry
+    assert geometry['backing']['height'] == round(geometry['rect']['height'] * 2), geometry
+
+
+def test_the_canvas_on_the_page_shows_the_picture(loaded):
+    """The exact pixels live on the source canvas now; what the page shows is the two-step
+    scaling of them.  Sample points at the centres of framebuffer pixels, taken where the
+    framebuffer is flat so that the smooth step has nothing to blend, must carry the colour
+    that belongs there - on the title picture, on the play screen and at every size."""
+    for name in STANDARD_OF:
+        assert_the_canvas_shows_the_picture(loaded['box'][name]['display'], name)
+
+
+def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded):
+    """A screenshot is what the compositor puts on the screen, which a canvas read-back is
+    not: it also proves that the canvas is where the measurements say it is."""
+    shot = [name for name in STANDARD_OF if loaded['box'][name].get('screenshot')]
+    assert sorted(shot) == ['default', 'playScreen', 'retina', 'tall', 'wide'], shot
+    for name in shot:
+        seen = loaded['box'][name]
+        assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
+                                                seen['display'], name)
+
+
+def test_the_hint_bar_shares_the_diagnostics_key(loaded):
+    """It would lie over the ticker rows in every window wider than the box, so it goes with
+    the gesture prompt and comes back only with the diagnostics overlay."""
+    assert loaded['hintVisibleWithOverlay'], 'the hint bar is not shown with the overlay'
+    for name in ('default', 'wide', 'tall', 'retina', 'playScreen'):
+        assert loaded['box'][name]['hintVisible'] is False, (
+            'the hint bar is still up with the overlay closed (%s)' % name)
 
 
 def test_audio_is_running_after_the_key_press(loaded):
