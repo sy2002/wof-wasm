@@ -515,3 +515,51 @@ def test_the_blit_writes_exactly_the_shape_box(ported):
                 assert touched <= box, (
                     'a blit of %s at (%d,%d) touched %d pixels outside its box'
                     % (struct.pack('>I', reference.name(index)), x, y, len(touched - box)))
+
+
+# ------------------------------------------------------------------- the system font
+
+def test_the_system_font_came_out_of_the_rom():
+    """topaz 8 is not on the game disk; the build takes it from the owner's Kickstart
+    ROM by looking for its contents, so that another Kickstart version works too
+    (re/notes/system-font.md)."""
+    import extract_tables
+
+    with open(ROOT / 'original' / 'kick.rom', 'rb') as handle:
+        rom = handle.read()
+    font = extract_tables.find_topaz8(rom)
+
+    assert font is not None, 'no topaz 8 found in original/kick.rom'
+    assert (font['ysize'], font['xsize'], font['baseline']) == (8, 8, 6)
+    assert (font['lo'], font['hi']) == (0x20, 0xFF)
+    assert font['modulo'] == 192
+
+    glyphs = font['hi'] - font['lo'] + 2
+    bitmap = rom[font['data']:font['data'] + font['modulo'] * font['ysize']]
+    assert len(bitmap) == font['modulo'] * font['ysize']
+    assert any(bitmap), 'the glyph bitmap is empty'
+
+    # The location table is bit offset and bit width per glyph, and topaz is fixed width.
+    locations = struct.unpack('>%dH' % (2 * glyphs),
+                              rom[font['loc']:font['loc'] + 4 * glyphs])
+    widths = set(locations[1::2])
+    assert widths == {font['xsize']}, widths
+    assert locations[0] == 0
+    assert max(locations[0::2]) + font['xsize'] <= font['modulo'] * 8
+
+
+def test_the_build_falls_back_when_the_rom_is_absent(tmp_path, capsys):
+    """SPEC 5 step 1: no ROM means the game's own font and a message, not a failed build."""
+    import extract_tables
+
+    header, source, messages = [], [], []
+    saved = extract_tables.ROM
+    try:
+        extract_tables.ROM = str(tmp_path / 'not-a-rom')
+        extract_tables.emit_sysfont({'name': 'topaz8'}, header, source, messages.append)
+    finally:
+        extract_tables.ROM = saved
+
+    assert any('kick.rom is absent' in message for message in messages), messages
+    assert any('fall back to the game' in message for message in messages), messages
+    assert 'const int      wof_tbl_topaz8_present  = 0;' in source

@@ -111,8 +111,12 @@ static uint8_t brightest_pen(const wof_vport_t *v)
     return best;
 }
 
+/* Captions are trimmed to what the surface holds: text_render returns 0 for anything
+ * wider than its buffer, so an over-long one would otherwise simply not appear. */
 static void caption(wof_vport_t *v, const char *text, uint16_t len, int16_t y)
 {
+    while (len && wof_text_width(text, len) > v->width - 8)
+        len--;
     wof_draw_set_target(v);
     wof_text_draw(text, len, 4, y, brightest_pen(v));
 }

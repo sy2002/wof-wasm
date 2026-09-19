@@ -225,9 +225,8 @@ int wof_sysfont_present(void)
 
 uint16_t wof_sysfont_width(const char *s, uint16_t len)
 {
-    (void)s;
     if (!wof_tbl_topaz8_present)
-        return 0;
+        return wof_text_width(s, len);      /* the fallback of re/notes/system-font.md */
     return (uint16_t)(len * wof_tbl_topaz8_xsize);
 }
 
@@ -238,7 +237,13 @@ void wof_sysfont_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_t
 {
     const wof_target_t *t = wof_draw_target();
 
-    if (!wof_tbl_topaz8_present || !t->pixels)
+    /* Without original/kick.rom there is no topaz 8, and the dialogs fall back to the
+     * game's own font (re/notes/system-font.md).  The build says so when it happens. */
+    if (!wof_tbl_topaz8_present) {
+        wof_text_draw(s, len, x, y, pen);
+        return;
+    }
+    if (!t->pixels)
         return;
 
     uint16_t glyphs = (uint16_t)(wof_tbl_topaz8_hi - wof_tbl_topaz8_lo + 1);
