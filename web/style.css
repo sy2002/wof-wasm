@@ -1,0 +1,76 @@
+/* Wings of Fury - shell styling.  Everything is inlined into dist/wof.html by
+   tools/build.py; no font, image or stylesheet is ever loaded from anywhere. */
+
+:root {
+    color-scheme: dark;
+    --ink: #d8dee9;
+    --dim: #7a8699;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #000;
+    color: var(--ink);
+    font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow: hidden;
+}
+
+#stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+#screen {
+    display: block;
+    image-rendering: pixelated;
+    background: #000;
+}
+
+#hint {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 6px 10px;
+    text-align: center;
+    color: var(--dim);
+    background: rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+}
+
+#gesture {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    letter-spacing: 0.08em;
+    background: rgba(0, 0, 0, 0.72);
+    pointer-events: none;
+}
+
+#gesture.off, #overlay.off {
+    display: none;
+}
+
+#overlay {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    min-width: 19em;
+    padding: 10px 12px;
+    background: rgba(8, 12, 18, 0.88);
+    border: 1px solid #2c3647;
+    white-space: pre;
+    pointer-events: none;
+}
+
+#overlay b {
+    color: #ffd479;
+    font-weight: normal;
+}

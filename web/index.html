@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wings of Fury</title>
+<link rel="icon" href="data:,">
+<style>@@WOF_CSS@@</style>
+</head>
+<body>
+<div id="stage"><canvas id="screen"></canvas></div>
+<div id="gesture">press any key for sound</div>
+<div id="overlay" class="off"></div>
+<div id="hint">` diagnostics &middot; 5 / 6 video rate &middot; arrows or WASD and space</div>
+
+<!-- The core and the game's files, inlined by tools/build.py.  These are not scripts: the
+     type keeps the browser from running them, the shell reads them as text and decodes. -->
+<script id="wof-wasm" type="text/wof-base64">@@WOF_WASM_BASE64@@</script>
+<script id="wof-fs" type="text/wof-base64">@@WOF_FS_BASE64@@</script>
+
+<script>@@WOF_JS@@</script>
+</body>
+</html>
