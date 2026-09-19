@@ -1,0 +1,81 @@
+# <hex addr> <name> [; comment]        - read by tools/disasm.py, regenerate re/Wings.lst after editing
+
+# ---- program structure
+010000 entry                 ; jmp to the C runtime startup
+010006 main                  ; asm. init, outer loop loc_010066 (title/menus/mission), inner per-frame loop loc_01010e
+010228 frame_update          ; asm. per-frame pipeline: fixed sequence of subsystem updates (asm + C)
+021f2e c_startup             ; Aztec C runtime startup: clears BSS, opens dos.library, calls main
+021fa0 geta4                 ; lea $2affe,a4
+012570 open_libraries        ; asm. intuition + graphics
+01259e close_libraries
+
+# ---- timing and the input queue  (see re/notes/input.md)
+011754 vblank_server         ; asm. "Interrupt_Server": every 4th VBlank sample one input byte into the queue
+0114d8 run_queued_ticks      ; asm. one logic tick per queued input byte
+011386 logic_tick            ; asm. one logic tick: pops an input byte, then updates every subsystem
+011714 input_queue_pop       ; asm. returns queue[0] in D0, shifts the queue, guarded by Disable/Enable
+01174a input_queue_clear
+027354 input_queue_count     ; 0..6; vblank_server drops the oldest entry when full
+027356 input_queue           ; words, oldest first
+027362 vblank_divider        ; counts 4..1; one input sample (= one logic tick) per 4 VBlanks
+026c92 vblank_counter        ; long, incremented by vblank_every_frame
+026d42 tick_input            ; the input byte of the current tick, read by all the logic subsystems
+
+# ---- input sampling  (see re/notes/input.md)
+01c9ca vblank_every_frame    ; C. runs every VBlank: fire-button edge timing, sets the tap and hold latches
+01ca32 read_joystick         ; C. assembles the input byte for one tick
+01cb20 read_joy_dispatch     ; asm. -> read_joy_bits, or sub_021dce when g_026eb0 is set
+01520e read_joy_bits         ; asm. JOY1DAT -> direction bitmask via joy_bits_table, applies opt_invert_vertical
+0256a6 joy_bits_table        ; 16 bytes: gray-code index -> bitmask b0=down b1=up b2=left b3=right, 0 if contradictory
+0254f6 opt_invert_vertical   ; non-zero swaps the up and down bits (eori #3)
+027366 input_byte            ; word; b0 down, b1 up, b2 right, b3 left, b4 fire held, b5 fire tapped
+027367 input_byte_lo         ; the low byte of input_byte, where the bits are actually set
+027dfa fire_hold_latch       ; set by vblank_every_frame after 10 VBlanks of holding; becomes bit 4
+027dfc fire_tap_latch        ; set by vblank_every_frame on release within 10 VBlanks; becomes bit 5
+026c8c fire_prev_state       ; fire state of the previous VBlank, for edge detection
+026c8e fire_press_frame      ; vblank_counter value when the current press started
+02046a read_fire_button      ; asm. 1 if fire is down on CIA-A PRA bit 6 (port 1) or bit 7 (port 2)
+020488 read_joy_dir8         ; asm. JOY1DAT -> 0=centre, 1=down, 2=down-right, 3=right ... 8=down-left
+0204b0 joy_dir8_table        ; 16 bytes, gray-code index -> direction code 0..8
+02044c poll_fire             ; -> fire_state
+020454 poll_joy_dir8         ; -> joy_dir8
+02045c poll_fire_and_dir8
+027f66 fire_state
+027742 joy_dir8
+
+# ---- keyboard and mouse  (separate path, not part of the input byte)
+02075a input_handler         ; asm. input.device handler, priority 127: buffers raw key-down codes, consumes them
+026c98 key_buffer            ; raw Amiga key codes, one byte per event
+026ca2 key_qualifier_buffer  ; qualifier word per event
+026cb6 key_count
+026cb8 key_buffer_max
+026d30 key_qualifier_mask    ; when non-zero, only events matching this qualifier are buffered
+027f6e rmb_down              ; right mouse button state, from IECLASS_RAWMOUSE codes 0x69 / 0xe9
+
+# ---- demo record and playback
+026d4c demo_mode             ; 0 = play, 1 = demo playback, 2 = demo record
+026d4e demo_buffer_ptr
+026d52 demo_index            ; playback stops at $1386 entries or on an $FF byte
+
+# ---- files and assets
+01fee0 rpck_unpack           ; asm. (src, srclen, dst, dstlen) signed-byte RLE; verified by tools/oracle.py
+01ff16 load_file             ; C. Lock/Examine/Open/Read a whole file; unpacks 'Rpck'; rejects 'Pckd'
+
+# ---- sound
+01e8b8 sound_init            ; installs level-4 audio vector ($70) and the VBlank server "SoundFX_IntHandler"
+01ebaa audio_irq             ; asm. level-4 autovector handler (audio channel interrupts)
+01ec64 soundfx_vblank        ; asm. VBlank server of the sound effects engine
+
+# ---- OS glue
+022d48 os_disable            ; exec.Disable thunk
+022d66 os_enable             ; exec.Enable thunk
+
+# ---- library bases
+026f74 SysBase
+026f26 IntuitionBase
+026f22 GfxBase
+026f1e DOSBase
+
+# ---- flags
+0253c2 quit_flag
+025556 pause_flag

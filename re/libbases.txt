@@ -1,0 +1,5 @@
+# <hex addr of library base variable> <library>   (see tools/disasm.py)
+026f74 exec        ; copy of SysBase made by the C startup
+026f26 intuition   ; opened in sub_012570
+026f22 graphics    ; opened in sub_012570
+026f1e dos         ; opened by the C startup (OldOpenLibrary)

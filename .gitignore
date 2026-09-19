@@ -1,0 +1,23 @@
+# game data: never commit to a repository that could become public
+original/
+dist/
+
+# renderings of the game's artwork (regenerate with tools/ppkc.py)
+ref/sheets/
+
+# full disassembly of the original executable: generated, 1.5 MB, rewritten wholesale on
+# every rename. Regenerate with tools/disasm.py. re/functions.csv IS versioned, for its
+# hand-edited status column.
+re/Wings.lst
+
+# generated at build time from the original executable
+src/gen/
+
+# local environment and build products
+.venv/
+__pycache__/
+*.pyc
+*.wasm
+*.o
+*.dylib
+.DS_Store

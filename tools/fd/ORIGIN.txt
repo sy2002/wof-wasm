@@ -1,0 +1,4 @@
+AmigaOS library function-offset tables (FD files), used by tools/disasm.py to name OS calls.
+
+Copied unmodified from amitools 0.8.1 by Christian Vogelgsang
+(https://github.com/cnvogelg/amitools, amitools/data/fd/), which is licensed under the GPL v2.
