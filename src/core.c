@@ -1,15 +1,17 @@
 /* The core's entry points: initialisation, the VBlank clock, one pass of the main program,
  * and save states (SPEC 6.1).
  *
- * Milestone M0 ports no game logic.  What is here is the shape the rest hangs off:
+ * M1 ports the loaders, the decoders and the blit, not the game loop.  What runs per pass
+ * is therefore still not the original's inner loop:
  *
  *   wof_vblank  will become the port of vblank_server (orig 0x011754) together with
  *               vblank_every_frame (orig 0x01C9CA): the fire-button press timer, the
  *               cancelling of opposing directions, the reversed-vertical option, the input
  *               byte and the six-entry queue.  For now it does only the part that the
  *               shell's clock has to get right from the start, namely the count to four.
- *   wof_pass    will resume the coroutine that the original's main loop becomes (SPEC 6.3).
- *               For now it draws the test pattern.
+ *   wof_pass    will resume the coroutine that the original's main loop becomes (SPEC 6.3)
+ *               in M3.  For now it resumes the M1 viewer, which redraws when a key has
+ *               changed what is on screen.
  */
 #include "wof.h"
 
@@ -31,7 +33,9 @@ void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
     wof_fs_open(fs, fs_len);
     wof_video_init();
     wof_audio_init();
-    wof_video_test_pattern();
+    wof_assets_init();
+    wof_viewer_init();
+    wof_viewer_pass();
 }
 
 void wof_set_video_hz(int hz)
@@ -59,7 +63,7 @@ void wof_vblank(uint8_t raw)
 void wof_pass(void)
 {
     wof_s.passes++;
-    wof_video_test_pattern();
+    wof_viewer_pass();
 }
 
 uint32_t wof_vblank_count(void) { return wof_s.vblanks; }
@@ -67,7 +71,11 @@ uint32_t wof_tick_count(void)   { return wof_s.ticks; }
 uint32_t wof_pass_count(void)   { return wof_s.passes; }
 
 /* Save states carry no host pointers (SPEC 7.2) because wof_s holds no pointers: the file
- * blob and the framebuffer live outside it, and wof_pass rebuilds the picture from it. */
+ * blob, the loaded assets and the framebuffer live outside it, and wof_pass rebuilds the
+ * picture from it.  The assets are read-only after wof_init, so leaving them out of the
+ * state is not a gap; the one thing that is written after load, the mirror marker of a
+ * hellcat or Torpedo record, arrives with the flight model in M4 and has to join the
+ * state then. */
 uint32_t wof_state_size(void)
 {
     return (uint32_t)sizeof(wof_state_t);
@@ -89,9 +97,10 @@ void wof_state_load(const uint8_t *src)
     if (in.magic != WOF_STATE_MAGIC || in.version != WOF_STATE_VERSION)
         return;                       /* not ours: leave the running state alone */
     wof_s = in;
-    wof_video_test_pattern();         /* the picture follows the state, not the other way */
+    wof_s.view_dirty = 1;             /* the picture follows the state, not the other way */
+    wof_viewer_pass();
 }
 
 /* The save state is the struct's bytes, so the struct must not grow padding. */
-_Static_assert(sizeof(wof_state_t) == 9 * 4 + 4 * 2,
+_Static_assert(sizeof(wof_state_t) == 9 * 4 + 8 * 2,
                "wof_state_t has padding: wof_state_save would copy uninitialised bytes");

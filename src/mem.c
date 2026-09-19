@@ -3,12 +3,21 @@
  * prefixed so that the native test build does not collide with it either. */
 #include "wof.h"
 
-/* Big enough for the packed file blob (about 530 KB) and the shell's audio scratch buffer.
- * The decoded shapes of M1 will want more; raise it then. */
-#define WOF_ARENA_SIZE (2u * 1024u * 1024u)
+/* The shell puts the packed file blob here (about 530 KB) before wof_init, and M1 adds the
+ * converted shapes of all twelve containers (about 525 KB), the viewport surfaces, the
+ * pointer tables and the scratch that load_file unpacks a file into.  3 MB leaves room for
+ * the map, the object pools and the sound buffers of the later milestones.  This is BSS:
+ * it costs nothing in dist/core.wasm, only in the page's linear memory. */
+#define WOF_ARENA_SIZE (3u * 1024u * 1024u)
 
+/* The arena has two ends.  Everything that outlives a load - the converted shapes, the
+ * pointer tables, the viewport surfaces - grows up from the bottom.  The buffer a file is
+ * read and unpacked into is scratch and grows down from the top, so that giving it back is
+ * one assignment however much was allocated below it in the meantime.  That is what the
+ * original's Free of a just-loaded file amounts to here. */
 static uint8_t  arena[WOF_ARENA_SIZE];
 static uint32_t arena_used;
+static uint32_t arena_top = WOF_ARENA_SIZE;
 
 void wof_mem_set(void *dst, uint8_t value, uint32_t n)
 {
@@ -41,7 +50,7 @@ void *wof_alloc(uint32_t bytes)
 {
     uint32_t aligned = (bytes + 7u) & ~7u;
 
-    if (aligned > WOF_ARENA_SIZE - arena_used)
+    if (aligned > arena_top - arena_used)
         return 0;
     void *p = &arena[arena_used];
     arena_used += aligned;
@@ -52,7 +61,31 @@ void *wof_alloc(uint32_t bytes)
 void wof_arena_reset(void)
 {
     arena_used = 0;
+    arena_top  = WOF_ARENA_SIZE;
+}
+
+uint32_t wof_arena_mark(void)
+{
+    return arena_top;
+}
+
+void wof_arena_release(uint32_t mark)
+{
+    if (mark >= arena_top && mark <= WOF_ARENA_SIZE)
+        arena_top = mark;
+}
+
+void *wof_scratch_alloc(uint32_t bytes)
+{
+    uint32_t aligned = (bytes + 7u) & ~7u;
+
+    if (aligned > arena_top - arena_used)
+        return 0;
+    arena_top -= aligned;
+    void *p = &arena[arena_top];
+    wof_mem_set(p, 0, aligned);
+    return p;
 }
 
 uint32_t wof_arena_size(void) { return WOF_ARENA_SIZE; }
-uint32_t wof_arena_used(void) { return arena_used; }
+uint32_t wof_arena_used(void) { return arena_used + (WOF_ARENA_SIZE - arena_top); }

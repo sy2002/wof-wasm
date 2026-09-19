@@ -1,20 +1,24 @@
-/* Video: the indexed framebuffer, the palette tables and the per-row palette selection of
- * SPEC 6.4, plus the M0 test pattern.
+/* Video: viewports, the per-row palette interface and the composition of the output
+ * picture (SPEC 6.4, re/notes/display.md).
  *
- * The original display is planar and composed from more than one ViewPort with different
- * palettes.  The port draws 8-bit indices and applies the palette at presentation, one
- * palette per output row, so that fades, day and night, colour cycling and a palette change
- * part-way down the screen all work the way they do on the machine.
+ * The original display is planar and composed from several ViewPorts of its own making,
+ * each with a 32-word colour table that a copper list turns into COLORxx moves.  The port
+ * gives every viewport one indexed surface at its native width - 320 pixels in low
+ * resolution, 640 in high - and applies the palette at presentation, one palette per
+ * output row.  That is what makes the day and night palettes, the sky-to-ocean split part
+ * way down the playfield, the ticker ramp and the 16-step fades expressible without the
+ * renderer knowing about any of them.
  *
- * The drawing primitives of the original arrive with M1; wof_video_test_pattern is M0
- * scaffolding and goes away with them. */
+ * The output is 640 x 214 with low-resolution pixels doubled: the play screen's three
+ * viewports stacked as the machine stacks them, and 200 lines for the front-end screens. */
 #include "wof.h"
 
 static uint8_t  framebuffer[WOF_FB_W * WOF_FB_H];
 static uint16_t palette_rows[WOF_FB_H];
 static uint32_t palettes[WOF_PAL_COUNT * WOF_PAL_COLOURS];
 
-static const wof_draw_t display_list[1];   /* nothing appends to it before M1 */
+static wof_band_t bands[WOF_MAX_BANDS];
+static uint8_t    band_count;
 
 const uint8_t  *wof_framebuffer(void)       { return framebuffer; }
 const uint16_t *wof_palette_rows(void)      { return palette_rows; }
@@ -24,99 +28,119 @@ uint32_t        wof_framebuffer_height(void){ return WOF_FB_H; }
 uint32_t        wof_palette_count(void)     { return WOF_PAL_COUNT; }
 uint32_t        wof_palette_colours(void)   { return WOF_PAL_COLOURS; }
 
-const void *wof_display_list(uint32_t *count)
+/* An Amiga colour is 4 bits per component.  Replicating the nibble into both halves of
+ * the byte maps 0 to 0 and 15 to 255, which is what every Amiga screenshot does. */
+uint32_t wof_colour_rgba(uint16_t rgb4)
 {
-    if (count)
-        *count = 0;
-    return display_list;
+    uint32_t r = (rgb4 >> 8) & 0xF;
+    uint32_t g = (rgb4 >> 4) & 0xF;
+    uint32_t b = rgb4 & 0xF;
+
+    return WOF_RGBA(r * 17, g * 17, b * 17);
 }
 
-/* The two M0 palettes are built, not taken from the disk: the game's own tables are M1.
- * They are deliberately far apart so that the split down the screen is unmistakable. */
 void wof_video_init(void)
 {
-    for (uint32_t i = 0; i < WOF_PAL_COLOURS; i++) {
-        palettes[i]                    = WOF_RGBA(i * 4, i * 6, 60 + i * 6);  /* steel blue */
-        palettes[WOF_PAL_COLOURS + i]  = WOF_RGBA(60 + i * 6, i * 5, i * 2);  /* amber      */
-    }
-
-    /* Top half through palette 0, bottom half through palette 1.  Both halves of the test
-     * pattern draw the same indices, so any difference on screen is the palette. */
-    for (uint32_t y = 0; y < WOF_FB_H; y++)
-        palette_rows[y] = (uint16_t)(y < WOF_FB_H / 2 ? 0 : 1);
-
     wof_mem_set(framebuffer, 0, sizeof framebuffer);
+    wof_mem_set(palette_rows, 0, sizeof palette_rows);
+    wof_mem_set(palettes, 0, sizeof palettes);
+    for (uint32_t p = 0; p < WOF_PAL_COUNT; p++)
+        for (uint32_t i = 0; i < WOF_PAL_COLOURS; i++)
+            palettes[p * WOF_PAL_COLOURS + i] = WOF_RGBA(0, 0, 0);
+    band_count = 0;
 }
 
-static void fill(int32_t x, int32_t y, int32_t w, int32_t h, uint8_t index)
+/* One viewport: an indexed surface plus the BitMap numbers the picture decoder needs.
+ * Plane size on the machine is displayed bytes per row times height, with the width
+ * rounded up to 16 pixels (re/notes/display.md), so the surface is that wide too. */
+wof_vport_t *wof_vport_make(uint16_t width, uint16_t height, uint8_t depth, uint8_t hires)
 {
-    if (x < 0) { w += x; x = 0; }
-    if (y < 0) { h += y; y = 0; }
-    if (x + w > WOF_FB_W) w = WOF_FB_W - x;
-    if (y + h > WOF_FB_H) h = WOF_FB_H - y;
-    if (w <= 0 || h <= 0)
+    wof_vport_t *v = (wof_vport_t *)wof_alloc(sizeof(wof_vport_t));
+
+    if (!v)
+        return 0;
+    v->width         = width;
+    v->height        = height;
+    v->bytes_per_row = (uint16_t)(((width + 15) / 16) * 2);
+    v->rows          = height;
+    v->depth         = depth;
+    v->hires         = hires;
+    v->pixels        = (uint8_t *)wof_alloc((uint32_t)v->bytes_per_row * 8u * height);
+    if (!v->pixels)
+        return 0;
+    return v;
+}
+
+/* orig 0x01A74C - BltClear of every plane, which on indexed pixels is the whole surface. */
+void wof_vport_clear_planes(wof_vport_t *v)
+{
+    if (v && v->pixels)
+        wof_mem_set(v->pixels, 0, (uint32_t)v->bytes_per_row * 8u * v->rows);
+}
+
+void wof_screen_reset(void)
+{
+    band_count = 0;
+}
+
+void wof_screen_band(const wof_vport_t *vp, uint16_t out_y, uint16_t rows, uint16_t src_y,
+                     uint16_t palette)
+{
+    if (band_count >= WOF_MAX_BANDS || !vp)
         return;
 
-    for (int32_t r = 0; r < h; r++)
-        wof_mem_set(&framebuffer[(y + r) * WOF_FB_W + x], index, (uint32_t)w);
+    wof_band_t *b = &bands[band_count++];
+
+    b->vp      = vp;
+    b->out_y   = out_y;
+    b->rows    = rows;
+    b->src_y   = src_y;
+    b->palette = palette;
 }
 
-#define BAND_H  (WOF_FB_H / 2)
-#define MARGIN  20
-#define BAR_W   (WOF_FB_W - 2 * MARGIN)
-
-#define IDX_OFF     6
-#define IDX_ON     31
-#define IDX_FRAME   4
-
-/* One band of the test pattern.  Both bands are identical, which is the point: they differ
- * on screen only because wof_palette_rows sends them through different palettes. */
-static void draw_band(int32_t top)
-{
-    /* A 32-step ramp over the full width: the palette itself, left to right. */
-    for (int32_t i = 0; i < WOF_PAL_COLOURS; i++)
-        fill(i * (WOF_FB_W / WOF_PAL_COLOURS), top + 4,
-             WOF_FB_W / WOF_PAL_COLOURS, 16, (uint8_t)i);
-
-    /* Logic ticks: 15 cells, one lit.  At the original's 15 Hz this sweeps once a second,
-     * so a wrong tick rate is visible without reading a number. */
-    for (int32_t i = 0; i < 15; i++)
-        fill(MARGIN + i * (BAR_W / 15), top + 24, BAR_W / 15 - 2, 16,
-             (uint32_t)i == wof_s.ticks % 15 ? IDX_ON : IDX_OFF);
-
-    /* VBlanks: 60 cells.  One sweep a second at 60 Hz, 1.2 seconds at 50 Hz. */
-    for (int32_t i = 0; i < 60; i++)
-        fill(MARGIN + i * (BAR_W / 60), top + 44, BAR_W / 60 - 2, 16,
-             (uint32_t)i == wof_s.vblanks % 60 ? IDX_ON : IDX_OFF);
-
-    /* The five raw controller bits of SPEC 6.1, in bit order: down, up, right, left, fire.
-     * Box n carries n + 1 tally marks so that it can be identified without a caption. */
-    for (int32_t b = 0; b < 5; b++) {
-        int32_t x   = MARGIN + b * 125;
-        int32_t lit = (wof_s.raw >> b) & 1;
-
-        fill(x, top + 64, 100, 24, IDX_FRAME);
-        fill(x + 2, top + 66, 96, 20, lit ? IDX_ON : IDX_OFF);
-        for (int32_t m = 0; m <= b; m++)
-            fill(x + 10 + m * 8, top + 70, 4, 12, lit ? IDX_FRAME : IDX_ON);
-    }
-
-    /* The entropy stream (SPEC 7.3): one value per logic tick, hashed across 64 cells.  It
-     * is here so that the picture is a function of the seed and nothing else, which is what
-     * the determinism test checks. */
-    for (int32_t c = 0; c < 64; c++) {
-        uint32_t h = (uint32_t)wof_s.noise ^ ((uint32_t)wof_s.noise >> 5) ^ (uint32_t)(c * 37);
-        fill(c * 10, top + 90, 10, 6, (uint8_t)(h & (WOF_PAL_COLOURS - 1)));
-    }
-
-    /* Passes: a block that steps once per wof_pass call.  It moves four times as fast as
-     * the tick bar when the clock is right. */
-    fill((int32_t)(wof_s.passes % 80) * 8, top + 97, 8, 3, IDX_ON);
-}
-
-void wof_video_test_pattern(void)
+/* The bands and their colour tables become the framebuffer, the palette tables and the
+ * row-to-palette map the shell reads.  Rows no band covers stay black through the blank
+ * palette at index 0, which is what the copper's BPLCON0 = 0x0200 gives on the machine. */
+void wof_screen_present(void)
 {
     wof_mem_set(framebuffer, 0, sizeof framebuffer);
-    draw_band(0);
-    draw_band(BAND_H);
+    for (uint32_t y = 0; y < WOF_FB_H; y++)
+        palette_rows[y] = WOF_PAL_BLANK;
+    for (uint32_t i = 0; i < WOF_PAL_COLOURS; i++)
+        palettes[WOF_PAL_BLANK * WOF_PAL_COLOURS + i] = WOF_RGBA(0, 0, 0);
+
+    for (uint8_t i = 0; i < band_count; i++) {
+        const wof_band_t  *b = &bands[i];
+        const wof_vport_t *v = b->vp;
+        uint32_t pal = b->palette < WOF_PAL_COUNT ? b->palette : WOF_PAL_BLANK;
+
+        for (uint32_t c = 0; c < WOF_PAL_COLOURS; c++)
+            palettes[pal * WOF_PAL_COLOURS + c] = wof_colour_rgba(v->colours[c]);
+
+        uint32_t src_stride = (uint32_t)v->bytes_per_row * 8u;
+
+        for (uint32_t r = 0; r < b->rows; r++) {
+            uint32_t oy = b->out_y + r;
+            uint32_t sy = b->src_y + r;
+
+            if (oy >= WOF_FB_H || sy >= v->rows)
+                break;
+
+            const uint8_t *src = v->pixels + sy * src_stride;
+            uint8_t       *out = framebuffer + oy * WOF_FB_W;
+
+            palette_rows[oy] = (uint16_t)pal;
+
+            if (v->hires) {
+                uint32_t n = v->width < WOF_FB_W ? v->width : WOF_FB_W;
+                wof_mem_copy(out, src, n);
+            } else {
+                uint32_t n = v->width * 2u < WOF_FB_W ? v->width : WOF_FB_W / 2u;
+                for (uint32_t x = 0; x < n; x++) {
+                    out[x * 2 + 0] = src[x];
+                    out[x * 2 + 1] = src[x];
+                }
+            }
+        }
+    }
 }
