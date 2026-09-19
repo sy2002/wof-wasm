@@ -32,6 +32,7 @@ SPEC.md                 this document
 CLAUDE.md               short working rules for agent sessions
 original/wof.adf        the disk image (read-only ground truth)
 original/disk/          its files, extracted verbatim with xdftool
+original/kick.rom       the owner's Kickstart 1.3 ROM image, source of the system font (read-only)
 re/Wings.lst            annotated disassembly of the main executable (generated)
 re/functions.csv        routine inventory with a status column (generated, status is preserved by hand)
 re/names.txt            hand-maintained names for code and data addresses
@@ -194,7 +195,7 @@ A mask is the set of destination bitplanes that one stored plane is written to. 
 
 **Sounds.** Headerless signed 8-bit PCM. Playback periods are in the executable.
 
-**Font.** `newarmyfont` starts with a u16 height (12), first and last character codes (`0x20`, `0x7E`), then a table of per-character widths, then glyph data. The header and glyph layout are in `re/notes/drawing.md`: glyph data starts at +100, and a width of 0 means no glyph and an advance of 11. The load and save dialogs, name entry and file list draw with the system default font instead, which is not on the game disk.
+**Font.** `newarmyfont` starts with a u16 height (12), first and last character codes (`0x20`, `0x7E`), then a table of per-character widths, then glyph data. The header and glyph layout are in `re/notes/drawing.md`: glyph data starts at +100, and a width of 0 means no glyph and an advance of 11. The load and save dialogs, name entry and file list draw with the system default font instead, topaz 8, which is not on the game disk. The port takes it from `original/kick.rom` at build time (`re/notes/system-font.md`).
 
 **`songplay` and `wofsongs`.** `songplay` exports, by symbol: `_PlaySong`, `_StopSong`, `_FadeSong`, `_PauseMusic`, `_RestartMusic`, `_GetSongStat`, `_PlaySfx`, `_StopSfx`, `_SfxStat`, `_AdjustSfx`, `_ReadInstruments`, `_OpenTimerInt`, `SongIntHandler`, `CheckChannelInt`. The song format is to be established from this player; it is 2.7 KB of code with names, which makes it the easiest part of the project to read.
 
@@ -222,7 +223,7 @@ Run everything with `.venv/bin/python` from the repository root.
 
 `tools/build.py` produces `dist/wof.html` in these steps (`--native` also builds the test library):
 
-1. **Extract tables.** `tools/extract_tables.py` reads `re/tables.toml`, a manifest of (name, address, element type, count) entries, and writes `src/gen/tables.c` and `src/gen/tables.h` from the bytes of `original/disk/Wings_of_Fury/Wings`. Every constant table, name list, text and tuning array the port needs from the DATA or CODE hunk is obtained this way. Byte order is converted during extraction. `src/gen/` is ignored by version control.
+1. **Extract tables.** `tools/extract_tables.py` reads `re/tables.toml`, a manifest of (name, address, element type, count) entries, and writes `src/gen/tables.c` and `src/gen/tables.h` from the bytes of `original/disk/Wings_of_Fury/Wings`. Every constant table, name list, text and tuning array the port needs from the DATA or CODE hunk is obtained this way. Byte order is converted during extraction. The same step reads the topaz 8 glyphs, location table and metrics from `original/kick.rom`, locating the font by its contents so that other Kickstart versions work, and falls back to the game's own font with a message when the ROM is absent. `src/gen/` is ignored by version control.
 2. **Pack the file system.** All game files from section 3.1 except the executable and the non-game files are concatenated into one blob. Left out are `Wings`, `UFXintro`, `wingt`, every `.info` file and every dotfile, which leaves 55 files. Files stay in their original formats; the core contains the ported loaders. The container is big-endian like everything else the project reads: the magic `WOFS`, a u32 version, a u32 file count, a u32 directory offset, then 40-byte directory entries of a 32-byte NUL-padded name, a u32 offset and a u32 length. Names are paths relative to the disk's `Wings_of_Fury` directory, which is the original's current directory, so the ported loaders use the original's own file names. File-name lookup ignores case: the game asks for `shapes/Torpedo.shp` and `shapes/rank.iff`, the disk has `torpedo.shp` and `Rank.iff`.
 3. **Compile the core** to `core.wasm` with the command in section 2, plus `-Wl,--export-dynamic` or explicit export attributes.
 4. **Assemble the page.** `web/index.html` is the template. The build inlines the CSS, the JavaScript, the base64 of `core.wasm` and the base64 of the file-system blob. The files in `web/` are real ES modules, which a `file://` page cannot load from files; the build concatenates them in dependency order into one scope, strips whole-line imports and leading `export` keywords, and then fails if any module syntax is left or an imported name is not defined. The page instantiates the module with `WebAssembly.instantiate(bytes, imports)`; streaming instantiation is not available from `file://`.
@@ -404,4 +405,4 @@ Each point is answerable from the listing. Record the answer in `re/notes/` and 
 | 11 | The shape record header words at +8, +10, +12 | answered | `re/notes/shapes.md` and section 3.5 |
 | 12 | High-score file layout, save-game layout | M3 and M7 | `0x019288`, `0x0193CC`, `0x018B96` |
 
-Points 2, 3 and 5 are far easier once the headless original of M2 exists, because it turns them from reading into observing. One decision is open, due before M3: the source of the glyphs for the dialogs that use the system default font.
+Points 2, 3 and 5 are far easier once the headless original of M2 exists, because it turns them from reading into observing. The glyphs for the dialogs that use the system default font come from the owner's Kickstart ROM (`re/notes/system-font.md`).
