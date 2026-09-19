@@ -61,6 +61,7 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 ## The plan ahead
 
+0. **Display aspect and auto-zoom** (Opus, small, first). The user looked at the M1 viewer and asked for it: the shell shows framebuffer pixels square, so the picture is a 3:1 strip, and it should fill the window. `SPEC.md` section 6.2, Video, states the rule (box of 800 : 642, largest fit, two-step scaling). Shell and page tests only; the core does not change. The tests should assert the displayed box ratio and that it follows a window resize, in both browsers, and the visible Firefox check must pass, because a second canvas step touches the GPU canvas fault again.
 1. **M2, the headless original** (Fable). `SPEC.md` section 8 states what it must do. The facts it rests on: no logic reads drawing results, so the blitter and the listed graphics calls are no-ops; reads of `0xDFF006` are hooked and served from the entropy stream; `vblank_flag` is set before each pass; `frame_update` runs on every pass; the crack's text screen at `0x01F41A` is bypassed; the schedule of VBlanks, passes and ticks is recorded input. `tests/original.py` from M1 already runs original routines with stubs and is the place to start.
 2. **Open points 2, 3 and 5** (Fable), with M2 as the instrument: per-tick versus per-pass state, the object system, map semantics.
 3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests, and the front-end screens beyond their geometry (`SPEC.md` section 10, points 1 and 6).
