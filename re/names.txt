@@ -67,7 +67,75 @@
 
 # ---- files and assets
 01fee0 rpck_unpack           ; asm. (src, srclen, dst, dstlen) signed-byte RLE; verified by tools/oracle.py
-01ff16 load_file             ; C. Lock/Examine/Open/Read a whole file; unpacks 'Rpck'; rejects 'Pckd'
+01ff16 load_file             ; C. (name, AllocMem flags) Lock/Examine/Open/Read a whole file; unpacks 'Rpck'; rejects 'Pckd'
+01feb4 load_file_public      ; C. load_file(name, MEMF_PUBLIC|MEMF_CLEAR)
+01feca load_file_chip        ; C. load_file(name, MEMF_CHIP|MEMF_PUBLIC|MEMF_CLEAR)
+015d3e load_file_public_asm  ; asm. stack argument -> load_file_public
+015d50 load_file_chip_asm    ; asm. A0 = name -> load_file_chip
+015b1a file_length           ; asm. A0 = name -> D0 = length, by Open, Seek to end, Seek back, Close
+020848 mem_alloc             ; C. (size) MEMF_PUBLIC|MEMF_CLEAR
+02085e mem_alloc_chip        ; C. (size) MEMF_CHIP|MEMF_PUBLIC|MEMF_CLEAR
+0158ec mem_alloc_asm         ; asm. D0 = size -> mem_alloc
+0124e0 mem_free_var          ; asm. A0 = address of a pointer variable: frees what it points to and clears it
+0134bc init_assets           ; asm. start-up: font, pools and pointer tables, permanent shape containers
+012794 font_load             ; asm. loads newarmyfont and builds the glyph offset table
+01283e alloc_pools           ; asm. Ricochet, Splashes, Smoke, Balloons, MaskBuffer, MasterList, AthList
+013368 sounds_load           ; asm. the eight sound effects into chip memory, each only if not yet loaded
+011234 free_mission_assets   ; asm. dash container, sounds, ship containers, demo buffer
+01020e fatal_exit            ; asm. frees everything, restores the stack saved by main and returns to the C runtime
+
+# ---- shapes  (see re/notes/shapes.md)
+015bc6 shapes_load           ; asm. A0 = file name, A1 = name list -> A0 = container (chip memory), D0 = pointer table; falls into shapes_resolve
+015c5c shapes_resolve        ; asm. A0 = container, A1 = name list, D0 = count -> D0 = new table of record pointers, 0 where a name is missing
+020560 shape_find            ; asm. A0 = container, D0 = name as a long -> A0 = D0 = record, or 0. Early-exit scan, needs ascending names
+0204f4 shape_find_c          ; C. (container, name) -> shape_find
+02050e shape_by_index        ; C. (container, index) -> record
+012502 shapes_free           ; asm. A0 = address of the container variable, A1 = address of the table variable
+0129dc load_permanent_shapes ; asm. world, hellcat, Torpedo, japplane, 8thscale; sets +8 of every hellcat and Torpedo record to 2
+013252 load_ship_shapes      ; asm. per mission, by the ship flags: battleship, destroyer, cruiseship, japcarrier
+01653c load_dash_assets      ; C. per mission: dash.shp or nightdash.shp, and the dashboard picture file, by night_flag
+01535a build_master_lists    ; asm. per mission: concatenates the world and ship tables into MasterList and AthList
+015b58 shape_mirror_x        ; asm. (record) mirrors a shape in place through bit_reverse_table, hotspot x becomes 8*w-1-x
+0256b6 bit_reverse_table     ; 256 bytes
+024632 world_container
+026e4a world_shapes          ; pointer table, 184 entries, order of world_names
+024636 eighth_container      ; 8thscale.shp
+026e76 eighth_shapes         ; pointer table, 184 entries, order of world_names
+02463e hellcat_container
+026e82 hellcat_shapes        ; pointer table, 107 entries
+024642 torpedo_container
+026f10 torpedo_shapes        ; pointer table, 138 entries
+02464a japplane_container
+024646 japplane_shapes       ; pointer table, 22 entries
+02463a dash_container
+026e52 dash_shapes           ; pointer table, 117 entries
+027744 dash_picture_file     ; the raw iff-dash or nightdash file
+026f34 battleship_container
+026f38 battleship_shapes
+026f44 destroyer_container
+026f48 destroyer_shapes
+026f4c cruiseship_container
+026f50 cruiseship_shapes
+026f3c japcarrier_container
+026f40 japcarrier_shapes
+026f54 MasterList            ; pointer table, 0x458 bytes: 184 world, 24 cruiseship, 27 destroyer, 13 japcarrier, 25 battleship
+026f82 AthList               ; the same 273 slots resolved in 8thscale.shp
+023bc0 battleship_names      ; 25 names, zero long ends every list
+023c28 japcarrier_names      ; 13
+023c60 destroyer_names       ; 27
+023cd0 cruiseship_names      ; 24
+023d34 hellcat_names         ; 107
+023ee4 world_names           ; 184, also used for 8thscale.shp
+0241c8 dash_names            ; 117, for dash.shp and nightdash.shp
+0243a0 torpedo_names         ; 138
+0245cc japplane_names        ; 22
+025390 night_flag            ; word index into the four two-entry file name tables
+0258f0 palette_files         ; wingspalette, night.p
+0258f8 dash_picture_files    ; iff-dash, nightdash
+025900 ocean_palette_files   ; ocean.palette, nightocean.p
+025908 dash_shape_files      ; dash.shp, nightdash.shp
+027436 MaskBuffer            ; chip memory, 0x410 bytes
+02743a MaskBuffer_size
 
 # ---- sound
 01e8b8 sound_init            ; installs level-4 audio vector ($70) and the VBlank server "SoundFX_IntHandler"
