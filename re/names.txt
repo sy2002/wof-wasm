@@ -155,3 +155,123 @@
 # ---- flags
 0253c2 quit_flag
 025556 pause_flag
+
+# ---- display and colours  (see re/notes/display.md)
+016670 display_init          ; C. allocates the blank copper list, the null sprite, the two view buffers, three copper buffers and the ticker plane
+01660e display_shutdown      ; C. COP1LC back to GfxBase copinit, WaitTOF, frees the display memory
+0165cc display_alloc_chip    ; C. wrapper around mem_alloc_chip
+0165de cop_rotate_unused     ; C. no callers: writes cop_next to COP1LC and rotates three copper pointers
+0167f2 vport_init_bitmap     ; C. (vport, &mem, width, height, depth): plane pointers from the running memory pointer, InitBitMap, InitRastPort, clears both colour tables
+01692c view_layout           ; C. BltClear of the view memory, vport_init_bitmap for every vport in the chain, view_build_copper
+0169a4 screen_dialog         ; C. back view: 320 x 200, 4 planes (load/save dialog, high-score entry)
+0169e4 screen_a_lores5_unused ; C. no callers: view A 320 x 200, 5 planes
+016a16 view_set_story        ; C. one vport 640 x 200, 1 plane, at line 5
+016a60 screen_story          ; C. both views for the story scroller; 230 rows shown from a 200-row bitmap
+016a98 view_set_picture      ; C. one vport 320 x 200, 5 planes
+016ad8 screen_picture        ; C. both views 320 x 200, 5 planes (logo, title, credits, rank selection)
+016b04 screen_hires3         ; C. both views 640 x 147, 3 planes (caller 0x018590)
+016b60 screen_hires2         ; C. both views 640 x 200, 2 planes (crack screen 0x01f41a)
+016bbc ticker_clear          ; C. BltClear of the ticker plane
+016bd8 ticker_vport_init     ; C. ticker vport: bitmap 672 x 13, 1 plane, 640 shown, line 201
+016c38 view_set_game         ; C. playfield 320 x 162 x 5 at line 0, dashboard 640 x 37 x 4 at line 163, then the shared ticker; split enabled
+016cc6 screen_game           ; C. links both vport chains for play and lays out both views
+016d32 screen_game_restore   ; C. after the in-game load/save dialog: relayout the back view, copy from the front view
+016d7a screen_hiscore        ; C. view A only: 320 x 75 x 5 at line 0, 640 x 145 x 4 at line 76
+016dd6 cmap_file_to_table    ; C. finds 'CMAP' in a palette file, 32 colours -> 12-bit words, components not masked
+016eb2 view_load_picture     ; C. (name, view, vport): load_file, iff_to_vport, free, view_build_copper
+016eee wait_frames_or_fire   ; C. WaitTOF up to n times, ends early on fire; returns the fire state
+016f20 view_show             ; C. installs the view's copper list and sets the front/back pointers; does not wait
+016fc4 view_show_wait        ; C. view_show, then wait_vblank
+016ff6 colour_lerp           ; C. (step 0..15, from, to) per 4-bit component; step 15 returns to
+017084 fade_to               ; C. 16 steps: both colour tables of the front first vport towards one target table, copper rebuilt per step, no wait
+0171f2 fade_to_pair          ; C. as fade_to, first vport towards table 1 and the second vport towards table 2
+0173b0 fade_out              ; C. fade_to an all-black table
+0173e6 fade_out_pair         ; C. fade_to_pair with two all-black tables
+017422 load_picture_black    ; C. (name, palette_out): picture into the back view, its colours out to the caller, vport table blacked
+017d4e story_copper_build    ; C. story scroller copper list: grey ramp on COLOR01 at top and bottom, bitplane pointer reload at the wrap row
+017e80 story_screen          ; C. the scrolling story text of the front end
+01876e cop_set_split_line    ; C. per pass: rewrites the split WAIT of the back copper list in place
+0187ba cop_add_ticker_ramp   ; C. appends ten WAIT + COLOR01 pairs from ticker_ramp, lines 201..210
+018806 mission_display_setup ; C. game screen, dashboard picture, day or night palettes into both views
+019958 cop_reset             ; C. count = 0
+019968 cop_init              ; C. (list, bytes): capacity = (bytes - 4) / 4 - 1, count = 0
+019988 cop_put_long_unused   ; C. no callers: appends one raw long
+0199bc cop_move              ; C. (list, register offset, value)
+019a08 cop_move_ptr          ; C. (list, register offset, long): high word, then low word at offset + 2
+019a9c cop_wait              ; C. (list, x, y): x/4*2 clamped to 0xe2, y + 0x2c clamped to 0x106, extra wait for line 255 when beyond it
+019b5a cop_colours           ; C. (list, table, x, y, n): optional wait, then COLOR00.. from the table
+019c0a cop_vport_colours     ; C. colour table 1 of a vport at line y - 1
+019c44 cop_vport_colours2_unused ; C. no callers
+019c80 cop_vport_split       ; C. wait at (split_x, split_y), then only the colours where table 2 differs from table 1
+019d18 cop_vport_planes      ; C. window, data fetch, modulo, plane pointers, BPLCON0 for one vport
+01a06c cop_sprites_off       ; C. all eight sprites parked on null_sprite
+01a0d4 view_build_copper     ; C. the whole copper list of a view from its vport chain
+01a1f6 iff_cmap_to_table     ; C. CMAP chunk -> colour table 1, components masked, at most 32
+01a284 iff_cmp2_to_table     ; C. private 'CMP2' chunk -> split line and colour table 2; no file on the disk has one
+01a362 iff_body_to_vport     ; C. ByteRun1 rows into the vport planes, min of picture and vport rows and planes
+01a452 iff_parse_ilbm        ; C. chunk walk: BMHD, CMAP, CMP2, BODY
+01a548 iff_to_vport          ; C. the ILBM reader in use (its error text names ConvertIFFto...)
+0203e8 byterun1_row          ; asm. one ByteRun1 row of n bytes; advances source and destination pointers
+01a60e view_poke_colours1    ; C. patches the first COLORxx move of each index in a built copper list and copies into table 1
+01a6ac view_poke_colours2    ; C. the same for the second occurrence and table 2
+01a74c vport_clear_planes    ; C. BltClear of every plane
+01a7ac view_clear_unused     ; C. no callers
+01a834 view_copy_bitmaps     ; C. BltBitMap of every vport of one view onto the other
+01a8c4 view_copy_colours     ; C. split fields and both colour tables, vport by vport
+01a9ca view_copy             ; C. (source view, destination view)
+01a9fc cop_show_wait         ; C. cop_install, then wait_vblank
+01aa0e cop_install           ; asm. ends the list with $fffffffe, remembers it in cop_current, writes COP1LC
+01aa32 wait_next_vblank      ; asm. clears vblank_flag, then busy-waits for it
+01aa3e wait_vblank           ; asm. busy-waits for vblank_flag, then clears it
+01030c flip_buffers          ; asm. frame_update falls into it: COLOR01 flash poke, then flip_view
+0150b0 flip_view             ; asm. view_show(back view)
+0111fc choose_night          ; asm. night_flag = 0, or a random bit when the map number from mission_map_table is above 6
+01f72c os_view_build_unused  ; asm. MakeVPort + MrgCop over a View; nothing references it
+01f79c os_viewport_new_unused ; asm. InitVPort, GetColorMap, RastPort, BitMap, AllocMem planes; nothing references it
+01f8a2 os_viewport_free_unused
+022e0c gfx_BltBitMap         ; glue
+022e2e gfx_BltClear          ; glue
+022e5a gfx_InitBitMap        ; glue
+022e6c gfx_InitRastPort      ; glue
+022eee gfx_WaitTOF           ; glue
+026d46 cop_blank             ; long: copper list of 0x90 bytes, BPLCON0 = $0200, COLOR00 = 0, sprites off
+027a14 null_sprite           ; long: 16 zero bytes of chip memory
+027c58 view_a_planes         ; long: chip block of 0x159a0 bytes, both views
+027c5c view_b_planes         ; long: view_a_planes + 0xacd0
+027c60 ticker_plane          ; long: 0x444 bytes = 84 x 13
+0279f8 view_a                ; 14 bytes: +0 word cache offset (0), +2 copper buffer, +6 first vport, +10 plane memory
+027a06 view_b                ; 14 bytes: cache offset 0x14
+027c64 cop_spare             ; long: third copper buffer, swapped in by the fades and the story scroller
+027748 vport_a1              ; 0xac bytes: first vport of view A
+0277f4 vport_b1              ; first vport of view B
+0278a0 vport_a2              ; second vport of view A (dashboard, high-score slab)
+02794c vport_b2              ; second vport of view B (dashboard)
+027296 vport_ticker          ; shared by both views, single-buffered
+027a18 coltab_a1             ; 32 words each
+027a58 coltab_b1
+027a98 coltab_a2
+027ad8 coltab_b2
+027b18 coltab_ticker
+027b58 coltab_a1_split       ; colour table 2 of vport_a1: the ocean palette during play
+027b98 coltab_b1_split
+026e30 front_view
+026e2c back_view
+026e28 front_vport           ; first vport of the front view
+026e24 front_rastport
+026e38 front_bitmap
+026e20 back_vport
+026e1c back_rastport
+026e34 back_bitmap
+027dde cop_current           ; list last given to cop_install
+027c6c cop_split_index       ; entry index of the split WAIT, recorded by view_build_copper
+027c6e cop_prev              ; with cop_next and cop_after only used by cop_rotate_unused
+027c72 cop_next
+027c76 cop_after
+0255be vblank_flag           ; byte, set by vblank_server on every VBlank
+025416 flash_count           ; word: while non-zero, odd counts show flash_colour in COLOR01
+025418 flash_colour
+02594c logo_fade_palette     ; 32 words, first fade target of the publisher logo
+025994 ticker_ramp           ; 10 words: 777 999 bbb ddd fff ddd bbb 999 777 555
+0253a0 split_row             ; word: the row passed to cop_set_split_line before clamping to 162
+02345f mission_map_table     ; bytes, index rank * 4 + mission
+027f30 view_caches           ; per-view state, indexed by the cache offset word of the view
