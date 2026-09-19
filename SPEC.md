@@ -97,7 +97,7 @@ The program was built with **Manx Aztec C** plus hand-written assembly.
 - **C routines** start with `LINK A5`. Arguments are pushed right to left: 2 bytes for `int`, 4 bytes for `long` and pointers. First argument at `8(a5)`. Result in D0.
 - **`switch`** compiles to a bounds check, a table of 16-bit offsets, and `jmp base(pc,d0.w)`. The listing resolves the tables and labels each case.
 - **String literals live in the CODE hunk**, after the routine that uses them. Pointers from DATA into CODE are therefore often string pointers, not code pointers.
-- Layout: `0x010000`–`0x015D62` is almost entirely hand-written assembly (main loop, drawing, interrupt servers, object movement). From `0x015D62` on: 223 C routines, then the C runtime and OS glue at the end.
+- Layout: `0x010000`–`0x015D62` is almost entirely hand-written assembly (main loop, drawing, interrupt servers, object movement). From `0x015D62` on: 223 C routines, then the C runtime and OS glue at the end. A second block of hand-written assembly, the blitter library that does all shape, rectangle and line drawing, sits at `0x0209BC`–`0x0215D8`.
 
 Inventory: 616 routines, of which 223 are C. The listing classifies all but 39 bytes of the CODE hunk.
 
@@ -121,7 +121,7 @@ This design is what makes a verifiable port possible: the simulation is a functi
 
 **The input byte** is assembled by `read_joystick` (`0x01CA32`) and is the only channel by which controls reach game logic. Its low byte is: bit 0 stick down, bit 1 stick up, bit 2 stick right, bit 3 stick left, bit 4 fire held for 10 or more VBlanks, bit 5 fire tapped and released inside 10 VBlanks. Bits 6 and 7 are unused. Opposing directions cancel to centre. The tap and hold timing runs at VBlank rate, not tick rate, and latches between samples. The keyboard is a separate path: an input.device handler at priority 127 buffers raw Amiga key codes for the menus and does not feed the tick. Details and consequences for the port: `re/notes/input.md`.
 
-Still to establish: which state changes happen per tick and which per pass.
+**Passes are not pure rendering.** `frame_update` begins with `wait_vblank` (`0x01AA3E`), so there is at most one pass per VBlank, counted from the previous buffer flip, and it contains game logic that runs once per pass, not per tick: soldiers move and die, score is added, ticker messages are queued, and the restart after a lost aircraft and the game-over countdown advance. Nine routines in its call tree call `rand_beam`. The tick in turn reads state the pass leaves behind (the flag at `0x026E3C`, a frame was drawn since the last tick, and the pass counter at `0x0253C8`). The interleaving of VBlanks, passes and ticks is therefore an input of the simulation, like the input bytes and the entropy stream. How many VBlanks a pass takes on a real A500 is not established; it sets the speed of everything that runs per pass (`re/notes/drawing.md`).
 
 ### 3.4 Operating system and hardware use
 
@@ -137,10 +137,12 @@ The game builds its own display with graphics.library and otherwise does its own
 | exec: `FindTask`, `SetTaskPri`, `Forbid`, `Permit`, `Supervisor`, `Alert`, `Debug` | dropped |
 | exec: `RawDoFmt` | small `sprintf` subset written to match the format strings actually used |
 | exec: `DoIO` | to establish (input.device or console.device) |
-| graphics: `InitBitMap`, `InitRastPort`, `InitVPort`, `MakeVPort`, `MrgCop`, `GetColorMap`, `FreeColorMap`, `FreeVPortCopLists` | replaced by the port's framebuffers and palette tables |
-| graphics: `BltBitMap` (2 sites), `BltTemplate` (1), `Text` (1) | software equivalents on the indexed framebuffer |
+| graphics: `InitBitMap`, `InitRastPort`, `OwnBlitter`, `DisownBlitter`, `WaitTOF`, `BltClear` (4 sites), `RectFill`, `Move`, `Draw`, `SetAPen`, `SetBPen`, `SetDrMd` | the port's framebuffers and drawing primitives |
+| graphics: `InitVPort`, `MakeVPort`, `MrgCop`, `GetColorMap`, `FreeColorMap`, `FreeVPortCopLists` | occur only in dead code and in the crack's text screen (`0x01F41A`), neither of which is ported. The game proper builds no OS View |
+| graphics: `BltBitMap` (1 live site, a view copy at `0x01A89E`), `BltTemplate` (1), `Text` (4 callers) | software equivalents on the indexed framebuffer |
 | intuition: `CloseWorkBench`, `OpenWorkBench` | dropped |
-| custom chips: `JOY1DAT`, `VHPOSR`, `COP1LC`, `INTENA`, `INTREQ`, audio registers; level-4 autovector at `0x70` | input layer, seed, palette tables, Paula model (section 6.5) |
+| custom chips: `JOY1DAT`, `VHPOSR`, `INTENA`, `INTREQ`, audio registers; level-4 autovector at `0x70` | input layer, entropy stream, Paula model (section 6.5) |
+| custom chips: `COP1LC` written directly with copper lists the game builds itself; the blitter registers driven directly by the blitter library | palette tables per output row and software drawing primitives (section 6.4) |
 
 Sound effects: `sound_init` (`0x01E8B8`) installs its own level-4 (audio) interrupt handler `audio_irq` (`0x01EBAA`) and a VBlank server named `SoundFX_IntHandler` (`0x01EC64`).
 
@@ -174,22 +176,25 @@ record:
 +2   u16   height in rows
 +4   s16   hotspot x
 +6   s16   hotspot y
-+8   u16 x 3   purpose to establish
++8   u16   x of the shape in its source picture (overwritten at load for two files, see below)
++10  u16   y of the shape in its source picture
++12  u8    planes cleared under the mask on every draw
++13  u8    planes set under the mask on every draw
 +14  u8 x 6    destination plane masks, zero-terminated list
 +20  plane data: for each mask in the list, height x width bytes, plane after plane
 ```
 
-A mask is the set of destination bitplanes that one stored plane is written to. `01 02 04 08 10` is an ordinary 5-plane shape. `01 02 04 18` stores 4 planes and writes the last one to planes 3 and 4. The pixel value is the OR of the masks of all stored planes whose bit is set. Colour 0 is transparent. The game refers to shapes **by their 4-character names**; name lists are in the executable's DATA hunk.
+A mask is the set of destination bitplanes that one stored plane is written to. `01 02 04 08 10` is an ordinary 5-plane shape. `01 02 04 18` stores 4 planes and writes the last one to planes 3 and 4. The pixel value is the OR of the masks of all stored planes whose bit is set. Colour 0 is transparent for shapes that are drawn through a mask, which is decided per shape at draw time: a shape whose plane is larger than 1,040 bytes (11 shapes, the carrier and ship hull pieces and `rank`) or that stores no planes is drawn opaque. Names inside a container are strictly ascending, which the game's lookup `shape_find` (`0x020560`) relies on. For `hellcat.shp` and `Torpedo.shp` the game overwrites +8 with a facing marker at load and mirrors shape data in place when the facing changes (`shape_mirror_x`, `0x015B58`). Name resolution, the pointer tables and the load order are in `re/notes/shapes.md`; the exact blit rule is in `re/notes/drawing.md`. The game refers to shapes **by their 4-character names**; name lists are in the executable's DATA hunk.
 
-**Palettes.** `wingspalette`, `night.p`, `nightocean.p`: a bare IFF `CMAP` chunk: 4 bytes `CMAP`, 4 bytes to ignore, then 32 RGB triplets. Only the high nibble of each component is significant. `palette` and `ocean.palette` are `Rpck`-wrapped ILBM files used for their `CMAP`; `ocean.p` is an unwrapped one and also carries `CRNG` colour-cycling chunks.
+**Palettes.** `wingspalette`, `night.p`, `nightocean.p`: a bare IFF `CMAP` chunk: 4 bytes `CMAP`, 4 bytes to ignore, then 32 RGB triplets. Only the high nibble of each component is significant. `palette` and `ocean.palette` are `Rpck`-wrapped ILBM files used for their `CMAP`; `ocean.p` is an unwrapped one and also carries `CRNG` colour-cycling chunks. The game never opens `palette` or `ocean.p` and no code reads `CRNG`: there is no colour cycling.
 
-**Pictures.** Standard IFF ILBM with ByteRun1 compression. The original has its own reader in C (it reports errors under the name `ReadIFF`), which is to be ported rather than replaced.
+**Pictures.** Standard IFF ILBM with ByteRun1 compression. The live reader is `iff_to_vport` (`0x01A548`), which handles `BMHD`, `CMAP`, a private `CMP2` chunk and `BODY`, crops to the viewport and assumes ByteRun1; it is to be ported rather than replaced. A second reader that reports errors under the name `ReadIFF` is dead code.
 
 **Maps.** Two u32 values (the first equals the file length), then a sequence of u16 records. Low bits select a tile or object type, high bits are flags (`0x8000` occurs frequently). Record semantics are to be established from the map loader.
 
 **Sounds.** Headerless signed 8-bit PCM. Playback periods are in the executable.
 
-**Font.** `newarmyfont` starts with a u16 height (12), first and last character codes (`0x20`, `0x7E`), then a table of per-character widths, then glyph data. Details to establish from the text drawing routine.
+**Font.** `newarmyfont` starts with a u16 height (12), first and last character codes (`0x20`, `0x7E`), then a table of per-character widths, then glyph data. The header and glyph layout are in `re/notes/drawing.md`: glyph data starts at +100, and a width of 0 means no glyph and an advance of 11. The load and save dialogs, name entry and file list draw with the system default font instead, which is not on the game disk.
 
 **`songplay` and `wofsongs`.** `songplay` exports, by symbol: `_PlaySong`, `_StopSong`, `_FadeSong`, `_PauseMusic`, `_RestartMusic`, `_GetSongStat`, `_PlaySfx`, `_StopSfx`, `_SfxStat`, `_AdjustSfx`, `_ReadInstruments`, `_OpenTimerInt`, `SongIntHandler`, `CheckChannelInt`. The song format is to be established from this player; it is 2.7 KB of code with names, which makes it the easiest part of the project to read.
 
@@ -218,7 +223,7 @@ Run everything with `.venv/bin/python` from the repository root.
 `tools/build.py` produces `dist/wof.html` in these steps (`--native` also builds the test library):
 
 1. **Extract tables.** `tools/extract_tables.py` reads `re/tables.toml`, a manifest of (name, address, element type, count) entries, and writes `src/gen/tables.c` and `src/gen/tables.h` from the bytes of `original/disk/Wings_of_Fury/Wings`. Every constant table, name list, text and tuning array the port needs from the DATA or CODE hunk is obtained this way. Byte order is converted during extraction. `src/gen/` is ignored by version control.
-2. **Pack the file system.** All game files from section 3.1 except the executable and the non-game files are concatenated into one blob. Left out are `Wings`, `UFXintro`, `wingt`, every `.info` file and every dotfile, which leaves 55 files. Files stay in their original formats; the core contains the ported loaders. The container is big-endian like everything else the project reads: the magic `WOFS`, a u32 version, a u32 file count, a u32 directory offset, then 40-byte directory entries of a 32-byte NUL-padded name, a u32 offset and a u32 length. Names are paths relative to the disk's `Wings_of_Fury` directory, which is the original's current directory, so the ported loaders use the original's own file names.
+2. **Pack the file system.** All game files from section 3.1 except the executable and the non-game files are concatenated into one blob. Left out are `Wings`, `UFXintro`, `wingt`, every `.info` file and every dotfile, which leaves 55 files. Files stay in their original formats; the core contains the ported loaders. The container is big-endian like everything else the project reads: the magic `WOFS`, a u32 version, a u32 file count, a u32 directory offset, then 40-byte directory entries of a 32-byte NUL-padded name, a u32 offset and a u32 length. Names are paths relative to the disk's `Wings_of_Fury` directory, which is the original's current directory, so the ported loaders use the original's own file names. File-name lookup ignores case: the game asks for `shapes/Torpedo.shp` and `shapes/rank.iff`, the disk has `torpedo.shp` and `Rank.iff`.
 3. **Compile the core** to `core.wasm` with the command in section 2, plus `-Wl,--export-dynamic` or explicit export attributes.
 4. **Assemble the page.** `web/index.html` is the template. The build inlines the CSS, the JavaScript, the base64 of `core.wasm` and the base64 of the file-system blob. The files in `web/` are real ES modules, which a `file://` page cannot load from files; the build concatenates them in dependency order into one scope, strips whole-line imports and leading `export` keywords, and then fails if any module syntax is left or an imported name is not defined. The page instantiates the module with `WebAssembly.instantiate(bytes, imports)`; streaming instantiation is not available from `file://`.
 
@@ -274,8 +279,8 @@ A palette entry is RGBA in memory order, which canvas `ImageData` takes without 
 
 Plain JavaScript modules, no framework, no bundler other than the build script (section 5, step 4).
 
-- **Clock.** A fixed-rate accumulator driven by `requestAnimationFrame` issues `wof_vblank` calls at 60 Hz (or 50) of emulated time, each followed by one `wof_pass`, independent of the monitor's refresh rate. One pass per VBlank is provisional: the original runs passes as fast as the machine allows, and whether that matters is point 2 of section 10. After a stall, at most 24 VBlanks are replayed, which matches the original's queue limit of 6 ticks.
-- **Video.** Canvas 2D or WebGL. The indexed framebuffer is converted through the per-row palettes to RGBA. A 2D context must be requested with `willReadFrequently: true`, which selects a software-backed canvas: in GPU-composited Firefox the accelerated canvas can drop `putImageData` entirely, so that the canvas reads back as one colour and the player sees a black picture. Headless Firefox composites in software and does not show the fault. Integer scaling, optional 4:3 aspect correction for the 320 x 200 picture, fullscreen.
+- **Clock.** A fixed-rate accumulator driven by `requestAnimationFrame` issues `wof_vblank` calls at 60 Hz (or 50) of emulated time, each followed by one `wof_pass`, independent of the monitor's refresh rate. The original allows at most one pass per VBlank and on real hardware a pass takes longer than that; since logic runs per pass (section 3.3), the number of VBlanks per pass is a core setting, provisionally 2, until point 2 of section 10 is measured. After a stall, at most 24 VBlanks are replayed, which matches the original's queue limit of 6 ticks.
+- **Video.** Canvas 2D or WebGL. The indexed framebuffer is converted through the per-row palettes to RGBA. A 2D context must be requested with `willReadFrequently: true`, which selects a software-backed canvas: in GPU-composited Firefox the accelerated canvas can drop `putImageData` entirely, so that the canvas reads back as one colour and the player sees a black picture. Headless Firefox composites in software and does not show the fault. Integer scaling, optional 4:3 aspect correction for the 320 x 214 play picture, fullscreen.
 - **Input.** Keyboard and Gamepad API are merged into the raw state word passed to `wof_vblank`. A button that goes down and up again between two VBlanks is held sticky until the next `wof_vblank`, so short taps survive; the original samples a level, so this only compensates for the browser's coarser event timing. Menu and text-entry keys take the second path: the shell maps `KeyboardEvent.code`, which is positional, to raw Amiga key codes, which are also positional, and feeds the core's key buffer. The key map is configurable and stored locally. No modifier key may ever be mapped: with Control as fire and W as up, firing while climbing is Ctrl+W, which closes the tab and which a page cannot prevent.
 - **Audio.** The shell pulls PCM from `wof_audio_render` in blocks that correspond to emulated time and plays them through an `AudioWorklet`, fed by `postMessage`. The worklet module is inlined and loaded from a `data:` URL on a `file://` page, where a Blob URL is refused as a cross-origin load, and from a Blob URL elsewhere. Scheduled `AudioBufferSourceNode` blocks are the fallback; the query `?audio=buffers` forces it so that the tests can exercise it. Audio starts on the first event that really activates the page, which is not the same as the first event: a modifier pressed on its own, such as the Command of a console or screenshot shortcut, is a `keydown` that activates nothing, and a context built there is born suspended and logs an autoplay warning. The shell asks `navigator.userActivation.isActive` where it exists and otherwise ignores modifier keys, dead keys and keys pressed with a modifier held. It builds and resumes the context in the same task as the event, keeps listening and retrying until the context state is running, and only then removes the prompt that asks for a key.
 - **Storage.** `highscore` and saved games are written through the virtual file system to `localStorage`, base64-encoded, under a `wof:` prefix.
@@ -293,13 +298,14 @@ The original's front end blocks: it waits for VBlanks, for `Delay`, for the fire
 
 The original display is planar. The port uses **8-bit indexed framebuffers** and applies the palette at presentation, so that fades, the day and night palettes, colour cycling and any palette change part-way down the screen behave as in the original.
 
-- Shapes are converted from plane data and plane masks to indexed pixels once, at load, exactly as in `tools/ppkc.py`.
+- Shapes are converted from plane data and plane masks to indexed pixels once, at load. `tools/ppkc.py` shows the pixel values but is not the reference for drawing: the port keeps per shape the clear and set bytes (+12, +13), the union of its plane masks, its plane count and plane size, and blits against the existing framebuffer value exactly as `shape_blit` (`0x020B0C`) does, including the opaque cases and the depth of the target (the dashboard has 4 planes).
 - All drawing primitives of the original (shape blit with transparency, masked and clipped variants, scrolling, text, screen copies) are reimplemented on indexed pixels with identical clipping and identical draw order.
-- The original composes its picture from more than one ViewPort: the 320-pixel low-resolution playfield with 32 colours, and a 640-pixel high-resolution dashboard with its own palette (`iff-dash`, `nightdash` are 640 x 37). The viewport constructor is the C routine around `0x01F7BE`; geometry and colour-table handling are to be established from its callers. The shell output is 640 pixels wide with playfield pixels doubled.
+- The original builds no OS View. It keeps its own view and viewport records, builds copper lists and writes `COP1LC` itself (`re/notes/display.md`). The play screen is three stacked areas, 214 lines in all: the playfield, 320 x 162 low resolution with 5 planes, at line 0; the dashboard, 640 x 37 high resolution with 4 planes, at line 163; the message ticker, 640 x 13 high resolution with 1 plane, at line 201; lines 162 and 200 are blank. Playfield and dashboard are double-buffered and the swap is one `COP1LC` write; the ticker is single-buffered and scrolled inside `vblank_server`. Front-end screens use 200 lines in several formats, tabulated in the note. The shell output is 640 pixels wide with low-resolution pixels doubled.
+- Colours are 32-word tables per viewport. The mechanisms to reproduce are: the day and night palette files, chosen once per mission; a sky-to-ocean palette split part-way down the playfield whose line moves every pass; a ten-line colour ramp on the ticker; a sky flash; ramps on the story scroller; and 16-step fades whose arithmetic carries between colour components and must be kept (`colour_lerp`, `0x016FF6`). There is no colour cycling. The per-row palette interface expresses all of these.
 - `wof_palette_rows` tells the shell which palette applies to each output row.
 - **Display list.** Every shape draw also appends a `wof_draw_t` record (4-character shape name, x, y, layer, flags, owner object id) to a per-pass list. The classic renderer ignores it. It exists so that an enhanced renderer can be added later.
 
-If any game logic reads pixels or mask buffers back (the executable names a `MaskBuffer`), those buffers must be kept bit-exact and the logic must read them, not a substitute.
+No game logic depends on a drawing result: nothing reads pixels, masks, the blitter's zero flag or the collision register (`re/notes/drawing.md`). `MaskBuffer` is scratch space for the blit mask and the text template and is never read back. Ground height comes from map record types, not from pixels.
 
 ### 6.5 Audio model
 
@@ -309,7 +315,7 @@ The sound-effect engine (`sound_init`, `audio_irq`, `soundfx_vblank`) and the `s
 
 ### 6.6 What is not ported
 
-The C runtime startup, OS glue stubs, memory management, View and copper construction, interrupt plumbing, Workbench handling, the debug and crash reporters, the protection check and the crack screen. Mark these `replace` or `drop` in `re/functions.csv`. Everything else is `port`.
+The C runtime startup, OS glue stubs, memory management, view and copper construction (its semantics, the colour tables, the split line, the colour pokes and ramps, are reproduced through the palette rows), interrupt plumbing, Workbench handling, the debug and crash reporters, the protection check and the crack screen. Mark these `replace` or `drop` in `re/functions.csv`. Everything else is `port`.
 
 ## 7. Porting rules
 
@@ -354,7 +360,7 @@ For each routine, in an order that follows the milestones:
 | Level | Method |
 |---|---|
 | Routine | Oracle differential tests (section 7.4). Run with `.venv/bin/python -m pytest tests/` against the native library |
-| Whole game, logic | **Headless original.** A harness runs the original executable's initialisation and logic under the oracle with the OS calls of section 3.4 stubbed (files served from `original/disk`, memory from a bump allocator, display calls satisfied with dummy structures, custom-chip addresses mapped as plain memory, except reads of the beam position register `0xDFF006`, which are hooked and served from the same entropy stream the port consumes). It then feeds input bytes straight into the input queue and calls the tick and pass routines, dumping the object tables after every tick. The port runs the same input stream; the dumps must be identical. Start with initialisation up to the first pass, then extend |
+| Whole game, logic | **Headless original.** A harness runs the original executable's initialisation and logic under the oracle with the OS calls of section 3.4 stubbed (files served from `original/disk`, memory from a bump allocator, display calls satisfied with dummy structures, custom-chip addresses mapped as plain memory, except reads of the beam position register `0xDFF006`, which are hooked and served from the same entropy stream the port consumes). The blitter and `OwnBlitter`, `DisownBlitter`, `BltClear`, `BltBitMap`, `BltTemplate` and `WaitTOF` are no-ops, which is valid because no logic reads drawing results; `vblank_flag` (`0x0255BE`) is set before each pass because `wait_vblank` spins on it. The harness bypasses the crack's text screen (`0x01F41A`), which would otherwise draw entropy values the port never draws. It runs `frame_update` on every pass, never only the ticks, and the schedule of VBlanks, passes and ticks is part of the recorded input. It then feeds input bytes straight into the input queue and calls the tick and pass routines, dumping the object tables after every tick. The port runs the same input stream; the dumps must be identical. Start with initialisation up to the first pass, then extend |
 | Whole game, replays | The port records (seed, input bytes) in the original's demo format. Replays are regression tests: final state hash and per-tick hashes are stored in `tests/replays/` |
 | Page | The built `dist/wof.html` is opened from a `file://` URL in headless Chrome (DevTools protocol) and headless Firefox (WebDriver BiDi), both driven through Node's built-in WebSocket with nothing installed; each module skips when its browser is missing. Keys are pressed through the driver, never dispatched from a script, because a scripted event activates nothing. Checked: only local requests, a clean console, the picture on the canvas, a steady clock, Web Audio untouched before an activating key and running after it. `WOF_FIREFOX_VISIBLE=1` adds a run in a visible Firefox window, the only check that can see a GPU canvas fault |
 | Picture | Framebuffer hashes per pass for the stored replays, once the classic renderer is declared correct for a scene by visual comparison with the contact sheets and with the original running in an Amiga emulator |
@@ -364,7 +370,7 @@ If the blitter turns out to be driven only from a few assembly routines, the hea
 
 ## 9. Milestones
 
-Each milestone ends with a working `dist/wof.html` and green tests. **M0 is complete**; the framebuffer it reports, 640 x 200, is provisional until point 6 of section 10 is settled.
+Each milestone ends with a working `dist/wof.html` and green tests. **M0 is complete**; the framebuffer it reports, 640 x 200, becomes 640 x 214 with M1 (section 6.4).
 
 | # | Deliverable | Accepted when |
 |---|---|---|
@@ -386,16 +392,16 @@ Each point is answerable from the listing. Record the answer in `re/notes/` and 
 | # | Point | Due before | Where to start, or status |
 |---|---|---|---|
 | 1 | Input byte and keyboard path | answered | `re/notes/input.md`. Left over: the raw key codes the front end tests (due before M3, follow the key-buffer readers at `0x0207DA` upward) and the alternative controller path behind `read_joy_dispatch` `0x01CB20` (due before M9) |
-| 2 | Per-tick versus per-pass state changes | M4 | `logic_tick` `0x011386` and `frame_update` `0x010228`. Confirm with the headless original: run a pass with an empty input queue and compare memory |
-| 3 | The object system: `MasterList`, `AthList`, the pools `Ricochet`, `Splashes`, `Smoke`, `Balloons`; record layout, handler dispatch, draw order | M4 | The headless original is the instrument: watch which memory a tick changes |
-| 4 | Shape name resolution: how the name lists in DATA become shape pointers, and which container each list belongs to | M1 | It is part of the M1 deliverable. Start at the callers of `load_file` |
+| 2 | Per-tick versus per-pass state changes | M4 | Established so far (`re/notes/drawing.md`): the per-pass logic list and the two variables through which passes and ticks couple. Open: how many VBlanks a pass takes on a real or cycle-exact emulated A500, to be measured; and the object-table fields written during a pass, which the memory-compare run of the headless original closes |
+| 3 | The object system: the pools `Ricochet`, `Splashes`, `Smoke`, `Balloons`; record layout, handler dispatch, draw order | M4 | The headless original is the instrument: watch which memory a tick changes |
+| 4 | Shape name resolution | answered | `re/notes/shapes.md`. `MasterList` and `AthList` are not object lists: they are the combined shape pointer tables that map records index, full size and eighth scale |
 | 5 | Map record semantics and the world coordinate system | M4 | The map loader, found through the `maps/` filename table in DATA |
-| 6 | Display geometry: viewport sizes and positions, dashboard, palette changes down the screen, colour cycling | viewport sizes M1, the rest M3 | The viewport constructor around `0x01F7BE` and its callers |
-| 7 | Drawing routines in the assembly region: blitter or CPU, and whether any logic reads pixels or masks back | M2 | A headless run without a blitter model can only be trusted once it is known that logic never depends on drawing results |
+| 6 | Display geometry | answered for the play screen | `re/notes/display.md`. Left over, due before M3: the front-end screens beyond their geometry, what triggers the sky flash, and the real duration of the fades, which are CPU-bound in the original |
+| 7 | Drawing routines and read-back | answered | `re/notes/drawing.md`: no logic reads drawing results. Left over: the pixel pattern of the blitter's line mode, to be compared with an emulator when `line_draw` is ported |
 | 8 | Randomness and seeding | answered | `re/notes/random.md` |
 | 9 | 50 Hz versus 60 Hz | answered | `re/notes/random.md`: the program never checks |
 | 10 | Sound-effect tables and the song format | M8 | `songplay` has symbols and is cheap to read at any time |
-| 11 | The remaining three words of the shape record header | M1 if drawing uses them, otherwise M4 | The shape drawing routines |
+| 11 | The shape record header words at +8, +10, +12 | answered | `re/notes/shapes.md` and section 3.5 |
 | 12 | High-score file layout, save-game layout | M3 and M7 | `0x019288`, `0x0193CC`, `0x018B96` |
 
-Points 4, 6, 7 and 11 are plain reading and come first. Points 2, 3 and 5 are far easier once the headless original of M2 exists, because it turns them from reading into observing.
+Points 2, 3 and 5 are far easier once the headless original of M2 exists, because it turns them from reading into observing. One decision is open, due before M3: the source of the glyphs for the dialogs that use the system default font.
