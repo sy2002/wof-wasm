@@ -57,11 +57,25 @@ export function createAudio(core) {
     let underruns = 0;
     let nextTime = 0;
 
+    /* Every browser's autoplay policy wants the context created and resumed while the page
+       is activated, and Firefox counts that activation as transient.  Both calls therefore
+       happen in the same task as the gesture that reached us, with no await in between, and
+       nothing here is reached before that gesture: createAudio only builds closures, pump
+       and resume return at once while there is no context, and start is called from the
+       gesture handler alone. */
+    function resume() {
+        if (!ctx) {
+            return;
+        }
+        /* A blocked resume stays pending in Firefox rather than rejecting, so it is never
+           awaited: pump runs again on every animation frame and picks the audio up as soon
+           as the context is running. */
+        ctx.resume().catch(() => undefined);
+    }
+
     async function start() {
         if (ctx) {
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
-            }
+            resume();
             return backend;
         }
 
@@ -73,6 +87,7 @@ export function createAudio(core) {
         }
 
         ctx = new Ctor();
+        resume();
         gain = ctx.createGain();
         gain.gain.value = 1;
         gain.connect(ctx.destination);
@@ -109,7 +124,6 @@ export function createAudio(core) {
             nextTime = 0;
         }
 
-        await ctx.resume();
         pump();
         return backend;
     }
@@ -181,10 +195,12 @@ export function createAudio(core) {
         }
     }
 
-    function resume() {
+    /* Coming back from a hidden page.  The page has been activated long before, so this is
+       an ordinary resume; the fallback's schedule is dropped because its clock moved on. */
+    function resumeFromHidden() {
         if (ctx && ctx.state === 'suspended') {
             nextTime = 0;
-            ctx.resume();
+            resume();
         }
     }
 
@@ -203,5 +219,5 @@ export function createAudio(core) {
         };
     }
 
-    return { start, pump, suspend, resume, stats };
+    return { start, pump, suspend, resume: resumeFromHidden, stats };
 }
