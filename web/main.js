@@ -13,6 +13,16 @@ import { createOverlay } from './overlay.js';
    is a front-end question and belongs to M3. */
 const SEED = 0x57494e47;
 
+/* TEMPORARY - the four keys of the M1 viewer (src/viewer.c).  In M3 the menus take the
+   second input path of SPEC 6.2 instead: positional KeyboardEvent.code mapped to raw Amiga
+   key codes and fed to the core's key buffer. */
+const VIEWER_KEYS = {
+    ArrowRight: 1, Space: 1,
+    ArrowLeft: 2,
+    ArrowDown: 3,
+    ArrowUp: 4,
+};
+
 /* Keys that produce no character and therefore no user activation. */
 const INERT_KEYS = new Set([
     'Meta', 'Control', 'Alt', 'AltGraph', 'Shift', 'CapsLock', 'Dead',
@@ -106,6 +116,9 @@ async function boot() {
             clock.setHz(50);
         } else if (event.code === 'Digit6') {
             clock.setHz(60);
+        } else if (VIEWER_KEYS[event.code] !== undefined) {
+            core.keyPress(VIEWER_KEYS[event.code]);
+            event.preventDefault();
         }
     });
 

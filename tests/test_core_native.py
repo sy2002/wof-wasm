@@ -19,8 +19,8 @@ def frequency(samples, channel, frames, rate):
     return crossings / 2 / (frames / rate)
 
 
-def test_native_library_loads_and_reports_the_same_geometry(native_core_factory, wasm):
-    core = native_core_factory(1)
+def test_native_library_loads_and_reports_the_same_geometry(native_core_factory, wasm, blob):
+    core = native_core_factory(1, blob)
     assert core.width == wasm['geometry']['width']
     assert core.height == wasm['geometry']['height']
     assert core.lib.wof_palette_count() == wasm['geometry']['paletteCount']
@@ -44,8 +44,8 @@ def test_test_tone_follows_the_requested_rate(native_core_factory, rate):
     assert abs(frequency(samples, 1, frames, rate) - 660) < TONE_TOLERANCE_HZ
 
 
-def test_state_round_trips(native_core_factory):
-    core = native_core_factory(7)
+def test_state_round_trips(native_core_factory, blob):
+    core = native_core_factory(7, blob)
     core.run(100)
     saved = core.save_state()
     picture = core.framebuffer()
@@ -65,18 +65,19 @@ def test_the_packed_file_system_reaches_the_core(native_core_factory, blob, game
     assert core.lib.wof_fs_count() == len(game_file_names)
 
 
-def test_palette_rows_cover_the_whole_picture(native_core_factory, wasm):
-    core = native_core_factory(1)
+def test_palette_rows_cover_the_whole_picture(native_core_factory, wasm, blob):
+    core = native_core_factory(1, blob)
     rows = core.palette_rows()
     assert len(rows) == core.height
     assert max(rows) < wasm['geometry']['paletteCount']
     assert len(set(rows)) >= 2
 
 
-def test_native_and_wasm_draw_the_same_picture(native_core_factory, wasm):
+def test_native_and_wasm_draw_the_same_picture(native_core_factory, wasm, blob):
     """The same sources compile for both targets (SPEC 6.1); they must also behave the same,
-    or the oracle tests would be proving something the browser does not run."""
+    or the oracle tests would be proving something the browser does not run.  The picture is
+    decoded from the packed disk now, so both sides need the same blob."""
     expected = wasm['crossTarget']
-    core = native_core_factory(expected['seed'])
+    core = native_core_factory(expected['seed'], blob)
     core.run(expected['vblanks'], expected['raw'])
     assert hashlib.sha256(core.framebuffer()).hexdigest() == expected['hash']

@@ -50,9 +50,13 @@ def test_palette_rows_select_more_than_one_palette(wasm):
 
 
 def test_palettes_are_opaque_and_distinct(wasm):
+    """Palette 0 is the blank one every row no viewport covers goes through, which is what
+    the copper's BPLCON0 = 0x0200 gives on the machine; the picture's own colours are in
+    the palette its band names."""
     assert wasm['palettes']['opaque'], 'palette entries must carry alpha 0xFF'
     assert wasm['palettes']['differ'], 'the two palettes must not be the same table'
-    assert wasm['palettes']['distinctInPalette0'] >= 16
+    assert wasm['palettes']['blankIsBlack'], wasm['palettes']['distinct']
+    assert wasm['palettes']['richest'] >= 16, wasm['palettes']['distinct']
 
 
 def test_framebuffer_holds_indices_inside_the_palette(wasm):
@@ -62,10 +66,31 @@ def test_framebuffer_holds_indices_inside_the_palette(wasm):
     assert framebuffer['nonzero'] > framebuffer['size'] // 10, 'the test pattern is nearly empty'
 
 
-def test_display_list_exists_and_is_empty(wasm):
-    """SPEC 6.4 keeps the door open for an enhanced renderer; nothing fills it before M1."""
+def test_display_list_exists_and_a_shape_page_fills_it(wasm):
+    """SPEC 6.4: every shape draw appends a record.  The first page draws a picture, not
+    shapes, so the list starts empty and fills when the browser draws."""
     assert wasm['displayList']['pointer']
     assert wasm['displayList']['count'] == 0
+    assert wasm['viewer']['shapePageDraws'] > 0, 'the shape page appended nothing'
+
+
+def test_the_assets_all_loaded(wasm):
+    """Every container, the font and the four palettes came off the packed disk."""
+    assert wasm['assetsReady'] == 1
+
+
+def test_every_viewer_page_draws_something_of_its_own(wasm):
+    viewer = wasm['viewer']
+    for index, page in enumerate(viewer['pages']):
+        assert page['nonzero'] > 1000, 'page %d is nearly empty: %s' % (index, page)
+    assert viewer['allDifferent'], [p['hash'][:8] for p in viewer['pages']]
+    assert viewer['wrapsRound'], 'stepping through every page did not come back to the first'
+
+
+def test_the_pictures_have_their_own_colours(wasm):
+    """The three pictures of the M1 acceptance criterion, pages 0 to 2."""
+    for index in (0, 1, 2):
+        assert wasm['viewer']['pages'][index]['colours'] >= 8, wasm['viewer']['pages'][index]
 
 
 @pytest.mark.parametrize('case,left,right', [

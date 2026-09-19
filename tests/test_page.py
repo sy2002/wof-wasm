@@ -1,8 +1,9 @@
 """dist/wof.html in a real browser, headless, from a file:// URL.
 
-This is the M0 acceptance criterion of SPEC section 9 as far as it can be decided without a
-person: the page opens from file://, draws the test pattern, holds a steady emulated 60 Hz
-and makes no network request.  Whether the tone is audible is the one part left over.
+This is the M1 acceptance criterion of SPEC section 9 as far as it can be decided without a
+person: the page opens from file://, shows the publisher logo, the title and the credit
+picture with their own colours, browses the shapes, holds a steady emulated 60 Hz and makes
+no network request.  Whether the tone is audible is the one part left over.
 
 Skipped where Google Chrome is not installed; set WOF_CHROME to use another binary.
 """
@@ -44,10 +45,11 @@ def test_page_loads_without_errors(loaded):
     assert loaded['console'] == []
 
 
-def test_the_test_pattern_is_on_the_canvas(loaded):
+def test_the_picture_is_the_core_geometry(loaded):
+    """SPEC 6.4: 640 x 214, the play screen's three viewports stacked."""
     picture = loaded['picture']
-    assert (picture['width'], picture['height']) == (640, 200)
-    assert picture['colours'] >= 32, 'the picture has almost no colours in it'
+    assert (picture['width'], picture['height']) == (640, 214)
+    assert picture['colours'] >= 8, 'the publisher logo has almost no colours in it'
 
 
 def test_the_canvas_is_scaled_by_a_whole_number(loaded):
@@ -55,15 +57,33 @@ def test_the_canvas_is_scaled_by_a_whole_number(loaded):
     assert factor == int(factor) and factor >= 1
 
 
-def test_the_two_palettes_reach_the_screen(loaded):
-    """Both halves draw the same indices; they differ on screen only through the row table."""
-    assert loaded['picture']['topBandPixel'] != loaded['picture']['bottomBandPixel']
+def test_the_three_pictures_are_on_the_canvas(loaded):
+    """The M1 acceptance criterion: the publisher logo, the title and the credit picture,
+    each decoded by the ported ILBM reader with its own colours."""
+    for index, what in ((0, 'publisher logo'), (1, 'title'), (2, 'credits')):
+        page = loaded['pages'][index]
+        assert page['colours'] >= 8, 'the %s has %d colours' % (what, page['colours'])
+    hashes = [loaded['pages'][i]['hash'] for i in range(3)]
+    assert len(set(hashes)) == 3, 'two of the three pictures are the same picture'
 
 
-def test_the_picture_is_running(loaded):
-    assert loaded['moving']['vblankBar'], 'nothing moved at VBlank rate'
-    assert loaded['moving']['tickBar'], 'nothing moved at tick rate'
-    assert loaded['moving']['passMarker'], 'no pass was drawn'
+def test_every_viewer_page_draws_something(loaded):
+    for index, page in enumerate(loaded['pages']):
+        assert page['colours'] >= 2, 'page %d is one flat colour' % index
+    assert len(set(page['hash'] for page in loaded['pages'])) == len(loaded['pages'])
+    assert loaded['wrapped']['hash'] == loaded['pages'][0]['hash'], (
+        'stepping past the last page did not come back to the first')
+
+
+def test_the_play_screen_stacks_three_viewports(loaded):
+    """The playfield, the dashboard at line 163 and the ticker at line 201, with lines 162
+    and 200 blank - which is what the copper does above every lower viewport."""
+    rows = loaded['playScreen']['rows']
+    assert rows['playfield'] > 0, 'the playfield is empty'
+    assert rows['dashboard'] > 0, 'the dashboard is empty'
+    assert rows['ticker'] > 0, 'the ticker is empty'
+    assert rows['blankAboveDash'] == 0, 'line 162 is not blank'
+    assert rows['blankAboveTicker'] == 0, 'line 200 is not blank'
 
 
 def test_the_emulated_clock_is_steady(loaded):

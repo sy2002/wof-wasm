@@ -121,6 +121,7 @@ try {
     const KEY_META = '\uE03D';
     const KEY_SPACE = ' ';
     const KEY_BACKQUOTE = '`';
+    const KEY_RIGHT = '\uE014';
 
     function press(where, value) {
         return send(socket, 'input.performActions', {
@@ -141,45 +142,57 @@ try {
     await press(context, KEY_BACKQUOTE);
     await sleep(2500);
 
+    /* The picture, and the rows that tell the three viewports of SPEC 6.4 apart: the
+       playfield, the dashboard at line 163 and the ticker at line 201, with lines 162 and
+       200 blank because the copper drops BPLCON0 for the line above each lower viewport. */
     const PICTURE = `(() => {
         const canvas = document.getElementById('screen');
         const ctx = canvas.getContext('2d');
         const image = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         const colours = new Set();
+        let hash = 0;
         for (let i = 0; i < image.length; i += 4) {
             colours.add(image[i] << 16 | image[i + 1] << 8 | image[i + 2]);
+            hash = (hash * 31 + image[i] + image[i + 1] * 3 + image[i + 2] * 7) >>> 0;
         }
-        const pixel = (x, y) => {
-            const i = (y * canvas.width + x) * 4;
-            return image[i] + ',' + image[i + 1] + ',' + image[i + 2];
-        };
-        const strip = (y) => {
-            let sum = 0;
+        const lit = (y) => {
+            let n = 0;
             for (let x = 0; x < canvas.width; x++) {
-                sum = (sum * 31 + image[(y * canvas.width + x) * 4]) >>> 0;
+                const i = (y * canvas.width + x) * 4;
+                if (image[i] || image[i + 1] || image[i + 2]) n++;
             }
-            return sum;
+            return n;
         };
         return {
             width: canvas.width,
             height: canvas.height,
             cssWidth: canvas.style.width,
             colours: colours.size,
-            topBandPixel: pixel(10, 10),
-            bottomBandPixel: pixel(10, 10 + canvas.height / 2),
-            strips: { tickBar: strip(30), vblankBar: strip(50), passMarker: strip(98) },
+            hash,
+            rows: {
+                playfield: lit(80) + lit(120),
+                blankAboveDash: lit(162),
+                dashboard: lit(180),
+                blankAboveTicker: lit(200),
+                ticker: lit(205),
+            },
         };
     })()`;
 
     report.audioAfterKey = await evaluate('window.__wofAudio');
     report.picture = await evaluate(PICTURE);
-    await sleep(600);
-    const second = await evaluate(PICTURE);
-    report.moving = {
-        tickBar: report.picture.strips.tickBar !== second.strips.tickBar,
-        vblankBar: report.picture.strips.vblankBar !== second.strips.vblankBar,
-        passMarker: report.picture.strips.passMarker !== second.strips.passMarker,
-    };
+
+    report.pages = [report.picture];
+    for (let i = 0; i < 5; i++) {
+        await press(context, KEY_RIGHT);
+        await sleep(300);
+        report.pages.push(await evaluate(PICTURE));
+    }
+    report.playScreen = report.pages[5];
+
+    await press(context, KEY_RIGHT);
+    await sleep(300);
+    report.wrapped = await evaluate(PICTURE);
 
     report.overlay = await evaluate("document.getElementById('overlay').textContent");
     report.overlayVisible = await evaluate(

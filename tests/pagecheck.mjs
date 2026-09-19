@@ -147,6 +147,7 @@ try {
     const KEYS = {
         backquote: { key: '`', code: 'Backquote', text: '`' },
         space: { key: ' ', code: 'Space', text: ' ' },
+        right: { key: 'ArrowRight', code: 'ArrowRight' },
         meta: { key: 'Meta', code: 'MetaLeft' },
     };
 
@@ -182,48 +183,59 @@ try {
     await sleep(2000);
     report.audioAfterKey = await evaluate('window.__wofAudio');
 
-    /* Rows 30 and 50 of the first band are the tick bar and the VBlank bar of the test
-       pattern; both have to be somewhere else a moment later, or nothing is running. */
-    const STRIPS = `(() => {
-        const canvas = document.getElementById('screen');
-        const image = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-        const strip = (y) => {
-            let sum = 0;
-            for (let x = 0; x < canvas.width; x++) {
-                sum = (sum * 31 + image[(y * canvas.width + x) * 4]) >>> 0;
-            }
-            return sum;
-        };
-        return { tickBar: strip(30), vblankBar: strip(50), passMarker: strip(98) };
-    })()`;
-
-    report.picture = await evaluate(`(() => {
+    /* The picture, and the rows that tell the three viewports of SPEC 6.4 apart: the
+       playfield, the dashboard at line 163 and the ticker at line 201, with lines 162 and
+       200 blank because the copper drops BPLCON0 for the line above each lower viewport. */
+    const PICTURE = `(() => {
         const canvas = document.getElementById('screen');
         const ctx = canvas.getContext('2d');
-        const pixel = (x, y) => [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3).join(',');
         const image = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         const colours = new Set();
+        let hash = 0;
         for (let i = 0; i < image.length; i += 4) {
             colours.add(image[i] << 16 | image[i + 1] << 8 | image[i + 2]);
+            hash = (hash * 31 + image[i] + image[i + 1] * 3 + image[i + 2] * 7) >>> 0;
         }
+        const lit = (y) => {
+            let n = 0;
+            for (let x = 0; x < canvas.width; x++) {
+                const i = (y * canvas.width + x) * 4;
+                if (image[i] || image[i + 1] || image[i + 2]) n++;
+            }
+            return n;
+        };
         return {
             width: canvas.width,
             height: canvas.height,
             cssWidth: canvas.style.width,
             colours: colours.size,
-            topBandPixel: pixel(10, 10),
-            bottomBandPixel: pixel(10, 10 + canvas.height / 2),
+            hash,
+            rows: {
+                playfield: lit(80) + lit(120),
+                blankAboveDash: lit(162),
+                dashboard: lit(180),
+                blankAboveTicker: lit(200),
+                ticker: lit(205),
+            },
         };
-    })()`);
+    })()`;
 
-    const before = await evaluate(STRIPS);
-    await sleep(600);
-    const after = await evaluate(STRIPS);
-    report.moving = {
-        tickBar: before.tickBar !== after.tickBar,
-        vblankBar: before.vblankBar !== after.vblankBar,
-        passMarker: before.passMarker !== after.passMarker,
-    };
+    report.picture = await evaluate(PICTURE);
+
+    /* The M1 viewer's pages, stepped with the right arrow the way a person steps them.
+       Page 0 is the publisher logo, 1 the title, 2 the credits, 5 the play screen. */
+    report.pages = [report.picture];
+    for (let i = 0; i < 5; i++) {
+        await press(sessionId, 'right');
+        await sleep(300);
+        report.pages.push(await evaluate(PICTURE));
+    }
+    report.playScreen = report.pages[5];
+
+    /* Back to the first page, so that the rest of the run sees what it saw before. */
+    await press(sessionId, 'right');
+    await sleep(300);
+    report.wrapped = await evaluate(PICTURE);
 
     report.overlay = await evaluate("document.getElementById('overlay').textContent");
     report.overlayVisible = await evaluate(

@@ -66,6 +66,12 @@ class Core {
         this.x.wof_pass();
     }
 
+    /* TEMPORARY - the M1 viewer's four keys (src/viewer.c).  The real key path, positional
+       Amiga codes into the core's key buffer, belongs to the front end of M3. */
+    keyPress(code) {
+        this.x.wof_key_press(code & 0xff);
+    }
+
     /* Interleaved stereo int16, as many frames as asked for, at the given sample rate. */
     renderAudio(frames, rate) {
         const n = Math.min(frames, this.audioFrames);
@@ -91,6 +97,7 @@ class Core {
             files: this.x.wof_fs_count(),
             arenaUsed: this.x.wof_arena_used(),
             arenaSize: this.x.wof_arena_size(),
+            assetsReady: this.x.wof_assets_ready(),
         };
     }
 }

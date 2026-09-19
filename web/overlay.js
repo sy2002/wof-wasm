@@ -29,7 +29,7 @@ export function createOverlay(element, core, clock, audio, input) {
         const expectedTick = s.hz / 4;
 
         element.innerHTML =
-            '<b>Wings of Fury - M0 diagnostics</b>\n' +
+            '<b>Wings of Fury - M1 diagnostics</b>\n' +
             'clock        ' + s.hz + ' Hz emulated, ' + (s.backlog).toFixed(2) + ' vbl backlog\n' +
             'vblanks/s    ' + s.rate.vblank.toFixed(2) + '   (want ' + s.hz + ')\n' +
             'ticks/s      ' + s.rate.tick.toFixed(2) + '   (want ' + expectedTick + ')\n' +
@@ -44,6 +44,7 @@ export function createOverlay(element, core, clock, audio, input) {
             (a.note ? 'note         ' + a.note.slice(0, 48) + '\n' : '') +
             'core         ' + core.width + 'x' + core.height + ', ' + core.paletteCount +
                 ' palettes, ' + c.files + ' files\n' +
+            'assets       ' + (c.assetsReady ? 'loaded' : 'INCOMPLETE') + '\n' +
             'arena        ' + (c.arenaUsed / 1024).toFixed(0) + ' of ' +
                 (c.arenaSize / 1024).toFixed(0) + ' KiB';
     }

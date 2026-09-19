@@ -74,20 +74,23 @@ def test_the_next_real_key_starts_the_sound(loaded_firefox):
     assert_the_next_real_key_starts_the_sound(loaded_firefox)
 
 
-def test_the_test_pattern_is_on_the_canvas(loaded_firefox):
+def test_the_picture_is_the_core_geometry(loaded_firefox):
     picture = loaded_firefox['picture']
-    assert (picture['width'], picture['height']) == (640, 200)
-    assert picture['colours'] >= 32, 'the picture has almost no colours in it'
+    assert (picture['width'], picture['height']) == (640, 214)
+    assert picture['colours'] >= 8, 'the publisher logo has almost no colours in it'
 
 
-def test_the_two_palettes_reach_the_screen(loaded_firefox):
-    assert loaded_firefox['picture']['topBandPixel'] != loaded_firefox['picture']['bottomBandPixel']
+def test_the_three_pictures_are_on_the_canvas(loaded_firefox):
+    for index in (0, 1, 2):
+        assert loaded_firefox['pages'][index]['colours'] >= 8, loaded_firefox['pages'][index]
+    hashes = [loaded_firefox['pages'][i]['hash'] for i in range(3)]
+    assert len(set(hashes)) == 3, 'two of the three pictures are the same picture'
 
 
-def test_the_picture_is_running(loaded_firefox):
-    assert loaded_firefox['moving']['vblankBar'], 'nothing moved at VBlank rate'
-    assert loaded_firefox['moving']['tickBar'], 'nothing moved at tick rate'
-    assert loaded_firefox['moving']['passMarker'], 'no pass was drawn'
+def test_the_play_screen_stacks_three_viewports(loaded_firefox):
+    rows = loaded_firefox['playScreen']['rows']
+    assert rows['playfield'] > 0 and rows['dashboard'] > 0 and rows['ticker'] > 0, rows
+    assert rows['blankAboveDash'] == 0 and rows['blankAboveTicker'] == 0, rows
 
 
 def test_the_emulated_clock_is_steady(loaded_firefox):
@@ -114,7 +117,7 @@ def test_the_visible_canvas_shows_the_picture(loaded_firefox_visible):
     the black screen a player would see; web/video.js asks for a software-backed canvas to
     avoid it."""
     picture = loaded_firefox_visible['picture']
-    assert picture['colours'] > 1, (
-        'the shipped canvas reads back as one colour: %s' % picture['topBandPixel'])
-    assert picture['colours'] >= 32
-    assert picture['topBandPixel'] != picture['bottomBandPixel']
+    assert picture['colours'] > 1, 'the shipped canvas reads back as one colour'
+    assert picture['colours'] >= 8
+    rows = loaded_firefox_visible['playScreen']['rows']
+    assert rows['playfield'] > 0 and rows['dashboard'] > 0 and rows['ticker'] > 0, rows

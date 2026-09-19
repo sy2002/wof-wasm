@@ -102,16 +102,62 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
         last: rows[rows.length - 1],
     };
 
-    const pal = u32(x, x.wof_palettes(), x.wof_palette_count() * x.wof_palette_colours());
+    const colours = x.wof_palette_colours();
+    const pal = u32(x, x.wof_palettes(), x.wof_palette_count() * colours);
+    const distinct = [];
+    for (let p = 0; p < x.wof_palette_count(); p++) {
+        distinct.push(new Set(pal.slice(p * colours, (p + 1) * colours)).size);
+    }
     result.palettes = {
         opaque: [...pal].every((c) => (c >>> 24) === 0xff),
-        differ: [...pal.slice(0, 32)].some((c, i) => c !== pal[32 + i]),
-        distinctInPalette0: new Set(pal.slice(0, 32)).size,
+        differ: [...pal.slice(0, colours)].some((c, i) => c !== pal[colours + i]),
+        distinct,
+        richest: Math.max(...distinct),
+        blankIsBlack: distinct[0] === 1 && pal[0] === 0xff000000,
     };
+
+    result.assetsReady = x.wof_assets_ready();
 
     const countPtr = x.wof_alloc(4);
     const listPtr = x.wof_display_list(countPtr);
     result.displayList = { pointer: listPtr !== 0, count: u32(x, countPtr, 1)[0] };
+}
+
+/* The M1 viewer (src/viewer.c): every page draws something of its own, and the page that
+ * browses the shapes fills the display list of SPEC 6.4. */
+{
+    const PAGES = 6;
+    const SHAPES_PAGE = 4;
+    const x = boot(1);
+    const countPtr = x.wof_alloc(4);
+    const pages = [];
+
+    for (let p = 0; p < PAGES; p++) {
+        x.wof_display_list(countPtr);
+        const fb = framebuffer(x);
+        let nonzero = 0;
+        for (const v of fb) {
+            if (v) nonzero++;
+        }
+        pages.push({ hash: digest(fb), nonzero, colours: new Set(fb).size,
+                     draws: u32(x, countPtr, 1)[0] });
+        x.wof_key_press(1);
+        x.wof_pass();
+    }
+    result.viewer = {
+        pages,
+        allDifferent: new Set(pages.map((p) => p.hash)).size === PAGES,
+        shapePageDraws: pages[SHAPES_PAGE].draws,
+        wrapsRound: (() => {
+            const y = boot(1);
+            const first = digest(framebuffer(y));
+            for (let p = 0; p < PAGES; p++) {
+                y.wof_key_press(1);
+                y.wof_pass();
+            }
+            return digest(framebuffer(y)) === first;
+        })(),
+    };
 }
 
 /* N VBlanks give N / 4 ticks, and the boundary lands where vblank_server puts it. */
@@ -211,9 +257,19 @@ result.tones = {
     run(one, 200, 0);
     run(two, 200, 0);
     run(other, 200, 0);
+    /* The picture of M1 is the viewer's, which does not consume entropy, so the seed
+       shows in the state rather than on the screen; the entropy stream is what has to
+       follow it (SPEC 7.3).  When the game loop arrives the picture follows too. */
+    const stateOf = (x) => {
+        const size = x.wof_state_size();
+        const ptr = x.wof_alloc(size);
+        x.wof_state_save(ptr);
+        return digest(u8(x, ptr, size));
+    };
     result.determinism = {
-        sameSeed: digest(framebuffer(one)) === digest(framebuffer(two)),
-        differentSeed: digest(framebuffer(one)) !== digest(framebuffer(other)),
+        sameSeed: digest(framebuffer(one)) === digest(framebuffer(two))
+                  && stateOf(one) === stateOf(two),
+        differentSeed: stateOf(one) !== stateOf(other),
         hash: digest(framebuffer(one)),
     };
 }
