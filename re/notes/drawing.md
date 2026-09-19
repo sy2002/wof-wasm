@@ -63,7 +63,7 @@ for (i = 0; i < n; i++)                 /* in stored order */
 
 Planes named by none of `clear`, `set` and `m[i]` keep the destination's bits. Without a mask the whole box is written, so **such a shape is opaque: its colour-0 pixels overwrite the background**.
 
-3. **Clipping is exact to the pixel** on all four sides. Because left and right clip edges are multiples of 16, the routine gets there with whole-word skips plus first-word and last-word masks; a blit may start one word left of the clip edge with that word fully masked, which writes memory back unchanged.
+3. **Clipping is exact to the pixel** on all four sides, and so is the shape's own box. Because left and right clip edges are multiples of 16, the routine gets there with whole-word skips plus first-word and last-word masks; a blit may start one word left of the clip edge, and end one word right of the shape, with those words masked out of the A channel, which leaves the destination unchanged there. The derivation, word by word through the barrel shifter, and the values of `left_mask_table` and `right_mask_table` that make it come out, are in `re/notes/porting-m1.md`; the port therefore clips per pixel and was compared against the original's own register programme for every shape of every container.
 
 In hardware terms: minterm `0xCA` (D = A·B + ¬A·C) with A the mask, shifted by x and 15; phase one with `BLTBDAT` 0 on the clear planes, phase two with `BLTBDAT` `0xFFFF` on the set planes, phase three with B the stored plane on every plane of `m[i]`. Without a mask A is the constant `0xFFFF`. The oracle run showed `BLTCON0` `0x4FCA` for a masked 5-plane shape at x 100 and `0x37CA` for an unmasked one at x 35, with `BLTAPT` pointing at `MaskBuffer`, at plane 0 of a one-plane shape, and unused otherwise.
 
@@ -180,6 +180,6 @@ For the port:
 - **How long a pass takes in the original**, in VBlanks, under typical load. Reading cannot give it; a cycle-exact emulator can. It sets the speed of everything that runs per pass (the soldiers, the game-over delay, the kind-1 animation). This is the substance of point 2.
 - The object-table fields that the pass writes through pointers were not enumerated. The headless original can: run one pass with an empty input queue and compare memory, as point 2 proposes.
 - Which object each scene routine draws, and the draw order inside `draw_world`, are recorded here only as call order.
-- The pixel pattern of the blitter's line mode is documented hardware behaviour, not re-derived here. A test against a cycle-exact emulator is advisable when `line_draw` is ported.
+- The pixel pattern of the blitter's line mode is documented hardware behaviour, not re-derived here. A test against a cycle-exact emulator is advisable when `line_draw` is ported. The same applies to the area mode: `tests/blitter.py` models it, which is enough to check the port against the original's register programme but not to check the model itself (`re/notes/porting-m1.md`, "What that proves and what it does not").
 - `0x01526E` computes its bottom clip row from fields of the record at `0x0254D8`; what they mean was not established.
 - Text drawn with `graphics.Text` needs the system font's glyphs, which are not on the game disk (`re/notes/display.md`).

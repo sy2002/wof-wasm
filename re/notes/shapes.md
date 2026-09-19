@@ -117,6 +117,18 @@ Day or night is the word `night_flag` (`0x025390`), chosen per mission by `choos
 
 **Failure handling.** A container file that cannot be loaded ends the program through `fatal_exit` (`0x01020E`). The exception is `battleship.shp`: `load_ship_shapes` clears the battleship flag, sets `0x0255BF` and carries on. A failed table allocation is not checked anywhere. In the port both are unreachable.
 
+## What M1 did with this
+
+All of the above is ported and compared with the original: `shape_find` and
+`shapes_resolve` against every name of every list in every container, the conversion to
+indexed pixels against the plane data of all 1,049 shapes, and `shape_mirror_x` against
+all 216 records of `hellcat.shp` and `Torpedo.shp`. Details, and what the comparison of
+the blit does and does not prove, are in `re/notes/porting-m1.md`. Two things the port
+found: no container has overlapping plane masks, so the blit's mask is exactly "the
+converted pixel is not 0" and needs no storage of its own; and the nine name lists are
+not in ascending order, although the thirteen containers are, which is all that
+`shape_find`'s early exit needs.
+
 ## Consequences for the port
 
 - Convert a shape to indexed pixels at load as `tools/ppkc.py` does, but keep **per shape**: width, height, hotspot, the two plane bytes `+12` and `+13`, the union of the stored plane masks, the number of stored planes, the byte size of one plane, and for `hellcat.shp` and `Torpedo.shp` the mirror marker. The blit needs all of them (`re/notes/drawing.md`).

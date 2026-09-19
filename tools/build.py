@@ -146,8 +146,12 @@ def compile_wasm(log):
 
 
 def compile_native(log):
-    """The same sources as a native shared library, for the ctypes tests (SPEC 5)."""
-    subprocess.run(['clang'] + CC_NATIVE + ['-o', DYLIB] + sources(), check=True, cwd=ROOT)
+    """The same sources as a native shared library, for the ctypes tests (SPEC 5), plus
+    tests/shim.c, which gives the oracle tests scalar access to the core's internals and is
+    never part of dist/core.wasm."""
+    extra = [os.path.join(TESTS, 'shim.c')]
+    subprocess.run(['clang'] + CC_NATIVE + ['-o', DYLIB] + sources() + extra,
+                   check=True, cwd=ROOT)
     log('native    %s, %d bytes' % (os.path.relpath(DYLIB, ROOT), os.path.getsize(DYLIB)))
 
 

@@ -70,7 +70,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0123dc,sub_0123dc,asm,148,,,,3,,dos.LoadSeg,8,"""songplay""",todo
 012470,sub_012470,asm,108,,,,3,fatal_exit,dos.UnLoadSeg,7,,todo
 0124dc,sub_0124dc,asm,4,,,,2,,,0,,todo
-0124e0,mem_free_var,asm,34,,,,9,sub_02090a,,0,,todo
+0124e0,mem_free_var,asm,34,,,,9,mem_free,,0,,replace
 012502,shapes_free,asm,28,,,,3,mem_free_var,,0,,todo
 01251e,sub_01251e,asm,14,,,,0,shape_find_c,,0,,todo
 01252c,sub_01252c,asm,68,,,,1,,,3,,todo
@@ -80,14 +80,14 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0125c6,sub_0125c6,asm,122,,,,1,,exec.FindTask exec.SetTaskPri,10,,todo
 012640,sub_012640,asm,300,,,,0,sub_01556e,exec.Debug,1,"""Crashed in the main task!!!  Error number is %d...."" | ""SR is %d.\n"" | ""crash pc is %06lx, _quit_cleanup is %06lx.\n"" | ""Offset from _quit_cleanup is %06lx (%ld).\n""",todo
 01276c,sub_01276c,asm,40,,,,1,,exec.SetTaskPri,5,,todo
-012794,font_load,asm,98,,,,1,load_file_public,,7,,todo
+012794,font_load,asm,98,,,,1,load_file_public,,7,,verified
 0127f6,sub_0127f6,asm,72,,,,1,mem_free_var,,1,,todo
 01283e,alloc_pools,asm,152,,,,1,mem_alloc_asm sub_0158fe,,8,"""Ricochet"" | ""Splashes"" | ""Smoke"" | ""Balloons"" | ""MaskBuffer"" | ""MasterList"" | ""AthList""",todo
 0128d6,sub_0128d6,asm,58,,,,1,mem_free_var,,7,,todo
 012910,sub_012910,asm,74,,,,1,mem_alloc_asm,a6=? LVO -168,1,"""Interrupt_Server""",todo
 01295a,sub_01295a,asm,110,,,,1,mem_free_var sub_01556e,exec.RemIntServer,2,"""No Interrupt handler detected.\n""",todo
 0129c8,sub_0129c8,asm,20,,,,1,sub_0165c4,,0,"""In init.asm """,todo
-0129dc,load_permanent_shapes,asm,182,,,,1,shapes_load shape_by_index,,19,,todo
+0129dc,load_permanent_shapes,asm,182,,,,1,shapes_load shape_by_index,,19,,ported
 012a92,sub_012a92,asm,74,,,,1,shapes_free,,12,,todo
 012adc,sub_012adc,asm,226,,,-32628,1,sub_012d5a sub_013554 mem_alloc_asm,dos.Open dos.Read dos.Close,17,,todo
 012bbe,sub_012bbe,asm,198,,,-32622,2,mem_free_var shapes_free,,18,,todo
@@ -96,14 +96,14 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0131c8,sub_0131c8,asm,78,,,,1,,,1,,todo
 013216,sub_013216,asm,32,,,,1,,,0,,todo
 013236,sub_013236,asm,28,,,,1,,,0,,todo
-013252,load_ship_shapes,asm,278,,,-32616,2,sub_01350e shapes_load,,30,,todo
+013252,load_ship_shapes,asm,278,,,-32616,2,sub_01350e shapes_load,,30,,ported
 013368,sounds_load,asm,230,,,-32610,2,sub_011f76 file_length load_file_chip_asm,,24,,todo
 01344e,sub_01344e,asm,30,,,,1,file_length load_file_chip_asm,,3,,todo
 01346c,sub_01346c,asm,56,,,-32604,3,mem_free_var,,7,,todo
 0134a4,sub_0134a4,asm,10,,,,1,mem_free_var,,1,,todo
 0134ae,sub_0134ae,asm,14,,,-32598,3,shapes_free,,2,,todo
-0134bc,init_assets,asm,28,,,,1,sub_0125c6 font_load alloc_pools load_permanent_shapes sub_0205cc,,1,,todo
-0134d8,sub_0134d8,asm,54,,,,1,close_libraries sub_01276c sub_0127f6 sub_0128d6 sub_01295a sub_012a92 display_shutdown sub_02067c sub_02090a,intuition.OpenWorkBench,1,,todo
+0134bc,init_assets,asm,28,,,,1,sub_0125c6 font_load alloc_pools load_permanent_shapes sub_0205cc,,1,,ported
+0134d8,sub_0134d8,asm,54,,,,1,close_libraries sub_01276c sub_0127f6 sub_0128d6 sub_01295a sub_012a92 display_shutdown sub_02067c mem_free,intuition.OpenWorkBench,1,,todo
 01350e,sub_01350e,asm,70,,,,1,mem_alloc_asm,,1,,todo
 013554,sub_013554,asm,14,,,,1,,,1,,todo
 013562,sub_013562,asm,70,,,,1,sub_0135a8 sub_01e608 sub_01edea,,10,,todo
@@ -179,18 +179,18 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015710,sub_015710,asm,4,,,,7,,,0,,todo
 015714,sub_015714,asm,388,,,,1,,,8,,todo
 015898,sub_015898,asm,84,,,,0,,,2,,todo
-0158ec,mem_alloc_asm,asm,18,,,,6,mem_alloc,,0,,todo
-0158fe,sub_0158fe,asm,18,,,,1,display_alloc_chip,,0,,todo
+0158ec,mem_alloc_asm,asm,18,,,,6,mem_alloc,,0,,replace
+0158fe,sub_0158fe,asm,18,,,,1,display_alloc_chip,,0,,replace
 015910,text_draw,asm,14,,,,1,,,0,,todo
-01591e,text_width,asm,56,,,,1,,,3,,todo
-015956,text_render,asm,310,,,,1,text_width,,15,,todo
+01591e,text_width,asm,56,,,,1,,,3,,verified
+015956,text_render,asm,310,,,,1,text_width,,15,,verified
 015a8c,text_draw_justified,asm,92,,,,1,text_render,graphics.BltTemplate,5,,todo
 015ae8,sub_015ae8,asm,46,,,,2,,,4,,todo
 015b16,sub_015b16,asm,4,,,,0,,,0,,todo
 015b1a,file_length,asm,62,,,,2,,dos.Open dos.Seek dos.Close,1,,todo
-015b58,shape_mirror_x,asm,110,,,,1,,,1,,todo
-015bc6,shapes_load,asm,150,,,-32394,3,load_file_chip_asm,dos.IoErr exec.RawDoFmt,2,"""--Problem reading file '%s', DOS error:%d--\n\r""",todo
-015c5c,shapes_resolve,asm,66,,,-32388,0,mem_alloc_asm shape_find,,0,,todo
+015b58,shape_mirror_x,asm,110,,,,1,,,1,,verified
+015bc6,shapes_load,asm,150,,,-32394,3,load_file_chip_asm,dos.IoErr exec.RawDoFmt,2,"""--Problem reading file '%s', DOS error:%d--\n\r""",verified
+015c5c,shapes_resolve,asm,66,,,-32388,0,mem_alloc_asm shape_find,,0,,verified
 015c9e,sub_015c9e,asm,8,,,,0,,,0,,todo
 015ca6,sub_015ca6,asm,102,,,,1,,,2,,todo
 015d0c,sub_015d0c,asm,12,,,,0,,,0,,todo
@@ -200,9 +200,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d2a,sub_015d2a,asm,6,,,,0,,,0,,todo
 015d30,sub_015d30,asm,8,,,,0,,,0,,todo
 015d38,sub_015d38,asm,6,,,,0,,,0,,todo
-015d3e,load_file_public_asm,asm,14,,,,4,load_file_public,,0,,todo
+015d3e,load_file_public_asm,asm,14,,,,4,load_file_public,,0,,ported
 015d4c,sub_015d4c,asm,4,,,,1,,,0,,todo
-015d50,load_file_chip_asm,asm,10,,,,3,load_file_chip,,0,,todo
+015d50,load_file_chip_asm,asm,10,,,,3,load_file_chip,,0,,ported
 015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
 015d62,sub_015d62,C,8,2,,,1,,,0,,todo
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
@@ -213,7 +213,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015ec2,sub_015ec2,C,368,10,8 12,,2,sub_015d62,,14,,todo
 016032,sub_016032,C,84,0,8 10,,1,sub_022e92 sub_022ec4,,1,,todo
 016086,sub_016086,C,1206,100,8 12 14 16,-32376,3,sub_016032 sub_018228 poll_fire poll_joy_dir8 sub_020700 sub_0207d8 sub_0207e4 sub_021e12 sub_022e78 sub_022ea4 sub_022eb4 sub_022ec4 sub_022ed4 gfx_WaitTOF,,2,,todo
-01653c,load_dash_assets,C,86,6,,,2,fatal_exit shapes_load load_file_public_asm,,8,,todo
+01653c,load_dash_assets,C,86,6,,,2,fatal_exit shapes_load load_file_public_asm,,8,,ported
 016592,sub_016592,C,50,0,8,,1,,,0,,todo
 0165c4,sub_0165c4,C,8,4,,,1,,,0,,todo
 0165cc,display_alloc_chip,C,18,0,8,,2,mem_alloc_chip,,0,,todo
@@ -236,15 +236,15 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 016cc6,screen_game,C,108,0,,,1,ticker_vport_init view_set_game view_build_copper gfx_BltClear,,8,,todo
 016d32,screen_game_restore,C,72,0,,,1,view_set_game cop_add_ticker_ramp view_build_copper view_copy,,6,,todo
 016d7a,screen_hiscore,C,92,0,,,1,view_layout view_build_copper cop_show_wait,,11,,todo
-016dd6,cmap_file_to_table,C,156,12,8 12,,1,,,0,,todo
+016dd6,cmap_file_to_table,C,156,12,8 12,,1,,,0,,verified
 016e72,sub_016e72,C,36,0,,,1,sub_016e96,,0,"""Not enough memory.\n""",todo
 016e96,sub_016e96,C,28,0,8,,5,fatal_exit sub_021ef4,,0,,todo
-016eb2,view_load_picture,C,60,4,8 12 16,,1,load_file_public_asm view_build_copper iff_to_vport sub_02090a,,0,,todo
+016eb2,view_load_picture,C,60,4,8 12 16,,1,load_file_public_asm view_build_copper iff_to_vport mem_free,,0,,todo
 016eee,wait_frames_or_fire,C,50,2,8,,3,poll_fire gfx_WaitTOF,,0,,todo
 016f20,view_show,C,164,0,8,,5,cop_install,,14,,todo
 016fc4,view_show_wait,C,22,0,8,-32364,11,view_show wait_vblank,,0,,todo
 016fda,sub_016fda,C,28,0,8 10,,0,,,0,,todo
-016ff6,colour_lerp,C,142,2,8 10 12,,2,sub_0223cc,,0,,todo
+016ff6,colour_lerp,C,142,2,8 10 12,,2,sub_0223cc,,0,,verified
 017084,fade_to,C,366,138,8,-32358,7,view_show colour_lerp view_build_copper,,3,,todo
 0171f2,fade_to_pair,C,446,202,8 12,,2,view_show colour_lerp view_build_copper,,3,,todo
 0173b0,fade_out,C,54,66,8,-32352,6,fade_to,,0,,todo
@@ -256,15 +256,15 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01816c,sub_01816c,C,40,0,,-32340,2,sub_016e96,,0,"""User requested abort.""",todo
 018194,sub_018194,C,148,6,8,,2,poll_fire poll_joy_dir8 sub_0207d8 sub_0207e4 gfx_WaitTOF,,0,,todo
 018228,sub_018228,C,58,2,,,3,poll_fire poll_joy_dir8 sub_0207d8 gfx_WaitTOF,,0,,todo
-018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black sub_018194 sub_018228 sub_018b96 view_build_copper view_copy rand_set_seed shape_by_index mem_alloc sub_02090a shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
+018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black sub_018194 sub_018228 sub_018b96 view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
 01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc sub_01fe50,,4,,todo
 018570,sub_018570,C,32,0,8,,4,text_draw sub_021e12,,0,,todo
 018590,sub_018590,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out sub_018570 poll_fire shape_find_c sub_020700 sub_0207d8 sub_0207e4 shape_draw_c draw_set_target_c clip_set_full sub_0215d8 sub_021eca sub_022e78 gfx_WaitTOF,,9,"""%d""",todo
 01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
 0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,todo
-018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait sub_01d1ea sub_02090a,,13,,todo
+018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait sub_01d1ea mem_free,,13,,todo
 018958,sub_018958,C,174,4,,,1,sub_021e12 sub_022e78 sub_022ec4 sub_022ed4,,3,,todo
-018a06,sub_018a06,C,400,12,,,1,sub_018958 mem_alloc sub_02090a sub_021e02 sub_021e82 sub_0222d2 sub_022ada sub_022aec sub_022b1a sub_022b50,,2,,todo
+018a06,sub_018a06,C,400,12,,,1,sub_018958 mem_alloc mem_free sub_021e02 sub_021e82 sub_0222d2 sub_022ada sub_022aec sub_022b1a sub_022b50,,2,,todo
 018b96,sub_018b96,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a sub_016086 sub_016592 screen_dialog sub_016e96 view_show_wait fade_to fade_out sub_018194 sub_018228 sub_018a06 draw_set_target_c clip_set_full sub_021e12 sub_021e9a sub_021eca sub_0222a8 sub_022aca sub_022e48 sub_022e78 sub_022e92 sub_022ea4 sub_022ec4 sub_022ed4,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
 019288,sub_019288,C,38,0,,,2,sub_01fe50,,1,"""highscore""",todo
 0192ae,sub_0192ae,C,114,2,,,0,sub_019288 sub_0222d2,,1,"""Colin was here!""",todo
@@ -286,16 +286,16 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 019d18,cop_vport_planes,C,852,28,8 12 16 18,,1,cop_move cop_move_ptr cop_wait,,0,,todo
 01a06c,cop_sprites_off,C,104,2,8,,2,cop_move cop_move_ptr,,1,,todo
 01a0d4,view_build_copper,C,290,8,8,,11,cop_reset cop_move cop_wait cop_vport_colours cop_vport_split cop_vport_planes cop_sprites_off,,1,,todo
-01a1f6,iff_cmap_to_table,C,142,6,8 12,,1,sub_0223cc,,0,,todo
+01a1f6,iff_cmap_to_table,C,142,6,8 12,,1,sub_0223cc,,0,,verified
 01a284,iff_cmp2_to_table,C,178,6,8 12,,1,sub_0223cc,,0,,todo
-01a336,sub_01a336,C,44,0,8 12,,1,,,0,,todo
-01a362,iff_body_to_vport,C,240,36,8 12 16,,1,vport_clear_planes byterun1_row,,0,,todo
-01a452,iff_parse_ilbm,C,246,20,8 12,,1,iff_cmap_to_table iff_cmp2_to_table sub_01a336 iff_body_to_vport,,0,,todo
-01a548,iff_to_vport,C,160,8,8 12,,2,iff_parse_ilbm sub_021dce,,0,"""*** Error - null pointer passed to ConvertIFFtoM...""",todo
+01a336,iff_next_chunk,C,44,0,8 12,,1,,,0,,todo
+01a362,iff_body_to_vport,C,240,36,8 12 16,,1,vport_clear_planes byterun1_row,,0,,verified
+01a452,iff_parse_ilbm,C,246,20,8 12,,1,iff_cmap_to_table iff_cmp2_to_table iff_next_chunk iff_body_to_vport,,0,,verified
+01a548,iff_to_vport,C,160,8,8 12,,2,iff_parse_ilbm sub_021dce,,0,"""*** Error - null pointer passed to ConvertIFFtoM...""",verified
 01a5e8,sub_01a5e8,C,38,0,8 9,,0,,,0,,todo
 01a60e,view_poke_colours1,C,158,10,8 12 16 20,,1,,,0,,todo
 01a6ac,view_poke_colours2,C,160,10,8 12 16 20,,1,,,0,,todo
-01a74c,vport_clear_planes,C,96,6,8,,2,gfx_BltClear,,0,,todo
+01a74c,vport_clear_planes,C,96,6,8,,2,gfx_BltClear,,0,,ported
 01a7ac,view_clear_unused,C,136,6,8,,0,vport_clear_planes,,0,,todo
 01a834,view_copy_bitmaps,C,144,12,8 12,,1,gfx_BltBitMap,,0,,todo
 01a8c4,view_copy_colours,C,262,10,8 12,,1,view_poke_colours1 view_poke_colours2,,0,,todo
@@ -402,30 +402,30 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01f41a,sub_01f41a,C,898,140,,-32106,1,read_vhposr sub_016086 screen_hires2 view_show_wait fade_to fade_out sub_018570 sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",todo
 01f79c,os_viewport_new_unused,asm,258,,,,0,os_viewport_free_unused mem_alloc mem_alloc_chip,graphics.InitVPort graphics.GetColorMap graphics.InitRastPort graphics.InitBitMap,2,,todo
 01f89e,sub_01f89e,asm,4,,,,0,,,0,,todo
-01f8a2,os_viewport_free_unused,asm,164,,,,1,sub_02090a,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
+01f8a2,os_viewport_free_unused,asm,164,,,,1,mem_free,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
 01f946,sub_01f946,asm,150,,,,1,,,0,,todo
-01f9dc,sub_01f9dc,asm,542,,,,0,sub_01f946 mem_alloc sub_02090a,dos.Lock dos.UnLock dos.Examine dos.Open exec.RawDoFmt exec.execPrivate1 dos.Read dos.Close,1,,todo
+01f9dc,sub_01f9dc,asm,542,,,,0,sub_01f946 mem_alloc mem_free,dos.Lock dos.UnLock dos.Examine dos.Open exec.RawDoFmt exec.execPrivate1 dos.Read dos.Close,1,,todo
 01fbfa,sub_01fbfa,asm,48,,,,0,,,0,,todo
 01fc2a,sub_01fc2a,asm,260,,,,1,mem_alloc,dos.Open dos.Read dos.Seek dos.Close,1,,todo
-01fd2e,sub_01fd2e,asm,134,,,,0,sub_01fc2a sub_01fdb4 sub_02090a,,0,,todo
+01fd2e,sub_01fd2e,asm,134,,,,0,sub_01fc2a sub_01fdb4 mem_free,,0,,todo
 01fdb4,sub_01fdb4,asm,34,,,,1,,,0,,todo
 01fdd6,sub_01fdd6,asm,40,,,,0,,,0,,todo
 01fdfe,sub_01fdfe,asm,56,,,,0,,graphics.BltBitMap,1,,todo
-01fe36,sub_01fe36,asm,26,,,,0,sub_02090a,,0,,todo
+01fe36,sub_01fe36,asm,26,,,,0,mem_free,,0,,todo
 01fe50,sub_01fe50,C,100,10,8 12 16,-32100,2,sub_022aae sub_022b02 sub_022b2c sub_022b60,,0,,todo
-01feb4,load_file_public,C,22,0,8,-32094,2,load_file,,0,,todo
-01feca,load_file_chip,C,22,0,8,-32088,1,load_file,,0,,todo
+01feb4,load_file_public,C,22,0,8,-32094,2,load_file,,0,,ported
+01feca,load_file_chip,C,22,0,8,-32088,1,load_file,,0,,ported
 01fee0,rpck_unpack,asm,54,,,,1,,,0,,verified
-01ff16,load_file,C,730,48,8 12,,2,rpck_unpack sub_020390 mem_alloc sub_020874 sub_02090a sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50,,3,,todo
-0201f0,sub_0201f0,C,24,0,8,,0,sub_020390,,0,,todo
-020208,sub_020208,C,24,0,8,,0,sub_020390,,0,,todo
-020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 sub_02090a sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50 sub_022d36 sub_022d86,,3,,todo
+01ff16,load_file,C,730,48,8 12,,2,rpck_unpack load_file_small mem_alloc sub_020874 mem_free sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50,,3,,verified
+0201f0,sub_0201f0,C,24,0,8,,0,load_file_small,,0,,todo
+020208,sub_020208,C,24,0,8,,0,load_file_small,,0,,todo
+020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 mem_free sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50 sub_022d36 sub_022d86,,3,,todo
 020376,sub_020376,C,26,0,8 12,,0,sub_020220,,0,,todo
-020390,sub_020390,C,26,0,8 12,,3,sub_020220,,0,,todo
+020390,load_file_small,C,26,0,8 12,,3,sub_020220,,0,,replace
 0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
 0203be,rand_beam,asm,28,,,-32082,18,,,2,,todo
 0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,todo
-0203e8,byterun1_row,asm,76,,,,1,,,0,,todo
+0203e8,byterun1_row,asm,76,,,,1,,,0,,verified
 020434,sub_020434,C,24,0,,,0,,,0,,todo
 02044c,poll_fire,asm,8,,,-32064,8,read_fire_button,,1,,todo
 020454,poll_joy_dir8,asm,8,,,-32058,3,read_joy_dir8,,1,,todo
@@ -435,9 +435,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0204c0,sub_0204c0,C,36,0,,,0,sub_0228f8,,2,,todo
 0204e4,sub_0204e4,C,8,0,,,1,,,0,,todo
 0204ec,sub_0204ec,C,8,0,,,1,,,0,,todo
-0204f4,shape_find_c,C,26,4,8 12,-32052,3,shape_find,,0,,todo
-02050e,shape_by_index,C,82,0,8 12,-32046,2,,,0,,todo
-020560,shape_find,asm,84,,,-32040,4,,,0,,todo
+0204f4,shape_find_c,C,26,4,8 12,-32052,3,shape_find,,0,,ported
+02050e,shape_by_index,C,82,0,8 12,-32046,2,,,0,,verified
+020560,shape_find,asm,84,,,-32040,4,,,0,,verified
 0205b4,sub_0205b4,C,24,2,8,,0,,,1,,todo
 0205cc,sub_0205cc,C,176,0,8,-32034,1,sub_022ba4 sub_022c8e sub_022cb6 sub_022d50 sub_022dc4,,15,,todo
 02067c,sub_02067c,C,114,0,,-32028,1,sub_022b88 sub_022c30 sub_022ca4 sub_022cfa sub_022d50,,5,,todo
@@ -446,18 +446,18 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 02075a,input_handler,asm,126,,,-32010,0,,,6,,todo
 0207d8,sub_0207d8,asm,12,,,-32004,6,,,1,,todo
 0207e4,sub_0207e4,asm,100,,,-31998,5,sub_0207d8 os_disable os_enable gfx_WaitTOF,,4,,todo
-020848,mem_alloc,C,22,0,8,-31992,8,sub_020874,,0,,todo
-02085e,mem_alloc_chip,C,22,0,8,-31986,3,sub_020874,,0,,todo
-020874,sub_020874,C,150,4,8 12,,4,sub_022d36,,1,,todo
-02090a,sub_02090a,C,148,0,8,-31980,13,sub_02090a sub_022d86,,1,,todo
+020848,mem_alloc,C,22,0,8,-31992,8,sub_020874,,0,,replace
+02085e,mem_alloc_chip,C,22,0,8,-31986,3,sub_020874,,0,,replace
+020874,sub_020874,C,150,4,8 12,,4,sub_022d36,,1,,replace
+02090a,mem_free,C,148,0,8,-31980,13,mem_free sub_022d86,,1,,replace
 02099e,sub_02099e,C,22,0,8,,0,,,0,,todo
 0209b4,sub_0209b4,asm,8,,,,0,,,0,,todo
-0209bc,blit_clip_setup,asm,306,,,,2,,,18,,todo
-020aee,shape_blit_c,asm,30,,,-31974,0,shape_blit blit_begin blit_end,,1,,todo
-020b0c,shape_blit,asm,412,,,-31968,4,blit_clip_setup,,13,,todo
+0209bc,blit_clip_setup,asm,306,,,,2,,,18,,verified
+020aee,shape_blit_c,asm,30,,,-31974,0,shape_blit blit_begin blit_end,,1,,ported
+020b0c,shape_blit,asm,412,,,-31968,4,blit_clip_setup,,13,,verified
 020ca8,sub_020ca8,asm,28,,,,0,mem_alloc_chip,,2,,todo
-020cc4,shape_draw_c,asm,30,,,-31962,1,shape_draw blit_begin blit_end,,1,,todo
-020ce2,shape_draw,asm,264,,,-31956,16,shape_clear_box blit_begin blit_end,,3,,todo
+020cc4,shape_draw_c,asm,30,,,-31962,1,shape_draw blit_begin blit_end,,1,,ported
+020ce2,shape_draw,asm,264,,,-31956,16,shape_clear_box blit_begin blit_end,,3,,verified
 020dea,shape_clear_box,asm,32,,,,1,rect_fill,,0,,todo
 020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,todo
 020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,todo
@@ -469,10 +469,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 02113e,rect_fill_aligned,asm,224,,,-31920,1,,,6,,todo
 02121e,sub_02121e,asm,24,,,,0,,exec.FindTask,1,,todo
 021236,sub_021236,asm,16,,,,0,,exec.FindTask,1,,todo
-021246,draw_set_target_c,asm,4,,,-31914,8,,,0,,todo
-02124a,draw_set_target,asm,54,,,-31908,4,,,3,,todo
-021280,clip_set_full,asm,28,,,-31902,6,clip_set,,1,,todo
-02129c,clip_set,asm,50,,,-31896,5,,,6,,todo
+021246,draw_set_target_c,asm,4,,,-31914,8,,,0,,ported
+02124a,draw_set_target,asm,54,,,-31908,4,,,3,,verified
+021280,clip_set_full,asm,28,,,-31902,6,clip_set,,1,,ported
+02129c,clip_set,asm,50,,,-31896,5,,,6,,verified
 0212ce,blit_begin,asm,6,,,-31890,19,sub_022e8a,,0,,todo
 0212d4,blit_end,asm,38,,,-31884,19,sub_022e40,,0,,todo
 0212fa,line_draw_c,asm,30,,,,0,blit_begin blit_end line_draw,,1,,todo

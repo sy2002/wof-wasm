@@ -207,3 +207,156 @@ def native_core_factory(built):
     def make(seed, blob=b''):
         return NativeCore(seed, blob)
     return make
+
+
+# --------------------------------------------------------- the port, for the oracle tests
+
+SHAPE_FIELDS = ['wbytes', 'height', 'hot_x', 'hot_y', 'marker', 'src_y', 'clear', 'set',
+                'planes', 'union', 'plane_bytes', 'has_pixels']
+
+# Big enough for the largest file on the disk (world.shp unpacks to 67,264 bytes) and for
+# the largest shape's pixels (rank, 3,040 bytes a plane, is 24,320 indexed pixels).
+SCRATCH = 128 * 1024
+
+
+class Ported:
+    """The ported routines, reached through tests/shim.c on the native library.
+
+    One process holds one copy of the core's statics, so this owns the library: nothing
+    else may re-initialise it while a test is using one.
+    """
+
+    def __init__(self, blob):
+        self.lib = ctypes.CDLL(str(DYLIB))
+        p, i, u8p, u16p, c = (ctypes.c_void_p, ctypes.c_int,
+                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p)
+        signatures = {
+            'wof_init': ([ctypes.c_uint32, p, ctypes.c_uint32], None),
+            'wof_alloc': ([ctypes.c_uint32], p),
+            'wof_arena_reset': ([], None),
+            'wof_assets_ready': ([], ctypes.c_uint32),
+            'wof_rpck_unpack': ([p, ctypes.c_uint32, p, ctypes.c_uint32], None),
+            'wof_colour_lerp': ([ctypes.c_int16, ctypes.c_uint16, ctypes.c_uint16],
+                                ctypes.c_uint16),
+            'wt_container_count': ([], i),
+            'wt_container_shapes': ([i], i),
+            'wt_container_name': ([i, i], ctypes.c_uint32),
+            'wt_shape_field': ([i, i, i], i),
+            'wt_shape_pixels': ([i, i, u8p, i], i),
+            'wt_shape_find': ([i, ctypes.c_uint32], i),
+            'wt_shape_by_index': ([i, i], i),
+            'wt_table_entry': ([i, i], i),
+            'wt_shape_mirror': ([i, i], None),
+            'wt_shape_set_facing': ([i, i, i], None),
+            'wt_load_file': ([c, u8p, i], i),
+            'wt_iff_decode': ([c, i, i, i, u8p, u16p], i),
+            'wt_cmap_file': ([c, u16p], i),
+            'wt_text_width': ([c, i], i),
+            'wt_text_render': ([c, i, u8p, i, i, i, i, i], i),
+            'wt_font_height': ([], i),
+            'wt_blit': ([i] * 11 + [u8p, u8p], i),
+        }
+        for name, (argtypes, restype) in signatures.items():
+            function = getattr(self.lib, name)
+            function.argtypes = argtypes
+            function.restype = restype
+
+        self.lib.wof_arena_reset()
+        pointer = self.lib.wof_alloc(len(blob))
+        assert pointer, 'core arena too small for the blob'
+        ctypes.memmove(pointer, blob, len(blob))
+        self.lib.wof_init(1, pointer, len(blob))
+        assert self.lib.wof_assets_ready() == 1, 'the core did not load every asset'
+        self.scratch = (ctypes.c_uint8 * SCRATCH)()
+
+    # ------------------------------------------------------------------ loaders
+
+    def rpck_unpack(self, packed, out_len):
+        src = (ctypes.c_uint8 * len(packed)).from_buffer_copy(packed)
+        dst = (ctypes.c_uint8 * out_len)()
+        self.lib.wof_rpck_unpack(src, len(packed), dst, out_len)
+        return bytes(dst)
+
+    def load_file(self, name):
+        n = self.lib.wt_load_file(name.encode('latin1'), self.scratch, SCRATCH)
+        return None if n < 0 else bytes(self.scratch[:n])
+
+    # ------------------------------------------------------------------- shapes
+
+    def container_shapes(self, slot):
+        return self.lib.wt_container_shapes(slot)
+
+    def container_name(self, slot, index):
+        return self.lib.wt_container_name(slot, index)
+
+    def shape_field(self, slot, index, field):
+        return self.lib.wt_shape_field(slot, index, SHAPE_FIELDS.index(field))
+
+    def shape_pixels(self, slot, index):
+        n = self.lib.wt_shape_pixels(slot, index, self.scratch, SCRATCH)
+        assert n >= 0, (slot, index)
+        return bytes(self.scratch[:n])
+
+    def shape_find(self, slot, name):
+        return self.lib.wt_shape_find(slot, name)
+
+    def shape_by_index(self, slot, index):
+        return self.lib.wt_shape_by_index(slot, index)
+
+    def table_entry(self, slot, index):
+        return self.lib.wt_table_entry(slot, index)
+
+    def shape_mirror(self, slot, index):
+        self.lib.wt_shape_mirror(slot, index)
+
+    def shape_set_facing(self, slot, index, facing):
+        self.lib.wt_shape_set_facing(slot, index, facing)
+
+    # ----------------------------------------------------------------- pictures
+
+    def iff_decode(self, path, width, rows, depth):
+        pixels = (ctypes.c_uint8 * (width * rows))()
+        colours = (ctypes.c_uint16 * 32)()
+        ok = self.lib.wt_iff_decode(path.encode('latin1'), width, rows, depth,
+                                    pixels, colours)
+        assert ok, path
+        return bytes(pixels), list(colours)
+
+    def cmap_file_to_table(self, path):
+        colours = (ctypes.c_uint16 * 32)()
+        assert self.lib.wt_cmap_file(path.encode('latin1'), colours), path
+        return list(colours)
+
+    # --------------------------------------------------------------------- text
+
+    def text_width(self, text):
+        raw = text.encode('latin1')
+        return self.lib.wt_text_width(raw, len(raw))
+
+    def text_render(self, text, x, row, justify, buf_w, buf_h):
+        raw = text.encode('latin1')
+        bpr = ((buf_w + 15) // 16) * 2
+        buffer = (ctypes.c_uint8 * (bpr * buf_h + 64))()
+        width = self.lib.wt_text_render(raw, len(raw), buffer, x, row, justify,
+                                        buf_w, buf_h)
+        return width, bytes(buffer[:bpr * buf_h])
+
+    # ------------------------------------------------------------------- colour
+
+    def colour_lerp(self, step, source, target):
+        return self.lib.wof_colour_lerp(step, source, target)
+
+    # --------------------------------------------------------------------- blit
+
+    def blit(self, slot, index, bytes_per_row, rows, depth, clip, x, y, background):
+        out = (ctypes.c_uint8 * len(background))()
+        source = (ctypes.c_uint8 * len(background)).from_buffer_copy(background)
+        n = self.lib.wt_blit(slot, index, bytes_per_row, rows, depth,
+                             clip[0], clip[1], clip[2], clip[3], x, y, source, out)
+        assert n == len(background), (slot, index)
+        return bytes(out)
+
+
+@pytest.fixture(scope='session')
+def ported(built, blob):
+    return Ported(blob)

@@ -347,3 +347,39 @@
 0253a0 split_row             ; word: the row passed to cop_set_split_line before clamping to 162
 02345f mission_map_table     ; bytes, index rank * 4 + mission
 027f30 view_caches           ; per-view state, indexed by the cache offset word of the view
+
+# M1: the loaders, the decoders and the drawing globals the port needed
+02090a mem_free              ; C. (pointer) the free that follows mem_alloc; -1 frees everything
+020390 load_file_small       ; C. (name, flags) the load_file path for a file under 16 bytes
+01a336 iff_next_chunk        ; C. (base, &offset) offset += 8 + length, rounded up to even
+027c7a load_file_ptr         ; long: the buffer load_file returned, or 0
+02772a load_file_len         ; long: its length, the declared one for a packed file
+027f62 load_file_error       ; long: IoErr of the last failed load
+026938 custom_base           ; long: 0xDFF000, loaded into A6 by every caller of the blit
+02695c clip_top              ; word, inclusive
+02695e clip_bottom           ; word, exclusive
+026960 clip_left             ; word, inclusive, rounded down to a multiple of 16
+026962 clip_right            ; word, exclusive, rounded down to a multiple of 16
+026964 clip_bottom_incl
+026966 clip_right_incl
+026968 left_mask_table       ; 17 words, 0xFFFF >> n: BLTAFWM for a blit clipped on the left
+02698a right_mask_table      ; 17 words, 0xFFFF << (16 - n): BLTALWM for one clipped on the right
+027f88 blit_src              ; long, BLTBPT: the stored plane, advanced past the clipped rows
+027f8c blit_mask             ; long, BLTAPT: MaskBuffer or the single plane, 0 when opaque
+027f96 blit_mask_modulo      ; word, BLTBMOD
+027f98 blit_src_modulo       ; word, BLTAMOD; always equal to blit_mask_modulo
+027f90 blit_dst_offset       ; word: y * BytesPerRow + the byte offset of the aligned x
+027f92 blit_size             ; word, BLTSIZE: rows in bits 15-6, words in bits 5-0
+027f94 blit_dst_modulo       ; word, BLTCMOD and BLTDMOD
+027f9a blit_plane_bytes      ; word: width in bytes times height, the step between planes
+027fa0 blit_shift            ; word: x and 15, the barrel shift of both A and B
+027fa2 blit_first_word_mask  ; word, BLTAFWM
+027fa4 blit_last_word_mask   ; word, BLTALWM
+026f1a draw_rastport         ; long: the RastPort draw_set_target was given
+02714e draw_bitmap           ; long: its BitMap
+02693c draw_planes           ; 9 longs: the library's copy of the plane pointers, never read
+027436 MaskBuffer            ; long: 0x410 bytes of chip memory, the blit mask and the text template
+02743a MaskBuffer_size       ; long: 0x410
+0256a2 shapes_load_name      ; long: the file name shapes_load is working on, for its error text
+0236ac font_file_name        ; "newarmyfont"
+026d4c demo_mode             ; word: 0 play, 1 demo playback, 2 demo recording
