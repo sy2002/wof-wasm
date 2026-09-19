@@ -75,16 +75,34 @@ def test_the_emulated_clock_is_steady(loaded):
     assert overlay_number(loaded, 'animation/s') > 30
 
 
+def audio_line(overlay):
+    line = re.search(r'^audio\s+(\w+), (\w+), (\d+) Hz', overlay, re.M)
+    assert line, overlay
+    return line.group(1), line.group(2), int(line.group(3))
+
+
 def test_audio_is_running_after_the_key_press(loaded):
-    line = re.search(r'^audio\s+(\w+), (\w+), (\d+) Hz', loaded['overlay'], re.M)
-    assert line, loaded['overlay']
-    backend, state, rate = line.group(1), line.group(2), int(line.group(3))
-    assert backend in ('worklet', 'buffers'), backend
+    """The shipped configuration, not merely some backend: a file:// page loads the worklet
+    module from a data: URL, and the fallback taking over silently would be a regression."""
+    backend, state, rate = audio_line(loaded['overlay'])
+    assert backend == 'worklet', 'the page fell back to %r' % backend
+    assert 'worklet module from a data: URL' in loaded['overlay'], loaded['overlay']
     assert state == 'running'
     assert rate >= 8000
     assert overlay_number(loaded, 'buffer') > 0, 'no audio is queued'
-    assert 'underruns' in loaded['overlay']
     assert re.search(r'buffer\s+[\d.]+ ms queued, 0 underruns', loaded['overlay']), loaded['overlay']
+
+
+def test_the_scheduled_buffer_fallback_also_plays(loaded):
+    """The path a browser that refuses the worklet lands on, asked for with ?audio=buffers."""
+    fallback = loaded['fallback']
+    backend, state, rate = audio_line(fallback['overlay'])
+    assert backend == 'buffers', backend
+    assert state == 'running'
+    assert rate >= 8000
+    assert re.search(r'buffer\s+[\d.]+ ms queued, 0 underruns', fallback['overlay']), fallback['overlay']
+    assert fallback['console'] == []
+    assert all(url.startswith('file://') for url in fallback['requests']), fallback['requests']
 
 
 def test_the_gesture_prompt_goes_away(loaded):

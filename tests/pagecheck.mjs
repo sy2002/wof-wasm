@@ -105,39 +105,56 @@ try {
     const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
+    /* Requests and errors are kept per page, because a second page is opened further down
+       and neither one's traffic may be read as the other's. */
+    const channels = new Map();
+    const channel = (id) => {
+        if (!channels.has(id)) {
+            channels.set(id, { requests: [], console: [] });
+        }
+        return channels.get(id);
+    };
+
     cdp.on((message) => {
+        const sink = channel(message.sessionId);
         if (message.method === 'Network.requestWillBeSent') {
-            report.requests.push(message.params.request.url);
+            sink.requests.push(message.params.request.url);
         } else if (message.method === 'Runtime.exceptionThrown') {
             const detail = message.params.exceptionDetails;
-            report.console.push('exception: ' + (detail.exception?.description || detail.text));
+            sink.console.push('exception: ' + (detail.exception?.description || detail.text));
         } else if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') {
-            report.console.push('console.error: ' + message.params.args.map((a) => a.value).join(' '));
+            sink.console.push('console.error: ' + message.params.args.map((a) => a.value).join(' '));
         } else if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') {
-            report.console.push('log: ' + message.params.entry.text);
+            sink.console.push('log: ' + message.params.entry.text);
         }
     });
 
-    for (const domain of ['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable']) {
-        await cdp.send(domain, {}, sessionId);
+    async function open(session, url) {
+        for (const domain of ['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable']) {
+            await cdp.send(domain, {}, session);
+        }
+        await cdp.send('Page.navigate', { url }, session);
+        await sleep(1500);
     }
 
-    await cdp.send('Page.navigate', { url: 'file://' + pagePath }, sessionId);
-    await sleep(1500);
-
-    async function evaluate(expression) {
+    async function evaluateIn(session, expression) {
         const result = await cdp.send('Runtime.evaluate', {
             expression, returnByValue: true, awaitPromise: true,
-        }, sessionId);
+        }, session);
         if (result.exceptionDetails) {
             throw new Error(result.exceptionDetails.exception?.description || 'evaluate failed');
         }
         return result.result.value;
     }
 
-    /* The overlay is the page's own instrument; opening it is a keypress, as it is for a
-       person.  The same keypress is the gesture that starts the audio. */
-    await evaluate("window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backquote' }))");
+    const evaluate = (expression) => evaluateIn(sessionId, expression);
+
+    /* The overlay is opened with the same keypress that is the gesture starting the audio. */
+    const OPEN_OVERLAY = "window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Backquote' }))";
+
+    await open(sessionId, 'file://' + pagePath);
+
+    await evaluate(OPEN_OVERLAY);
     await sleep(2000);
 
     /* Rows 30 and 50 of the first band are the tick bar and the VBlank bar of the test
@@ -211,6 +228,26 @@ try {
         settleMs: 400,
         before: beforeStall,
         after: await evaluate(COUNTERS),
+    };
+
+    report.requests = channel(sessionId).requests;
+    report.console = channel(sessionId).console;
+
+    /* The scheduled-buffer fallback is what a browser that refuses the worklet falls back
+       on, so it is asked for deliberately and checked, rather than only ever being reached
+       when something else has already gone wrong. */
+    const fallbackTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const fallbackSession = (await cdp.send('Target.attachToTarget', {
+        targetId: fallbackTarget.targetId, flatten: true,
+    })).sessionId;
+
+    await open(fallbackSession, 'file://' + pagePath + '?audio=buffers');
+    await evaluateIn(fallbackSession, OPEN_OVERLAY);
+    await sleep(2000);
+    report.fallback = {
+        overlay: await evaluateIn(fallbackSession, "document.getElementById('overlay').textContent"),
+        requests: channel(fallbackSession).requests,
+        console: channel(fallbackSession).console,
     };
 } finally {
     chrome.kill();

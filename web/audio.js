@@ -77,7 +77,11 @@ export function createAudio(core) {
         gain.gain.value = 1;
         gain.connect(ctx.destination);
 
-        if (ctx.audioWorklet) {
+        /* ?audio=buffers forces the fallback, so that the path that only some browsers take
+           can be exercised deliberately instead of only when something else has failed. */
+        const forced = new URLSearchParams(location.search).get('audio');
+
+        if (ctx.audioWorklet && forced !== 'buffers') {
             try {
                 note = 'worklet module from a ' + (await addWorkletModule(ctx)) + ' URL';
                 node = new AudioWorkletNode(ctx, 'wof-core', {
@@ -96,7 +100,8 @@ export function createAudio(core) {
                 note = 'worklet refused: ' + (err && err.message ? err.message : err);
             }
         } else {
-            note = 'no AudioWorklet';
+            note = forced === 'buffers' ? 'scheduled buffers, asked for by ?audio=buffers'
+                                        : 'no AudioWorklet';
         }
 
         if (!node) {
