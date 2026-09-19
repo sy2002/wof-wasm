@@ -8,6 +8,12 @@ The user talks to one session, the **controller**. The user opens every other se
 
 The controller changes over time: when its context fills, it hands over to a fresh session at a quiet point. Its session name therefore changes. Every task you send must name **your current session name** as the place to report to.
 
+## The user's conventions
+
+- **Session names.** The user keeps an overview by names. Controllers are called `Controller Instance N`, counting up with each handover. Workers are named after what they do, for example `Worker M2 headless original`. A rename changes the name under which a session is reached, so list the peer sessions again after one, and use the new name in every task and report. If a session has no means to rename itself, give the user the exact `/rename` line to type in that terminal.
+- **Model and effort.** Whenever a new session is needed, tell the user beforehand which model and which effort to set for it, from the table below, together with the name it should get. The user sets them; you cannot.
+- The user's Amiga is a PAL machine, and PAL is the port's default video standard.
+
 ## Driving workers
 
 - The user tells you a new session is open and which model and effort it runs. You cannot set either from outside. List the peer sessions to find its name; a session a minute old and idle is the one.
@@ -61,7 +67,7 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 ## The plan ahead
 
-0. **Display aspect and auto-zoom** (Opus, small, first). The user looked at the M1 viewer and asked for it: the shell shows framebuffer pixels square, so the picture is a 3:1 strip, and it should fill the window. `SPEC.md` section 6.2, Video, states the rule (box of 800 : 642, largest fit, two-step scaling). Shell and page tests only; the core does not change. The tests should assert the displayed box ratio and that it follows a window resize, in both browsers, and the visible Firefox check must pass, because a second canvas step touches the GPU canvas fault again.
+0. **Display aspect and auto-zoom** (Opus, small, first). The user looked at the M1 viewer and asked for it: the shell shows framebuffer pixels square, so the picture is a 3:1 strip, and it should fill the window. `SPEC.md` section 6.2, Video, states the rule (one PAL or NTSC setting for rate and aspect, PAL the default with a box of 1024 : 642, largest fit, two-step scaling). Shell and page tests only; the core does not change. The tests should assert the displayed box ratio and that it follows a window resize, in both browsers, and the visible Firefox check must pass, because a second canvas step touches the GPU canvas fault again.
 1. **M2, the headless original** (Fable). `SPEC.md` section 8 states what it must do. The facts it rests on: no logic reads drawing results, so the blitter and the listed graphics calls are no-ops; reads of `0xDFF006` are hooked and served from the entropy stream; `vblank_flag` is set before each pass; `frame_update` runs on every pass; the crack's text screen at `0x01F41A` is bypassed; the schedule of VBlanks, passes and ticks is recorded input. `tests/original.py` from M1 already runs original routines with stubs and is the place to start.
 2. **Open points 2, 3 and 5** (Fable), with M2 as the instrument: per-tick versus per-pass state, the object system, map semantics.
 3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests, and the front-end screens beyond their geometry (`SPEC.md` section 10, points 1 and 6).
