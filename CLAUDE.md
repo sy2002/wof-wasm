@@ -12,7 +12,8 @@ Run from the repository root. Always use the project environment, never the syst
 .venv/bin/python tools/oracle.py          # 68000 oracle self-test, must print PASSED
 .venv/bin/python tools/mdcheck.py SPEC.md # Markdown safety check, run on every .md that was edited
 .venv/bin/python tools/build.py --native  # build dist/wof.html, dist/core.wasm and tests/libwofcore.dylib
-.venv/bin/python -m pytest tests/         # full suite; the page tests need Google Chrome
+.venv/bin/python -m pytest tests/         # full suite; page tests use Chrome and Firefox and skip a missing browser
+WOF_FIREFOX_VISIBLE=1 .venv/bin/python -m pytest tests/test_firefox.py   # also opens a real Firefox window
 ```
 
 `tools/build.py` compiles the core with `.venv/bin/python -m ziglang cc -target wasm32-freestanding`; nothing else needs to be installed.
