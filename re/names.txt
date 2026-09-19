@@ -137,6 +137,78 @@
 027436 MaskBuffer            ; chip memory, 0x410 bytes
 02743a MaskBuffer_size
 
+# ---- drawing primitives  (see re/notes/drawing.md)
+026938 custom_base           ; long 0xDFF000; everything that drives the blitter loads it into A6
+0212ce blit_begin            ; asm. graphics.OwnBlitter
+0212d4 blit_end              ; asm. waits until DMACONR bit 14 (blitter busy) is clear, then graphics.DisownBlitter
+021246 draw_set_target_c     ; asm. stack argument, falls into draw_set_target
+02124a draw_set_target       ; asm. A0 = RastPort: remembers it and its BitMap, sets rp->Mask to the depth mask, caches the plane pointers
+026f1a draw_rastport         ; the current RastPort
+02714e draw_bitmap           ; its BitMap
+02693c draw_planes           ; copy of the plane pointers; written, never read
+02129c clip_set              ; asm. D0 top, D1 bottom, D2 left, D3 right; bottom and right exclusive, left and right rounded down to 16
+021280 clip_set_full         ; asm. the whole current BitMap
+01524a clip_playfield        ; asm. rows 0 to 162, columns 0 to 320
+01525c clip_dash_window      ; asm. rows 7 to 32, columns 256 to 400
+01f2dc clip_dashboard        ; asm. rows 0 to 37, columns 0 to 640
+02695c clip_top
+02695e clip_bottom           ; exclusive
+026960 clip_left             ; multiple of 16
+026962 clip_right            ; exclusive, multiple of 16
+026964 clip_bottom_incl
+026966 clip_right_incl
+0209bc blit_clip_setup       ; asm. clips a shape against the clip rectangle and prepares the blit parameters; carry set = nothing to draw
+020b0c shape_blit            ; asm. A0 = record, A1 = mask or 0, D0 = x, D1 = y, A6 = custom_base. Blitter: clear planes, set planes, then every stored plane
+020aee shape_blit_c          ; asm. stack arguments, owns the blitter around shape_blit
+020ce2 shape_draw            ; asm. as shape_blit with A1 = 0: builds the mask in MaskBuffer by CPU when one plane fits, otherwise blits opaque
+020cc4 shape_draw_c
+020e24 shape_draw_xor        ; asm. blitter, exclusive-or of the stored planes into their destination planes, inverts the set planes
+020e0a shape_draw_xor_c
+020dea shape_clear_box       ; asm. rect_fill of the record's bounding box with colour 0; only reachable from an uncalled entry at 020dd0
+020f7c blit_raw_unused       ; asm. whole-word cookie-cut between three pointers, no caller
+020f54 blit_raw_c_unused
+021010 rect_fill             ; asm. D0 = x0, D1 = y0, D2 = x1, D3 = y1 inclusive, D4 = colour. Blitter, clipped
+020ff2 rect_fill_c
+02113e rect_fill_aligned     ; asm. the same for edges on 16-pixel boundaries; rect_fill jumps into it
+021120 rect_fill_aligned_c
+021318 line_draw             ; asm. D0,D1 to D2,D3, D4 = colour. Cohen-Sutherland clip, then blitter line mode
+0212fa line_draw_c
+026968 left_mask_table       ; 17 words, 0xFFFF >> i
+02698a right_mask_table      ; 17 words, the top i bits
+0269ac line_octant_table     ; 8 bytes, BLTCON1 values by octant
+027f86 blit_src              ; the blit parameters left by blit_clip_setup
+027f8a blit_mask
+027f8e blit_dst_offset
+027f90 blit_size
+027f92 blit_dst_modulo
+027f94 blit_mask_modulo
+027f96 blit_src_modulo
+027f98 blit_plane_bytes
+027f9e blit_shift
+027fa0 blit_first_word_mask
+027fa2 blit_last_word_mask
+015174 draw_world_shape      ; asm. A0 = pointer table, D2 = index, D0 = world x, D1 = world y: to screen, minus hotspot, shape_draw
+0151c2 draw_world_shape_xor  ; asm. the same through shape_draw_xor, no caller
+024f30 view_x                ; word, world x of the left screen edge for this pass
+024f32 view_y                ; word, screen row of world height 0 for this pass
+024f34 view_shift            ; word, 0 at full scale, 3 in the eighth-scale view
+024f36 view_step             ; word, 8 at full scale, 1 in the eighth-scale view
+010f88 snapshot_for_draw     ; asm. first stage of frame_update: copies logic state into the fields the drawing reads
+013772 draw_world            ; asm. sky fill, map records through MasterList or AthList, then every object layer
+0135d8 player_lost_restart   ; asm. in frame_update when g_024f24 is set: game over or next life, clears the playfield, waits
+0110c2 draw_game_over        ; asm. draws 'gmov' while the game is over and counts passes down to quit_flag
+01ee16 draw_dashboard        ; asm. instruments, redraws only what changed against the per-buffer cache
+015956 text_render           ; asm. CPU: string to a 1-bit template in MaskBuffer, returns the pixel width
+01591e text_width            ; asm. A0 = string, D0 = length - 1 -> D0 = pixel width
+015a8c text_draw_justified   ; asm. (string, length, width) text_render, then graphics.BltTemplate at the pen position
+015910 text_draw             ; asm. (string, length) the same without justification
+026f6a font_file             ; the loaded newarmyfont
+026f70 font_height
+026f6e font_first_char
+026f6f font_last_char
+026e16 font_glyphs           ; start of the glyph data
+026d56 font_glyph_offsets    ; 96 words
+
 # ---- sound
 01e8b8 sound_init            ; installs level-4 audio vector ($70) and the VBlank server "SoundFX_IntHandler"
 01ebaa audio_irq             ; asm. level-4 autovector handler (audio channel interrupts)

@@ -2,25 +2,25 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 010000,entry,asm,6,,,-32766,0,c_startup,,0,,todo
 010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sub_011f4e open_libraries sub_012910 sub_012adc load_ship_shapes sounds_load init_assets sub_013562 sub_0135a8 sub_013684 build_master_lists load_dash_assets display_init ticker_clear fade_out_pair sub_018022 sub_018262 sub_01852a sub_018590 mission_display_setup sub_019856 wait_next_vblank sub_01aa50 sub_01ccb6 sub_01ccf6 sub_01edaa sub_01f41a poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",todo
 01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets sub_012470 sub_0134d8,,1,,todo
-010228,frame_update,asm,228,,,,1,sub_010344 sub_0106be sub_010ee0 sub_010f88 sub_0110c2 sub_0135d8 sub_013772 sub_013eee sub_01417e sub_01524a sub_0152f8 sub_01557c cop_set_split_line wait_vblank sub_01ee16 sub_01f2dc sub_02124a,,13,,todo
+010228,frame_update,asm,228,,,,1,sub_010344 sub_0106be sub_010ee0 snapshot_for_draw draw_game_over player_lost_restart draw_world sub_013eee sub_01417e clip_playfield sub_0152f8 sub_01557c cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,todo
 01030c,flip_buffers,asm,56,,,,1,flip_view,,4,,todo
-010344,sub_010344,asm,98,,,,1,sub_020b0c sub_0212ce sub_0212d4,,5,,todo
-0103a6,sub_0103a6,asm,792,,,-32742,1,sub_01524a sub_01526e sub_01cbf2 sub_020ce2 sub_020e24 sub_021318,,35,,todo
-0106be,sub_0106be,asm,68,,,,1,sub_010702 sub_0212ce sub_0212d4,,3,,todo
-010702,sub_010702,asm,210,,,,1,sub_015174,,4,,todo
+010344,sub_010344,asm,98,,,,1,shape_blit blit_begin blit_end,,5,,todo
+0103a6,sub_0103a6,asm,792,,,-32742,1,clip_playfield sub_01526e sub_01cbf2 shape_draw shape_draw_xor line_draw,,35,,todo
+0106be,sub_0106be,asm,68,,,,1,sub_010702 blit_begin blit_end,,3,,todo
+010702,sub_010702,asm,210,,,,1,draw_world_shape,,4,,todo
 0107d4,sub_0107d4,asm,30,,,,0,,,1,,todo
 0107f2,sub_0107f2,asm,46,,,,1,,,3,,todo
 010820,sub_010820,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,todo
 01099a,sub_01099a,asm,216,,,,1,sub_01115c sub_0111a6 sub_011a46 sub_015104 sub_015108 sub_015ca6,,0,,todo
 010a72,sub_010a72,asm,52,,,-32730,1,sub_010aa6,,3,,todo
 010aa6,sub_010aa6,asm,768,,,,1,sub_01099a sub_011126 sub_011a8c sub_012324 sub_01233e sub_0146dc sub_0150c8 sub_0152b0 sub_015714,,7,,todo
-010da6,sub_010da6,asm,314,,,-32724,1,sub_020ce2 sub_020e24,,10,,todo
-010ee0,sub_010ee0,asm,166,,,,1,sub_015174 sub_0212ce sub_0212d4,,8,,todo
+010da6,sub_010da6,asm,314,,,-32724,1,shape_draw shape_draw_xor,,10,,todo
+010ee0,sub_010ee0,asm,166,,,,1,draw_world_shape blit_begin blit_end,,8,,todo
 010f86,sub_010f86,asm,2,,,,0,,,0,,todo
-010f88,sub_010f88,asm,244,,,,1,,exec.Forbid exec.Permit,24,,todo
+010f88,snapshot_for_draw,asm,244,,,,1,,exec.Forbid exec.Permit,24,,todo
 01107c,sub_01107c,asm,22,,,-32718,1,sub_0107f2,,2,,todo
 011092,sub_011092,asm,48,,,-32712,0,,,0,,todo
-0110c2,sub_0110c2,asm,100,,,,1,sub_01524a shape_find sub_020ce2 sub_02124a sub_0212ce sub_0212d4,,6,,todo
+0110c2,draw_game_over,asm,100,,,,1,clip_playfield shape_find shape_draw draw_set_target blit_begin blit_end,,6,,todo
 011126,sub_011126,asm,54,,,,1,,,1,,todo
 01115c,sub_01115c,asm,74,,,,1,,,2,,todo
 0111a6,sub_0111a6,asm,86,,,,1,,,1,,todo
@@ -107,27 +107,27 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01350e,sub_01350e,asm,70,,,,1,mem_alloc_asm,,1,,todo
 013554,sub_013554,asm,14,,,,1,,,1,,todo
 013562,sub_013562,asm,70,,,,1,sub_0135a8 sub_01e608 sub_01edea,,10,,todo
-0135a8,sub_0135a8,asm,38,,,,2,sub_0135d8,,8,,todo
+0135a8,sub_0135a8,asm,38,,,,2,player_lost_restart,,8,,todo
 0135ce,sub_0135ce,asm,10,,,-32592,1,,,2,,todo
-0135d8,sub_0135d8,asm,172,,,,2,flip_buffers sub_013684 sub_01524a sub_021010 sub_02124a sub_0212ce sub_0212d4 gfx_WaitTOF,,14,,todo
+0135d8,player_lost_restart,asm,172,,,,2,flip_buffers sub_013684 clip_playfield rect_fill draw_set_target blit_begin blit_end gfx_WaitTOF,,14,,todo
 013684,sub_013684,asm,210,,,,3,sub_013756 sub_01b7ec sub_01b9bc sub_01edbc,,32,,todo
 013756,sub_013756,asm,28,,,-32586,2,,,2,,todo
-013772,sub_013772,asm,428,,,-32580,1,sub_0103a6 sub_010da6 sub_01391e sub_013a18 sub_013abc sub_013b1c sub_013d78 sub_013de8 sub_013e6c sub_01409c sub_0140e8 sub_014c3e sub_014eac sub_020ce2 sub_021010 sub_0212ce sub_0212d4,,19,,todo
-01391e,sub_01391e,asm,250,,,,1,sub_015174 sub_020ce2,,10,,todo
-013a18,sub_013a18,asm,164,,,,1,sub_020ce2,,7,,todo
-013abc,sub_013abc,asm,96,,,,1,sub_015174,,7,,todo
-013b1c,sub_013b1c,asm,604,,,,1,sub_020ce2,,20,,todo
-013d78,sub_013d78,asm,112,,,,1,sub_014d50 sub_014f5c sub_014fee sub_015174,,2,,todo
-013de8,sub_013de8,asm,132,,,,1,sub_014d50 sub_014f5c sub_015174 sub_015460,,2,,todo
-013e6c,sub_013e6c,asm,130,,,,1,sub_020ce2 sub_021010,,6,,todo
-013eee,sub_013eee,asm,430,,,-32574,1,sub_014b54 sub_015078 sub_0150c8 sub_015174 sub_015624 sub_015694 sub_015ae8 sub_0212ce sub_0212d4,,12,,todo
-01409c,sub_01409c,asm,76,,,,1,sub_015174 sub_01524a sub_01526e,,7,,todo
-0140e8,sub_0140e8,asm,150,,,,1,sub_015174 sub_021010,,10,,todo
-01417e,sub_01417e,asm,54,,,-32568,1,sub_0141b4 sub_014206 sub_014564 sub_01525c sub_0212ce sub_0212d4,,4,,todo
-0141b4,sub_0141b4,asm,82,,,,1,sub_020ce2,,4,,todo
-014206,sub_014206,asm,554,,,,1,sub_014430 sub_0145a6 sub_014a52 sub_020ce2 sub_021010,,16,,todo
-014430,sub_014430,asm,308,,,,1,sub_020ce2,,14,,todo
-014564,sub_014564,asm,66,,,,1,sub_021010 sub_02124a,,3,,todo
+013772,draw_world,asm,428,,,-32580,1,sub_0103a6 sub_010da6 sub_01391e sub_013a18 sub_013abc sub_013b1c sub_013d78 sub_013de8 sub_013e6c sub_01409c sub_0140e8 sub_014c3e sub_014eac shape_draw rect_fill blit_begin blit_end,,19,,todo
+01391e,sub_01391e,asm,250,,,,1,draw_world_shape shape_draw,,10,,todo
+013a18,sub_013a18,asm,164,,,,1,shape_draw,,7,,todo
+013abc,sub_013abc,asm,96,,,,1,draw_world_shape,,7,,todo
+013b1c,sub_013b1c,asm,604,,,,1,shape_draw,,20,,todo
+013d78,sub_013d78,asm,112,,,,1,sub_014d50 sub_014f5c sub_014fee draw_world_shape,,2,,todo
+013de8,sub_013de8,asm,132,,,,1,sub_014d50 sub_014f5c draw_world_shape sub_015460,,2,,todo
+013e6c,sub_013e6c,asm,130,,,,1,shape_draw rect_fill,,6,,todo
+013eee,sub_013eee,asm,430,,,-32574,1,sub_014b54 sub_015078 sub_0150c8 draw_world_shape sub_015624 sub_015694 sub_015ae8 blit_begin blit_end,,12,,todo
+01409c,sub_01409c,asm,76,,,,1,draw_world_shape clip_playfield sub_01526e,,7,,todo
+0140e8,sub_0140e8,asm,150,,,,1,draw_world_shape rect_fill,,10,,todo
+01417e,sub_01417e,asm,54,,,-32568,1,sub_0141b4 sub_014206 sub_014564 clip_dash_window blit_begin blit_end,,4,,todo
+0141b4,sub_0141b4,asm,82,,,,1,shape_draw,,4,,todo
+014206,sub_014206,asm,554,,,,1,sub_014430 sub_0145a6 sub_014a52 shape_draw rect_fill,,16,,todo
+014430,sub_014430,asm,308,,,,1,shape_draw,,14,,todo
+014564,sub_014564,asm,66,,,,1,rect_fill draw_set_target,,3,,todo
 0145a6,sub_0145a6,asm,288,,,,1,sub_014a52,,6,,todo
 0146c6,sub_0146c6,asm,22,,,-32562,3,,,2,,todo
 0146dc,sub_0146dc,asm,882,,,-32550,1,sub_014a4e sub_014ae4 sub_014b40 sub_014b54 sub_015078 sub_0150c8 sub_015624 sub_015694 sub_015ae8,,9,,todo
@@ -136,7 +136,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 014ae4,sub_014ae4,asm,92,,,,2,,,1,,todo
 014b40,sub_014b40,asm,20,,,,1,,,0,,todo
 014b54,sub_014b54,asm,234,,,,2,sub_014ae4 sub_0150c8,,7,,todo
-014c3e,sub_014c3e,asm,274,,,,1,sub_014db8 sub_014efc sub_014f5c sub_015174 sub_015460 rand_beam,,6,,todo
+014c3e,sub_014c3e,asm,274,,,,1,sub_014db8 sub_014efc sub_014f5c draw_world_shape sub_015460 rand_beam,,6,,todo
 014d50,sub_014d50,asm,104,,,,2,sub_014db8 rand_beam,,4,,todo
 014db8,sub_014db8,asm,244,,,,2,sub_015460,,4,,todo
 014eac,sub_014eac,asm,60,,,,1,sub_014a4e,,3,,todo
@@ -156,23 +156,23 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015104,sub_015104,asm,4,,,-32508,2,,,0,,todo
 015108,sub_015108,asm,68,,,-32502,2,,,1,,todo
 01514c,sub_01514c,asm,40,,,-32496,1,,,1,,todo
-015174,sub_015174,asm,78,,,-32490,12,sub_020ce2,,4,,todo
-0151c2,sub_0151c2,asm,74,,,-32484,0,sub_020e24,,4,,todo
+015174,draw_world_shape,asm,78,,,-32490,12,shape_draw,,4,,todo
+0151c2,draw_world_shape_xor,asm,74,,,-32484,0,shape_draw_xor,,4,,todo
 01520c,sub_01520c,asm,2,,,,1,,,0,,todo
 01520e,read_joy_bits,asm,60,,,-32478,1,,,2,,todo
-01524a,sub_01524a,asm,18,,,-32472,5,sub_02129c,,0,,todo
-01525c,sub_01525c,asm,18,,,-32466,1,sub_02129c,,0,,todo
-01526e,sub_01526e,asm,62,,,-32460,2,sub_02129c,,6,,todo
+01524a,clip_playfield,asm,18,,,-32472,5,clip_set,,0,,todo
+01525c,clip_dash_window,asm,18,,,-32466,1,clip_set,,0,,todo
+01526e,sub_01526e,asm,62,,,-32460,2,clip_set,,6,,todo
 0152ac,sub_0152ac,asm,4,,,-32454,2,,,0,,todo
 0152b0,sub_0152b0,asm,72,,,-32448,3,sub_0150c8,,1,,todo
-0152f8,sub_0152f8,asm,98,,,-32442,1,sub_015174 sub_0212ce sub_0212d4,,4,,todo
+0152f8,sub_0152f8,asm,98,,,-32442,1,draw_world_shape blit_begin blit_end,,4,,todo
 01535a,build_master_lists,asm,262,,,-32436,2,shape_find,,14,,todo
 015460,sub_015460,asm,108,,,-32430,6,rand_beam,,1,,todo
 0154cc,sub_0154cc,asm,20,,,,1,sub_015460,,0,,todo
 0154e0,sub_0154e0,asm,122,,,,2,sub_015460,,5,,todo
 01555a,sub_01555a,asm,20,,,-32424,3,,,1,,todo
 01556e,sub_01556e,asm,14,,,-32418,2,sub_021dce,,1,,todo
-01557c,sub_01557c,asm,168,,,-32412,1,sub_015174 rand_beam sub_0212ce sub_0212d4,,5,,todo
+01557c,sub_01557c,asm,168,,,-32412,1,draw_world_shape rand_beam blit_begin blit_end,,5,,todo
 015624,sub_015624,asm,28,,,-32406,2,sub_015078 sub_01555a,,1,,todo
 015640,sub_015640,asm,84,,,,1,sub_015078,,3,,todo
 015694,sub_015694,asm,124,,,-32400,3,sub_015078,,9,,todo
@@ -181,10 +181,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015898,sub_015898,asm,84,,,,0,,,2,,todo
 0158ec,mem_alloc_asm,asm,18,,,,6,mem_alloc,,0,,todo
 0158fe,sub_0158fe,asm,18,,,,1,display_alloc_chip,,0,,todo
-015910,sub_015910,asm,14,,,,1,,,0,,todo
-01591e,sub_01591e,asm,56,,,,1,,,3,,todo
-015956,sub_015956,asm,310,,,,1,sub_01591e,,15,,todo
-015a8c,sub_015a8c,asm,92,,,,1,sub_015956,graphics.BltTemplate,5,,todo
+015910,text_draw,asm,14,,,,1,,,0,,todo
+01591e,text_width,asm,56,,,,1,,,3,,todo
+015956,text_render,asm,310,,,,1,text_width,,15,,todo
+015a8c,text_draw_justified,asm,92,,,,1,text_render,graphics.BltTemplate,5,,todo
 015ae8,sub_015ae8,asm,46,,,,2,,,4,,todo
 015b16,sub_015b16,asm,4,,,,0,,,0,,todo
 015b1a,file_length,asm,62,,,,2,,dos.Open dos.Seek dos.Close,1,,todo
@@ -251,28 +251,28 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0173e6,fade_out_pair,C,60,66,8,,3,fade_to_pair,,0,,todo
 017422,load_picture_black,C,2348,2,8 12,,3,view_load_picture view_build_copper,,2,,todo
 017d4e,story_copper_build,C,306,2,8 10,,1,cop_move cop_move_ptr cop_wait view_build_copper,,5,,todo
-017e80,story_screen,C,418,16,,,1,sub_015a8c screen_story wait_frames_or_fire view_show story_copper_build poll_fire sub_021246 sub_021e12 sub_022e78 sub_022e92 sub_022ea4,,5,,todo
+017e80,story_screen,C,418,16,,,1,text_draw_justified screen_story wait_frames_or_fire view_show story_copper_build poll_fire draw_set_target_c sub_021e12 sub_022e78 sub_022e92 sub_022ea4,,5,,todo
 018022,sub_018022,C,330,130,,-32346,1,sub_0123dc screen_picture wait_frames_or_fire view_show_wait fade_to fade_out load_picture_black story_screen,,2,"""wofsongs"" | ""shapes/broderbund"" | ""shapes/wingstitle"" | ""shapes/creditscreen""",todo
 01816c,sub_01816c,C,40,0,,-32340,2,sub_016e96,,0,"""User requested abort.""",todo
 018194,sub_018194,C,148,6,8,,2,poll_fire poll_joy_dir8 sub_0207d8 sub_0207e4 gfx_WaitTOF,,0,,todo
 018228,sub_018228,C,58,2,,,3,poll_fire poll_joy_dir8 sub_0207d8 gfx_WaitTOF,,0,,todo
-018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black sub_018194 sub_018228 sub_018b96 view_build_copper view_copy rand_set_seed shape_by_index mem_alloc sub_02090a sub_020e0a sub_021246 sub_021280,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
+018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black sub_018194 sub_018228 sub_018b96 view_build_copper view_copy rand_set_seed shape_by_index mem_alloc sub_02090a shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
 01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc sub_01fe50,,4,,todo
-018570,sub_018570,C,32,0,8,,4,sub_015910 sub_021e12,,0,,todo
-018590,sub_018590,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out sub_018570 poll_fire shape_find_c sub_020700 sub_0207d8 sub_0207e4 sub_020cc4 sub_021246 sub_021280 sub_0215d8 sub_021eca sub_022e78 gfx_WaitTOF,,9,"""%d""",todo
+018570,sub_018570,C,32,0,8,,4,text_draw sub_021e12,,0,,todo
+018590,sub_018590,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out sub_018570 poll_fire shape_find_c sub_020700 sub_0207d8 sub_0207e4 shape_draw_c draw_set_target_c clip_set_full sub_0215d8 sub_021eca sub_022e78 gfx_WaitTOF,,9,"""%d""",todo
 01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
 0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,todo
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait sub_01d1ea sub_02090a,,13,,todo
 018958,sub_018958,C,174,4,,,1,sub_021e12 sub_022e78 sub_022ec4 sub_022ed4,,3,,todo
 018a06,sub_018a06,C,400,12,,,1,sub_018958 mem_alloc sub_02090a sub_021e02 sub_021e82 sub_0222d2 sub_022ada sub_022aec sub_022b1a sub_022b50,,2,,todo
-018b96,sub_018b96,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a sub_016086 sub_016592 screen_dialog sub_016e96 view_show_wait fade_to fade_out sub_018194 sub_018228 sub_018a06 sub_021246 sub_021280 sub_021e12 sub_021e9a sub_021eca sub_0222a8 sub_022aca sub_022e48 sub_022e78 sub_022e92 sub_022ea4 sub_022ec4 sub_022ed4,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
+018b96,sub_018b96,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a sub_016086 sub_016592 screen_dialog sub_016e96 view_show_wait fade_to fade_out sub_018194 sub_018228 sub_018a06 draw_set_target_c clip_set_full sub_021e12 sub_021e9a sub_021eca sub_0222a8 sub_022aca sub_022e48 sub_022e78 sub_022e92 sub_022ea4 sub_022ec4 sub_022ed4,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
 019288,sub_019288,C,38,0,,,2,sub_01fe50,,1,"""highscore""",todo
 0192ae,sub_0192ae,C,114,2,,,0,sub_019288 sub_0222d2,,1,"""Colin was here!""",todo
 019320,sub_019320,C,172,40,,,1,,,1,,todo
 0193cc,sub_0193cc,C,166,6,,,1,sub_0222d2 sub_022aae sub_022b2c sub_022b3e,,1,"""highscore"" | ""            """,todo
-019472,sub_019472,C,524,96,,,1,sub_016086 screen_dialog view_show_wait fade_to fade_out sub_019288 sub_019320 sub_0193cc sub_021246 sub_021280 sub_021e12 sub_021eca sub_0222d2 sub_022e48 sub_022e78 sub_022ea4 sub_022ec4 sub_022ed4,,6,"""Your name is to be entered"" | ""in the hall of fame.""",todo
-01967e,sub_01967e,C,472,112,,,1,sub_018570 sub_021246 sub_0215d8 sub_022e78 sub_022ea4 sub_022ec4,,5,"""%d"" | ""%-6ld"" | ""%-12s""",todo
-019856,sub_019856,C,258,538,,-32304,1,sub_0123dc screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black sub_019472 sub_01967e sub_021246 sub_021280,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",todo
+019472,sub_019472,C,524,96,,,1,sub_016086 screen_dialog view_show_wait fade_to fade_out sub_019288 sub_019320 sub_0193cc draw_set_target_c clip_set_full sub_021e12 sub_021eca sub_0222d2 sub_022e48 sub_022e78 sub_022ea4 sub_022ec4 sub_022ed4,,6,"""Your name is to be entered"" | ""in the hall of fame.""",todo
+01967e,sub_01967e,C,472,112,,,1,sub_018570 draw_set_target_c sub_0215d8 sub_022e78 sub_022ea4 sub_022ec4,,5,"""%d"" | ""%-6ld"" | ""%-12s""",todo
+019856,sub_019856,C,258,538,,-32304,1,sub_0123dc screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black sub_019472 sub_01967e draw_set_target_c clip_set_full,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",todo
 019958,cop_reset,C,16,0,8,,2,,,0,,todo
 019968,cop_init,C,32,0,8 12,,1,cop_reset,,0,,todo
 019988,cop_put_long_unused,C,52,0,8 12,,0,,,0,,todo
@@ -390,16 +390,16 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01edaa,sub_01edaa,asm,18,,,-32142,2,sub_01ed7a,,1,,todo
 01edbc,sub_01edbc,asm,46,,,-32136,3,,,5,,todo
 01edea,sub_01edea,asm,44,,,-32130,1,,,4,,todo
-01ee16,sub_01ee16,asm,1002,,,-32124,1,sub_01f200 sub_01f21a sub_01f26a sub_01f2b0 sub_01f2dc rand_beam sub_020b0c sub_020ce2 sub_0212ce sub_0212d4,,23,,todo
-01f200,sub_01f200,asm,26,,,,1,sub_020ce2,,0,,todo
-01f21a,sub_01f21a,asm,80,,,,1,sub_020ce2,,2,,todo
+01ee16,draw_dashboard,asm,1002,,,-32124,1,sub_01f200 sub_01f21a sub_01f26a sub_01f2b0 clip_dashboard rand_beam shape_blit shape_draw blit_begin blit_end,,23,,todo
+01f200,sub_01f200,asm,26,,,,1,shape_draw,,0,,todo
+01f21a,sub_01f21a,asm,80,,,,1,shape_draw,,2,,todo
 01f26a,sub_01f26a,asm,70,,,,1,sub_015078 sub_01f2b0,,5,,todo
-01f2b0,sub_01f2b0,asm,44,,,,2,sub_020b0c,,1,,todo
-01f2dc,sub_01f2dc,asm,16,,,-32112,2,sub_02129c,,0,,todo
+01f2b0,sub_01f2b0,asm,44,,,,2,shape_blit,,1,,todo
+01f2dc,clip_dashboard,asm,16,,,-32112,2,clip_set,,0,,todo
 01f2ec,sub_01f2ec,C,70,12,8,,1,,,1,,todo
 01f332,sub_01f332,C,66,50,8 10 12 16,,1,sub_018570 sub_0215d8 sub_022e78,,1,,todo
 01f374,sub_01f374,C,166,0,8 10 12 14 16,,1,sub_022e48 sub_022e78 sub_022ea4,,1,,todo
-01f41a,sub_01f41a,C,898,140,,-32106,1,read_vhposr sub_016086 screen_hires2 view_show_wait fade_to fade_out sub_018570 sub_01f2ec sub_01f332 sub_01f374 rand_beam sub_021246 sub_021280 sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",todo
+01f41a,sub_01f41a,C,898,140,,-32106,1,read_vhposr sub_016086 screen_hires2 view_show_wait fade_to fade_out sub_018570 sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",todo
 01f79c,os_viewport_new_unused,asm,258,,,,0,os_viewport_free_unused mem_alloc mem_alloc_chip,graphics.InitVPort graphics.GetColorMap graphics.InitRastPort graphics.InitBitMap,2,,todo
 01f89e,sub_01f89e,asm,4,,,,0,,,0,,todo
 01f8a2,os_viewport_free_unused,asm,164,,,,1,sub_02090a,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
@@ -452,31 +452,31 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 02090a,sub_02090a,C,148,0,8,-31980,13,sub_02090a sub_022d86,,1,,todo
 02099e,sub_02099e,C,22,0,8,,0,,,0,,todo
 0209b4,sub_0209b4,asm,8,,,,0,,,0,,todo
-0209bc,sub_0209bc,asm,306,,,,2,,,18,,todo
-020aee,sub_020aee,asm,30,,,-31974,0,sub_020b0c sub_0212ce sub_0212d4,,1,,todo
-020b0c,sub_020b0c,asm,412,,,-31968,4,sub_0209bc,,13,,todo
+0209bc,blit_clip_setup,asm,306,,,,2,,,18,,todo
+020aee,shape_blit_c,asm,30,,,-31974,0,shape_blit blit_begin blit_end,,1,,todo
+020b0c,shape_blit,asm,412,,,-31968,4,blit_clip_setup,,13,,todo
 020ca8,sub_020ca8,asm,28,,,,0,mem_alloc_chip,,2,,todo
-020cc4,sub_020cc4,asm,30,,,-31962,1,sub_020ce2 sub_0212ce sub_0212d4,,1,,todo
-020ce2,sub_020ce2,asm,264,,,-31956,16,sub_020dea sub_0212ce sub_0212d4,,3,,todo
-020dea,sub_020dea,asm,32,,,,1,sub_021010,,0,,todo
-020e0a,sub_020e0a,asm,26,,,-31950,1,sub_020e24 sub_0212ce sub_0212d4,,1,,todo
-020e24,sub_020e24,asm,304,,,-31944,4,sub_0209bc,,12,,todo
-020f54,sub_020f54,asm,40,,,,0,sub_020f7c sub_0212ce sub_0212d4,,1,,todo
-020f7c,sub_020f7c,asm,118,,,,1,,,0,,todo
-020ff2,sub_020ff2,asm,30,,,-31938,0,sub_021010 sub_0212ce sub_0212d4,,1,,todo
-021010,sub_021010,asm,272,,,-31932,8,,,7,,todo
-021120,sub_021120,asm,30,,,-31926,0,sub_02113e sub_0212ce sub_0212d4,,1,,todo
-02113e,sub_02113e,asm,224,,,-31920,1,,,6,,todo
+020cc4,shape_draw_c,asm,30,,,-31962,1,shape_draw blit_begin blit_end,,1,,todo
+020ce2,shape_draw,asm,264,,,-31956,16,shape_clear_box blit_begin blit_end,,3,,todo
+020dea,shape_clear_box,asm,32,,,,1,rect_fill,,0,,todo
+020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,todo
+020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,todo
+020f54,blit_raw_c_unused,asm,40,,,,0,blit_raw_unused blit_begin blit_end,,1,,todo
+020f7c,blit_raw_unused,asm,118,,,,1,,,0,,todo
+020ff2,rect_fill_c,asm,30,,,-31938,0,rect_fill blit_begin blit_end,,1,,todo
+021010,rect_fill,asm,272,,,-31932,8,,,7,,todo
+021120,rect_fill_aligned_c,asm,30,,,-31926,0,rect_fill_aligned blit_begin blit_end,,1,,todo
+02113e,rect_fill_aligned,asm,224,,,-31920,1,,,6,,todo
 02121e,sub_02121e,asm,24,,,,0,,exec.FindTask,1,,todo
 021236,sub_021236,asm,16,,,,0,,exec.FindTask,1,,todo
-021246,sub_021246,asm,4,,,-31914,8,,,0,,todo
-02124a,sub_02124a,asm,54,,,-31908,4,,,3,,todo
-021280,sub_021280,asm,28,,,-31902,6,sub_02129c,,1,,todo
-02129c,sub_02129c,asm,50,,,-31896,5,,,6,,todo
-0212ce,sub_0212ce,asm,6,,,-31890,19,sub_022e8a,,0,,todo
-0212d4,sub_0212d4,asm,38,,,-31884,19,sub_022e40,,0,,todo
-0212fa,sub_0212fa,asm,30,,,,0,sub_0212ce sub_0212d4 sub_021318,,1,,todo
-021318,sub_021318,asm,704,,,-31878,2,,,11,,todo
+021246,draw_set_target_c,asm,4,,,-31914,8,,,0,,todo
+02124a,draw_set_target,asm,54,,,-31908,4,,,3,,todo
+021280,clip_set_full,asm,28,,,-31902,6,clip_set,,1,,todo
+02129c,clip_set,asm,50,,,-31896,5,,,6,,todo
+0212ce,blit_begin,asm,6,,,-31890,19,sub_022e8a,,0,,todo
+0212d4,blit_end,asm,38,,,-31884,19,sub_022e40,,0,,todo
+0212fa,line_draw_c,asm,30,,,,0,blit_begin blit_end line_draw,,1,,todo
+021318,line_draw,asm,704,,,-31878,2,,,11,,todo
 0215d8,sub_0215d8,C,48,0,8 12 16,-31872,3,sub_0216b2,,1,,todo
 021608,sub_021608,C,28,0,9,,0,,,1,,todo
 021624,sub_021624,C,142,0,8 12 14 18,,1,sub_02240e sub_02241a,,1,,todo
