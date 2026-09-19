@@ -1,0 +1,226 @@
+# Manifest for tools/extract_tables.py (SPEC.md section 5, step 1).
+#
+# Every constant table, name list, text and tuning value the port needs comes out of the
+# original executable at build time, because hand-written sources hold code only.  An
+# entry is (name, kind, address, count); addresses use the fixed load layout of SPEC 3.2,
+# so they are the addresses of re/Wings.lst.  The generated sources land in src/gen/ and
+# are not versioned.
+#
+# Kinds
+#   names4    a zero-terminated list of 4-character shape names -> uint32_t[count + 1]
+#   cstr      one NUL-terminated string                         -> char[]
+#   cstrs     `count` NUL-terminated strings, back to back       -> const char *const[count]
+#   strptrs   `count` big-endian pointers to strings             -> const char *const[count]
+#   sysfont   topaz 8, located by contents in original/kick.rom (re/notes/system-font.md)
+
+# ---------------------------------------------------------------- shape name lists 3.5
+#
+# The nine lists lie back to back at 0x023BC0-0x024628, each ended by a zero long.  The
+# slot order is what game code relies on, so the port builds its pointer tables from these
+# and never from the containers (re/notes/shapes.md).
+
+[[table]]
+name = "battleship_names"
+kind = "names4"
+addr = 0x023BC0
+count = 25
+
+[[table]]
+name = "japcarrier_names"
+kind = "names4"
+addr = 0x023C28
+count = 13
+
+[[table]]
+name = "destroyer_names"
+kind = "names4"
+addr = 0x023C60
+count = 27
+
+[[table]]
+name = "cruiseship_names"
+kind = "names4"
+addr = 0x023CD0
+count = 24
+
+[[table]]
+name = "hellcat_names"
+kind = "names4"
+addr = 0x023D34
+count = 107
+
+[[table]]
+name = "world_names"
+kind = "names4"
+addr = 0x023EE4
+count = 184
+
+[[table]]
+name = "dash_names"
+kind = "names4"
+addr = 0x0241C8
+count = 117
+
+[[table]]
+name = "torpedo_names"
+kind = "names4"
+addr = 0x0243A0
+count = 138
+
+[[table]]
+name = "japplane_names"
+kind = "names4"
+addr = 0x0245CC
+count = 22
+
+# ------------------------------------------------------------------ file names 3.1, 5
+#
+# The names the game asks for, spelled as it spells them: it wants shapes/Torpedo.shp and
+# shapes/rank.iff where the disk has torpedo.shp and Rank.iff, which is why the port's
+# file system compares without regard to case.
+
+[[table]]
+name = "font_file"
+kind = "cstr"
+addr = 0x0236AC
+
+[[table]]
+name = "world_shp"
+kind = "cstr"
+addr = 0x0237FB
+
+[[table]]
+name = "eighth_shp"
+kind = "cstr"
+addr = 0x02380C
+
+[[table]]
+name = "hellcat_shp"
+kind = "cstr"
+addr = 0x023820
+
+[[table]]
+name = "torpedo_shp"
+kind = "cstr"
+addr = 0x023833
+
+[[table]]
+name = "japplane_shp"
+kind = "cstr"
+addr = 0x023846
+
+[[table]]
+name = "battleship_shp"
+kind = "cstr"
+addr = 0x02385A
+
+[[table]]
+name = "japcarrier_shp"
+kind = "cstr"
+addr = 0x023870
+
+[[table]]
+name = "cruiseship_shp"
+kind = "cstr"
+addr = 0x023886
+
+[[table]]
+name = "destroyer_shp"
+kind = "cstr"
+addr = 0x02389C
+
+[[table]]
+name = "selectrank_shp"
+kind = "cstr"
+addr = 0x01850B
+
+[[table]]
+name = "selectrank_pic"
+kind = "cstr"
+addr = 0x0238B1
+
+[[table]]
+name = "rank_iff"
+kind = "cstr"
+addr = 0x0238C3
+
+[[table]]
+name = "broderbund_pic"
+kind = "cstr"
+addr = 0x018134
+
+[[table]]
+name = "wingstitle_pic"
+kind = "cstr"
+addr = 0x018146
+
+[[table]]
+name = "creditscreen_pic"
+kind = "cstr"
+addr = 0x018158
+
+[[table]]
+name = "hiscoreslab_pic"
+kind = "cstr"
+addr = 0x019931
+
+[[table]]
+name = "hiscore_pic"
+kind = "cstr"
+addr = 0x019944
+
+[[table]]
+name = "highscore_file"
+kind = "cstr"
+addr = 0x0192A4
+
+# The four day-and-night pairs that choose_night indexes with night_flag
+# (re/notes/display.md).  They are pointer tables in DATA, so the port reads them as such.
+
+[[table]]
+name = "palette_files"
+kind = "strptrs"
+addr = 0x0258F0
+count = 2
+
+[[table]]
+name = "dash_picture_files"
+kind = "strptrs"
+addr = 0x0258F8
+count = 2
+
+[[table]]
+name = "ocean_palette_files"
+kind = "strptrs"
+addr = 0x025900
+count = 2
+
+[[table]]
+name = "dash_shape_files"
+kind = "strptrs"
+addr = 0x025908
+count = 2
+
+[[table]]
+name = "map_files"
+kind = "cstrs"
+addr = 0x023756
+count = 15
+
+[[table]]
+name = "sound_files"
+kind = "cstrs"
+addr = 0x0236D7
+count = 8
+
+# ------------------------------------------------------------------------ system font
+#
+# The load and save dialog, the name entry and the file list draw with graphics.Text and
+# never set a font, so the original shows topaz 8 from the Kickstart ROM, which is not on
+# the game disk.  The build locates it in original/kick.rom by its contents so that
+# another Kickstart version works too, and falls back to the game's own font with a
+# message when the ROM is absent (re/notes/system-font.md).
+
+[[table]]
+name = "topaz8"
+kind = "sysfont"

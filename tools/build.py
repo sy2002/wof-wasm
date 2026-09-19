@@ -6,7 +6,7 @@
     --native   also build tests/libwofcore.dylib from the same sources with Apple clang
 
 Steps
-  1. extract tables from the original executable into src/gen/   (M1, hook below)
+  1. extract tables and the system font from the original files into src/gen/
   2. pack the game files of SPEC 3.1 into one blob with a directory
   3. compile src/*.c to dist/core.wasm
   4. inline CSS, JavaScript, the wasm and the blob into web/index.html
@@ -43,8 +43,8 @@ MODULES = ['core.js', 'video.js', 'input.js', 'audio.js', 'clock.js', 'overlay.j
 SKIP_NAMES = {'Wings', 'UFXintro', 'wingt'}
 
 CC_WASM = ['-target', 'wasm32-freestanding', '-std=c11', '-O2', '-Wall', '-Wextra',
-           '-nostdlib', '-Wl,--no-entry']
-CC_NATIVE = ['-std=c11', '-O2', '-Wall', '-Wextra', '-dynamiclib']
+           '-nostdlib', '-Wl,--no-entry', '-I', SRC]
+CC_NATIVE = ['-std=c11', '-O2', '-Wall', '-Wextra', '-dynamiclib', '-I', SRC]
 
 FS_MAGIC = b'WOFS'
 FS_VERSION = 1
@@ -55,27 +55,35 @@ FS_HEADER = 16
 SIZE_LIMIT = 2 * 1024 * 1024
 
 
+GEN = os.path.join(SRC, 'gen')
+
+
 def sources():
-    return sorted(os.path.join(SRC, f) for f in os.listdir(SRC) if f.endswith('.c'))
+    """The hand-written core plus the tables extracted from the original in step 1."""
+    out = [os.path.join(SRC, f) for f in os.listdir(SRC) if f.endswith('.c')]
+    if os.path.isdir(GEN):
+        out += [os.path.join(GEN, f) for f in os.listdir(GEN) if f.endswith('.c')]
+    return sorted(out)
 
 
-# --------------------------------------------------------------- 1. tables (M1 hook)
+# ------------------------------------------------------------------- 1. tables
 
 def extract_tables(log):
-    """Hook for SPEC 5 step 1: re/tables.toml -> src/gen/tables.c, tables.h.
+    """SPEC 5 step 1: re/tables.toml -> src/gen/tables.c, tables.h.
 
     Every constant table, name list, text and tuning value the port needs comes out of the
     original executable here, because hand-written sources hold no game content.  The
-    manifest and tools/extract_tables.py arrive with M1; until then there is nothing to
-    extract and the core has no generated sources.
+    system font comes out of original/kick.rom in the same step.
     """
     manifest = os.path.join(ROOT, 're', 'tables.toml')
     extractor = os.path.join(ROOT, 'tools', 'extract_tables.py')
     if not os.path.exists(manifest) or not os.path.exists(extractor):
-        log('tables    skipped, re/tables.toml and tools/extract_tables.py arrive with M1')
-        return
-    subprocess.run([sys.executable, extractor], check=True, cwd=ROOT)
-    log('tables    extracted into src/gen/')
+        raise SystemExit('re/tables.toml and tools/extract_tables.py are required')
+    finished = subprocess.run([sys.executable, extractor], check=True, cwd=ROOT,
+                              capture_output=True, text=True)
+    for line in finished.stdout.strip().split('\n'):
+        if line:
+            log(line)
 
 
 # ------------------------------------------------------------------ 2. pack the files
