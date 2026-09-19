@@ -204,6 +204,13 @@ export function createAudio(core) {
         }
     }
 
+    /* Whether a further gesture could still change anything.  True once the context is
+       running, and also where there is no Web Audio at all, because then no gesture will
+       ever produce sound and the page should stop waiting for one. */
+    function ready() {
+        return backend === 'none' || (!!ctx && ctx.state === 'running');
+    }
+
     function stats() {
         const rate = ctx ? ctx.sampleRate : 0;
         const queued = backend === 'buffers' && ctx
@@ -219,5 +226,5 @@ export function createAudio(core) {
         };
     }
 
-    return { start, pump, suspend, resume: resumeFromHidden, stats };
+    return { start, ready, pump, suspend, resume: resumeFromHidden, stats };
 }
