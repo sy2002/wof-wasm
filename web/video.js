@@ -12,7 +12,13 @@ export function createVideo(canvas, core) {
     canvas.width = w;
     canvas.height = h;
 
-    const ctx = canvas.getContext('2d', { alpha: false });
+    /* willReadFrequently is not the hint it looks like here: it picks a software-backed 2D
+       canvas, and in GPU-composited Firefox the accelerated one never shows what
+       putImageData wrote - the canvas reads back as a single colour and the player sees a
+       black picture.  Headless Firefox composites in software and cannot reproduce it, so
+       only the visible check in tests/test_firefox.py catches a regression here.  In Chrome
+       the flag is harmless.  Do not remove it as a no-op. */
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
     const image = ctx.createImageData(w, h);
     const out = new Uint32Array(image.data.buffer);
     let scale = 1;
