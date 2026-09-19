@@ -4,7 +4,7 @@
 
 const BIT_NAMES = ['down', 'up', 'right', 'left', 'fire'];
 
-export function createOverlay(element, core, clock, audio, input) {
+export function createOverlay(element, core, clock, audio, input, video) {
     let visible = false;
     let lastPaint = 0;
 
@@ -26,7 +26,9 @@ export function createOverlay(element, core, clock, audio, input) {
         const c = core.counters();
         const s = clock.stats();
         const a = audio.stats();
+        const g = video.geometry();
         const expectedTick = s.hz / 4;
+        const css = (n) => (Math.round(n * 10) / 10);
 
         element.innerHTML =
             '<b>Wings of Fury - M1 diagnostics</b>\n' +
@@ -38,6 +40,10 @@ export function createOverlay(element, core, clock, audio, input) {
             'passes/s     ' + s.rate.pass.toFixed(2) + '   (want ' + s.hz + ')\n' +
             'animation/s  ' + s.rate.animation.toFixed(1) + '   stalls ' + s.stalls + '\n' +
             'counters     ' + c.vblanks + ' vbl  ' + c.ticks + ' tick  ' + c.passes + ' pass\n' +
+            'standard     ' + g.standard + ', ' + g.hz + ' Hz, box ' + g.ratio + '\n' +
+            'box          ' + css(g.cssWidth) + 'x' + css(g.cssHeight) + ' css, ' +
+                g.deviceWidth + 'x' + g.deviceHeight + ' device, dpr ' + g.dpr + '\n' +
+            'enlarged     kx ' + g.kx + '  ky ' + g.ky + ', then reduced smoothly\n' +
             'input        ' + bits() + '\n' +
             'audio        ' + a.backend + ', ' + a.state + ', ' + Math.round(a.rate) + ' Hz\n' +
             'buffer       ' + a.queuedMs.toFixed(0) + ' ms queued, ' + a.underruns + ' underruns\n' +

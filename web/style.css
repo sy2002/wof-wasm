@@ -18,15 +18,20 @@ html, body {
 }
 
 #stage {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
+    position: fixed;
+    inset: 0;
+    background: #000;
 }
 
+/* The picture is placed by web/video.js, which computes the box in whole device pixels and
+   sets left, top, width and height from it; the stage is only the black around it.  No
+   image-rendering hint: the canvas already carries the picture resampled to exactly the
+   size it is shown at, so the browser has nothing left to scale. */
 #screen {
+    position: absolute;
+    left: 0;
+    top: 0;
     display: block;
-    image-rendering: pixelated;
     background: #000;
 }
 
@@ -54,7 +59,7 @@ html, body {
     pointer-events: none;
 }
 
-#gesture.off, #overlay.off {
+#gesture.off, #overlay.off, #hint.off {
     display: none;
 }
 

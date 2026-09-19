@@ -1,10 +1,13 @@
 /* The clock (SPEC 6.2): a fixed-rate accumulator on requestAnimationFrame.
  *
  * Emulated time, not display time, is what counts.  The accumulator issues one wof_vblank
- * per 1/60 second of emulated time (1/50 when the 50 Hz option is on) and one wof_pass
- * after each of them, because the original's inner loop runs one pass per displayed frame
- * and the display is the VBlank.  A 144 Hz monitor therefore still gets 60 passes a second,
- * and a 30 Hz one still gets 60, two per animation frame.
+ * per 1/50 second of emulated time on PAL, 1/60 on NTSC, and one wof_pass after each of
+ * them, because the original's inner loop runs one pass per displayed frame and the display
+ * is the VBlank.  A 144 Hz monitor therefore still gets 50 passes a second on PAL, and a
+ * 30 Hz one still gets 50, two per animation frame.
+ *
+ * The rate is one half of the video standard, which the shell sets as a whole; the other
+ * half is the pixel aspect in web/video.js.
  *
  * After a stall at most 24 VBlanks are replayed.  That is the original's own limit seen
  * from the outside: the input queue holds 6 entries, each worth four VBlanks, and anything
@@ -13,7 +16,9 @@
 const MAX_CATCHUP = 24;
 
 export function createClock(core, input, video, audio, onFrame) {
-    let hz = 60;
+    /* PAL, like the shell's default video standard.  The core starts at 60 (SPEC 6.1) and
+       is told otherwise on the setHz call the shell makes before the clock ever runs. */
+    let hz = 50;
     let period = 1000 / hz;
     let accumulator = 0;
     let last = -1;

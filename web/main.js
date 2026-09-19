@@ -42,6 +42,7 @@ function fail(message) {
     const hint = document.getElementById('hint');
     hint.textContent = message;
     hint.style.color = '#ff8080';
+    hint.classList.remove('off');
 }
 
 async function boot() {
@@ -52,7 +53,8 @@ async function boot() {
     const video = createVideo(document.getElementById('screen'), core);
     const input = createInput(window);
     const audio = createAudio(core);
-    const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input);
+    const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
+                                  video);
     const clock = createClock(core, input, video, audio, (now) => {
         overlay.paint(now);
         checkAudioStarted();
@@ -63,6 +65,22 @@ async function boot() {
     overlay.attach(clock);
 
     const gesture = document.getElementById('gesture');
+    const hint = document.getElementById('hint');
+
+    /* One setting, PAL or NTSC, picks the VBlank rate and the pixel aspect together, the way
+       a machine has one or the other (SPEC 6.2).  PAL is what the page starts on. */
+    function setStandard(name) {
+        clock.setHz(video.setStandard(name).hz);
+    }
+    setStandard('pal');
+
+    /* The hint bar lies over the bottom of the picture, which now fills the window, so it
+       does not stay: it goes with the gesture prompt once the page has really been
+       activated, and comes back with the diagnostics overlay. */
+    let waitingForAudio = true;
+    function showOrHideHint() {
+        hint.classList.toggle('off', !(waitingForAudio || overlay.visible()));
+    }
 
     /* Audio may only be started from a gesture, and not every event is one.  A modifier on
        its own - the Command of a Cmd+Option+K that opens the console, or a bare Shift - is
@@ -97,13 +115,13 @@ async function boot() {
 
     /* The prompt is a statement about the sound, so it goes when the sound is really there,
        not when some event has been seen.  The listeners go at the same moment. */
-    let waitingForAudio = true;
     function checkAudioStarted() {
         if (!waitingForAudio || !audio.ready()) {
             return;
         }
         waitingForAudio = false;
         gesture.classList.add('off');
+        showOrHideHint();
         window.removeEventListener('keydown', onGesture);
         window.removeEventListener('pointerdown', onGesture);
     }
@@ -111,11 +129,12 @@ async function boot() {
     window.addEventListener('keydown', (event) => {
         if (event.code === 'Backquote') {
             overlay.toggle();
+            showOrHideHint();
             event.preventDefault();
         } else if (event.code === 'Digit5') {
-            clock.setHz(50);
+            setStandard('pal');
         } else if (event.code === 'Digit6') {
-            clock.setHz(60);
+            setStandard('ntsc');
         } else if (VIEWER_KEYS[event.code] !== undefined) {
             core.keyPress(VIEWER_KEYS[event.code]);
             event.preventDefault();
