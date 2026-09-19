@@ -1,6 +1,6 @@
 # Wings of Fury port — working rules
 
-Faithful port of the Amiga game to a single HTML file with a C/WebAssembly core. **Read `SPEC.md` first**; it is the source of truth for goals, architecture, porting rules and milestones. Subsystem knowledge accumulates in `re/notes/`.
+Faithful port of the Amiga game to a single HTML file with a C/WebAssembly core. **Read `SPEC.md` first**; it is the source of truth for goals, architecture, porting rules and milestones. Subsystem knowledge accumulates in `re/notes/`. The session that leads the project, the controller, also reads `CONTROLLER.md`; workers do not need it.
 
 ## Commands
 
