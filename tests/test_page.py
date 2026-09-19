@@ -14,6 +14,8 @@ import sys
 
 import pytest
 
+from conftest import overlay_audio, overlay_number
+
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason='Google Chrome is not installed')
@@ -27,12 +29,6 @@ def loaded(built):
         cwd=ROOT, capture_output=True, text=True)
     assert finished.returncode == 0, 'tests/pagecheck.mjs failed:\n%s' % finished.stderr
     return json.loads(finished.stdout)
-
-
-def overlay_number(loaded, label):
-    found = re.search(r'^%s\s+([\d.]+)' % re.escape(label), loaded['overlay'], re.M)
-    assert found, 'the overlay has no %r line:\n%s' % (label, loaded['overlay'])
-    return float(found.group(1))
 
 
 def test_page_makes_no_network_request(loaded):
@@ -68,35 +64,29 @@ def test_the_picture_is_running(loaded):
 
 
 def test_the_emulated_clock_is_steady(loaded):
-    assert abs(overlay_number(loaded, 'vblanks/s') - 60) <= 2
-    assert abs(overlay_number(loaded, 'passes/s') - 60) <= 2
-    assert abs(overlay_number(loaded, 'ticks/s') - 15) <= 1
+    assert abs(overlay_number(loaded['overlay'], 'vblanks/s') - 60) <= 2
+    assert abs(overlay_number(loaded['overlay'], 'passes/s') - 60) <= 2
+    assert abs(overlay_number(loaded['overlay'], 'ticks/s') - 15) <= 1
     assert 'exactly 4: yes' in loaded['overlay']
-    assert overlay_number(loaded, 'animation/s') > 30
-
-
-def audio_line(overlay):
-    line = re.search(r'^audio\s+(\w+), (\w+), (\d+) Hz', overlay, re.M)
-    assert line, overlay
-    return line.group(1), line.group(2), int(line.group(3))
+    assert overlay_number(loaded['overlay'], 'animation/s') > 30
 
 
 def test_audio_is_running_after_the_key_press(loaded):
     """The shipped configuration, not merely some backend: a file:// page loads the worklet
     module from a data: URL, and the fallback taking over silently would be a regression."""
-    backend, state, rate = audio_line(loaded['overlay'])
+    backend, state, rate = overlay_audio(loaded['overlay'])
     assert backend == 'worklet', 'the page fell back to %r' % backend
     assert 'worklet module from a data: URL' in loaded['overlay'], loaded['overlay']
     assert state == 'running'
     assert rate >= 8000
-    assert overlay_number(loaded, 'buffer') > 0, 'no audio is queued'
+    assert overlay_number(loaded['overlay'], 'buffer') > 0, 'no audio is queued'
     assert re.search(r'buffer\s+[\d.]+ ms queued, 0 underruns', loaded['overlay']), loaded['overlay']
 
 
 def test_the_scheduled_buffer_fallback_also_plays(loaded):
     """The path a browser that refuses the worklet lands on, asked for with ?audio=buffers."""
     fallback = loaded['fallback']
-    backend, state, rate = audio_line(fallback['overlay'])
+    backend, state, rate = overlay_audio(fallback['overlay'])
     assert backend == 'buffers', backend
     assert state == 'running'
     assert rate >= 8000

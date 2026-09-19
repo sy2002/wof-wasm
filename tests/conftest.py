@@ -156,6 +156,20 @@ class NativeCore:
         self.lib.wof_state_load(buffer)
 
 
+def overlay_number(overlay, label):
+    """One measurement off the diagnostics overlay, which is what a person reads too."""
+    found = re.search(r'^%s\s+([\d.]+)' % re.escape(label), overlay, re.M)
+    assert found, 'the overlay has no %r line:\n%s' % (label, overlay)
+    return float(found.group(1))
+
+
+def overlay_audio(overlay):
+    """The overlay's audio line as (backend, context state, sample rate)."""
+    found = re.search(r'^audio\s+(\w+), (\w+), (\d+) Hz', overlay, re.M)
+    assert found, overlay
+    return found.group(1), found.group(2), int(found.group(3))
+
+
 @pytest.fixture(scope='session')
 def native_core_factory(built):
     def make(seed, blob=b''):
