@@ -52,6 +52,14 @@
 026d30 key_qualifier_mask    ; when non-zero, only events matching this qualifier are buffered
 027f6e rmb_down              ; right mouse button state, from IECLASS_RAWMOUSE codes 0x69 / 0xe9
 
+# ---- randomness  (see re/notes/random.md)
+0203be rand_beam             ; asm. the generator the game uses, 43 call sites: (rand_seed_const * $1afb + $1fccd) eor VHPOSR
+0203aa rand_lcg_unused       ; asm. clean LCG on rand_state, no callers
+0203da rand_set_seed         ; asm. writes the same word to rand_state and rand_seed_const
+015d5a read_vhposr           ; asm. returns the raw beam position, used by the front end for seeding
+026910 rand_state            ; word, overwritten by every rand_beam call
+026912 rand_seed_const       ; word, written only by rand_set_seed, so constant between seedings
+
 # ---- demo record and playback
 026d4c demo_mode             ; 0 = play, 1 = demo playback, 2 = demo record
 026d4e demo_buffer_ptr

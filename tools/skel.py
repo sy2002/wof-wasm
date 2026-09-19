@@ -21,7 +21,8 @@ def routine(key):
     for i, l in enumerate(lines):
         if l.startswith('; ') and re.match(r'^; (\S+)   \[(C|asm)\]', l):
             name = l.split()[1]
-            if name.lower() == key or name.lower() == 'sub_%06x' % int(key, 16) if re.fullmatch(r'[0-9a-f]+', key) else False:
+            is_hex = re.fullmatch(r'[0-9a-f]+', key) is not None
+            if name.lower() == key or (is_hex and name.lower() == 'sub_%06x' % int(key, 16)):
                 start = i
                 break
     if start is None and re.fullmatch(r'[0-9a-f]+', key):           # address inside a routine

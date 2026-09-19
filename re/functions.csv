@@ -10,7 +10,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 010702,sub_010702,asm,210,,,,1,sub_015174,,4,,todo
 0107d4,sub_0107d4,asm,30,,,,0,,,1,,todo
 0107f2,sub_0107f2,asm,46,,,,1,,,3,,todo
-010820,sub_010820,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 sub_0203be,,12,,todo
+010820,sub_010820,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,todo
 01099a,sub_01099a,asm,216,,,,1,sub_01115c sub_0111a6 sub_011a46 sub_015104 sub_015108 sub_015ca6,,0,,todo
 010a72,sub_010a72,asm,52,,,-32730,1,sub_010aa6,,3,,todo
 010aa6,sub_010aa6,asm,768,,,,1,sub_01099a sub_011126 sub_011a8c sub_012324 sub_01233e sub_0146dc sub_0150c8 sub_0152b0 sub_015714,,7,,todo
@@ -24,7 +24,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011126,sub_011126,asm,54,,,,1,,,1,,todo
 01115c,sub_01115c,asm,74,,,,1,,,2,,todo
 0111a6,sub_0111a6,asm,86,,,,1,,,1,,todo
-0111fc,sub_0111fc,asm,56,,,,1,sub_0203be,,4,,todo
+0111fc,sub_0111fc,asm,56,,,,1,rand_beam,,4,,todo
 011234,sub_011234,asm,34,,,,2,sub_0124e0 sub_012bbe sub_01346c sub_0134ae,exec.AllocMem,2,,todo
 011256,sub_011256,asm,30,,,-32706,1,sub_0124e0 sub_01346c sub_0134ae,exec.AllocMem,2,,todo
 011274,sub_011274,asm,60,,,,1,,,14,,todo
@@ -47,13 +47,13 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011ada,sub_011ada,asm,8,,,,0,,,0,,todo
 011ae2,sub_011ae2,asm,112,,,,2,,,2,,todo
 011b52,sub_011b52,asm,2,,,,0,,,0,,todo
-011b54,sub_011b54,asm,168,,,,0,sub_015460 sub_0203be,,1,,todo
-011bfc,sub_011bfc,asm,98,,,,1,sub_0154e0 sub_0203be,,4,,todo
+011b54,sub_011b54,asm,168,,,,0,sub_015460 rand_beam,,1,,todo
+011bfc,sub_011bfc,asm,98,,,,1,sub_0154e0 rand_beam,,4,,todo
 011c5e,sub_011c5e,asm,80,,,,1,,,2,,todo
 011cae,sub_011cae,asm,42,,,,1,sub_011cd8,,1,,todo
 011cd8,sub_011cd8,asm,268,,,,1,sub_01555a sub_015640 sub_015694,,14,,todo
 011de4,sub_011de4,asm,158,,,,1,sub_011e82,,5,,todo
-011e82,sub_011e82,asm,204,,,,2,sub_0203be,,4,,todo
+011e82,sub_011e82,asm,204,,,,2,rand_beam,,4,,todo
 011f4e,sub_011f4e,asm,22,,,-32670,4,sub_012066,,1,,todo
 011f64,sub_011f64,asm,18,,,,0,,,1,,todo
 011f76,sub_011f76,asm,240,,,,1,,,50,,todo
@@ -136,13 +136,13 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 014ae4,sub_014ae4,asm,92,,,,2,,,1,,todo
 014b40,sub_014b40,asm,20,,,,1,,,0,,todo
 014b54,sub_014b54,asm,234,,,,2,sub_014ae4 sub_0150c8,,7,,todo
-014c3e,sub_014c3e,asm,274,,,,1,sub_014db8 sub_014efc sub_014f5c sub_015174 sub_015460 sub_0203be,,6,,todo
-014d50,sub_014d50,asm,104,,,,2,sub_014db8 sub_0203be,,4,,todo
+014c3e,sub_014c3e,asm,274,,,,1,sub_014db8 sub_014efc sub_014f5c sub_015174 sub_015460 rand_beam,,6,,todo
+014d50,sub_014d50,asm,104,,,,2,sub_014db8 rand_beam,,4,,todo
 014db8,sub_014db8,asm,244,,,,2,sub_015460,,4,,todo
 014eac,sub_014eac,asm,60,,,,1,sub_014a4e,,3,,todo
 014ee8,sub_014ee8,asm,20,,,,0,,,2,,todo
-014efc,sub_014efc,asm,96,,,,1,sub_011ae2 sub_0152b0 sub_0203be,,4,,todo
-014f5c,sub_014f5c,asm,146,,,,3,sub_0154e0 sub_0203be,,8,,todo
+014efc,sub_014efc,asm,96,,,,1,sub_011ae2 sub_0152b0 rand_beam,,4,,todo
+014f5c,sub_014f5c,asm,146,,,,3,sub_0154e0 rand_beam,,8,,todo
 014fee,sub_014fee,asm,70,,,,1,sub_011e82 sub_015034,,2,,todo
 015034,sub_015034,asm,66,,,,1,,,0,,todo
 015076,sub_015076,asm,2,,,-32544,0,,,0,,todo
@@ -167,12 +167,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0152b0,sub_0152b0,asm,72,,,-32448,3,sub_0150c8,,1,,todo
 0152f8,sub_0152f8,asm,98,,,-32442,1,sub_015174 sub_0212ce sub_0212d4,,4,,todo
 01535a,sub_01535a,asm,262,,,-32436,2,sub_020560,,14,,todo
-015460,sub_015460,asm,108,,,-32430,6,sub_0203be,,1,,todo
+015460,sub_015460,asm,108,,,-32430,6,rand_beam,,1,,todo
 0154cc,sub_0154cc,asm,20,,,,1,sub_015460,,0,,todo
 0154e0,sub_0154e0,asm,122,,,,2,sub_015460,,5,,todo
 01555a,sub_01555a,asm,20,,,-32424,3,,,1,,todo
 01556e,sub_01556e,asm,14,,,-32418,2,sub_021dce,,1,,todo
-01557c,sub_01557c,asm,168,,,-32412,1,sub_015174 sub_0203be sub_0212ce sub_0212d4,,5,,todo
+01557c,sub_01557c,asm,168,,,-32412,1,sub_015174 rand_beam sub_0212ce sub_0212d4,,5,,todo
 015624,sub_015624,asm,28,,,-32406,2,sub_015078 sub_01555a,,1,,todo
 015640,sub_015640,asm,84,,,,1,sub_015078,,3,,todo
 015694,sub_015694,asm,124,,,-32400,3,sub_015078,,9,,todo
@@ -203,7 +203,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d3e,sub_015d3e,asm,14,,,,4,sub_01feb4,,0,,todo
 015d4c,sub_015d4c,asm,4,,,,1,,,0,,todo
 015d50,sub_015d50,asm,10,,,,3,sub_01feca,,0,,todo
-015d5a,sub_015d5a,asm,8,,,-32382,2,,,0,,todo
+015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
 015d62,sub_015d62,C,8,2,,,1,,,0,,todo
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
 015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,sub_016e96 sub_020848 sub_022b3e,,0,,todo
@@ -256,7 +256,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01816c,sub_01816c,C,40,0,,-32340,2,sub_016e96,,0,"""User requested abort.""",todo
 018194,sub_018194,C,148,6,8,,2,poll_fire poll_joy_dir8 sub_0207d8 sub_0207e4 sub_022eee,,0,,todo
 018228,sub_018228,C,58,2,,,3,poll_fire poll_joy_dir8 sub_0207d8 sub_022eee,,0,,todo
-018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 sub_015d3e sub_015d4c sub_015d5a sub_016a98 sub_016ad8 sub_016fc4 sub_017084 sub_0173b0 sub_017422 sub_018194 sub_018228 sub_018b96 sub_01a0d4 sub_01a9ca sub_0203da sub_02050e sub_020848 sub_02090a sub_020e0a sub_021246 sub_021280,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
+018262,sub_018262,C,712,80,,-32334,1,sub_0123dc sub_012470 sub_015d3e sub_015d4c read_vhposr sub_016a98 sub_016ad8 sub_016fc4 sub_017084 sub_0173b0 sub_017422 sub_018194 sub_018228 sub_018b96 sub_01a0d4 sub_01a9ca rand_set_seed sub_02050e sub_020848 sub_02090a sub_020e0a sub_021246 sub_021280,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
 01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc sub_01fe50,,4,,todo
 018570,sub_018570,C,32,0,8,,4,sub_015910 sub_021e12,,0,,todo
 018590,sub_018590,C,478,132,,-32322,2,sub_016b04 sub_016fc4 sub_017084 sub_0173b0 sub_018570 poll_fire sub_0204f4 sub_020700 sub_0207d8 sub_0207e4 sub_020cc4 sub_021246 sub_021280 sub_0215d8 sub_021eca sub_022e78 sub_022eee,,9,"""%d""",todo
@@ -326,7 +326,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01b9f0,sub_01b9f0,C,16,4,,,1,,,0,,todo
 01ba00,sub_01ba00,asm,128,,,,0,sub_015710 sub_01c982,,6,,todo
 01ba80,sub_01ba80,C,386,10,,,1,sub_010820 sub_012380 sub_0146c6 sub_015710 sub_01aaea sub_01afba sub_01b8c4 sub_01c982 sub_01cb34 sub_01cb74,,9,,todo
-01bc02,sub_01bc02,C,204,2,,,1,sub_01e4d0 sub_0203be,,7,,todo
+01bc02,sub_01bc02,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,todo
 01bcce,sub_01bcce,C,236,0,,,1,sub_01b4de,,9,,todo
 01bdba,sub_01bdba,C,64,0,,,1,,,2,,todo
 01bdfa,sub_01bdfa,C,506,10,,,1,sub_021c9c sub_021cb0 sub_021cc4 sub_021cd8 sub_021ce2 sub_021cec,,12,,todo
@@ -340,8 +340,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,todo
 01caa2,sub_01caa2,C,18,0,,,0,,,1,,todo
 01cab4,sub_01cab4,C,20,0,8 10,,1,,,2,,todo
-01cac8,sub_01cac8,C,24,0,8,,8,sub_0203be,,0,,todo
-01cae0,sub_01cae0,C,60,0,10 12 14,,5,sub_0154cc sub_0203be,,0,,todo
+01cac8,sub_01cac8,C,24,0,8,,8,rand_beam,,0,,todo
+01cae0,sub_01cae0,C,60,0,10 12 14,,5,sub_0154cc rand_beam,,0,,todo
 01cb1c,sub_01cb1c,asm,4,,,,0,sub_021dce,,0,,todo
 01cb20,read_joy_dispatch,asm,16,,,,1,read_joy_bits sub_021dce,,1,,todo
 01cb30,sub_01cb30,asm,4,,,,4,sub_0204f4,,0,,todo
@@ -364,13 +364,13 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01dccc,sub_01dccc,C,472,8,8,,1,sub_01cac8,,5,,todo
 01dea4,sub_01dea4,C,726,10,8,,1,sub_01cac8,,6,,todo
 01e17a,sub_01e17a,C,202,0,8,,1,sub_01cac8 sub_01d18c,,0,,todo
-01e244,sub_01e244,C,420,4,8,,1,sub_011a84 sub_0146c6 sub_0152ac sub_01c982 sub_01cae0 sub_01cb74 sub_01cbb2 sub_0203be,,5,,todo
+01e244,sub_01e244,C,420,4,8,,1,sub_011a84 sub_0146c6 sub_0152ac sub_01c982 sub_01cae0 sub_01cb74 sub_01cbb2 rand_beam,,5,,todo
 01e3e8,sub_01e3e8,C,224,0,8,,1,sub_01cae0,,3,,todo
 01e4c8,sub_01e4c8,C,8,0,,,1,,,0,,todo
 01e4d0,sub_01e4d0,C,312,4,8 10 12 14,-32220,3,sub_01cac8,,4,,todo
 01e608,sub_01e608,C,70,12,,-32214,1,,,1,,todo
 01e64e,sub_01e64e,C,218,0,8,,1,,,2,,todo
-01e728,sub_01e728,C,174,0,8,,1,sub_01cae0 sub_01d9c6 sub_01dccc sub_01dea4 sub_01e17a sub_0203be,,0,,todo
+01e728,sub_01e728,C,174,0,8,,1,sub_01cae0 sub_01d9c6 sub_01dccc sub_01dea4 sub_01e17a rand_beam,,0,,todo
 01e7d6,sub_01e7d6,C,226,4,,-32208,1,sub_01d35a sub_01d3b4 sub_01d476 sub_01d796 sub_01e244 sub_01e3e8 sub_01e4c8 sub_01e64e sub_01e728,,2,,todo
 01e8b8,sound_init,asm,148,,,-32202,1,,exec.AddIntServer,6,"""SoundFX_IntHandler""",todo
 01e94c,sub_01e94c,asm,70,,,-32196,1,sub_01eab4,dos.Delay exec.RemIntServer,4,,todo
@@ -390,7 +390,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01edaa,sub_01edaa,asm,18,,,-32142,2,sub_01ed7a,,1,,todo
 01edbc,sub_01edbc,asm,46,,,-32136,3,,,5,,todo
 01edea,sub_01edea,asm,44,,,-32130,1,,,4,,todo
-01ee16,sub_01ee16,asm,1002,,,-32124,1,sub_01f200 sub_01f21a sub_01f26a sub_01f2b0 sub_01f2dc sub_0203be sub_020b0c sub_020ce2 sub_0212ce sub_0212d4,,23,,todo
+01ee16,sub_01ee16,asm,1002,,,-32124,1,sub_01f200 sub_01f21a sub_01f26a sub_01f2b0 sub_01f2dc rand_beam sub_020b0c sub_020ce2 sub_0212ce sub_0212d4,,23,,todo
 01f200,sub_01f200,asm,26,,,,1,sub_020ce2,,0,,todo
 01f21a,sub_01f21a,asm,80,,,,1,sub_020ce2,,2,,todo
 01f26a,sub_01f26a,asm,70,,,,1,sub_015078 sub_01f2b0,,5,,todo
@@ -399,7 +399,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01f2ec,sub_01f2ec,C,70,12,8,,1,,,1,,todo
 01f332,sub_01f332,C,66,50,8 10 12 16,,1,sub_018570 sub_0215d8 sub_022e78,,1,,todo
 01f374,sub_01f374,C,166,0,8 10 12 14 16,,1,sub_022e48 sub_022e78 sub_022ea4,,1,,todo
-01f41a,sub_01f41a,C,898,140,,-32106,1,sub_015d5a sub_016086 sub_016b60 sub_016fc4 sub_017084 sub_0173b0 sub_018570 sub_01f2ec sub_01f332 sub_01f374 sub_0203be sub_021246 sub_021280 sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",todo
+01f41a,sub_01f41a,C,898,140,,-32106,1,read_vhposr sub_016086 sub_016b60 sub_016fc4 sub_017084 sub_0173b0 sub_018570 sub_01f2ec sub_01f332 sub_01f374 rand_beam sub_021246 sub_021280 sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",todo
 01f79c,sub_01f79c,asm,258,,,,0,sub_01f8a2 sub_020848 sub_02085e,graphics.InitVPort graphics.GetColorMap graphics.InitRastPort graphics.InitBitMap,2,,todo
 01f89e,sub_01f89e,asm,4,,,,0,,,0,,todo
 01f8a2,sub_01f8a2,asm,164,,,,1,sub_02090a,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
@@ -422,9 +422,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 sub_02090a sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50 sub_022d36 sub_022d86,,3,,todo
 020376,sub_020376,C,26,0,8 12,,0,sub_020220,,0,,todo
 020390,sub_020390,C,26,0,8 12,,3,sub_020220,,0,,todo
-0203aa,sub_0203aa,asm,20,,,,0,,,1,,todo
-0203be,sub_0203be,asm,28,,,-32082,18,,,2,,todo
-0203da,sub_0203da,asm,14,,,-32070,1,,,2,,todo
+0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
+0203be,rand_beam,asm,28,,,-32082,18,,,2,,todo
+0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,todo
 0203e8,sub_0203e8,asm,76,,,,1,,,0,,todo
 020434,sub_020434,C,24,0,,,0,,,0,,todo
 02044c,poll_fire,asm,8,,,-32064,8,read_fire_button,,1,,todo

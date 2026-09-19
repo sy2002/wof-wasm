@@ -117,11 +117,11 @@ Inventory: 616 routines, of which 223 are C. The listing classifies all but 39 b
 - The input byte comes from `read_joystick` (`0x01CA32`) in normal play.
 - `demo_mode` (`0x026D4C`): `0` is normal play; `1` is **demo playback**, where input bytes are read from a buffer (at most `0x1386` entries, a `0xFF` byte ends it); `2` is demo recording. The executable refers to a file `wofdemo`, which is not on this disk.
 
-This design is what makes a verifiable port possible: the whole simulation is a function of (initial state, seed, input byte stream).
+This design is what makes a verifiable port possible: the simulation is a function of initial state, the input byte stream, and one further input, the **entropy stream**. The game's only random source, `rand_beam` (`0x0203BE`, 43 call sites), returns a constant exclusive-ored with the raster beam position at the moment of the call, so in the original all randomness is CPU timing. The port replaces the beam position by an explicit, reproducible stream of values (`re/notes/random.md`). The program never checks the machine's video rate; at 50 Hz everything simply runs at five sixths of the speed.
 
 **The input byte** is assembled by `read_joystick` (`0x01CA32`) and is the only channel by which controls reach game logic. Its low byte is: bit 0 stick down, bit 1 stick up, bit 2 stick right, bit 3 stick left, bit 4 fire held for 10 or more VBlanks, bit 5 fire tapped and released inside 10 VBlanks. Bits 6 and 7 are unused. Opposing directions cancel to centre. The tap and hold timing runs at VBlank rate, not tick rate, and latches between samples. The keyboard is a separate path: an input.device handler at priority 127 buffers raw Amiga key codes for the menus and does not feed the tick. Details and consequences for the port: `re/notes/input.md`.
 
-Still to establish: which state changes happen per tick and which per pass; where randomness comes from (two reads of the beam position register `VHPOSR` exist and are candidates for seeding).
+Still to establish: which state changes happen per tick and which per pass.
 
 ### 3.4 Operating system and hardware use
 
@@ -320,7 +320,7 @@ Port from the **disassembly**, not from a guess at the C source.
 
 ### 7.3 Determinism
 
-- All randomness goes through the ported generator. Its seed is an argument of `wof_init`. If the original seeds from hardware state, that value becomes the seed parameter.
+- All randomness goes through the port of `rand_beam`. Where the original reads the beam position register, the port takes the next value of the entropy stream: a small generator inside the core, seeded by `wof_init`, that produces values shaped like a real `VHPOSR` (high byte 0 to 255, low byte 0 to `0xE3`). One value is consumed per call, in the original call order. The test builds can replace the stream by an externally supplied one.
 - No state outside the core influences logic. `wof_state_save` and `wof_state_load` must round-trip exactly; a replay from a loaded state must match a replay from the start.
 
 ### 7.4 Working method
@@ -341,7 +341,7 @@ For each routine, in an order that follows the milestones:
 | Level | Method |
 |---|---|
 | Routine | Oracle differential tests (section 7.4). Run with `.venv/bin/python -m pytest tests/` against the native library |
-| Whole game, logic | **Headless original.** A harness runs the original executable's initialisation and logic under the oracle with the OS calls of section 3.4 stubbed (files served from `original/disk`, memory from a bump allocator, display calls satisfied with dummy structures, custom-chip addresses mapped as plain memory). It then feeds input bytes straight into the input queue and calls the tick and pass routines, dumping the object tables after every tick. The port runs the same input stream; the dumps must be identical. Start with initialisation up to the first pass, then extend |
+| Whole game, logic | **Headless original.** A harness runs the original executable's initialisation and logic under the oracle with the OS calls of section 3.4 stubbed (files served from `original/disk`, memory from a bump allocator, display calls satisfied with dummy structures, custom-chip addresses mapped as plain memory, except reads of the beam position register `0xDFF006`, which are hooked and served from the same entropy stream the port consumes). It then feeds input bytes straight into the input queue and calls the tick and pass routines, dumping the object tables after every tick. The port runs the same input stream; the dumps must be identical. Start with initialisation up to the first pass, then extend |
 | Whole game, replays | The port records (seed, input bytes) in the original's demo format. Replays are regression tests: final state hash and per-tick hashes are stored in `tests/replays/` |
 | Picture | Framebuffer hashes per pass for the stored replays, once the classic renderer is declared correct for a scene by visual comparison with the contact sheets and with the original running in an Amiga emulator |
 | Sound | Log of (tick, channel, sample id, period, volume) events compared between port and headless original |
@@ -356,7 +356,7 @@ Each milestone ends with a working `dist/wof.html` and green tests.
 |---|---|---|
 | M0 | Build pipeline, empty core, shell with canvas, clock, input and audio plumbing | `dist/wof.html` opens from `file://`, shows a test pattern from the core at a steady emulated 60 Hz, plays a test tone after a key press, makes no network request |
 | M1 | Virtual file system, arena, `load_file` with `Rpck`, shape tables by name, ILBM reader, palettes, font and text drawing, table extraction | the page shows the publisher logo, title and credit pictures with correct colours and draws text in the game font; decoders pass oracle tests |
-| M2 | Headless original (section 8) reaching the first pass of the inner loop | per-tick object dumps are produced for a scripted input stream |
+| M2 | Headless original (section 8) reaching the first pass of the inner loop | per-tick state dumps are produced for a scripted input stream and a fixed entropy stream; two runs give identical dumps |
 | M3 | Front end as coroutines: title sequence, rank selection, high-score display and entry, load and save dialogs | screens match the original in layout, timing and transitions; high scores persist across reloads |
 | M4 | World and player: map loading and drawing, scrolling, carrier, take-off and landing, flight model, dashboard, day and night | a mission can be started, flown and ended by landing or crashing; logic matches the headless original for recorded inputs |
 | M5 | Weapons and ground targets: guns, bombs, rockets, torpedoes, islands, bunkers, guns, soldiers, effects | as M4, on the first three maps |
@@ -367,17 +367,21 @@ Each milestone ends with a working `dist/wof.html` and green tests.
 
 ## 10. Points to establish
 
-Each of these is answerable from the listing. Record the answer in `re/notes/` and update this document where it states a fact.
+Each point is answerable from the listing. Record the answer in `re/notes/` and update this document where it states a fact. A point is due **before the milestone that consumes its answer starts**; the numbering is not an order.
 
-1. **Answered, see `re/notes/input.md`.** What remains: which raw key codes the game tests and in which states (follow the key-buffer readers at `0x0207DA` upward), and what `read_joy_dispatch` `0x01CB20` reaches through `sub_021DCE` when `g_026EB0` is set.
-2. Per-tick versus per-pass state changes. Start at `run_queued_ticks` `0x0114D8` and its tick routine `0x011386`, and at `frame_update` `0x010228`.
-3. The object system: the executable names `MasterList` and `AthList`, and effect pools `Ricochet`, `Splashes`, `Smoke`, `Balloons`. Record layout, handler dispatch, draw order.
-4. Shape name resolution: how the name lists in DATA become shape pointers, and which container each list belongs to.
-5. Map record semantics and the world coordinate system.
-6. Display geometry: viewport heights and positions, the dashboard, palette changes down the screen, colour cycling.
-7. The drawing routines in the assembly region: which use the blitter, which the CPU, and whether any logic reads pixels or masks back.
-8. Random number generation and seeding.
-9. Whether the program distinguishes 50 Hz from 60 Hz machines anywhere.
-10. Sound-effect tables (sample, period, volume, channel, priority) and the song format.
-11. The remaining three words of the shape record header.
-12. Save-game and high-score file layouts.
+| # | Point | Due before | Where to start, or status |
+|---|---|---|---|
+| 1 | Input byte and keyboard path | answered | `re/notes/input.md`. Left over: the raw key codes the front end tests (due before M3, follow the key-buffer readers at `0x0207DA` upward) and the alternative controller path behind `read_joy_dispatch` `0x01CB20` (due before M9) |
+| 2 | Per-tick versus per-pass state changes | M4 | `logic_tick` `0x011386` and `frame_update` `0x010228`. Confirm with the headless original: run a pass with an empty input queue and compare memory |
+| 3 | The object system: `MasterList`, `AthList`, the pools `Ricochet`, `Splashes`, `Smoke`, `Balloons`; record layout, handler dispatch, draw order | M4 | The headless original is the instrument: watch which memory a tick changes |
+| 4 | Shape name resolution: how the name lists in DATA become shape pointers, and which container each list belongs to | M1 | It is part of the M1 deliverable. Start at the callers of `load_file` |
+| 5 | Map record semantics and the world coordinate system | M4 | The map loader, found through the `maps/` filename table in DATA |
+| 6 | Display geometry: viewport sizes and positions, dashboard, palette changes down the screen, colour cycling | viewport sizes M1, the rest M3 | The viewport constructor around `0x01F7BE` and its callers |
+| 7 | Drawing routines in the assembly region: blitter or CPU, and whether any logic reads pixels or masks back | M2 | A headless run without a blitter model can only be trusted once it is known that logic never depends on drawing results |
+| 8 | Randomness and seeding | answered | `re/notes/random.md` |
+| 9 | 50 Hz versus 60 Hz | answered | `re/notes/random.md`: the program never checks |
+| 10 | Sound-effect tables and the song format | M8 | `songplay` has symbols and is cheap to read at any time |
+| 11 | The remaining three words of the shape record header | M1 if drawing uses them, otherwise M4 | The shape drawing routines |
+| 12 | High-score file layout, save-game layout | M3 and M7 | `0x019288`, `0x0193CC`, `0x018B96` |
+
+Points 4, 6, 7 and 11 are plain reading and come first. Points 2, 3 and 5 are far easier once the headless original of M2 exists, because it turns them from reading into observing.
