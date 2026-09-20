@@ -26,6 +26,7 @@ re/notes/headless.md.
 """
 import argparse
 import collections
+import functools
 import json
 import os
 import struct
@@ -39,6 +40,8 @@ sys.path.insert(0, HERE)
 from unicorn import UcError, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE        # noqa: E402
 from unicorn.m68k_const import (                                                       # noqa: E402
     UC_M68K_REG_A0, UC_M68K_REG_A7, UC_M68K_REG_D0, UC_M68K_REG_PC, UC_M68K_REG_SR)
+
+from capstone import Cs, CS_ARCH_M68K, CS_MODE_M68K_000                                # noqa: E402
 
 import disasm                                                                          # noqa: E402
 import headless_dump as dump                                                           # noqa: E402
@@ -62,6 +65,9 @@ MAIN_STACK_TOP   = 0x0F0000      # the main program's stack
 NESTED_STACK_TOP = 0x0FF000      # interrupt servers and callbacks, 0x2000 per nesting level
 END_TRAP    = 0x0FFF00           # main returns here
 NESTED_TRAP = 0x0FFF10           # nested calls return here
+OBSERVE_TRAMPOLINE = 0x0FFE00    # `move.w sr,OBSERVE_CCR; jmp OBSERVE_TRAP`, for a return observer
+OBSERVE_CCR   = 0x0FFE10
+OBSERVE_TRAP  = 0x0FFE20
 HEAP_BASE, HEAP_END   = 0x200000, 0xA00000      # AllocMem, except display memory
 PLANE_BASE, PLANE_END = 0xA00000, 0xB00000      # what display_alloc_chip asks for: planes, copper lists
 CIA_BASE, CIA_SIZE = 0xBFD000, 0x2000
@@ -249,7 +255,8 @@ def load_run(source):
 
 
 class Headless(AmigaOS):
-    def __init__(self, run=None, track_writes=False, verbose=False, observe=()):
+    def __init__(self, run=None, track_writes=False, verbose=False, observe=(),
+                 observe_returns=False, watch=None, watch_for=None):
         self.run_spec = run = load_run(run or {})
         self.verbose = verbose
         self.names = dump.Names(ROOT)
@@ -358,6 +365,10 @@ class Headless(AmigaOS):
         # reads, so a run with observers gives the same steps as one without.
         self.observed = []
         self.observing = {}
+        self.watch = dict(watch or {})
+        self.watch_for = set(watch_for) if watch_for else None
+        self.observe_returns = observe_returns
+        self._open = []
         for wanted in observe:
             address = wanted if isinstance(wanted, int) else next(
                 (a for a, _, name in self.names.code if name == wanted), None)
@@ -365,6 +376,10 @@ class Headless(AmigaOS):
                 raise HarnessError('no routine is named %r; observe takes a name or an address' % wanted)
             self.observing[address] = self.names.routine(address)
             uc.hook_add(UC_HOOK_CODE, self._observe, begin=address, end=address)
+            for at in (self._returns_of(address) if observe_returns else ()):
+                self.stop_at(at, functools.partial(self._observe_return, at))
+        self.o.write(OBSERVE_TRAMPOLINE, struct.pack(
+            '>HLHL', 0x40F9, OBSERVE_CCR, 0x4EF9, OBSERVE_TRAP))
         self.stop_at(CRACK_SCREEN, self._skip_crack_screen)
         self.stop_at(MISSION_START, self._mission_start)
         self.stop_at(FRAME_UPDATE, self._pass_begin)
@@ -521,18 +536,74 @@ class Headless(AmigaOS):
             self.uc.hook_add(UC_HOOK_CODE, self._stop, begin=address, end=address)
         self.stops[address] = handler
 
+    def _returns_of(self, address):
+        """Every `rts` of a routine, so that an observer can also record what it leaves.
+        The span comes from the inventory and the instructions from the disassembler, the
+        same two sources the listing is built from."""
+        span = next((s for a, s, _ in self.names.code if a == address), 0)
+        if not span:
+            raise HarnessError('%06x has no span in re/functions.csv; regenerate it' % address)
+        md = Cs(CS_ARCH_M68K, CS_MODE_M68K_000)
+        return [ins.address for ins in md.disasm(self.o.read(address, span), address)
+                if ins.mnemonic == 'rts']
+
+    def _watched(self):
+        """The watched ranges as they stand.  A range is (address, length), or
+        ('*', pointer, length) for one the program reaches through a pointer, which is how
+        the object records are addressed."""
+        out = {}
+        for name, where in self.watch.items():
+            if where[0] == '*':
+                at, length = self.o.r32(where[1]), where[2]
+            else:
+                at, length = where
+            out[name] = self.o.read(at, length).hex() if at else ''
+        return out
+
     def _observe(self, uc, address, size, user):
         """An observer: record and let the program run on.  Nothing is written, so the run is
         the same one it would be without it."""
         stack = self.reg('a7')
-        self.observed.append({
+        record = {
             'routine': self.observing[address], 'address': address,
             'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
             'd': [self.reg('d%d' % i) for i in range(8)],
             'a': [self.reg('a%d' % i) for i in range(8)],
             'args': [self.o.r32(stack + 4 + 4 * i) for i in range(8)],
             'words': [self.o.r16(stack + 4 + 2 * i) for i in range(16)],
-        })
+            'a7': stack, 'caller': self.o.r32(stack),
+        }
+        if self.watch and (self.watch_for is None or record['routine'] in self.watch_for):
+            record['memory'] = self._watched()
+        self.observed.append(record)
+        if self.observe_returns:
+            self._open.append(record)
+
+    def _observe_return(self, address):
+        """The other end of an observer: what the routine leaves behind at its `rts`.
+
+        The condition codes cannot be read out of the emulator, which keeps them lazily, so
+        they are read the way tools/oracle.py reads them - by running two instructions that
+        touch nothing else.  The program is parked at the `rts`, which has not run yet; a
+        move from SR and a jump cost no register and no flag, and the driver resumes at the
+        `rts` afterwards."""
+        stack = self.reg('a7')
+        for index in range(len(self._open) - 1, -1, -1):
+            if self._open[index]['a7'] == stack:
+                record = self._open.pop(index)
+                break
+        else:
+            return                                   # an rts of a routine nobody entered here
+        self.o.w16(OBSERVE_CCR, 0)
+        self.uc.emu_start(OBSERVE_TRAMPOLINE, OBSERVE_TRAP, count=8)
+        record['return'] = {
+            'address': address, 'ccr': self.o.r16(OBSERVE_CCR) & 0x1F,
+            'd': [self.reg('d%d' % i) for i in range(8)],
+            'a': [self.reg('a%d' % i) for i in range(8)],
+            'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
+        }
+        if 'memory' in record:
+            record['return']['memory'] = self._watched()
 
     def _probe_loop_head(self, uc, address, size, user):
         self.loop_heads += 1

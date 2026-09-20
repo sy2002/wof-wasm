@@ -130,6 +130,22 @@ def test_an_observer_does_not_change_a_run():
     assert len(watched.observed) > 3 and not plain.observed
 
 
+def test_an_observer_that_also_watches_returns_and_memory_does_not_change_a_run():
+    """The twin of the test above for the wider observer of SPEC 10 point 13: it reads the
+    registers and the condition codes at every `rts` of the routine and named ranges of
+    memory at both ends.  Reading the condition codes costs two instructions of the
+    harness's own, because the emulator keeps them lazily and cannot be asked for them, so
+    this is the test that says those two instructions change nothing."""
+    plain = run('front-end-fire')
+    watched = run('front-end-fire', observe=['text_render', 'load_file'], observe_returns=True,
+                  watch={'globals': (0x025402, 0x40), 'ticker': ('*', 0x027DEC, 0x20)})
+    assert plain.step_hashes == watched.step_hashes
+    assert plain.schedule == watched.schedule
+    returns = [record for record in watched.observed if 'return' in record]
+    assert len(returns) > 3, 'no return was recorded at all'
+    assert all('memory' in record and 'memory' in record['return'] for record in returns)
+
+
 def test_the_disk_image_gives_the_order_the_file_system_hands_out():
     """ExNext walks chain 0 upward, and inside a chain from its head.  The name hash decides the
     chain, which every entry of five directory blocks of original/wof.adf confirms."""
