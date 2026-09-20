@@ -41,7 +41,7 @@ The three habits of the game's code that the stubs have to know about:
 
 The harness does not model this arithmetic. The routines are pure register code, so the real ones run: `original/kick.rom` is mapped where it lives (`0xFC0000` for a 256 KB image), the resident `mathffp.library` is found by its name, its function table is read, and a jump table of `jmp` instructions at `0x0CE000` leads into the ROM. Without the ROM the library does not open and the run stops with a message. Kickstart 1.3 carries `mathffp 34.1`.
 
-The port needs these nine operations bit-exact, in integer code (`SPEC.md` section 7.1), and the ROM's routines under the oracle are the reference to test them against.
+The port has these nine operations bit-exact, in integer code (`src/ffp.c`, `SPEC.md` section 7.1), tested against the ROM's routines under the oracle; what the three routines compute is in `re/notes/ffp.md`. The third, `format_float` `0x021A40`, is the C library's floating point conversion and is never entered. It is the only caller of `SPCmp` and `SPTst`, which in the ROM call `exec.GetCC`; the harness has no stub for that call on purpose, so a run that ever reached the formatter would stop with the library, the function and the call chain instead of going on unnoticed.
 
 ## The keyboard needs the ROM too
 
@@ -215,6 +215,14 @@ gives the same step hashes and the same schedule as one without, which
 `tests/test_frontend.py::test_an_observer_does_not_change_a_run` holds it to. This is how
 `re/notes/frontend.md` knows what the front-end screens draw and where.
 
+With `observe_returns=True` a record also gets, under `return`, the registers and the
+condition codes at the routine's `rts`. `watch={name: (address, length)}` adds the bytes of
+those ranges at the entry and at the return, under `memory`; a range written as
+`('*', pointer, length)` is followed through the long at `pointer`, and `watch_for` limits
+the capture to the named routines. A twin of the test above holds a run with both to the
+same steps. This is how `re/notes/ffp.md` knows what the two floating point routines of the
+tick take and leave (`tools/ffp_observe.py`).
+
 ### Change report, entropy log, schedule
 
 `--changes FILE` hooks every write to the dumped memory and lists per step the ranges whose content changed, with the old and new bytes, a name and the routines that wrote them. A window runs from the previous step to this one, so a `P` step includes the VBlank servers that ran at its start. `--entropy-log FILE` and `--schedule FILE` write the two logs described above.
@@ -259,6 +267,7 @@ Stick right against stick left on the deck, 85 ticks after the scripts part, dif
 - A register written inside a hook is lost: the translated block carries on with its own copy. Memory written inside a hook is kept. Every stub therefore parks the program with `emu_stop`, works, and resumes; stopped inside a code hook, the program counter is the hooked instruction and that instruction has not run.
 - A hook added after a block was translated does not fire for it. All hooks are installed before the first instruction runs.
 - The program counter read inside a memory hook is exact, which is what the entropy log, the change report and the read-back log rely on.
+- The condition codes cannot be read out of the emulator. Unicorn keeps them lazily, and `reg_read(UC_M68K_REG_SR)` hands back whatever was last materialised, both after `emu_start` stops and inside a code hook: `addq.w #1` on `0x7FFF` reports N without V, and `tst.w` on `0x00010000` reports nothing at all. `Oracle.call(ccr=True)` and the return observers read them by running a move from SR inside the emulation, which costs no register and no flag. Anything that wants flags out of a run has to go the same way.
 - The watchdog is wall-clock time and only ever ends a run with an error; it does not influence one.
 
 ## Speed
@@ -276,4 +285,4 @@ On the development machine: the front end with fire presses 0.4 s, without any i
 - **`Text` metrics** beyond the pen advance of 8 per character. `graphics.Text` draws nothing here, so what a dialog's text looks like is not observable; its pen positions are.
 - **Demo playback and recording.** A `wofdemo` file can be supplied through `files`; recording needs `argc` above 1, which the run description does not offer yet.
 - **Long campaigns.** The bump allocator has 8 MB and never reuses memory; start-up and the first mission take about 370 KB of it.
-- What `0x01CAC8` and `0x014D50` do with their random values, and what the three floating point routines compute, belong to the notes of the subsystems that own them.
+- What `0x01CAC8` and `0x014D50` do with their random values belongs to the notes of the subsystems that own them.

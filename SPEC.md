@@ -141,7 +141,7 @@ The game builds its own display with graphics.library and otherwise does its own
 | exec: `FindTask`, `SetTaskPri`, `Forbid`, `Permit`, `Supervisor`, `Alert`, `Debug` | dropped |
 | exec: `RawDoFmt` | small `sprintf` subset written to match the format strings actually used |
 | exec: `OpenDevice`, `DoIO`, `AddPort`, `RemPort`, `AllocSignal`, `FreeSignal` | input.device, to add and remove the key handler; console.device is opened for `RawKeyConvert`, which every command key and every typed character goes through, so the port needs the system keymap as well as the system font (`re/notes/keys.md`, `re/notes/system-font.md`). The rest is replaced by the shell's key path (section 6.2) |
-| mathffp: `SPFix`, `SPFlt`, `SPCmp`, `SPTst`, `SPNeg`, `SPAdd`, `SPSub`, `SPMul`, `SPDiv`, opened on first use by C-library glue at `0x021C9C`–`0x021D2E` | the game's logic computes with Motorola fast floating point in three routines, two of them in the call tree of the tick (`re/notes/headless.md`). The port reproduces the nine operations bit-exact in integer code, tested against the ROM's routines under the oracle (section 7.1) |
+| mathffp: `SPFix`, `SPFlt`, `SPCmp`, `SPTst`, `SPNeg`, `SPAdd`, `SPSub`, `SPMul`, `SPDiv`, opened on first use by C-library glue at `0x021C9C`–`0x021D2E` | the game's logic computes with Motorola fast floating point in two routines of the tick, the player's motion `0x01BDFA` and an enemy aircraft's `0x01D796`, which use six of the nine operations. The third user is the C library's `%e`, `%f` and `%g` conversion `0x021A40`, which the game never reaches: no format string it gives `sprintf` carries such a conversion. The port reproduces all nine operations bit-exact in integer code, `src/ffp.c`, tested against the ROM's routines under the oracle (section 7.1, `re/notes/ffp.md`) |
 | graphics: `InitBitMap`, `InitRastPort`, `OwnBlitter`, `DisownBlitter`, `WaitTOF`, `BltClear` (4 sites), `RectFill`, `Move`, `Draw`, `SetAPen`, `SetBPen`, `SetDrMd` | the port's framebuffers and drawing primitives |
 | graphics: `InitVPort`, `MakeVPort`, `MrgCop`, `GetColorMap`, `FreeColorMap`, `FreeVPortCopLists` | occur only in dead code and in the crack's text screen (`0x01F41A`), neither of which is ported. The game proper builds no OS View |
 | graphics: `BltBitMap` (1 live site, a view copy at `0x01A89E`), `BltTemplate` (1), `Text` (4 callers) | software equivalents on the indexed framebuffer |
@@ -215,6 +215,7 @@ Run everything with `.venv/bin/python` from the repository root.
 | `tools/headless.py` | the headless original (section 8): `run RUN.json --out A.dump` with `--changes`, `--entropy-log` and `--schedule`; `show A.dump`; `diff A.dump B.dump`. Formats and use in `re/notes/headless.md` |
 | `tools/hunk.py` | hunk loader used by all of the above |
 | `tools/m68kdis.py EXE START LEN` | raw linear disassembly of an address range |
+| `tools/ffp_observe.py`, `tools/ffp_soak.py` | the floating point: the first records under the headless original every operand the game hands mathffp and every entry of the two routines that use it (`tests/ffp_observed.json`); the second runs the port against the ROM over a million random operands per operation (`re/notes/ffp.md`) |
 | `tools/rpck.py`, `tools/ppkc.py` | reference decoders; `ppkc.py SHP PALETTE OUT.png` renders a contact sheet |
 | `tools/fd/` | AmigaOS library offset tables used to name OS calls |
 
@@ -222,7 +223,7 @@ Run everything with `.venv/bin/python` from the repository root.
 
 **Naming workflow.** When a routine or global is understood, add it to `re/names.txt` and regenerate. The listing, the skeletons and the inventory pick the name up everywhere. Never edit `re/Wings.lst` by hand.
 
-**The oracle.** `Oracle.call(addr, *args, regs=...)` executes an original routine on a real 68000 model with the executable mapped at the listing addresses. Build stack arguments with `Oracle.W()` for `int` and `Oracle.L()` for `long` and pointers. Pass `a4=0x02AFFE` when the routine touches globals. Its self-test runs `rpck_unpack` on all ten packed files and compares the output with `tools/rpck.py`.
+**The oracle.** `Oracle.call(addr, *args, regs=...)` executes an original routine on a real 68000 model with the executable mapped at the listing addresses. Build stack arguments with `Oracle.W()` for `int` and `Oracle.L()` for `long` and pointers. Pass `a4=0x02AFFE` when the routine touches globals. The condition codes a routine leaves cannot be read out of the emulator, which keeps them lazily and reports stale ones; `call(..., ccr=True)` returns through a move from SR inside the emulation and leaves them in `Oracle.ccr`, and the headless original's return observers do the same. Its self-test runs `rpck_unpack` on all ten packed files and compares the output with `tools/rpck.py`.
 
 ## 5. Build
 
@@ -351,8 +352,8 @@ Port from the **disassembly**, not from a guess at the C source.
 - Signedness follows the branch: `blt`, `bge`, `bgt`, `ble` are signed; `bcs`, `bcc`, `bhi`, `bls` are unsigned.
 - Wrap-around is behaviour. Do not widen a variable because it might overflow. Make the wrap explicit with a cast, because signed overflow is undefined in C.
 - Shifts: `asr` is arithmetic; write it so that it is arithmetic on every compiler.
-- A division by zero or a quotient overflow traps on a 68000. Assert in test builds.
-- Floating point: where the listing calls the `ffp_` glue, the port calls its own integer implementation of that mathffp operation on the same 32-bit format (a 24-bit mantissa, a sign bit, a 7-bit excess-64 exponent). Never substitute `float` or `double`; rounding differs and the state would drift. Each operation gets an oracle test against the routine in `original/kick.rom`, over edge cases and random operands.
+- A division by zero or a quotient overflow traps on a 68000. Assert in test builds. mathffp's own `SPDiv` reaches such a trap for a divisor whose exponent byte is zero and for one whose mantissa is below `0x100`; `src/ffp.c` counts both in `wof_ffp_traps` and reports them in the result's `trap` field, and a test holds the count to the number the original took.
+- Floating point: where the listing calls the `ffp_` glue, the port calls its own integer implementation of that mathffp operation on the same 32-bit format (a 24-bit mantissa, a sign bit, a 7-bit excess-64 exponent): `wof_ffp_mul(a, b)` and its siblings of `src/ffp.h` where only the value is wanted, which is every call site the game reaches, and the `_cc` forms where the original branches on the returned condition codes. Never substitute `float` or `double`; rounding differs and the state would drift. Each operation has an oracle test against the routine in `original/kick.rom`, reached through the game's own glue, over edge cases, random operands and every operand the game was observed to produce, in result, registers and condition codes, natively and in WebAssembly.
 
 ### 7.2 Data
 
@@ -429,6 +430,6 @@ Each point is answerable from the listing. Record the answer in `re/notes/` and 
 | 10 | Sound-effect tables and the song format | M8 | `songplay` has symbols and is cheap to read at any time |
 | 11 | The shape record header words at +8, +10, +12 | answered | `re/notes/shapes.md` and section 3.5 |
 | 12 | High-score file layout, save-game layout | M7 for the save game | The high-score file is answered (`re/notes/highscore.md`, section 6.2). The save-game layout is open: `0x015EC2` holds the table of ranges a saved game covers, and `opt_invert_vertical` lies inside one of them |
-| 13 | The game's floating point: what the three routines that use mathffp compute (`0x01BDFA`, `0x01D796`, `0x021A40`, 28 call sites, constants at `0x025B0C`), and a bit-exact integer implementation of the nine operations | M4 | `re/notes/headless.md`; the ROM's routines under the oracle are the reference |
+| 13 | The game's floating point | answered | `re/notes/ffp.md`. The nine operations are ported bit-exact and tested against `mathffp 34.1` in `original/kick.rom` on both targets. `player_motion` `0x01BDFA` and `aircraft_motion` `0x01D796` are described, and a model of each reproduces every observed entry of the original; their constants are the tables `attitude_factor` `0x025B0C` and `sine_degrees` `0x025B74`. `format_float` `0x021A40` is dead, so the game proper uses six of the nine operations |
 
 Points 2, 3 and 5 are questions for the headless original, which turns them from reading into observing: its change report names, for every tick and every pass, the addresses written and the routines that wrote them, and `re/notes/headless.md` says how to ask each of the three. The glyphs for the dialogs that use the system default font come from the owner's Kickstart ROM (`re/notes/system-font.md`).

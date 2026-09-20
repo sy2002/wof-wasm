@@ -169,7 +169,7 @@ Inputs, all words unless said otherwise:
 | `0x025AAA` | while it is set and the target stands at 600, the target is −800 instead |
 | `pitch_delta` `0x025408` | the tick's own pitch offset |
 | `attitude_index` `0x02540E` | 0 to 25, the index into `attitude_factor` |
-| `throttle` `0x025414` | 0 to 1000 |
+| `throttle` `0x025414` | the speed the two components are scaled by; 716 to 1400 in the observed flights, and the code treats 1000 as the threshold below which the aircraft sinks. Whether it is the throttle setting or the airspeed is for the player's note to settle |
 | `0x025F16` | the step the pitch target loses while the throttle is below 1000 |
 | `0x026D43` bit 0 | suppresses that loss |
 | `0x027DEA` | a counter the across component is taken out of |
@@ -300,7 +300,7 @@ the executable holds.
 
 | table | address | entries | contents |
 |---|---|---|---|
-| `attitude_factor` | `0x025B0C` | 26 | 1, 0.98, 0.95, 0.91, 0.86, 0.81, 0.75, 0.70, 0.60, 0.50, 0.40, 0.30, 0.23, 0.20, 0, 0.05, 0.25, 0.45, 0.60, 0.70, 0.75, 0.81, 0.86, 0.91, 0.95, 0.98 |
+| `attitude_factor` | `0x025B0C` | 26 | a hand-made curve of factors between 0 and 1: it starts at 1, falls ever faster to 0.2 at entry 13, is 0 at entry 14 and climbs back to 0.98 at entry 25. `tests/ffp.py` and the build read the values from the executable |
 | `sine_degrees` | `0x025B74` | 91 | sin of the index in degrees, 0 to 90 |
 
 **Every entry of both is normalised** (observed, a test over all 117). The extent of the
