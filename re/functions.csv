@@ -8,9 +8,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0103a6,sub_0103a6,asm,792,,,-32742,1,clip_playfield sub_01526e sub_01cbf2 shape_draw shape_draw_xor line_draw,,35,,todo
 0106be,sub_0106be,asm,68,,,,1,sub_010702 blit_begin blit_end,,3,,todo
 010702,sub_010702,asm,210,,,,1,draw_world_shape,,4,,todo
-0107d4,object_claim,asm,30,,,,0,,,1,,todo
+0107d4,object_free_unused,asm,30,,,,0,,,1,,todo
 0107f2,object_draw_first,asm,46,,,,1,,,3,,todo
-010820,sub_010820,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,todo
+010820,object_spawn,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,todo
 01099a,sub_01099a,asm,216,,,,1,sub_01115c sub_0111a6 sub_011a46 sub_015104 sub_015108 sub_015ca6,,0,,todo
 010a72,sub_010a72,asm,52,,,-32730,1,sub_010aa6,,3,,todo
 010aa6,sub_010aa6,asm,768,,,,1,sub_01099a sub_011126 sub_011a8c sub_012324 sub_01233e sub_0146dc map_slot_at sub_0152b0 ground_height,,7,,todo
@@ -310,9 +310,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01aaea,sub_01aaea,C,150,2,,,7,,,7,,todo
 01ab80,sub_01ab80,C,94,0,8,,1,sub_01aa6e,,3,,todo
 01abde,sub_01abde,C,762,12,8 10 12,,3,shape_mirror_x sub_01cb30,,13,,todo
-01aed8,sub_01aed8,C,164,10,,,1,sub_010820 sub_01aaea sub_01c982 sub_021e24,,4,,todo
+01aed8,sub_01aed8,C,164,10,,,1,object_spawn sub_01aaea sub_01c982 sub_021e24,,4,,todo
 01af7c,sub_01af7c,C,62,0,,,1,sub_0135ce,,4,,todo
-01afba,sub_01afba,C,1184,16,,,2,sub_010820 sub_011a84 sub_0146c6 sub_0152ac sub_015710 sub_01aaea sub_01abde sub_01c982 flash_set sub_01cb34 sub_01cb74,,12,,todo
+01afba,sub_01afba,C,1184,16,,,2,object_spawn sub_011a84 sub_0146c6 sub_0152ac sub_015710 sub_01aaea sub_01abde sub_01c982 flash_set sub_01cb34 sub_01cb74,,12,,todo
 01b45a,sub_01b45a,C,132,2,,,1,,,6,,todo
 01b4de,sub_01b4de,C,210,6,,,2,,,6,,todo
 01b5b0,sub_01b5b0,C,210,0,,,1,sub_01107c sub_015710 sub_01aaea sub_01b4de sub_01c982,,11,,todo
@@ -325,7 +325,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01b9cc,sub_01b9cc,C,36,0,,-32262,1,,,5,,todo
 01b9f0,sub_01b9f0,C,16,4,,,1,,,0,,todo
 01ba00,sub_01ba00,asm,128,,,,0,sub_015710 sub_01c982,,6,,todo
-01ba80,sub_01ba80,C,386,10,,,1,sub_010820 sub_012380 sub_0146c6 sub_015710 sub_01aaea sub_01afba sub_01b8c4 sub_01c982 sub_01cb34 sub_01cb74,,9,,todo
+01ba80,sub_01ba80,C,386,10,,,1,object_spawn sub_012380 sub_0146c6 sub_015710 sub_01aaea sub_01afba sub_01b8c4 sub_01c982 sub_01cb34 sub_01cb74,,9,,todo
 01bc02,sub_01bc02,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,todo
 01bcce,sub_01bcce,C,236,0,,,1,sub_01b4de,,9,,todo
 01bdba,sub_01bdba,C,64,0,,,1,,,2,,todo

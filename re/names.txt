@@ -220,7 +220,8 @@
 025440 island_span           ; four records of 4 bytes: first and last map offset of each island's targets
 025450 island_score          ; four words: five per target of that island, counted down as they die
 0150c8 map_slot_at           ; asm. D0 = world x: D1 the map record's slot, D0 its low bits, both 0 outside the map
-0107d4 object_claim          ; asm. the first object record whose kind byte is 0, or 0 when all fifteen are in use
+0107d4 object_free_unused    ; asm. the first object record whose kind byte is 0; nothing calls it
+010820 object_spawn          ; asm. finds a free object record and fills it; its entries leave kind 8 or 0xff
 026ea4 ricochet_records      ; long: twenty records of 4 bytes, the Ricochet pool of alloc_pools
 026f30 splash_records        ; long: twenty records of 4 bytes, the Splashes pool
 026f58 smoke_records         ; long: forty records of 0x14 bytes, the Smoke pool
@@ -536,6 +537,16 @@
 021e9a strcmp                ; C library
 022aca os_dos_delete_file    ; dos.DeleteFile thunk
 025084 player_on_deck        ; word: 1 while the aircraft is on the carrier, 0 in the air; Control-G saves only when it is 1
+025078 player_y              ; word: the player's height above the water, record +0x00
+02507a player_x              ; word: the player's world x, record +0x02
+025086 player_fuel           ; word: 0xc0 at a reset, one less every 28 ticks in the air and never in the hold, record +0x0e
+02508a player_oil            ; word: 0x80 at a reset, the oil pressure the smoke spawn and the dashboard read, record +0x12
+02508c player_facing         ; word: +1 right, -1 left; the horizontal speed is multiplied by it, record +0x14
+02508e player_speed_x        ; word: pixels per tick along the world, record +0x16
+025090 player_speed_y        ; word: pixels per tick upward, record +0x18
+025094 enemy_countdown       ; word: one less per tick, but only while neither fire bit is in the input byte, record +0x1c
+025096 player_trail          ; five words 4 apart that snapshot_for_draw reads, record +0x1e
+02536d weapon_count          ; byte: 30 bombs at the mission's start, one less for every one dropped
 01cab4 flash_set             ; C. (count, colour) the sky flash of flip_buffers
 
 # ---- C library and OS thunks used by the front end
@@ -578,6 +589,8 @@
 025402 pitch_target          ; word, hundredths of a degree, clamped at -4500 in player_motion
 025408 pitch_delta           ; word, the tick's own pitch offset, added to pitch_angle before the sine
 02540e attitude_index        ; word 0 to 25, the index into attitude_factor
-025414 throttle              ; word 0 to 1000
+025414 airspeed              ; word: the speed both motion components are scaled by; rises by airspeed_step to 1400 and falls to 1000
+027dea airspeed_step         ; word 4 to 8: how much airspeed moves per tick; player_motion takes the climb out of it
+025f16 pitch_step            ; word: how far pitch_target moves per tick; 600 in every observed flight, the cheat keys i and k change it by 50
 02522a aircraft_records      ; four enemy-aircraft records of 0x34 bytes; word 0 is the state, 0 is free
 027dec player_record         ; long: the player aircraft's record, which player_motion writes

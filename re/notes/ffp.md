@@ -169,10 +169,10 @@ Inputs, all words unless said otherwise:
 | `0x025AAA` | while it is set and the target stands at 600, the target is −800 instead |
 | `pitch_delta` `0x025408` | the tick's own pitch offset |
 | `attitude_index` `0x02540E` | 0 to 25, the index into `attitude_factor` |
-| `throttle` `0x025414` | the speed the two components are scaled by; 716 to 1400 in the observed flights, and the code treats 1000 as the threshold below which the aircraft sinks. Whether it is the throttle setting or the airspeed is for the player's note to settle |
-| `0x025F16` | the step the pitch target loses while the throttle is below 1000 |
+| `airspeed` `0x025414` | the speed both components are scaled by, 716 to 1400 in the observed flights; below 1000 the aircraft sinks (`re/notes/objects.md`) |
+| `pitch_step` `0x025F16` | the step the pitch target loses while the airspeed is below 1000 |
 | `0x026D43` bit 0 | suppresses that loss |
-| `0x027DEA` | a counter the across component is taken out of |
+| `airspeed_step` `0x027DEA` | how much the airspeed moves per tick; the across component is taken out of it |
 | `player_record` `0x027DEC` | long: the record everything below is in |
 | record `+0x0C` | zero while the aircraft flies normally |
 | record `+0x14` | the facing, `+1` or `-1`, which the horizontal speed is multiplied by |
@@ -186,17 +186,17 @@ across       = sine_degrees[angle / 100]
 along        = sine_degrees[(9000 - angle) / 100]          which is the cosine
 if pitch_angle < 0 or pitch_delta < 0:  across = SPNeg(across)
 
-0x027DEA    -= SPFix(across)
-if record[+0x14] > 0 and throttle < 1000:  0x027DEA -= 0x027DEA / 10
+airspeed_step -= SPFix(across)
+if record[+0x14] > 0 and airspeed < 1000:  airspeed_step -= airspeed_step / 10
 
-record[+0x16] = SPFix((attitude_factor[attitude_index] x SPFlt(throttle) x along + 50) / 100)
+record[+0x16] = SPFix((attitude_factor[attitude_index] x SPFlt(airspeed) x along + 50) / 100)
 record[+0x02] += record[+0x16] x record[+0x14]             muls.w, the low word kept
 
-record[+0x18] = SPFix(SPFlt(throttle) x across / 100)
-if throttle < 1000 and record[+0x0C] equals 0:
+record[+0x18] = SPFix(SPFlt(airspeed) x across / 100)
+if airspeed < 1000 and record[+0x0C] equals 0:
     if not 0x026D43 bit 0:
-        pitch_target -= 0x025F16 / 2, floored at -4500
-    record[+0x18] -= (1000 - throttle) / 100
+        pitch_target -= pitch_step / 2, floored at -4500
+    record[+0x18] -= (1000 - airspeed) / 100
 
 record[+0x00] += record[+0x18]
 if record[+0x00] > 1100:   record[+0x00] = 1100
@@ -260,13 +260,13 @@ All 28, with what the runs saw.
 |---|---|---|---|
 | `0x01BE90` | neg | 251 | the across component |
 | `0x01BE9C` | fix | 2,782 | the across component |
-| `0x01BEE0` | flt | 2,782 | the throttle, 716 to 1400 |
-| `0x01BEE8` | mul | 2,782 | attitude factor by the throttle |
+| `0x01BEE0` | flt | 2,782 | the airspeed, 716 to 1400 |
+| `0x01BEE8` | mul | 2,782 | attitude factor by the airspeed |
 | `0x01BEF0` | mul | 2,782 | that by the along component |
 | `0x01BEFA` | add | 2,782 | that plus 50 |
 | `0x01BF04` | div | 2,782 | that by 100 |
 | `0x01BF08` | fix | 2,782 | the horizontal speed |
-| `0x01BF32` | flt | 2,782 | the throttle again |
+| `0x01BF32` | flt | 2,782 | the airspeed again |
 | `0x01BF3A` | mul | 2,782 | by the across component |
 | `0x01BF44` | div | 2,782 | by 100 |
 | `0x01BF48` | fix | 2,782 | the vertical speed |
@@ -314,10 +314,8 @@ numbers.
 
 ## What is open
 
-- The meaning of `0x027DEA`, which `player_motion` takes the across component out of and
-  which `0x01C0B2` decrements and floors at 4. It is written by the two routines this note
-  covers and read by the dashboard's, which belongs to M4.
-- The name of `0x025AAA` and of `0x025F16`, both of which only steer the pitch target.
+- `0x025AAA`, which `player_motion` reads and which no flight of `re/notes/objects.md` ever
+  saw set.
 - `aircraft_records` `0x02522A`: what the state words 1, 2, 4, 8 and `0x10` mean, and the
   rest of the record. That is point 3, the object system.
 - The condition codes cannot be read out of the emulator at a hook: Unicorn keeps them

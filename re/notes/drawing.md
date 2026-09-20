@@ -8,8 +8,8 @@ Answers point 7 of `SPEC.md` section 10. Everything here is read from the disass
 
 Two things qualify that answer, and both matter for M2 and for the port:
 
-- **The drawing pass is not a pure renderer.** `frame_update` (`0x010228`) also runs game logic once per pass: the soldiers move and die there, score is added, ticker messages are queued, the restart after losing an aircraft happens there, and nine routines in its call tree call `rand_beam`. The headless run must execute `frame_update`, not skip it.
-- **Logic reads state that the pass leaves behind**: a flag that a frame was drawn since the last tick, and a pass counter. Logic therefore depends on *how passes and ticks interleave*, which in the original is a matter of CPU speed. Harness and port have to use the same, explicitly chosen schedule.
+- **The drawing pass is not a pure renderer.** `frame_update` (`0x010228`) also runs game logic once per pass: the soldiers move and die there, score is added, ticker messages are queued, the restart after losing an aircraft can happen there, and nine routines in its call tree call `rand_beam`. The headless run must execute `frame_update`, not skip it.
+- **Logic reads state that the pass leaves behind**: a flag that a frame was drawn since the last tick, a pass counter, and fields of the object tables (`re/notes/passes.md`). Logic therefore depends on *how passes and ticks interleave*, which in the original is a matter of CPU speed. Harness and port have to use the same, explicitly chosen schedule.
 
 All shape, rectangle and line drawing goes through one small library of hand-written assembly at `0x0209BC`–`0x0215D8`, outside the region `SPEC.md` names. **Every one of its routines drives the blitter through the custom-chip base**; the CPU only prepares parameters and, in `shape_draw`, builds the transparency mask. The scene routines in `0x010000`–`0x015D62` decide what to draw and call the library. Text is rendered by the CPU into a 1-bit template and put on screen with `BltTemplate`.
 
@@ -115,7 +115,7 @@ There is no scrolling by copying: the playfield is redrawn from the map on every
 | `0x01AA3E` `wait_vblank` | nothing; waits for `vblank_flag` | |
 | `0x010F88` `snapshot_for_draw` | nothing; copies the logic's positions and frames into the fields the drawing reads, between `Forbid` and `Permit` | |
 | `0x01876E` `cop_set_split_line` | the horizon split of the copper list | |
-| `0x0135D8` `player_lost_restart`, only when `0x024F24` is set | clears the playfield; **game logic**: game over or next life | `rect_fill`, `WaitTOF` loops |
+| `0x0135D8` `player_lost_restart`, only when `0x024F24` is set | clears the playfield; **game logic**: game over or next life. It also runs inside `logic_tick`'s tree, reached from `0x01AF7C`, which the player update calls on every tick while the aircraft is in the water; in the runs of `re/notes/passes.md` that is the only path it ever took | `rect_fill`, `WaitTOF` loops |
 | `0x013772` `draw_world` | sky (`rect_fill` colour 1 down to `view_y`), then the map: for each record in view the slot of bits 2–10 from `MasterList` or `AthList`, null slots skipped; then its sub-routines `0x013B1C`, `0x013ABC`, `0x01409C`, `0x0103A6` (the player's aircraft from `hellcat_shapes` or `eighth_shapes`, and the only lines), `0x010DA6` and `0x013A18` and `0x01391E` (from `japplane_shapes`), `0x013D78`, `0x013DE8`, `0x014C3E`, `0x013E6C`, `0x0140E8` | `shape_draw`, `rect_fill`, `line_draw`, `shape_draw_xor` |
 | `0x010EE0` | objects from `MasterList` or `AthList` | `draw_world_shape` |
 | `0x013EEE` | the soldiers, slots `0x6F` upward; **game logic**: moves and animates them, adds score, counts them down, queues ticker messages | `draw_world_shape` |
@@ -126,7 +126,7 @@ There is no scrolling by copying: the playfield is redrawn from the map on every
 | `0x01EE16` `draw_dashboard` with `0x01F200`–`0x01F2B0` | instruments from `dash_shapes`, only what differs from the per-buffer cache in `view_caches`; the score digits are slices of one shape, clipped to rows 11 to 17 | `shape_draw`, `shape_blit` |
 | `0x01030C` `flip_buffers` | the sky flash, then the buffer swap | |
 
-What each pool holds is for the subsystem notes of M4 to M6.
+What each pool holds is in `re/notes/objects.md`.
 
 ## Read-back
 
@@ -178,7 +178,7 @@ For the port:
 ## Open
 
 - **How long a pass takes in the original**, in VBlanks, under typical load. Reading cannot give it; a cycle-exact emulator can. It sets the speed of everything that runs per pass (the soldiers, the game-over delay, the kind-1 animation). This is the substance of point 2.
-- The object-table fields that the pass writes through pointers were not enumerated. The headless original can: run one pass with an empty input queue and compare memory, as point 2 proposes.
+- The object-table fields that the pass writes through pointers are enumerated in `re/notes/passes.md`: `snapshot_for_draw`'s six bytes in every object record, the kind byte `0x010702` clears, the four pools the pass spawns into and the soldiers.
 - Which object each scene routine draws, and the draw order inside `draw_world`, are recorded here only as call order.
 - The pixel pattern of the blitter's line mode is documented hardware behaviour, not re-derived here. A test against a cycle-exact emulator is advisable when `line_draw` is ported. The same applies to the area mode: `tests/blitter.py` models it, which is enough to check the port against the original's register programme but not to check the model itself (`re/notes/porting-m1.md`, "What that proves and what it does not").
 - `0x01526E` computes its bottom clip row from fields of the record at `0x0254D8`; what they mean was not established.

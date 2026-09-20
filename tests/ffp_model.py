@@ -117,7 +117,7 @@ def model_01bdfa(entry, engine):
 
     It moves the wind (0x025AA2) a quarter of the way towards its target (0x025402), turns
     the sum of wind and the player's own drift into a pair of table entries, and from those
-    and the throttle (0x025414) computes the player aircraft's two speed components,
+    and the airspeed (0x025414) computes the player aircraft's two speed components,
     +0x16 and +0x18, its position +0x00 and +0x02, and the fuel at 0x027DEA.
 
     Returns the calls it makes and the values it leaves.
@@ -160,12 +160,12 @@ def model_01bdfa(entry, engine):
         across = ffp(0x01BE90, 'neg', across)
 
     # 0x01BE98: the fuel goes down by it, and by a further tenth while the aircraft is
-    # airborne and the throttle is below 0x3E8.
+    # airborne and the airspeed is below 0x3E8.
     g_027dea = s16(g_027dea - u16(ffp(0x01BE9C, 'fix', across)))
     if player_14 > 0 and g_025414 < 0x3E8:
         g_027dea = s16(g_027dea - divs_w(g_027dea, 10))
 
-    # 0x01BEC4: horizontal speed = (attitude factor x throttle x along + 50) / 100.
+    # 0x01BEC4: horizontal speed = (attitude factor x airspeed x along + 50) / 100.
     speed = ffp(0x01BEE8, 'mul', ATTITUDE[g_02540e], ffp(0x01BEE0, 'flt', s32(g_025414)))
     speed = ffp(0x01BEF0, 'mul', speed, along)
     speed = ffp(0x01BEFA, 'add', speed, 0xC8000046)                     # 50.0
@@ -173,7 +173,7 @@ def model_01bdfa(entry, engine):
     player_16 = s16(ffp(0x01BF08, 'fix', speed))
     player_2 = s16(player_2 + muls_w(player_16, player_14))
 
-    # 0x01BF2C: vertical speed = throttle x across / 100, less a drop while slow.
+    # 0x01BF2C: vertical speed = airspeed x across / 100, less a drop while slow.
     climb = ffp(0x01BF3A, 'mul', ffp(0x01BF32, 'flt', s32(g_025414)), across)
     climb = ffp(0x01BF44, 'div', climb, 0xC8000047)                     # 100.0
     player_18 = s16(ffp(0x01BF48, 'fix', climb))
@@ -224,7 +224,7 @@ def model_01d796(entry, engine):
     0x10, once per tick per aircraft.
 
     The floating point in it is one line: the aircraft's height +0x20 moves by its attitude
-    factor times its own throttle-and-direction product.  Around that sit a target height
+    factor times its own speed-and-direction product.  Around that sit a target height
     +0x1E for three states of the player, and a floor under the target speed +0x24.
     """
     memory = Memory(entry['in'], RANGES)
@@ -246,7 +246,7 @@ def model_01d796(entry, engine):
     if not state & 0x14 and player_c in (4, 8, 6):
         r1e = 0x6A4
 
-    # 0x01D7D6: height += attitude factor x (int)((direction / 100) x throttle).
+    # 0x01D7D6: height += attitude factor x (int)((direction / 100) x airspeed).
     step = s32(s16(muls_w(divs_w(r1c, 100), r14)))
     product = ffp(0x01D814, 'mul', ATTITUDE[r16], ffp(0x01D80C, 'flt', step))
     r20 = s16(r20 + u16(ffp(0x01D818, 'fix', product)))
