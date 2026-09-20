@@ -28,6 +28,7 @@ import argparse
 import bisect
 import collections
 import functools
+import itertools
 import json
 import os
 import struct
@@ -195,6 +196,25 @@ def find_rom_console(rom, base):
     return convert, keymap
 
 
+def cover(ranges, most=8):
+    """At most `most` intervals that together cover every given range.  A hook of its own
+    per range would make the emulator test hundreds of them on every access; the few covers
+    below cost nothing outside them, and the bisect in _watch_read keeps the filter exact."""
+    spans = sorted((start, start + length) for start, length in ranges)
+    merged = []
+    for start, end in spans:
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    while len(merged) > most:
+        gaps = [(merged[i + 1][0] - merged[i][1], i) for i in range(len(merged) - 1)]
+        _, i = min(gaps)
+        merged[i][1] = merged[i + 1][1]
+        del merged[i + 1]
+    return [(start, end) for start, end in merged]
+
+
 class Stuck(HarnessError):
     pass
 
@@ -318,8 +338,10 @@ class Headless(AmigaOS):
         self.read_watch = []                          # sorted [(start, end, label)]
         self.read_starts = []
         for start, length in read_ranges:
-            self._watch_range(start, length, self.names.datum(start))
-            uc.hook_add(UC_HOOK_MEM_READ, self._watch_read, begin=start, end=start + length - 1)
+            self._watch_range(start, length, self.names.datum(start) if start < HEAP_BASE
+                              else '%06x' % start)
+        for start, end in cover(read_ranges):
+            uc.hook_add(UC_HOOK_MEM_READ, self._watch_read, begin=start, end=end - 1)
         if self.read_owners:
             uc.hook_add(UC_HOOK_MEM_READ, self._watch_read, begin=HEAP_BASE, end=HEAP_END - 1)
 
@@ -339,7 +361,14 @@ class Headless(AmigaOS):
 
         # entropy
         entropy = run['entropy']
-        self.entropy = iter(entropy['values']) if 'values' in entropy else entropy_values(entropy['seed'])
+        if 'values' in entropy:
+            self.entropy = iter(entropy['values'])
+        elif 'constant' in entropy:
+            # One value for ever: two runs that consume entropy at different rates then see
+            # the same stream, which is what the control of SPEC 10 point 2 needs.
+            self.entropy = itertools.repeat(int(entropy['constant']))
+        else:
+            self.entropy = entropy_values(entropy['seed'])
         self.entropy_log = []             # (index, value, routine, vblank, pass, tick)
         uc.hook_add(UC_HOOK_MEM_READ, self._beam_read, begin=VHPOSR, end=VHPOSR + 1)
 
@@ -489,7 +518,7 @@ class Headless(AmigaOS):
         if owner.startswith('load_file') and self.files_log:
             label += ' ' + self.files_log[-1][1]
         self.alloc_labels[address] = label = label + ')'
-        if any(want == owner or want in label for want in self.read_owners):
+        if any(want in ('*', owner) or want in label for want in self.read_owners):
             self._watch_range(address, size, label)
         return address
 
@@ -593,6 +622,7 @@ class Headless(AmigaOS):
         record = {
             'routine': self.observing[address], 'address': address,
             'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
+            'phase': self.phase(),
             'd': [self.reg('d%d' % i) for i in range(8)],
             'a': [self.reg('a%d' % i) for i in range(8)],
             'args': [self.o.r32(stack + 4 + 4 * i) for i in range(8)],
@@ -682,17 +712,23 @@ class Headless(AmigaOS):
         return 'F' if self.in_pass else 'M'
 
     def _watch_read(self, uc, access, address, size, value, user):
-        """A read of watched memory: which routine, which offset, in which phase."""
-        i = bisect.bisect_right(self.read_starts, address) - 1
-        if i < 0 or address >= self.read_watch[i][1]:
-            return
-        start, _, label = self.read_watch[i]
-        routine = self.names.routine(uc.reg_read(UC_M68K_REG_PC))
-        phase = self.phase()
-        self.reads.read(phase, routine, label, address - start, size)
-        if self.read_detail:
-            self.reads.events.append((len(self.step_hashes), phase, routine, label,
-                                      address - start, size))
+        """A read of watched memory: which routine, which offset, in which phase.  A read
+        wider than one byte may reach into the next watched range, and counts in both."""
+        i = max(bisect.bisect_right(self.read_starts, address) - 1, 0)
+        routine = phase = None
+        while i < len(self.read_watch) and self.read_watch[i][0] < address + size:
+            start, end, label = self.read_watch[i]
+            i += 1
+            if address >= end:
+                continue
+            if routine is None:
+                routine = self.names.routine(uc.reg_read(UC_M68K_REG_PC))
+                phase = self.phase()
+            offset = max(address - start, 0)
+            self.reads.read(phase, routine, label, offset, size)
+            if self.read_detail:
+                self.reads.events.append((len(self.step_hashes), phase, routine, label,
+                                          offset, size))
 
     def _data_write(self, uc, access, address, size, value, user):
         start = self.names.routine_start(uc.reg_read(UC_M68K_REG_PC))

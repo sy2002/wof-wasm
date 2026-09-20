@@ -177,7 +177,10 @@ JSON; every key is optional.
 
 ```text
 {
-  "entropy":          {"seed": 1}  or  {"values": [15381, 24129, ...]}
+  "entropy":          {"seed": 1}  or  {"values": [15381, 24129, ...]}  or  {"constant": 10304}
+                      the generator of src/rand.c, an explicit list which ends the run when
+                      it is used up, or one value for ever, which is what a comparison of two
+                      runs that consume entropy at different rates needs
   "video_hz":         50           only Delay depends on it
   "vblanks_per_pass": 2
   "raw":              [[30, ""], [3, "F"], [460, "R"], [100, "RU"], [1, "", [68]]]

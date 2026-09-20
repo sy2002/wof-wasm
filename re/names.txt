@@ -194,6 +194,40 @@
 024f34 view_shift            ; word, 0 at full scale, 3 in the eighth-scale view
 024f36 view_step             ; word, 8 at full scale, 1 in the eighth-scale view
 0253c8 pass_counter          ; word, 0 to 99: draw_world counts the passes of a mission, the tick reads it
+012adc map_load              ; asm. opens maps/<letter>.map, reads the two longs and the records, then map_scan
+012d5a map_scan                ; asm. walks the map twice: counts the record kinds, allocates their tables, fills them
+024628 map_records           ; long: the map's record list, one word per eight pixels of world x
+02462c map_records_end       ; long: the last record of the list, the loop's limit
+024630 map_extent            ; word: the world x past the last record, the record count times eight
+0253c6 map_length            ; word: the length of the record list in bytes, the file's first long
+025392 player_start_x        ; word: where the player starts, the file's second long times four less eight
+015714 ground_height         ; asm. A0 = a map record: the height of its ground, from its class and its height bits
+0257c2 ground_class_heights  ; six words: the ground height of terrain classes 0 to 5, before the record's own height
+014a4e ship_at_offset        ; asm. D0 = world x: the ship record whose span of map offsets holds it, or D0 negative
+014eac ride_on_ship          ; asm. moves a map record of low bits 1 down with the ship it stands on
+025460 ship_records          ; five records of 0x1e bytes: japanese carrier, cruise ship, destroyer, battleship, carrier
+0254d8 carrier_record        ; the player's own carrier, the fifth of ship_records, always tested
+024cae object_records        ; fifteen records of 0x2a bytes: the projectiles and what they turn into
+025594 object_record_extra   ; a sixteenth record of the same shape, walked after the fifteen
+025500 soldier_records       ; long: soldier_count records of 8 bytes, allocated per mission by map_scan
+0253c4 soldier_count         ; word: five per target record of the map
+0254f8 target_records_4      ; long: one 0x10-byte record per map record of slot 4
+0254fc target_records_3      ; long: one 0x10-byte record per map record of slot 3
+025504 target_records_f      ; long: one 0x0e-byte record per map record of slot 0x0f
+025387 target_count_4        ; byte: map records of slot 4
+025386 target_count_3        ; byte: map records of slot 3
+025385 target_count_f        ; byte: map records of slot 0x0f
+025440 island_span           ; four records of 4 bytes: first and last map offset of each island's targets
+025450 island_score          ; four words: five per target of that island, counted down as they die
+0150c8 map_slot_at           ; asm. D0 = world x: D1 the map record's slot, D0 its low bits, both 0 outside the map
+0107d4 object_claim          ; asm. the first object record whose kind byte is 0, or 0 when all fifteen are in use
+026ea4 ricochet_records      ; long: twenty records of 4 bytes, the Ricochet pool of alloc_pools
+026f30 splash_records        ; long: twenty records of 4 bytes, the Splashes pool
+026f58 smoke_records         ; long: forty records of 0x14 bytes, the Smoke pool
+026f66 balloon_records       ; long: twenty records of 0x12 bytes, the Balloons pool
+015460 smoke_claim           ; asm. fills the first free smoke record with position, kind and two random velocities
+0154e0 smoke_at_player       ; asm. smoke_claim at the aircraft's nose, offset by its attitude
+0107f2 object_draw_first     ; asm. the first object record in use, for the debug view behind 0x02536d
 026e3c frame_drawn           ; byte, set at the end of every pass and cleared in the tick that sees it
 010f88 snapshot_for_draw     ; asm. first stage of frame_update: copies logic state into the fields the drawing reads
 013772 draw_world            ; asm. sky fill, map records through MasterList or AthList, then every object layer

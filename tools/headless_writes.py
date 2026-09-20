@@ -84,7 +84,8 @@ def strides(items, minimum=3, widest=0x400, coverage=0.75, density=0.5):
     run, and when they are not filled so densely that the "record" is really a plain array.
     Of the accepted ones the smallest wins, because the record is the smallest repeating
     unit; a plain array of words is rejected by the density rule rather than reported as a
-    table of two-byte records.  items: [(start, length)].  Returns (base, stride, records, offsets)."""
+    table of two-byte records.  A few ranges that are longer than the record, or straddle two,
+    are passed over as long as they are a fifth of the cluster at most.  items: [(start, length)].  Returns (base, stride, records, offsets)."""
     items = sorted(set(items))
     if len(items) < minimum:
         return None
@@ -98,17 +99,18 @@ def strides(items, minimum=3, widest=0x400, coverage=0.75, density=0.5):
     for stride in sorted(candidates):
         offsets = {}
         records = set()
+        strays = 0
         for start, length in items:
             offset = (start - base) % stride
             if offset + length > stride:
-                break                              # a range that straddles two records
+                strays += 1                        # too long or straddling: not a field here
+                continue
             offsets[offset] = max(offsets.get(offset, 0), length)
             records.add((start - base) // stride)
-        else:
-            if (len(records) >= minimum and len(offsets) <= 8
-                    and len(records) >= coverage * (max(records) + 1)
-                    and sum(offsets.values()) <= density * stride):
-                return (base, stride, len(records), sorted(offsets))
+        if (records and strays <= max(1, len(items) // 5) and len(records) >= minimum
+                and len(offsets) <= 8 and len(records) >= coverage * (max(records) + 1)
+                and sum(offsets.values()) <= density * stride):
+            return (base, stride, len(records), sorted(offsets))
     return None
 
 
@@ -158,18 +160,27 @@ def format_summary(summary, describe, only_phases=None, limit=None):
     return lines
 
 
-def tables(summary, region_of, minimum=3):
+def tables(summary, region_of, minimum=3, apart=0x200):
     """The tables a run walked: for every routine and region, the regular stride its written
-    ranges fall into.  [(phase, routine, base, (base, stride, records, offsets))]."""
+    ranges fall into.  A routine often writes several tables and single variables in the same
+    region, so its ranges are first cut into clusters wherever they lie more than `apart`
+    bytes from the next, and each cluster is looked at on its own.
+    [(phase, routine, region, (base, stride, records, offsets))]."""
     groups = collections.defaultdict(set)
     for address, length, written, _ in summary.ranges():
         for phase, routine in written:
             groups[(phase, routine, region_of(address))].add((address, length))
     found = []
-    for (phase, routine, region), starts in groups.items():
-        stride = strides(starts, minimum=minimum)
-        if stride:
-            found.append((phase, routine, region, stride))
+    for (phase, routine, region), items in groups.items():
+        cluster = []
+        for start, length in sorted(items) + [(None, None)]:
+            if start is not None and (not cluster or start - cluster[-1][0] <= apart):
+                cluster.append((start, length))
+                continue
+            stride = strides(cluster, minimum=minimum)
+            if stride:
+                found.append((phase, routine, region, stride))
+            cluster = [(start, length)] if start is not None else []
     return sorted(found, key=lambda item: (-item[3][2], item[3][0]))
 
 
