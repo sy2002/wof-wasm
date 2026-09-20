@@ -41,7 +41,7 @@ The three habits of the game's code that the stubs have to know about:
 
 The harness does not model this arithmetic. The routines are pure register code, so the real ones run: `original/kick.rom` is mapped where it lives (`0xFC0000` for a 256 KB image), the resident `mathffp.library` is found by its name, its function table is read, and a jump table of `jmp` instructions at `0x0CE000` leads into the ROM. Without the ROM the library does not open and the run stops with a message. Kickstart 1.3 carries `mathffp 34.1`.
 
-For the port this means that section 6.1 of `SPEC.md`, "no floating point in game logic", cannot be read as "the original has none". The port needs these nine operations bit-exact, in integer code, and the ROM's routines under the oracle are the reference to test them against.
+The port needs these nine operations bit-exact, in integer code (`SPEC.md` section 7.1), and the ROM's routines under the oracle are the reference to test them against.
 
 ## Scheduling
 

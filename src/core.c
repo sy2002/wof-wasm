@@ -43,7 +43,7 @@ void wof_set_video_hz(int hz)
     wof_s.video_hz = (uint16_t)(hz == 50 ? 50 : 60);
 }
 
-/* raw: bit 0 down, bit 1 up, bit 2 right, bit 3 left, bit 4 fire currently down. */
+/* raw: bit 0 forward (up), bit 1 back (down), bit 2 right, bit 3 left, bit 4 fire down. */
 void wof_vblank(uint8_t raw)
 {
     wof_s.raw = (uint16_t)(raw & 0x1Fu);

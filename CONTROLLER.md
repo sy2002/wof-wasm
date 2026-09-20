@@ -69,10 +69,9 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 M0, M1 and M2 are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
 
-1. **The vertical stick bits** (small; whoever is warm, otherwise Opus). M2 established that bit 0 of the input byte and of the raw controller state is the stick pushed forward, which is up in the menus and climbs in flight; `SPEC.md` and `re/notes/input.md` say so now. Still the old way round: `web/input.js` (the up key and a gamepad pushed forward must give bit 0), the bit names in `web/overlay.js`, and the letters `U` and `D` of the headless run description (`RAW_BITS` in `tools/headless.py`, the scripts in `tests/test_headless.py`, the paragraph in the note). Nothing consumes the bits in the port yet, so nothing is broken, but it must be right before M3.
-2. **Open points 2, 3 and 5** (Fable), with the headless original as the instrument: per-tick versus per-pass state, the object system, map semantics. The note says how to ask each.
-3. **Point 13, the floating point** (Fable): what the three routines that use mathffp compute, and a bit-exact integer implementation of the nine operations with oracle tests against the ROM. Due before M4.
-4. **M3 onward** (Opus). Before M3: the raw key codes the front end tests beyond those of `menu_input`, the front-end screens beyond their geometry, and the high-score file layout (`SPEC.md` section 10, points 1, 6 and 12). M3 can use the headless original for the front end; it then needs `ExNext` and a directory `Lock` stubbed for the load and save dialog.
+1. **Open points 2, 3 and 5** (Fable), with the headless original as the instrument: per-tick versus per-pass state, the object system, map semantics. The note says how to ask each.
+2. **Point 13, the floating point** (Fable): what the three routines that use mathffp compute, and a bit-exact integer implementation of the nine operations with oracle tests against the ROM. Due before M4.
+3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests beyond those of `menu_input`, the front-end screens beyond their geometry, and the high-score file layout (`SPEC.md` section 10, points 1, 6 and 12). M3 can use the headless original for the front end; it then needs `ExNext` and a directory `Lock` stubbed for the load and save dialog.
 
 ## Open items
 
