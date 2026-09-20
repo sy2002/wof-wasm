@@ -142,7 +142,7 @@ description and the test are named in the last column.
 | `0x4D` | none | cursor down, wrapping 7 → 0 | 4 | `test_the_rank_menu_moves_with_the_cursor_keys` |
 | `0x44`, `0x43` | none | choose the entry under the cursor | 4 | `test_return_chooses_the_rank` |
 | any other | | ignored; the stick and the button are polled instead | | |
-| — | | after 1800 rounds `menu_input` returns 1000 and the game asks for demo playback | | `test_headless.py::test_left_alone_...` |
+| — | | after 1800 rounds `menu_input` returns 1000 and the game asks for demo playback | | `test_headless.py::test_left_alone_the_program_starts_a_mission_by_itself` |
 
 Eight entries: seven ranks (`rank_names` `0x025910`) and, at index 7, the load dialog.
 
@@ -156,8 +156,12 @@ Eight entries: seven ranks (`rank_names` `0x025910`) and, at index 7, the load d
 
 ### In flight and paused (`ingame_keys` `0x01CCF6`)
 
-Read once per pass, from the head of the inner loop, and while paused from the pause loop, so
-every command below works in both states. The handler drains the whole buffer each time.
+Read once per pass, from the head of the inner loop, which the pause loop comes back to, so
+every command below works **in flight and while paused alike**
+(`test_the_commands_work_while_the_game_is_paused`, which runs the clear and the flip with the
+game paused and finds the pause still on afterwards, and
+`test_a_restart_from_the_pause_starts_the_next_mission_unpaused`). The handler drains the whole
+buffer each time.
 
 | Raw code | Qualifier | Effect | M | Shown by |
 |---|---|---|---|---|
@@ -165,17 +169,21 @@ every command below works in both states. The handler drains the whole buffer ea
 | `0x13` | Control | restart: clears `0x0257B6`, `ticker_clear`, `fade_out_pair`, sets `0x0255C0` and `quit_flag`, which ends the mission and the outer loop starts again at the rank selection | 12 | `test_control_r_in_flight_restarts` |
 | `0x21` | Control | toggles `opt_music_off` (`0x0254F7`); when it becomes set, `sub_011F4E` clears the sound slots. `music_start` then skips its second player call and `music_stop` skips the fade wait | — | `test_control_s_toggles_the_music_flag` |
 | `0x23` | Control | toggles `opt_invert_vertical` (`0x0254F6`), the vertical flip | 12 | `test_control_f_flips_the_vertical_control` |
-| `0x24` | Control | save game, **only while `player_on_deck` (`0x025084`) is 1**, that is on the carrier: opens the dialog in save mode, then `screen_game_restore` and `input_queue_clear` | 11, 12 | `test_control_g_opens_the_save_dialog` |
-| `0x28` | Control | load game, only while `demo_mode` is 0: opens the dialog in load mode; on success reloads the assets, shows the briefing and runs one tick; on cancel restores the play screen | 11, 12 | `test_control_l_opens_the_load_dialog` |
+| `0x24` | Control | save game, **only while `player_on_deck` (`0x025084`) is 1**, that is on the carrier: opens the dialog in save mode, then `screen_game_restore` and `input_queue_clear` | 11, 12 | `test_the_save_dialog_only_opens_on_the_carrier` |
+| `0x28` | Control | load game, only while `demo_mode` is 0: opens the dialog in load mode; on success reloads the assets, shows the briefing and runs one tick; on cancel restores the play screen | 11, 12 | `test_the_dialog_lists_the_saved_games_of_the_disk` |
 | `0x33` | Control | `dos.DeleteFile("highscore")`, with no further check | 12 | `test_control_c_deletes_the_high_score_file` |
 | `0x35` | Control | executes an `illegal` instruction, which is the way into the game's own crash reporter. Not to be ported | — | not run |
 | `0x34` | Control | formats two words from `0x027DE2` and `0x027DE4` into a ticker message | — | not run |
 | `0x33`,`0x18`,`0x28`,`0x17`,`0x36` in order, no qualifier | | drives `cheat_state` (`0x025F18`) 0→5; at 5 a set of debug keys is live (below) | — | `test_the_cheat_sequence_unlocks_the_debug_keys` |
 
 The manual's Control-D, which shows the high scores, **is not in the code**: no reader tests `d`
-with Control, and `high_score_screen` is reached only from the end of the outer loop. Control-C,
-which the manual says works only after Control-D, deletes the file unconditionally. That is the
-one place where the manual and this executable disagree.
+with Control, and `high_score_screen` is reached only from the end of the outer loop. Run in each
+of the four states where a key is read at all — in flight, while paused, in the rank selection and
+in the briefing — Control-D leaves the final state, the files log and the schedule exactly as a run
+without it (`test_control_d_does_nothing_anywhere`). The step hashes in between do differ, because
+the key sits in the buffer for a step; that is why the comparison is of the final state.
+Control-C, which the manual says works only after Control-D, deletes the file unconditionally.
+Those two are the places where the manual and this executable disagree.
 
 With `cheat_state` at 5 (no qualifier): `i` and `k` add and subtract 50 at `0x025F16`; `f` sets
 `0x025086` to `0x80`; `p` increments `0x02535C`; `q` sets `0x026F80` and `quit_flag`, which leaves
@@ -257,11 +265,13 @@ the change report never names a reader.
 
 A raw segment's third element is the list of keys delivered at the segment's first VBlank. An
 entry is a raw code on its own, which means qualifier 0, or `[code, qualifier]`, where the
-qualifier is a number or names of `IEQUALIFIER` bits joined with `+`:
+qualifier is a number or names of `IEQUALIFIER` bits joined with `+`. A run description is JSON,
+which has **no hexadecimal**, so the codes are written in decimal; the names are there so that a
+qualifier at least reads as itself:
 
 ```json
-"raw": [[40, ""], [1, "", [[0x23, "ctrl"], 0x44]], [600, ""]]
+"raw": [[40, ""], [1, "", [[35, "ctrl"], 68]], [600, ""]]
 ```
 
-`headless.QUALIFIERS` lists the names. The old form stays valid and is still used by
-`test_headless.py`.
+That is the F key with Control, then Return. `headless.QUALIFIERS` lists the names. The old form
+stays valid and is still used by `test_headless.py`.

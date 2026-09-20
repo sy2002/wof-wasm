@@ -328,11 +328,27 @@ which is not the alphabet. The harness serves exactly that order
 where a real file system puts a new entry.
 
 **For the port.** The virtual file system has to keep a per-directory order, not sort by name, or
-the list of saved games comes out in a different order than on the Amiga. Two things follow: the
-order of the files that come from the disk should be baked in at build time from `wof.adf`, and a
-game saved in the browser should be inserted at the head of its chain, as the harness does. That a
-real Kickstart 1.3 `ExNext` visits the chains in exactly this order is documented file-system
-behaviour; it was **not** checked against a real machine here.
+the list of saved games comes out in a different order than on the Amiga. Three things follow.
+
+1. The order of the files that come from the disk should be baked in at build time from `wof.adf`.
+2. A saved game keeps **the case the player typed**. The dialog lists what `fib_FileName` holds
+   and the file system keeps the case a file was created with. (The harness does not: its overlay
+   keys files in lower case, `re/notes/headless.md`.)
+3. A newly saved game goes somewhere in its own chain, and where only matters when two saved games
+   share a chain, which needs two names that hash alike. The harness puts it at the **head**.
+
+**Unobserved.** That a real Kickstart 1.3 `ExNext` visits the chains in this order at all, and
+that a new entry goes to the head of its chain rather than the tail, are both documented
+file-system behaviour; neither was checked against a machine here. `original/wof.adf` does not
+settle the second one. Thirteen of its chains hold two or three entries, and in **every one of
+them the head carries the earlier date**: in `shapes/`, for instance, chain 15 has a `.shp` file
+dated day 0 ahead of an `.info` file dated day 5155, and chain 27 has two files two minutes apart
+in the order they were written. That reads like insertion at the tail — but most of the game's own
+files carry a date of 0, which a copier writes when it does not preserve dates, so the entries
+that look oldest may in fact have been written last, and then the same disk reads as insertion at
+the head. The disk cannot tell the two apart. It does not affect anything observed here: the two
+saved games of `test_a_saved_game_can_be_loaded_again` fall in chains 34 and 64, so their order in
+the list follows from the chain numbers alone.
 
 ## Sky flash
 

@@ -268,6 +268,11 @@ On the development machine: the front end with fire presses 0.4 s, without any i
 ## Not covered
 
 - **Sound.** The audio interrupt never comes, so the effects engine never sees a channel end, and the player is not run. No dumped state outside the sound engine's own variables was seen to depend on it, but that was not examined. The event log of `SPEC.md` section 8, row Sound, needs a channel-end model and belongs to M8.
+- **The case of a saved file's name.** The overlay keys its files in lower case, so a game saved
+  under a name typed with capitals is listed by the dialog in lower case, where the real file
+  system keeps the case the file was created with. Nothing the harness is used for depends on it,
+  but a test that types capitals would see the difference. `re/notes/frontend.md` says what the
+  port must do.
 - **`Text` metrics** beyond the pen advance of 8 per character. `graphics.Text` draws nothing here, so what a dialog's text looks like is not observable; its pen positions are.
 - **Demo playback and recording.** A `wofdemo` file can be supplied through `files`; recording needs `argc` above 1, which the run description does not offer yet.
 - **Long campaigns.** The bump allocator has 8 MB and never reuses memory; start-up and the first mission take about 370 KB of it.
