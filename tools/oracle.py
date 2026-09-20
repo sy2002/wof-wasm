@@ -34,6 +34,25 @@ RAM_BASE, RAM_SIZE = 0x000000, 0x200000        # 2 MB flat RAM, image lives insi
 HEAP_BASE = 0x100000                           # bump allocator for test buffers
 STACK_TOP = 0x0FF000
 RETURN_TRAP = 0x0FFF00                         # calls return here; emulation stops
+CCR_STUB = 0x0FFE00                            # call(ccr=True) returns through this
+CCR_SLOT = 0x0FFE10                            # where the stub leaves the status register
+
+# The condition codes a routine leaves are behaviour: the game branches on what the mathffp
+# routines return in them (re/notes/ffp.md).  Unicorn keeps the flags lazily and
+# reg_read(UC_M68K_REG_SR) hands back whatever was last materialised, so `addq.w #1` on
+# 0x7FFF reports N without V and `tst.w` on 0x00010000 reports nothing at all.  Reading the
+# register from inside the emulation forces the computation, so call(ccr=True) returns
+# through two instructions that do exactly that and cost no flags of their own:
+#
+#     move.w sr, CCR_SLOT.l      move from SR does not touch the condition codes
+#     jmp     RETURN_TRAP.l      nor does jmp
+CCR_TRAMPOLINE = struct.pack('>HLHL', 0x40F9, CCR_SLOT, 0x4EF9, RETURN_TRAP)
+CCR_BITS = (('X', 0x10), ('N', 0x08), ('Z', 0x04), ('V', 0x02), ('C', 0x01))
+
+
+def ccr_text(ccr):
+    """'XNZVC' style rendering of a condition code register, '-' when it is clear."""
+    return ''.join(name for name, bit in CCR_BITS if ccr & bit) or '-'
 
 
 class Oracle:
@@ -51,6 +70,7 @@ class Oracle:
         self.heap = HEAP_BASE
         self.a4 = a4
         self.trace = None
+        self.ccr = None
         self.uc.hook_add(UC_HOOK_MEM_UNMAPPED, self._unmapped)
 
     # ---- memory helpers -------------------------------------------------
@@ -99,16 +119,22 @@ class Oracle:
             address, size, uc.reg_read(UC_M68K_REG_PC), uc.reg_read(UC_M68K_REG_A7))
         return False
 
-    def call(self, addr, *args, regs=None, max_insns=50_000_000):
+    def call(self, addr, *args, regs=None, max_insns=50_000_000, ccr=False):
         """Call a routine with stack arguments (left-to-right as in the C prototype).
         `regs` optionally presets registers, e.g. {'d0': 1, 'a0': ptr} for asm routines.
+        With `ccr`, the condition codes at the return are left in self.ccr.
         Returns D0."""
         sp = STACK_TOP
         blob = b''.join(args)
         sp -= len(blob)
         self.uc.mem_write(sp, blob)
         sp -= 4
-        self.uc.mem_write(sp, struct.pack('>L', RETURN_TRAP))
+        if ccr:
+            self.uc.mem_write(CCR_STUB, CCR_TRAMPOLINE)
+            self.uc.mem_write(CCR_SLOT, b'\0\0')
+            self.uc.mem_write(sp, struct.pack('>L', CCR_STUB))
+        else:
+            self.uc.mem_write(sp, struct.pack('>L', RETURN_TRAP))
         self.uc.reg_write(UC_M68K_REG_SR, 0x2000)      # before A7: changing the S bit swaps stack pointers
         self.uc.reg_write(UC_M68K_REG_A7, sp)
         if self.a4 is not None:
@@ -124,6 +150,7 @@ class Oracle:
         pc = self.uc.reg_read(UC_M68K_REG_PC)
         if pc != RETURN_TRAP:
             raise RuntimeError('did not return (pc=%06x) - instruction budget exhausted?' % pc)
+        self.ccr = self.r16(CCR_SLOT) & 0x1F if ccr else None
         return self.uc.reg_read(UC_M68K_REG_D0)
 
     def reg(self, name):
