@@ -26,6 +26,7 @@ from conftest import (ROOT,
                       assert_the_canvas_shows_the_picture,
                       assert_the_next_real_key_starts_the_sound,
                       assert_the_screenshot_shows_the_picture,
+                      assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
                       measured_box, overlay_audio, overlay_number)
 
@@ -84,6 +85,10 @@ def test_a_modifier_alone_starts_nothing(loaded_firefox):
 
 def test_the_next_real_key_starts_the_sound(loaded_firefox):
     assert_the_next_real_key_starts_the_sound(loaded_firefox)
+
+
+def test_the_up_key_is_the_stick_pushed_forward(loaded_firefox):
+    assert_the_stick_keys_give_the_bits_of_the_spec(loaded_firefox)
 
 
 def test_firefox_is_silenced_by_its_profile(loaded_firefox):

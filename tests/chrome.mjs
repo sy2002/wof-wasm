@@ -23,6 +23,8 @@ export const KEYS = {
     backquote: { key: '`', code: 'Backquote', text: '`' },
     space: { key: ' ', code: 'Space', text: ' ' },
     right: { key: 'ArrowRight', code: 'ArrowRight' },
+    up: { key: 'ArrowUp', code: 'ArrowUp' },
+    down: { key: 'ArrowDown', code: 'ArrowDown' },
     five: { key: '5', code: 'Digit5', text: '5' },
     six: { key: '6', code: 'Digit6', text: '6' },
     meta: { key: 'Meta', code: 'MetaLeft' },
@@ -63,10 +65,20 @@ export class Devtools {
     }
 
     async press(session, name) {
+        await this.hold(session, name);
+        await this.release(session, name);
+    }
+
+    /* The two halves of a press, for a key that has to stay down while something is read. */
+    async hold(session, name) {
         const k = KEYS[name];
         await this.send('Input.dispatchKeyEvent',
                         { type: k.text ? 'keyDown' : 'rawKeyDown', key: k.key, code: k.code, text: k.text },
                         session);
+    }
+
+    async release(session, name) {
+        const k = KEYS[name];
         await this.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k.key, code: k.code }, session);
     }
 

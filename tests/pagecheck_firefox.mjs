@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
+import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST, SOURCE_PNG } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
@@ -152,6 +153,8 @@ try {
     const KEY_SPACE = ' ';
     const KEY_BACKQUOTE = '`';
     const KEY_RIGHT = '\uE014';
+    const KEY_UP = '\uE013';
+    const KEY_DOWN = '\uE015';
     const KEY_FIVE = '5';
     const KEY_SIX = '6';
 
@@ -163,6 +166,15 @@ try {
                 id: 'keyboard',
                 actions: [{ type: 'keyDown', value }, { type: 'keyUp', value }],
             }],
+        });
+    }
+
+    /* The two halves of a press, for a key that has to stay down while something is read.
+       The key stays down between calls because both name the same input source. */
+    function keyAction(where, type, value) {
+        return send(socket, 'input.performActions', {
+            context: where,
+            actions: [{ type: 'key', id: 'keyboard', actions: [{ type, value }] }],
         });
     }
 
@@ -324,6 +336,33 @@ try {
     afterSpace.overlay = await evaluateIn(modifierTab, "document.getElementById('overlay').textContent");
 
     report.modifierFirst = { afterModifier, afterSpace };
+
+    /* The stick keys, in a tab of their own whose wof_vblank is watched (tests/corewatch.mjs).
+       SPEC 6.1: the up key is the stick pushed forward, bit 0 of the raw state; the down key
+       is the stick pulled back, bit 1.  The watch is installed for this tab alone. */
+    const stickTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'script.addPreloadScript', { functionDeclaration: CORE_WATCH, contexts: [stickTab] });
+    await send(socket, 'browsingContext.activate', { context: stickTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: stickTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+    await press(stickTab, KEY_BACKQUOTE);
+    await sleep(800);
+
+    report.stick = {};
+    for (const [name, value] of [['up', KEY_UP], ['down', KEY_DOWN]]) {
+        await keyAction(stickTab, 'keyDown', value);
+        await sleep(300);
+        await evaluateIn(stickTab, '(window.__wofRaw.seen = 0, window.__wofRaw.calls = 0)');
+        await sleep(500);
+        report.stick[name] = await evaluateIn(stickTab, STICK_LOOK);
+        await keyAction(stickTab, 'keyUp', value);
+        await sleep(400);
+    }
+    await evaluateIn(stickTab, '(window.__wofRaw.seen = 0, window.__wofRaw.calls = 0)');
+    await sleep(500);
+    report.stick.released = await evaluateIn(stickTab, STICK_LOOK);
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

@@ -24,6 +24,7 @@ from conftest import (assert_a_modifier_alone_starts_nothing,
                       assert_the_canvas_shows_the_picture,
                       assert_the_next_real_key_starts_the_sound,
                       assert_the_screenshot_shows_the_picture,
+                      assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
                       measured_box, overlay_audio, overlay_number)
 
@@ -311,6 +312,11 @@ def test_a_modifier_alone_starts_nothing(loaded):
 
 def test_the_next_real_key_starts_the_sound(loaded):
     assert_the_next_real_key_starts_the_sound(loaded)
+
+
+def test_the_up_key_is_the_stick_pushed_forward(loaded):
+    assert loaded['stick']['console'] == [], loaded['stick']['console']
+    assert_the_stick_keys_give_the_bits_of_the_spec(loaded)
 
 
 def test_the_gesture_prompt_goes_away(loaded):

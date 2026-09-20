@@ -196,6 +196,23 @@ def assert_a_modifier_alone_starts_nothing(report):
     assert after['promptShown'], 'the page stopped asking for a key although no sound started'
 
 
+def assert_the_stick_keys_give_the_bits_of_the_spec(report):
+    """SPEC 6.1: the up key is the stick pushed forward, bit 0 of the raw controller state, and
+    the down key is the stick pulled back, bit 1.  Read twice while each key is held down
+    through the driver: off the overlay's input line, which is what a person sees, and off
+    the argument of wof_vblank itself, which is what the core gets (tests/corewatch.mjs)."""
+    stick = report['stick']
+    for key, bit, line in (('up', 0x01, '00001  UP down right left fire'),
+                           ('down', 0x02, '00010  up DOWN right left fire'),
+                           ('released', 0x00, '00000  up down right left fire')):
+        seen = stick[key]
+        assert seen['input'] == line, 'with %s the overlay says %r' % (key, seen['input'])
+        raw = seen['raw']
+        assert raw['calls'] > 5, 'only %d VBlanks went by while %s was read' % (raw['calls'], key)
+        assert raw['last'] == bit and raw['seen'] == bit, (
+            'with %s the core was handed %s' % (key, raw))
+
+
 def assert_the_next_real_key_starts_the_sound(report):
     after = report['modifierFirst']['afterSpace']
     assert [call['call'] for call in after['audio']] == ['construct', 'resume'], after['audio']

@@ -16,6 +16,7 @@ import { resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
+import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
@@ -55,12 +56,14 @@ try {
         }
     });
 
-    async function open(session, url) {
+    async function open(session, url, watches = []) {
         for (const domain of ['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable']) {
             await cdp.send(domain, {}, session);
         }
-        await cdp.send('Page.addScriptToEvaluateOnNewDocument',
-                       { source: '(' + AUDIO_WATCH + ')();' }, session);
+        for (const watch of [AUDIO_WATCH, ...watches]) {
+            await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+                           { source: '(' + watch + ')();' }, session);
+        }
         await cdp.send('Page.bringToFront', {}, session);
         await cdp.send('Page.navigate', { url }, session);
         await sleep(1500);
@@ -278,6 +281,33 @@ try {
         "document.getElementById('overlay').textContent");
 
     report.modifierFirst = { afterModifier, afterSpace };
+
+    /* The stick keys, on a page of their own whose wof_vblank is watched (tests/corewatch.mjs).
+       SPEC 6.1: the up key is the stick pushed forward, bit 0 of the raw state; the down key
+       is the stick pulled back, bit 1.  Each key is held while the overlay's input line and
+       the value the clock hands to the core are read, then released. */
+    const stickTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const stickSession = (await cdp.send('Target.attachToTarget', {
+        targetId: stickTarget.targetId, flatten: true,
+    })).sessionId;
+    await open(stickSession, 'file://' + pagePath, [CORE_WATCH]);
+    await press(stickSession, 'backquote');
+    await sleep(600);
+
+    report.stick = {};
+    for (const name of ['up', 'down']) {
+        await cdp.hold(stickSession, name);
+        await sleep(300);
+        await evaluateIn(stickSession, 'window.__wofRaw.seen = 0, window.__wofRaw.calls = 0');
+        await sleep(500);
+        report.stick[name] = await evaluateIn(stickSession, STICK_LOOK);
+        await cdp.release(stickSession, name);
+        await sleep(400);
+    }
+    await evaluateIn(stickSession, 'window.__wofRaw.seen = 0, window.__wofRaw.calls = 0');
+    await sleep(500);
+    report.stick.released = await evaluateIn(stickSession, STICK_LOOK);
+    report.stick.console = channel(stickSession).console;
 } finally {
     await stopChrome(browser);
 }
