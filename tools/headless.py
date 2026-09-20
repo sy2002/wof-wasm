@@ -51,6 +51,9 @@ A4 = 0x02AFFE
 LIB_AREA   = 0x0C0000            # fake library bases, LIB_SPAN each: jump table below, data above
 LIB_SPAN   = 0x2000
 LIB_NAMES  = ['exec', 'dos', 'graphics', 'intuition', 'device']
+# input.device and console.device share the one device base; no fd file names a device's
+# functions, so the ones the game calls are named here.
+DEVICE_FUNCTIONS = {48: 'RawKeyConvert'}
 MATH_BASE  = 0x0CE000            # mathffp.library: its jump table leads into the Kickstart ROM
 SEG_AREA   = 0x0D0000            # fake segments for LoadSeg, SEG_SPAN each
 SEG_SPAN   = 0x100
@@ -97,6 +100,12 @@ INPUT_BYTE   = 0x027366
 # The bits wof_vblank takes: U is the stick pushed forward, which is up in the menus and climbs.
 RAW_BITS = {'U': 1, 'D': 2, 'R': 4, 'L': 8, 'F': 16}
 
+# The IEQUALIFIER bits a key of a raw segment may carry, by name.  The game reads one of them,
+# IEQUALIFIER_CONTROL, and key_qualifier_mask filters on them (re/notes/keys.md).
+QUALIFIERS = {'lshift': 0x0001, 'rshift': 0x0002, 'capslock': 0x0004, 'ctrl': 0x0008,
+              'lalt': 0x0010, 'ralt': 0x0020, 'lamiga': 0x0040, 'ramiga': 0x0080,
+              'numpad': 0x0100, 'repeat': 0x0200}
+
 DEFAULT_RUN = {
     'format': 'wof-headless-run', 'version': 1,
     'entropy': {'seed': 1},
@@ -129,6 +138,31 @@ def raw_state(text):
     return value
 
 
+def qualifier_word(given):
+    """A key's qualifier word: a number, or names of IEQUALIFIER bits joined with +."""
+    if not isinstance(given, str):
+        return int(given)
+    word = 0
+    for name in given.split('+'):
+        name = name.strip().lower()
+        if name not in QUALIFIERS:
+            raise ValueError('unknown key qualifier %r: use %s' % (name, ', '.join(sorted(QUALIFIERS))))
+        word |= QUALIFIERS[name]
+    return word
+
+
+def key_events(given):
+    """The keys of a raw segment: a raw code on its own, or [code, qualifier]."""
+    events = []
+    for item in given:
+        if isinstance(item, (list, tuple)):
+            code, qualifier = item
+        else:
+            code, qualifier = item, 0
+        events.append((int(code), qualifier_word(qualifier)))
+    return events
+
+
 def load_run(source):
     """A run description from a file name or a dict, completed with the defaults."""
     given = source
@@ -144,7 +178,7 @@ def load_run(source):
 
 
 class Headless(AmigaOS):
-    def __init__(self, run=None, track_writes=False, verbose=False):
+    def __init__(self, run=None, track_writes=False, verbose=False, observe=()):
         self.run_spec = run = load_run(run or {})
         self.verbose = verbose
         self.names = dump.Names(ROOT)
@@ -176,7 +210,9 @@ class Headless(AmigaOS):
         self.o.w32(DOSBASE_VAR, self.lib_base['dos'])
         self.os_init({name: bytes.fromhex(text) for name, text in run.get('files', {}).items()})
         self.math_base = MATH_BASE
+        self.rom, self.rom_base = self._map_rom()
         self.math_vectors = self._map_rom_mathffp()
+        self.rom_rawkeyconvert, self.rom_keymap = self._find_rom_console()
         self.os_calls = collections.Counter()
 
         # memory
@@ -207,7 +243,7 @@ class Headless(AmigaOS):
         uc.hook_add(UC_HOOK_MEM_READ, self._beam_read, begin=VHPOSR, end=VHPOSR + 1)
 
         # input
-        self.raw_script = [(int(seg[0]), raw_state(seg[1]), list(seg[2]) if len(seg) > 2 else [])
+        self.raw_script = [(int(seg[0]), raw_state(seg[1]), key_events(seg[2]) if len(seg) > 2 else [])
                            for seg in run['raw']]
         self.raw_index, self.raw_left = 0, (self.raw_script[0][0] if self.raw_script else 0)
         self.raw_fresh = True
@@ -245,6 +281,18 @@ class Headless(AmigaOS):
         uc.hook_add(UC_HOOK_CODE, self._probe_display_alloc, begin=DISPLAY_ALLOC_CHIP, end=DISPLAY_ALLOC_CHIP)
         uc.hook_add(UC_HOOK_CODE, self._probe_sample, begin=SERVER_AFTER_SAMPLE, end=SERVER_AFTER_SAMPLE)
         uc.hook_add(UC_HOOK_CODE, self._probe_loop_head, begin=INNER_LOOP, end=INNER_LOOP)
+        # Observers: every entry of a named routine is recorded with its registers and the
+        # longs above its return address, which are a C routine's arguments.  An observer only
+        # reads, so a run with observers gives the same steps as one without.
+        self.observed = []
+        self.observing = {}
+        for wanted in observe:
+            address = wanted if isinstance(wanted, int) else next(
+                (a for a, _, name in self.names.code if name == wanted), None)
+            if address is None:
+                raise HarnessError('no routine is named %r; observe takes a name or an address' % wanted)
+            self.observing[address] = self.names.routine(address)
+            uc.hook_add(UC_HOOK_CODE, self._observe, begin=address, end=address)
         self.stop_at(CRACK_SCREEN, self._skip_crack_screen)
         self.stop_at(MISSION_START, self._mission_start)
         self.stop_at(FRAME_UPDATE, self._pass_begin)
@@ -335,41 +383,97 @@ class Headless(AmigaOS):
     def free(self, address):
         self.allocs.pop(address, None)
 
-    def _map_rom_mathffp(self):
-        """Game logic computes with mathffp.library.  Its routines are pure register arithmetic,
-        so the real ones run, as 68000 code from the owner's Kickstart ROM: the ROM is mapped
-        where it lives and a jump table of jmp instructions leads into it.  Without the ROM
-        the library does not open and the run stops there."""
+    def _map_rom(self):
+        """The owner's Kickstart ROM, mapped where it lives.  Two of its parts run for real:
+        the mathffp routines game logic computes with, and console.device's RawKeyConvert,
+        which turns raw key codes into characters for the game's text entry."""
         path = os.path.join(ROOT, 'original', 'kick.rom')
         if not os.path.isfile(path):
-            return None
+            return None, None
         with open(path, 'rb') as f:
             rom = f.read()
         base = 0x1000000 - len(rom)
+        self.uc.mem_map(base, len(rom))
+        self.uc.mem_write(base, rom)
+        return rom, base
+
+    def _rom_resident(self, name):
+        """The offset of a resident module of the ROM, found by its name."""
+        rom, base = self.rom, self.rom_base
+        wanted = name.encode() + b'\0'
         for offset in range(0, len(rom) - 26, 2):
             if rom[offset:offset + 2] != b'\x4a\xfc' or struct.unpack_from('>L', rom, offset + 2)[0] != base + offset:
                 continue
-            name = struct.unpack_from('>L', rom, offset + 14)[0] - base
-            if rom[name:name + 16] != b'mathffp.library\0' or not rom[offset + 10] & 0x80:
-                continue
-            init = struct.unpack_from('>L', rom, offset + 22)[0] - base
-            table = struct.unpack_from('>L', rom, init + 4)[0]
-            at, vectors = table - base, []
-            if struct.unpack_from('>h', rom, at)[0] == -1:            # word offsets from the table
-                at += 2
-                while struct.unpack_from('>h', rom, at)[0] != -1:
-                    vectors.append(table + struct.unpack_from('>h', rom, at)[0])
-                    at += 2
-            else:
-                while struct.unpack_from('>l', rom, at)[0] != -1:
-                    vectors.append(struct.unpack_from('>L', rom, at)[0])
-                    at += 4
-            self.uc.mem_map(base, len(rom))
-            self.uc.mem_write(base, rom)
-            for index, vector in enumerate(vectors):
-                self.o.write(MATH_BASE - 6 * (index + 1), b'\x4e\xf9' + struct.pack('>L', vector))
-            return vectors
+            at = struct.unpack_from('>L', rom, offset + 14)[0] - base
+            if rom[at:at + len(wanted)] == wanted:
+                return offset
         return None
+
+    def _rom_vectors(self, table):
+        """A library or device function table of the ROM, as MakeLibrary reads it."""
+        rom, base = self.rom, self.rom_base
+        at, vectors = table - base, []
+        if struct.unpack_from('>h', rom, at)[0] == -1:                # word offsets from the table
+            at += 2
+            while struct.unpack_from('>h', rom, at)[0] != -1:
+                vectors.append(table + struct.unpack_from('>h', rom, at)[0])
+                at += 2
+        else:
+            while struct.unpack_from('>l', rom, at)[0] != -1:
+                vectors.append(struct.unpack_from('>L', rom, at)[0])
+                at += 4
+        return vectors
+
+    def _map_rom_mathffp(self):
+        """Game logic computes with mathffp.library.  Its routines are pure register arithmetic,
+        so the real ones run, as 68000 code from the ROM, reached through a jump table of jmp
+        instructions.  Without the ROM the library does not open and the run stops there."""
+        if self.rom is None:
+            return None
+        offset = self._rom_resident('mathffp.library')
+        if offset is None or not self.rom[offset + 10] & 0x80:        # RTF_AUTOINIT
+            return None
+        init = struct.unpack_from('>L', self.rom, offset + 22)[0] - self.rom_base
+        vectors = self._rom_vectors(struct.unpack_from('>L', self.rom, init + 4)[0])
+        for index, vector in enumerate(vectors):
+            self.o.write(MATH_BASE - 6 * (index + 1), b'\x4e\xf9' + struct.pack('>L', vector))
+        return vectors
+
+    def _find_rom_console(self):
+        """console.device's RawKeyConvert and the keymap it converts with, both found in the
+        ROM by their contents, as re/notes/system-font.md finds topaz 8.
+
+        The resident module is found by its name.  It is not RTF_AUTOINIT, so its init code
+        builds the device itself; that code begins with a movem and three `lea d16(pc),Ax`,
+        of which the first gives the function table.  RawKeyConvert is LVO -48, the eighth
+        entry.  The keymap is the one the ROM's console.device uses when a caller passes
+        none: its LoKeyMap is found by the QWERTY row and the KeyMap record by a pointer to
+        it.  Returns (RawKeyConvert, KeyMap), either of them None when it is not found."""
+        if self.rom is None:
+            return None, None
+        rom, base = self.rom, self.rom_base
+        convert = keymap = None
+        offset = self._rom_resident('console.device')
+        if offset is not None:
+            init = struct.unpack_from('>L', rom, offset + 22)[0] - base
+            for at in range(init, init + 16, 2):
+                if rom[at:at + 2] == b'\x41\xfa':                     # lea d16(pc),a0
+                    vectors = self._rom_vectors(base + at + 2 + struct.unpack_from('>h', rom, at + 2)[0])
+                    if len(vectors) == 8:
+                        convert = vectors[7]
+                    break
+        # The LoKeyMap holds four bytes per raw code: alt-shift, alt, shift, plain.  Key 0x10
+        # is the first of the QWERTY row, 0x21 and 0x22 the next two of the home row.
+        for at in range(0, len(rom) - 0x100, 2):                   # at is the LoKeyMap itself
+            if (rom[at + 0x10 * 4 + 2:at + 0x10 * 4 + 4] != b'Qq' or
+                    rom[at + 0x11 * 4 + 2:at + 0x11 * 4 + 4] != b'Ww' or
+                    rom[at + 0x21 * 4 + 2:at + 0x21 * 4 + 4] != b'Ss'):
+                continue
+            found = rom.find(struct.pack('>L', base + at))            # km_LoKeyMap, the second long
+            if found > 4:
+                keymap = base + found - 4
+            break
+        return convert, keymap
 
     def segment_block(self, index):
         return SEG_AREA + index * SEG_SPAN
@@ -398,6 +502,19 @@ class Headless(AmigaOS):
         if address not in self.stops:
             self.uc.hook_add(UC_HOOK_CODE, self._stop, begin=address, end=address)
         self.stops[address] = handler
+
+    def _observe(self, uc, address, size, user):
+        """An observer: record and let the program run on.  Nothing is written, so the run is
+        the same one it would be without it."""
+        stack = self.reg('a7')
+        self.observed.append({
+            'routine': self.observing[address], 'address': address,
+            'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
+            'd': [self.reg('d%d' % i) for i in range(8)],
+            'a': [self.reg('a%d' % i) for i in range(8)],
+            'args': [self.o.r32(stack + 4 + 4 * i) for i in range(8)],
+            'words': [self.o.r16(stack + 4 + 2 * i) for i in range(16)],
+        })
 
     def _probe_loop_head(self, uc, address, size, user):
         self.loop_heads += 1
@@ -524,7 +641,11 @@ class Headless(AmigaOS):
     def _os_call(self, address):
         library = LIB_NAMES[(address - LIB_AREA) // LIB_SPAN]
         offset = self.lib_base[library] - address
-        name = self.fd.get(library, {}).get(offset, 'offset -%d' % offset)
+        name = self.fd.get(library, {}).get(offset)
+        if name is None and library == 'device':
+            name = DEVICE_FUNCTIONS.get(offset)
+        if name is None:
+            name = 'offset -%d' % offset
         handler = getattr(self, 'os_%s_%s' % (library, name), None)
         self.os_calls[library + '.' + name] += 1
         if handler is None:
@@ -593,8 +714,8 @@ class Headless(AmigaOS):
             left = right = 0
         self.o.w16(JOY1DAT, self.joy_words[down | up << 1 | left << 2 | right << 3])
         self.set_ciaa_pra(0x7F if fire else 0xFF)                 # port 2's button, active low
-        for code in keys:
-            self.key_event(code)
+        for code, qualifier in keys:
+            self.key_event(code, qualifier)
         self.vblanks += 1
         self.since_pass += 1
         self.progress += 1

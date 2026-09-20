@@ -17,10 +17,65 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 GAME_DIR = os.path.join(ROOT, 'original', 'disk', 'Wings_of_Fury')
 
+ADF_IMAGE = os.path.join(ROOT, 'original', 'wof.adf')
+DISK_DIR = 'Wings_of_Fury'                # where on the disk the game's own directory is
+
 MODE_NEWFILE = 1006
 ERROR_OBJECT_NOT_FOUND = 205
+ERROR_OBJECT_WRONG_TYPE = 212
+ERROR_NO_MORE_ENTRIES = 232
 IND_ADDHANDLER, IND_REMHANDLER = 9, 10
 DOS_TRUE = 0xFFFFFFFF
+
+BLOCK = 512
+ROOT_BLOCK = 880                          # of a double-density disk
+HASH_SIZE = BLOCK // 4 - 56               # 72 chains per directory
+
+
+def name_hash(name):
+    """The file system's name hash, which decides a directory entry's chain.  An old file
+    system disk is not international, so upper case is plain ASCII."""
+    value = len(name)
+    for letter in name:
+        value = (value * 13 + ord(letter.upper() if 'a' <= letter <= 'z' else letter)) & 0x7FF
+    return value % HASH_SIZE
+
+
+def adf_order(parts, image=ADF_IMAGE, _cache={}):
+    """One directory of the original disk image, as [(chain, name)] in the order the file
+    system hands the entries out: chain 0 upward, and inside a chain from its head, which is
+    the order ExNext walks.  Returns None when the image is not there."""
+    key = (image, tuple(p.lower() for p in parts))
+    if key in _cache:
+        return _cache[key]
+    if not os.path.isfile(image):
+        return None
+    with open(image, 'rb') as f:
+        disk = f.read()
+
+    def block(number):
+        return disk[number * BLOCK:(number + 1) * BLOCK]
+
+    def entries(header):
+        out = []
+        for chain in range(HASH_SIZE):
+            at = struct.unpack_from('>L', header, 24 + 4 * chain)[0]
+            while at:
+                record = block(at)
+                length = record[BLOCK - 80]
+                out.append((chain, at, record[BLOCK - 79:BLOCK - 79 + length].decode('latin1')))
+                at = struct.unpack_from('>L', record, BLOCK - 16)[0]
+        return out
+
+    here = block(ROOT_BLOCK)
+    for part in [DISK_DIR] + list(parts):
+        found = next((at for _, at, name in entries(here) if name.lower() == part.lower()), None)
+        if found is None:
+            _cache[key] = None
+            return None
+        here = block(found)
+    _cache[key] = [(chain, name) for chain, _, name in entries(here)]
+    return _cache[key]
 
 
 class HarnessError(RuntimeError):
@@ -218,6 +273,23 @@ class AmigaOS:
 
     # ------------------------------------------------------------------- intuition
 
+    # --------------------------------------------------------------------- devices
+
+    def os_device_RawKeyConvert(self):
+        """console.device turns a raw key event into characters.  The game opens the device in
+        keyboard_open (0x0205F0) and calls this for every key its text entry and its in-flight
+        commands look at, always with keyMap 0, which means the system's default.  The routine
+        is pure: it reads the event, the keymap and nothing of the device, so the real one runs
+        from the owner's Kickstart ROM, as the mathffp routines do.  The keymap that a 0 stands
+        for is the ROM's own default (headless._find_rom_console)."""
+        if self.rom_rawkeyconvert is None or self.rom_keymap is None:
+            raise HarnessError('the game converts a raw key code with console.device RawKeyConvert, '
+                               'which the harness runs from original/kick.rom; it was not found there')
+        keymap = self.reg('a2') or self.rom_keymap
+        registers = {'a0': self.reg('a0'), 'a1': self.reg('a1'), 'd1': self.reg('d1'),
+                     'a2': keymap, 'a6': 0}
+        return self.nested(self.rom_rawkeyconvert, registers)[0]
+
     def os_intuition_CloseWorkBench(self):
         return 1
 
@@ -323,20 +395,89 @@ class AmigaOS:
             return 0
         return self._handle(name, data, False)
 
+    def directory_entries(self, name):
+        """The entries of one of the game's directories, in the order ExNext hands them out:
+        the disk image's own order, then whatever a run has saved through the overlay, each at
+        the head of its chain, where the file system puts a new entry.  Entries the disk has
+        but the extracted directory has not are left out, so that what a run lists is what it
+        can also open."""
+        parts = [p for p in name.split(':', 1)[-1].split('/') if p]
+        here = self._resolve(name)
+        present = set(os.listdir(here)) if here and os.path.isdir(here) else set()
+        prefix = ('/'.join(parts) + '/').lower() if parts else ''
+        order = adf_order(parts)
+        if order is None:                     # no disk image: the extracted directory, by name
+            order = [(name_hash(entry), entry) for entry in sorted(present)]
+        order = [(chain, entry) for chain, entry in order if entry in present]
+        known = {entry.lower() for _, entry in order}
+        for path in self.overlay:
+            entry = path[len(prefix):]
+            if not path.startswith(prefix) or '/' in entry or entry in known:
+                continue
+            chain = name_hash(entry)
+            at = next((i for i, (c, _) in enumerate(order) if c >= chain), len(order))
+            order.insert(at, (chain, entry))
+            known.add(entry)
+        return [entry for _, entry in order]
+
+    def _dir_handle(self, name):
+        self.next_handle += 4
+        self.handles[self.next_handle] = {'name': name, 'entries': self.directory_entries(name),
+                                          'at': 0}
+        return self.next_handle
+
     def os_dos_Lock(self):
+        """A lock on a file, or on a directory: the load and save dialog locks the game's own
+        directory, which it names with a 0 (sub_018a06)."""
+        address = self.reg('d1')
+        name = self.cstr(address) if address else ''
+        path = self._resolve(name)
+        if path is not None and os.path.isdir(path):
+            self.files_log.append(('Lock dir', name, True))
+            return self._dir_handle(name)
         return self._open_existing('Lock')
 
     def os_dos_UnLock(self):
         self.handles.pop(self.reg('d1'), None)
         return None
 
+    def _file_info(self, block, name, directory, size):
+        """A FileInfoBlock.  fib_FileName is a plain string, not a BSTR: dos gives the caller
+        the name the file system's BSTR holds, terminated."""
+        text = name.split('/')[-1].encode('latin1')[:106]
+        self.o.write(block, bytes(260))
+        self.o.w32(block + 4, 2 if directory else 0xFFFFFFFD)        # fib_DirEntryType
+        self.o.write(block + 8, text + b'\0')                        # fib_FileName
+        self.o.w32(block + 120, 2 if directory else 0xFFFFFFFD)      # fib_EntryType
+        self.o.w32(block + 124, size)                                # fib_Size
+        self.o.w32(block + 128, (size + BLOCK - 1) // BLOCK)         # fib_NumBlocks
+
     def os_dos_Examine(self):
         record, block = self.handles[self.reg('d1')], self.reg('d2')
-        name = record['name'].split('/')[-1].encode('latin1')[:30]
-        self.o.write(block, bytes(260))
-        self.o.w32(block + 4, 0xFFFFFFFD)                            # fib_DirEntryType: a file
-        self.o.write(block + 8, bytes([len(name)]) + name)           # fib_FileName
-        self.o.w32(block + 124, len(record['data']))                 # fib_Size
+        if 'entries' in record:
+            record['at'] = 0
+            self._file_info(block, record['name'] or DISK_DIR, True, 0)
+        else:
+            self._file_info(block, record['name'], False, len(record['data']))
+        return DOS_TRUE
+
+    def os_dos_ExNext(self):
+        """The next entry of a directory lock.  The end of the list is a 0 with IoErr
+        ERROR_NO_MORE_ENTRIES, which is how the file list of the dialog stops."""
+        record, block = self.handles[self.reg('d1')], self.reg('d2')
+        if 'entries' not in record:
+            self.ioerr = ERROR_OBJECT_WRONG_TYPE
+            return 0
+        if record['at'] >= len(record['entries']):
+            self.ioerr = ERROR_NO_MORE_ENTRIES
+            return 0
+        name = record['entries'][record['at']]
+        record['at'] += 1
+        path = '/'.join(filter(None, [record['name'], name]))
+        data = self.file_bytes(path)
+        here = self._resolve(path)
+        self._file_info(block, name, data is None and here is not None and os.path.isdir(here),
+                        len(data) if data is not None else 0)
         return DOS_TRUE
 
     def os_dos_Open(self):
