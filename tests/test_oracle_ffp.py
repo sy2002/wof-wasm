@@ -11,7 +11,9 @@ does not need it.
 """
 import os
 import random
+import re
 import struct
+import subprocess
 import sys
 
 import pytest
@@ -21,8 +23,21 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 sys.path.insert(0, HERE)
 
+from unicorn import UC_HOOK_CODE                             # noqa: E402
+
 import ffp                                                   # noqa: E402
-from oracle import Oracle, RETURN_TRAP, ccr_text             # noqa: E402
+from oracle import Oracle, ccr_text                          # noqa: E402
+
+
+@pytest.fixture(scope='module')
+def listing():
+    """re/Wings.lst is not versioned (CLAUDE.md); a fresh checkout makes it here once."""
+    path = os.path.join(ROOT, 're', 'Wings.lst')
+    if not os.path.isfile(path):
+        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'disasm.py')],
+                       cwd=ROOT, check=True, capture_output=True)
+    with open(path, encoding='latin1') as handle:
+        return handle.read()
 
 needs_rom = pytest.mark.skipif(not ffp.rom_available(),
                                reason='original/kick.rom is absent')
@@ -444,8 +459,6 @@ def test_the_native_port_answers_what_the_rom_answers(ported, corpus, expected):
 # Node, and one native program built with -fsanitize=undefined.  Neither is part of
 # dist/core.wasm; tests/ffp_export.c is the batch entry both of them use.
 
-import subprocess                                          # noqa: E402
-
 SRC = os.path.join(ROOT, 'src')
 EXPORT = os.path.join(HERE, 'ffp_export.c')
 WASM_RUNNER = os.path.join(HERE, 'ffp_wasm.mjs')
@@ -586,3 +599,75 @@ def test_the_indices_the_game_uses_stay_inside_the_tables(observations):
                 if call[1] == 'mul' and call[0] in (0x01BEE8, 0x01D814):
                     assert call[2] in ffp_model.ATTITUDE, (
                         '%08X came out of the table at 0x025B0C but is not in it' % call[2])
+
+
+# ------------------------------------------------- 0x021A40, the third routine, is dead
+# It is the floating-point conversion of the C library's formatter, reached from 0x0218A4
+# only for a conversion letter of 'e' or above (`sub.w #$65,d0` at 0x02187A).  No run
+# entered it, and no format string the game hands its sprintf carries such a letter.
+
+SPRINTF = 0x0215D8
+FORMAT_CONVERSION = 0x021A40
+
+
+@needs_rom
+def test_the_formatter_is_entered_only_by_a_floating_point_conversion():
+    """The control for the negative finding: the same observer that never fired in any run
+    does fire as soon as sprintf is given a floating-point conversion.  Without it, 'the
+    game never reaches 0x021A40' would be indistinguishable from 'the observer is broken'."""
+    reference = ffp.Reference()
+    machine = reference.o
+    entered = []
+    machine.uc.hook_add(UC_HOOK_CODE, lambda uc, address, size, user: entered.append(address),
+                        begin=FORMAT_CONVERSION, end=FORMAT_CONVERSION)
+    buffer = machine.alloc(256)
+
+    def formatted(text, argument):
+        entered.clear()
+        machine.write(buffer, bytes(256))
+        machine.call(SPRINTF, machine.L(buffer), machine.L(machine.alloc_bytes(text + b'\0')),
+                     argument)
+        return machine.read(buffer, 64).split(b'\0')[0].decode('latin1'), len(entered)
+
+    assert formatted(b'%d', machine.W(1234)) == ('1234', 0)
+    assert formatted(b'%f', machine.L(0xC8000047)) == ('100.000000', 1)
+    assert formatted(b'%e', machine.L(0xC8000047)) == ('1.000000e+02', 1)
+    assert formatted(b'[%8.3f]', machine.L(0xE10000C4)) == ('[ -14.062]', 1)
+
+
+def test_the_game_hands_its_formatter_no_floating_point_conversion(listing):
+    """The read half: the format string pushed in front of every call of sprintf, and of
+    the one wrapper that takes its format as a parameter.  Four carry `%d`, one `%-6ld`,
+    one `%-12s`, and the five of the crack's text screen carry no conversion at all; that
+    screen is not ported (SPEC 8) and is not the game."""
+    lines = listing.split('\n')
+
+    def pushed_before(index):
+        found = [re.search(r'; "(.*)"$', earlier) for earlier in lines[max(0, index - 8):index]]
+        text = [match.group(1) for match in found if match]
+        return text[-1] if text else None
+
+    direct, wrapped = [], []
+    for index, line in enumerate(lines):
+        if line.rstrip().endswith('-> sprintf'):
+            direct.append(pushed_before(index))
+        elif line.rstrip().endswith('; sub_01f332'):
+            wrapped.append(pushed_before(index))
+
+    assert len(direct) == 7 and len(wrapped) == 5
+    # Six of the seven push a literal; the seventh is inside sub_01f332, which passes on
+    # the format its own five callers, all in the crack's text screen, hand it.
+    literals = [text for text in direct if text is not None]
+    assert len(literals) == 6 and direct.count(None) == 1
+    assert literals.count('%d') == 4 and '%-6ld' in literals and '%-12s' in literals
+    assert all(text is not None for text in wrapped)
+
+    conversions = set(re.findall(r'%[-0-9.l]*([a-zA-Z])', ' '.join(literals + wrapped)))
+    assert conversions == {'d', 's'}, 'a format string carries %s' % sorted(conversions)
+
+
+def test_no_run_entered_the_formatter(observations):
+    assert observations['entries']['sub_021a40'] == []
+    assert observations['sites'].get('sub', {}) == {}
+    assert observations['sites'].get('cmp', {}) == {}
+    assert observations['sites'].get('tst', {}) == {}

@@ -31,6 +31,10 @@ OUT = os.path.join(ROOT, 'tests', 'ffp_observed.json')
 GLUE = ['ffp_add', 'ffp_cmp', 'ffp_neg', 'ffp_tst', 'ffp_fix',
         'ffp_sub', 'ffp_div', 'ffp_flt', 'ffp_mul']
 ROUTINES = ['sub_01bdfa', 'sub_01d796', 'sub_021a40']
+# The whole formatter tree above 0x021A40: it is entered only for a conversion letter of
+# 'e' or above (0x02187A, `sub.w #$65,d0`), so what reaches sprintf decides whether the
+# game ever computes with floating point outside the two tick routines.
+FORMATTERS = ['sprintf', 'sub_0216b2']
 OPERATION = {'ffp_add': 'add', 'ffp_sub': 'sub', 'ffp_mul': 'mul', 'ffp_div': 'div',
              'ffp_cmp': 'cmp', 'ffp_tst': 'tst', 'ffp_neg': 'neg', 'ffp_fix': 'fix',
              'ffp_flt': 'flt'}
@@ -77,7 +81,7 @@ STOP = {'flight': 2600, 'climb': 2400, 'guns': 2400, 'roll_off': 1700, 'deck': 1
 def observe(name, verbose=True):
     description = {'raw': RUNS[name] + [[1, '']], 'stop': {'vblanks': STOP[name]}}
     started = time.time()
-    machine = headless.Headless(description, observe=GLUE + ROUTINES,
+    machine = headless.Headless(description, observe=GLUE + ROUTINES + FORMATTERS,
                                 observe_returns=True, watch=WATCH, watch_for=ROUTINES)
     machine.run()
     if verbose:
@@ -105,6 +109,7 @@ def main():
     sites = collections.defaultdict(lambda: collections.Counter())
     ranges = collections.defaultdict(list)
     entries = collections.defaultdict(list)
+    formats = collections.Counter()
 
     for name in args.runs:
         machine = observe(name)
@@ -126,6 +131,11 @@ def main():
                                              back.get('d', [None])[0],
                                              back.get('d', [None, None])[1],
                                              back.get('ccr')])
+            elif routine in FORMATTERS:
+                if routine == 'sprintf':
+                    formats[machine.o.read(record['args'][1], 40).split(b'\0')[0]] += 1
+                else:
+                    formats[b'(the formatter itself)'] += 1
             else:
                 current = {
                     'run': name, 'tick': record['tick'], 'pass': record['pass'],
@@ -150,6 +160,10 @@ def main():
     print()
     for routine in ROUTINES:
         print('%s: %d entries' % (routine, len(entries[routine])))
+    print()
+    print('format strings that reached sprintf:')
+    for text, count in sorted(formats.items()):
+        print('  %-24r %d' % (text.decode('latin1'), count))
 
     # Every entry is compared; what goes into the file is an even spread of them, so that
     # the test carries several hundred without carrying megabytes.
