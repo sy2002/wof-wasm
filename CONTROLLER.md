@@ -67,11 +67,12 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 ## The plan ahead
 
-The display aspect and auto-zoom the user asked for after M1 are done and merged (`SPEC.md` section 6.2, Video).
+M0, M1 and M2 are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
 
-1. **M2, the headless original** (Fable). `SPEC.md` section 8 states what it must do. The facts it rests on: no logic reads drawing results, so the blitter and the listed graphics calls are no-ops; reads of `0xDFF006` are hooked and served from the entropy stream; `vblank_flag` is set before each pass; `frame_update` runs on every pass; the crack's text screen at `0x01F41A` is bypassed; the schedule of VBlanks, passes and ticks is recorded input. `tests/original.py` from M1 already runs original routines with stubs and is the place to start.
-2. **Open points 2, 3 and 5** (Fable), with M2 as the instrument: per-tick versus per-pass state, the object system, map semantics.
-3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests, and the front-end screens beyond their geometry (`SPEC.md` section 10, points 1 and 6).
+1. **The vertical stick bits** (small; whoever is warm, otherwise Opus). M2 established that bit 0 of the input byte and of the raw controller state is the stick pushed forward, which is up in the menus and climbs in flight; `SPEC.md` and `re/notes/input.md` say so now. Still the old way round: `web/input.js` (the up key and a gamepad pushed forward must give bit 0), the bit names in `web/overlay.js`, and the letters `U` and `D` of the headless run description (`RAW_BITS` in `tools/headless.py`, the scripts in `tests/test_headless.py`, the paragraph in the note). Nothing consumes the bits in the port yet, so nothing is broken, but it must be right before M3.
+2. **Open points 2, 3 and 5** (Fable), with the headless original as the instrument: per-tick versus per-pass state, the object system, map semantics. The note says how to ask each.
+3. **Point 13, the floating point** (Fable): what the three routines that use mathffp compute, and a bit-exact integer implementation of the nine operations with oracle tests against the ROM. Due before M4.
+4. **M3 onward** (Opus). Before M3: the raw key codes the front end tests beyond those of `menu_input`, the front-end screens beyond their geometry, and the high-score file layout (`SPEC.md` section 10, points 1, 6 and 12). M3 can use the headless original for the front end; it then needs `ExNext` and a directory `Lock` stubbed for the load and save dialog.
 
 ## Open items
 
@@ -79,12 +80,18 @@ The display aspect and auto-zoom the user asked for after M1 are done and merged
 - The blitter's area-mode model in `tests/blitter.py` is documented behaviour, not derived from the original. Compare with a cycle-exact emulator when `line_draw` is ported.
 - The facing markers and mirrored pixels of `hellcat.shp` and `Torpedo.shp` must enter the save state in M4.
 - The publisher's logo is not on this disk; the crack replaced it. It would have to come from an uncracked dump, which the user has not asked for.
+- Under the headless original the audio interrupt never comes and the music player is not run, so the sound engine never sees a channel end. The sound event log of `SPEC.md` section 8 needs a channel-end model, in M8.
+- The headless original's bump allocator has 8 MB and never reuses memory; a mission takes about 370 KB. A whole campaign in one run would exhaust it.
+- By default the stick pushed forward climbs. The user can confirm it on the real Amiga in seconds (push the stick away during the deck roll); it is established from the hardware decode and from the original's behaviour under the harness, so this is a confirmation, not an open question.
 
 ## Pitfalls that cost time
 
 - Headless Firefox renders in software and cannot show a GPU canvas fault; only the opt-in visible check can. It opens a window.
 - A `devicePixelRatio` emulated through the DevTools protocol is not a Retina display: Chrome then places a canvas on whole CSS pixels, so a box edge on half a CSS pixel shows the picture shifted by a device pixel or resampled. `--force-device-scale-factor=2` on Chrome's command line behaves like the real thing. A test that samples only flat areas of the picture sees neither.
 - The user works on this machine while tests run. Browsers in tests stay silent (`--mute-audio`, the Firefox preference `media.volume_scale`), and a visible window is announced beforehand.
+- The page tests are sensitive to load from outside: clock rates, audio start and screenshots failed seven tests once while a browser of the user's own was using more than a core. Run the suite again on a quieter machine before believing such a failure, and do not run an emulator beside the page tests.
+- A Claude Code login that expires stops every session without a report. Before an unattended night, look at the login banner in a terminal and ask the user to renew it if it expires within the day.
+- An unquoted `--name` on the `claude` command line takes only the first word; the rest becomes the opening prompt. Give the user the line with quotes, or the `/rename` line.
 - A scripted key event is never a user gesture, and a modifier key alone is not one either. Browser tests press keys through the driver.
 - An unquoted shell heredoc executes the backticks of any JavaScript inside it. Quote the delimiter.
 - `cut` on `re/functions.csv` miscounts, because string columns contain commas. Use a CSV reader.

@@ -38,8 +38,8 @@ Only the low byte of the word at `0x027366` is used.
 
 | Bit | Meaning |
 |---|---|
-| 0 | stick down |
-| 1 | stick up |
+| 0 | stick forward: up in the menus, climb in flight |
+| 1 | stick back: down in the menus, descend in flight |
 | 2 | stick right |
 | 3 | stick left |
 | 4 | fire **held** — down for 10 or more VBlanks |
@@ -56,11 +56,11 @@ Note that `read_joystick` swaps the left and right bits on the way in: the bitma
 00 02 0a 08 01 00 00 09 05 00 00 00 04 06 00 00
 ```
 
-That is the standard Amiga gray-code decode (`right = b1`, `left = b9`, `up = b1 xor b0`, `down = b9 xor b8`) baked into a table, producing `b0 = down, b1 = up, b2 = left, b3 = right`. **Every contradictory combination maps to 0**, that is, to centre: up with down, left with right, and anything containing them. Nine of the sixteen entries are live, seven are 0.
+The index is bit 9, bit 8, bit 1, bit 0 of the register, in that order. That is the standard Amiga gray-code decode (`right = b1`, `left = b9`, `back = b1 xor b0`, `forward = b9 xor b8`) baked into a table, producing `b0 = forward, b1 = back, b2 = left, b3 = right`. Forward is the stick pushed away from the player. Run under the oracle, the routine returns 1 for `JOY1DAT` = `0x0100` and 2 for `0x0001`; in the menus forward moves the cursor up like the cursor-up key `0x4C`, and in flight it climbs (`re/notes/headless.md`). **Every contradictory combination maps to 0**, that is, to centre: up with down, left with right, and anything containing them. Nine of the sixteen entries are live, seven are 0.
 
 If `opt_invert_vertical` (`0x0254F6`) is set and at least one of the vertical bits is set, the routine applies `eori #3`, which swaps up and down. This is the reversed-vertical-control option. The guard matters: without it, `eori #3` on a neutral stick would produce up **and** down at once.
 
-`read_joy_dir8` (`0x020488`) decodes the same register into a single direction code (0 centre, then 1 down, 2 down-right, 3 right, 4 up-right, 5 up, 6 up-left, 7 left, 8 down-left) through `joy_dir8_table` (`0x0204B0`). It feeds `joy_dir8` (`0x027742`) and is used outside the tick path, presumably by menus.
+`read_joy_dir8` (`0x020488`) decodes the same register into a single direction code (0 centre, then clockwise from 1 up, which is the stick forward: 2 up-right, 3 right, 4 down-right, 5 down, 6 down-left, 7 left, 8 up-left) through `joy_dir8_table` (`0x0204B0`). It feeds `joy_dir8` (`0x027742`) and is used outside the tick path, presumably by menus.
 
 ## Fire button and the tap/hold discrimination
 

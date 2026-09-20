@@ -31,7 +31,7 @@ The three habits of the game's code that the stubs have to know about:
 
 ## Game logic uses floating point
 
-**`logic_tick` computes with `mathffp.library`**, Motorola's fast floating point: 32 bits, a 24-bit mantissa, a sign bit and a 7-bit excess-64 exponent. The C library's glue at `0x021C9C`–`0x021D2E` opens the library on first use (`ffp_dispatch` `0x021CF6`, base in `MathBase` `0x027FAE`) and offers `ffp_add`, `ffp_cmp`, `ffp_neg`, `ffp_tst`, `ffp_fix`, `ffp_sub`, `ffp_div`, `ffp_flt`, `ffp_mul`. Three routines use it, at 19 call sites:
+**`logic_tick` computes with `mathffp.library`**, Motorola's fast floating point: 32 bits, a 24-bit mantissa, a sign bit and a 7-bit excess-64 exponent. The C library's glue at `0x021C9C`–`0x021D2E` opens the library on first use (`ffp_dispatch` `0x021CF6`, base in `MathBase` `0x027FAE`) and offers `ffp_add`, `ffp_cmp`, `ffp_neg`, `ffp_tst`, `ffp_fix`, `ffp_sub`, `ffp_div`, `ffp_flt`, `ffp_mul`. Three routines use it, at 28 call sites (12, 3 and 13), and the first two are in the call tree of `logic_tick`, through `0x01C660` and `0x01E7D6`:
 
 | Routine | Called from | Uses |
 |---|---|---|

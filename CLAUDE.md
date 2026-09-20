@@ -10,6 +10,7 @@ Run from the repository root. Always use the project environment, never the syst
 .venv/bin/python tools/disasm.py          # regenerate re/Wings.lst and re/functions.csv (about 2 s)
 .venv/bin/python tools/skel.py 010228     # control-flow skeleton of one routine (address or name)
 .venv/bin/python tools/oracle.py          # 68000 oracle self-test, must print PASSED
+.venv/bin/python tools/headless.py run RUN.json --out A.dump   # the headless original; formats, show and diff in re/notes/headless.md
 .venv/bin/python tools/mdcheck.py SPEC.md # Markdown safety check, run on every .md that was edited
 .venv/bin/python tools/build.py --native  # build dist/wof.html, dist/core.wasm and tests/libwofcore.dylib
 .venv/bin/python -m pytest tests/         # full suite; page tests use Chrome and Firefox and skip a missing browser
