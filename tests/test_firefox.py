@@ -82,6 +82,17 @@ def test_the_next_real_key_starts_the_sound(loaded_firefox):
     assert_the_next_real_key_starts_the_sound(loaded_firefox)
 
 
+def test_firefox_is_silenced_by_its_profile(loaded_firefox):
+    """The page plays a test tone, and these runs happen on a machine somebody is working at.
+    The profile the harness builds sets media.volume_scale, which turns Firefox's output down
+    from outside the page so that the shipped configuration is still what the audio tests
+    see.  What is read back here is the preference Firefox itself wrote out when it shut
+    down; that it really is inaudible is the one part a person has to confirm."""
+    assert loaded_firefox['volumeScale'] == 'user_pref("media.volume_scale", "0.0");', (
+        'Firefox did not take the preference that silences it: %r'
+        % loaded_firefox['volumeScale'])
+
+
 def test_the_picture_is_the_core_geometry(loaded_firefox):
     picture = loaded_firefox['picture']
     assert (picture['width'], picture['height']) == (640, 214)

@@ -16,7 +16,7 @@
  * would produce.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -34,6 +34,14 @@ const port = 9500 + Math.floor(Math.random() * 400);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 const profile = mkdtempSync(join(tmpdir(), 'wof-firefox-'));
+
+/* The page plays a test tone, and these runs happen on a machine somebody is working at.
+   media.volume_scale turns Firefox's own output down to nothing without touching the page,
+   so what is tested is still the shipped configuration: the context runs, the worklet
+   backend is the one from the data: URL, and audio is queued.  Chrome is silenced the same
+   way from the outside, with --mute-audio. */
+writeFileSync(join(profile, 'user.js'), 'user_pref("media.volume_scale", "0.0");\n');
+
 const firefox = spawn(firefoxPath, [
     ...(visible ? [] : ['--headless']),
     '--no-remote',
@@ -290,6 +298,12 @@ try {
     report.requests = requests.slice();
     firefox.kill();
     await sleep(300);
+    /* Firefox writes the preferences it is holding when it shuts down, so this says whether
+       the profile really took the one that silences it. */
+    const prefs = join(profile, 'prefs.js');
+    report.volumeScale = existsSync(prefs)
+        ? (readFileSync(prefs, 'utf8').match(/^user_pref\("media\.volume_scale".*$/m) || [null])[0]
+        : null;
     rmSync(profile, { recursive: true, force: true });
 }
 
