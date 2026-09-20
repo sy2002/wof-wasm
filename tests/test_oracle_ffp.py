@@ -500,3 +500,89 @@ def test_the_same_code_under_the_undefined_behaviour_sanitizer(tmp_path, corpus,
     assert run.returncode == 0, run.stdout + run.stderr
     assert 'runtime error' not in (run.stdout + run.stderr), run.stdout + run.stderr
     compare(corpus, expected, unpack(results.read_bytes(), len(corpus)), 'the sanitizer build')
+
+
+# ------------------------------------------------ what the game computes, deliverable 4
+# tools/ffp_observe.py ran the headless original with observers on the two routines of the
+# tick that use floating point and on all nine glue entries, and wrote every floating-point
+# call each entry made together with the memory at its entry and its return.  A model of the
+# arithmetic (tests/ffp_model.py) has to produce both: the same calls, with the same
+# operands at the same call sites and the same results, and the same memory afterwards.
+
+import ffp_model                                            # noqa: E402
+
+
+@pytest.fixture(scope='module')
+def observations():
+    if not os.path.isfile(OBSERVED):
+        pytest.skip('tests/ffp_observed.json is absent; run tools/ffp_observe.py')
+    import json
+    with open(OBSERVED, encoding='utf-8') as handle:
+        return json.load(handle)
+
+
+def check_model(routine, entries, engine):
+    model, observed = ffp_model.MODELS[routine]
+    assert len(entries) >= 200, '%s was observed only %d times' % (routine, len(entries))
+    wrong = []
+    for entry in entries:
+        calls, left = model(entry, engine)
+        want = [ffp_model.call_key(call) for call in entry['calls']]
+        got = [ffp_model.call_key(call) for call in calls]
+        if got != want:
+            wrong.append('%s run %s tick %d: the original called\n  %s\nthe model calls\n  %s'
+                         % (routine, entry['run'], entry['tick'], want, got))
+        elif left != observed(entry):
+            wrong.append('%s run %s tick %d: the original left %s, the model leaves %s'
+                         % (routine, entry['run'], entry['tick'], observed(entry), left))
+    assert not wrong, '%d of %d entries differ:\n%s' % (
+        len(wrong), len(entries), '\n'.join(wrong[:3]))
+
+
+@needs_rom
+@pytest.mark.parametrize('routine', sorted(ffp_model.MODELS))
+def test_the_model_reproduces_what_the_original_computed(observations, routine):
+    reference = ffp.Reference()
+    check_model(routine, observations['entries'][routine],
+                lambda operation, d0, d1: reference.call(operation, d0, d1).d0)
+
+
+@pytest.mark.parametrize('routine', sorted(ffp_model.MODELS))
+def test_the_model_gives_the_same_answers_on_the_ported_floating_point(ported, observations,
+                                                                       routine):
+    """The same model driven by src/ffp.c rather than by the ROM.  It needs no ROM, so this
+    is also what says the port carries the game's own arithmetic on a machine without one."""
+    check_model(routine, observations['entries'][routine],
+                lambda operation, d0, d1: ported.ffp(operation, d0, d1)[0])
+
+
+def test_every_operand_the_game_was_seen_to_produce_is_in_the_corpus(observations):
+    """Deliverable 3c: the differential test runs on the real operands too, not only on
+    made-up ones."""
+    corpus = set((ffp.OPERATIONS[index], d0, d1) for index, d0, d1 in build_corpus())
+    for operation, pairs in observations['operands'].items():
+        for d0, d1 in pairs:
+            assert (operation, d0, d1) in corpus, '%s %08X %08X was observed but is not tested' % (
+                operation, d0, d1)
+
+
+def test_the_tables_of_constants_are_normalised(observations):
+    """Every entry of both tables has its top mantissa bit set, or is the zero, so nothing
+    the game hands mathffp from them is unnormalised (re/notes/ffp.md)."""
+    for table in (ffp_model.ATTITUDE, ffp_model.SINE):
+        for value in table:
+            assert value == 0 or (value >> 8) >= (1 << 23), '%08X is unnormalised' % value
+    assert len(ffp_model.ATTITUDE) == 26 and len(ffp_model.SINE) == 91
+    assert ffp_model.ATTITUDE[0] == 0x80000041 and ffp_model.ATTITUDE[14] == 0
+    assert ffp_model.SINE[0] == 0 and ffp_model.SINE[90] == 0x80000041
+
+
+def test_the_indices_the_game_uses_stay_inside_the_tables(observations):
+    """The extent of the table at 0x025B0C is 26 entries because the sine table begins
+    there; this is the observed half of that claim."""
+    for routine, entries in observations['entries'].items():
+        for entry in entries:
+            for call in entry['calls']:
+                if call[1] == 'mul' and call[0] in (0x01BEE8, 0x01D814):
+                    assert call[2] in ffp_model.ATTITUDE, (
+                        '%08X came out of the table at 0x025B0C but is not in it' % call[2])

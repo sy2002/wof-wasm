@@ -38,8 +38,10 @@ OPERATION = {'ffp_add': 'add', 'ffp_sub': 'sub', 'ffp_mul': 'mul', 'ffp_div': 'd
 # The globals the two tick routines read and write, and the record they work on, which they
 # reach through the pointer at 0x027DEC.  Addresses are the load layout of SPEC 3.2.
 PLAYER_POINTER = 0x027DEC
+AIRCRAFT = 0x02522A                  # four enemy-aircraft records of 0x34 bytes
 WATCH = {
     'player':  ('*', PLAYER_POINTER, 0x30),
+    'aircraft': (AIRCRAFT, 4 * 0x34),    # the record 0x01D796 is handed is one of these
     'g_025402': (0x025402, 0x18),        # 0x025402 .. 0x025419
     'g_025aa2': (0x025AA2, 0x0C),        # 0x025AA2 .. 0x025AAD
     'g_027dea': (0x027DEA, 0x06),
@@ -90,6 +92,8 @@ def main():
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--runs', nargs='*', default=sorted(RUNS))
     parser.add_argument('--out', default=OUT)
+    parser.add_argument('--keep', type=int, default=300,
+                        help='entries of each routine written out, spread over the runs')
     args = parser.parse_args()
     if args.list:
         for name in sorted(RUNS):
@@ -104,6 +108,7 @@ def main():
 
     for name in args.runs:
         machine = observe(name)
+        current = None
         for record in machine.observed:
             routine = record['routine']
             if routine in OPERATION:
@@ -115,13 +120,20 @@ def main():
                 if pair not in seen[operation]:
                     seen[operation].add(pair)
                     operands[operation].append(list(pair))
+                if current is not None:
+                    back = record.get('return', {})
+                    current['calls'].append([site, operation, pair[0], pair[1],
+                                             back.get('d', [None])[0],
+                                             back.get('d', [None, None])[1],
+                                             back.get('ccr')])
             else:
-                entries[routine].append({
+                current = {
                     'run': name, 'tick': record['tick'], 'pass': record['pass'],
-                    'args': record['args'][:2], 'memory': record.get('memory', {}),
+                    'arg': record['args'][0], 'in': record.get('memory', {}),
                     'out': record.get('return', {}).get('memory', {}),
-                    'd0': record.get('return', {}).get('d', [None])[0],
-                })
+                    'calls': [],
+                }
+                entries[routine].append(current)
 
     print()
     print('%-4s %-8s %7s  %s' % ('op', 'site', 'calls', 'operands D0 / D1'))
@@ -139,15 +151,24 @@ def main():
     for routine in ROUTINES:
         print('%s: %d entries' % (routine, len(entries[routine])))
 
+    # Every entry is compared; what goes into the file is an even spread of them, so that
+    # the test carries several hundred without carrying megabytes.
+    kept = {}
+    for routine in ROUTINES:
+        all_of_them = entries[routine]
+        stride = max(1, len(all_of_them) // args.keep + 1)
+        kept[routine] = all_of_them[::stride][:args.keep]
+
     with open(args.out, 'w', encoding='utf-8') as handle:
         json.dump({'runs': args.runs,
                    'operands': {op: values for op, values in operands.items()},
                    'sites': {op: {'%06X' % site: count for site, count in counter.items()}
                              for op, counter in sites.items()},
-                   'entries': {r: entries[r] for r in ROUTINES}}, handle)
-    print('\n%s: %d operand pairs, %d entries of the three routines'
+                   'entries': kept}, handle)
+    print('\n%s: %d operand pairs, %d entries of the three routines (of %d seen)'
           % (os.path.relpath(args.out, ROOT),
              sum(len(v) for v in operands.values()),
+             sum(len(kept[r]) for r in ROUTINES),
              sum(len(entries[r]) for r in ROUTINES)))
     return 0
 

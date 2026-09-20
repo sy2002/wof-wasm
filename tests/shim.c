@@ -721,10 +721,10 @@ int wt_ffp(int op, uint32_t d0, uint32_t d1, uint32_t *out)
     case 2:  r = wof_ffp_mul_cc(d0, d1); break;
     case 3:  r = wof_ffp_div_cc(d0, d1); break;
     case 4:  r = wof_ffp_cmp_cc(d0, d1); break;
-    case 5:  r = wof_ffp_tst_cc(d1);     break;
-    case 6:  r = wof_ffp_neg_cc(d0);     break;
-    case 7:  r = wof_ffp_fix_cc(d0);     break;
-    case 8:  r = wof_ffp_flt_cc(d0);     break;
+    case 5:  r = wof_ffp_tst_cc(d0, d1); break;
+    case 6:  r = wof_ffp_neg_cc(d0, d1); break;
+    case 7:  r = wof_ffp_fix_cc(d0, d1); break;
+    case 8:  r = wof_ffp_flt_cc(d0, d1); break;
     default: return 0;
     }
     out[0] = r.d0;

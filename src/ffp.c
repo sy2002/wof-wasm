@@ -271,9 +271,8 @@ static wof_ffp_t out(uint32_t d0, uint32_t d1, uint8_t cc, uint8_t trap)
 
 /* --------------------------------------------------------- SPFix, orig glue 0x021CC4 */
 
-wof_ffp_t wof_ffp_fix_cc(uint32_t d0)
+wof_ffp_t wof_ffp_fix_cc(uint32_t d0, uint32_t d1)
 {
-    uint32_t d1 = 0;
     uint8_t cc = 0;
 
     d1 = ins_move(d1, d0, M8, B8, &cc);                     /* fe3ed4 move.b d0,d1 */
@@ -324,10 +323,11 @@ most_negative:
 
 /* --------------------------------------------------------- SPFlt, orig glue 0x021CE2 */
 
-wof_ffp_t wof_ffp_flt_cc(uint32_t d0)
+wof_ffp_t wof_ffp_flt_cc(uint32_t d0, uint32_t d1)
 {
-    uint32_t d1;
     uint8_t cc = 0;
+
+    (void)d1;                                               /* moveq #$5f,d1 overwrites it */
 
     d1 = ins_moveq(0x5F, &cc);                              /* fe3f28 moveq #$5f,d1 */
     cc = ins_nz(d0, M32, B32, cc);                          /* fe3f2a tst.l d0 */
@@ -406,10 +406,12 @@ tail:
     return r;                                               /* fe3f98 move.w d1,ccr; rts */
 }
 
-wof_ffp_t wof_ffp_tst_cc(uint32_t d1)
+wof_ffp_t wof_ffp_tst_cc(uint32_t d0, uint32_t d1)
 {
     uint8_t cc = 0;
     wof_ffp_t r;
+
+    (void)d0;                                               /* moveq #0,d0 overwrites it */
 
     cc = ins_nz(d1, M8, B8, cc);                            /* fe3f9c tst.b d1 */
     r = ffp_getcc_tail(d1, cc);
@@ -420,14 +422,14 @@ wof_ffp_t wof_ffp_tst_cc(uint32_t d1)
 
 /* --------------------------------------------------------- SPNeg, orig glue 0x021CB0 */
 
-wof_ffp_t wof_ffp_neg_cc(uint32_t d0)
+wof_ffp_t wof_ffp_neg_cc(uint32_t d0, uint32_t d1)
 {
     uint8_t cc = 0;
 
     cc = ins_nz(d0, M8, B8, cc);                            /* fe3fca tst.b d0 */
     if (!(cc & FZ))                                         /* fe3fcc beq */
         d0 = ins_eor(d0, 0x80u, M8, B8, &cc);               /* fe3fce eori.b #$80,d0 */
-    return out(d0, 0, cc, 0);                               /* fe3fd2 rts */
+    return out(d0, d1, cc, 0);                              /* fe3fd2 rts */
 }
 
 /* ------------------------------------------- SPAdd and SPSub, orig glue 0x021C9C, 0x021CCE

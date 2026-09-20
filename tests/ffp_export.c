@@ -33,10 +33,10 @@ static wof_ffp_t one(uint32_t op, uint32_t d0, uint32_t d1)
     case 2:  return wof_ffp_mul_cc(d0, d1);
     case 3:  return wof_ffp_div_cc(d0, d1);
     case 4:  return wof_ffp_cmp_cc(d0, d1);
-    case 5:  return wof_ffp_tst_cc(d1);
-    case 6:  return wof_ffp_neg_cc(d0);
-    case 7:  return wof_ffp_fix_cc(d0);
-    default: return wof_ffp_flt_cc(d0);
+    case 5:  return wof_ffp_tst_cc(d0, d1);
+    case 6:  return wof_ffp_neg_cc(d0, d1);
+    case 7:  return wof_ffp_fix_cc(d0, d1);
+    default: return wof_ffp_flt_cc(d0, d1);
     }
 }
 

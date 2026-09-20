@@ -50,10 +50,10 @@ wof_ffp_t wof_ffp_sub_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CCE  mathffp 
 wof_ffp_t wof_ffp_mul_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CEC  mathffp SPMul */
 wof_ffp_t wof_ffp_div_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CD8  mathffp SPDiv */
 wof_ffp_t wof_ffp_cmp_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CA6  mathffp SPCmp */
-wof_ffp_t wof_ffp_tst_cc(uint32_t d1);                /* orig 0x021CBA  mathffp SPTst */
-wof_ffp_t wof_ffp_neg_cc(uint32_t d0);                /* orig 0x021CB0  mathffp SPNeg */
-wof_ffp_t wof_ffp_fix_cc(uint32_t d0);                /* orig 0x021CC4  mathffp SPFix */
-wof_ffp_t wof_ffp_flt_cc(uint32_t d0);                /* orig 0x021CE2  mathffp SPFlt */
+wof_ffp_t wof_ffp_tst_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CBA  mathffp SPTst */
+wof_ffp_t wof_ffp_neg_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CB0  mathffp SPNeg */
+wof_ffp_t wof_ffp_fix_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CC4  mathffp SPFix */
+wof_ffp_t wof_ffp_flt_cc(uint32_t d0, uint32_t d1);   /* orig 0x021CE2  mathffp SPFlt */
 
 /* How many zero divides the core has run into.  Zero in a correct run; the tests read it
  * through tests/shim.c, and a test build stops on the first one. */
@@ -65,14 +65,14 @@ static inline uint32_t wof_ffp_add(uint32_t a, uint32_t b) { return wof_ffp_add_
 static inline uint32_t wof_ffp_sub(uint32_t a, uint32_t b) { return wof_ffp_sub_cc(a, b).d0; }
 static inline uint32_t wof_ffp_mul(uint32_t a, uint32_t b) { return wof_ffp_mul_cc(a, b).d0; }
 static inline uint32_t wof_ffp_div(uint32_t a, uint32_t b) { return wof_ffp_div_cc(a, b).d0; }
-static inline uint32_t wof_ffp_neg(uint32_t a)             { return wof_ffp_neg_cc(a).d0; }
-static inline uint32_t wof_ffp_fix(uint32_t a)             { return wof_ffp_fix_cc(a).d0; }
-static inline uint32_t wof_ffp_flt(uint32_t a)             { return wof_ffp_flt_cc(a).d0; }
+static inline uint32_t wof_ffp_neg(uint32_t a)             { return wof_ffp_neg_cc(a, 0).d0; }
+static inline uint32_t wof_ffp_fix(uint32_t a)             { return wof_ffp_fix_cc(a, 0).d0; }
+static inline uint32_t wof_ffp_flt(uint32_t a)             { return wof_ffp_flt_cc(a, 0).d0; }
 static inline int32_t  wof_ffp_cmp(uint32_t a, uint32_t b)
 {
     return (int32_t)wof_ffp_cmp_cc(a, b).d0;
 }
-static inline int32_t  wof_ffp_tst(uint32_t a)             { return (int32_t)wof_ffp_tst_cc(a).d0; }
+static inline int32_t  wof_ffp_tst(uint32_t a)             { return (int32_t)wof_ffp_tst_cc(0, a).d0; }
 
 /* The branches the original makes on the returned condition codes, as the 68000 tests
  * them.  A caller writes `if (wof_ffp_ge(r.ccr))` where the listing has `bge`. */
