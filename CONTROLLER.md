@@ -47,7 +47,7 @@ A report is a claim. Before merging:
 2. A clean rebuild and the full suite, run by you. Compare the numbers with the report.
 3. The project rule that hand-written files hold no game content.
 4. Read the code that carries the weight, and read how the tests compare: a differential test must really run the original and the port.
-5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing.
+5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing; comparing every framebuffer pixel with a driver screenshot, and fitting the picture's real position from its colour edges, where the tests sampled flat areas.
 6. If something is wrong, send the worker a follow-up on the same branch with the diagnosis, and review again.
 7. Merge by fast-forward, regenerate the listing, fold the findings into `SPEC.md`, run `tools/mdcheck.py`, commit. The user has authorised merges and commits at the controller's discretion once verified. Never push and never add a remote unless asked.
 
@@ -67,7 +67,8 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 ## The plan ahead
 
-0. **Display aspect and auto-zoom** (Opus, small, first). The user looked at the M1 viewer and asked for it: the shell shows framebuffer pixels square, so the picture is a 3:1 strip, and it should fill the window. `SPEC.md` section 6.2, Video, states the rule (one PAL or NTSC setting for rate and aspect, PAL the default with a box of 1024 : 642, largest fit, two-step scaling). Shell and page tests only; the core does not change. The tests should assert the displayed box ratio and that it follows a window resize, in both browsers, and the visible Firefox check must pass, because a second canvas step touches the GPU canvas fault again.
+The display aspect and auto-zoom the user asked for after M1 are done and merged (`SPEC.md` section 6.2, Video).
+
 1. **M2, the headless original** (Fable). `SPEC.md` section 8 states what it must do. The facts it rests on: no logic reads drawing results, so the blitter and the listed graphics calls are no-ops; reads of `0xDFF006` are hooked and served from the entropy stream; `vblank_flag` is set before each pass; `frame_update` runs on every pass; the crack's text screen at `0x01F41A` is bypassed; the schedule of VBlanks, passes and ticks is recorded input. `tests/original.py` from M1 already runs original routines with stubs and is the place to start.
 2. **Open points 2, 3 and 5** (Fable), with M2 as the instrument: per-tick versus per-pass state, the object system, map semantics.
 3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests, and the front-end screens beyond their geometry (`SPEC.md` section 10, points 1 and 6).
@@ -82,6 +83,8 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 ## Pitfalls that cost time
 
 - Headless Firefox renders in software and cannot show a GPU canvas fault; only the opt-in visible check can. It opens a window.
+- A `devicePixelRatio` emulated through the DevTools protocol is not a Retina display: Chrome then places a canvas on whole CSS pixels, so a box edge on half a CSS pixel shows the picture shifted by a device pixel or resampled. `--force-device-scale-factor=2` on Chrome's command line behaves like the real thing. A test that samples only flat areas of the picture sees neither.
+- The user works on this machine while tests run. Browsers in tests stay silent (`--mute-audio`, the Firefox preference `media.volume_scale`), and a visible window is announced beforehand.
 - A scripted key event is never a user gesture, and a modifier key alone is not one either. Browser tests press keys through the driver.
 - An unquoted shell heredoc executes the backticks of any JavaScript inside it. Quote the delimiter.
 - `cut` on `re/functions.csv` miscounts, because string columns contain commas. Use a CSV reader.
