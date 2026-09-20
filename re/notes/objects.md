@@ -234,11 +234,18 @@ compared over their whole state (`tools/object_observe.py --controls`, observed)
 | the guns held or not | no table at all: 2 bytes of the player's record and 31 elsewhere |
 | climbing or level | no table: 12 bytes of the player's record and 54 elsewhere |
 | over the bow or lifting off | `object_records` 70 bytes, Splashes 22, the player's record 30, and 1,434 elsewhere |
+| a barracks hit or not | `object_records` 540 bytes, `soldier_records` 43, Smoke 40, `target_records_3` 8, `target_records_4` 1, the player's record 3, and 96 elsewhere |
 
 The 60 bytes beside the object table in the first pair are, one by one: `weapon_count`
 (`0x02536D`), which starts a mission at **30** and loses one for every bomb — the manual's
 "thirty 100 lb. bombs" — the sound engine's slots, the ticker, the blitter's parameter block
 and the clip rectangle. Nothing else differs.
+
+The 96 beside the tables in the last pair are `player_score`, `weapon_count`, `rand_state`,
+the ticker's message and the sound engine's slots, the dashboard's per-buffer cache and the
+blitter's parameter block. That pair — the bombing run of `re/notes/passes.md` against the
+same flight with the button never pressed — is the one that reaches the soldiers and the
+targets, and it reaches no other table.
 
 **The machine gun writes none of these tables.** Holding the button changes only the player's
 own record and the sound; it is the other weapon, the short click, that fills
