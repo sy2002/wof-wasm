@@ -9,101 +9,25 @@
  *
  *     node tests/pagecheck.mjs <page.html> [chrome-binary]
  *
- * Talks the DevTools protocol over the WebSocket that Node has built in; nothing is
- * installed for it.
+ * Talks the DevTools protocol through tests/chrome.mjs, over the WebSocket that Node has
+ * built in; nothing is installed for it.
  */
-import { spawn } from 'node:child_process';
-import { mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
+import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST } from './pagemeasure.mjs';
 
-const DEFAULT_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
 
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-async function waitForPort(directory, deadlineMs) {
-    const file = join(directory, 'DevToolsActivePort');
-    const until = Date.now() + deadlineMs;
-    while (Date.now() < until) {
-        if (existsSync(file)) {
-            const lines = readFileSync(file, 'utf8').split('\n');
-            if (lines[0] && lines[1]) {
-                return { port: Number(lines[0]), path: lines[1] };
-            }
-        }
-        await sleep(50);
-    }
-    throw new Error('Chrome did not open a debugging port');
-}
-
-class Devtools {
-    constructor(socket) {
-        this.socket = socket;
-        this.next = 1;
-        this.pending = new Map();
-        this.listeners = [];
-        socket.addEventListener('message', (event) => {
-            const message = JSON.parse(event.data);
-            if (message.id && this.pending.has(message.id)) {
-                const { resolve: ok, reject } = this.pending.get(message.id);
-                this.pending.delete(message.id);
-                message.error ? reject(new Error(JSON.stringify(message.error))) : ok(message.result);
-            } else if (message.method) {
-                for (const listener of this.listeners) {
-                    listener(message);
-                }
-            }
-        });
-    }
-
-    on(listener) {
-        this.listeners.push(listener);
-    }
-
-    send(method, params = {}, sessionId) {
-        const id = this.next++;
-        const payload = { id, method, params };
-        if (sessionId) {
-            payload.sessionId = sessionId;
-        }
-        this.socket.send(JSON.stringify(payload));
-        return new Promise((ok, reject) => this.pending.set(id, { resolve: ok, reject }));
-    }
-}
-
-const profile = mkdtempSync(join(tmpdir(), 'wof-chrome-'));
-const chrome = spawn(chromePath, [
-    '--headless=new',
-    '--disable-gpu',
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-extensions',
-    '--mute-audio',
-    '--user-data-dir=' + profile,
-    '--remote-debugging-port=0',
-    '--window-size=1280,900',
-    'about:blank',
-], { stdio: ['ignore', 'ignore', 'ignore'] });
-
 const report = { chrome: chromePath, page: pagePath, requests: [], console: [] };
 
+const browser = await startChrome(chromePath, ['--window-size=1280,900']);
+const cdp = browser.cdp;
+report.browser = browser.browser;
+
 try {
-    const { port } = await waitForPort(profile, 15000);
-    const version = await (await fetch('http://127.0.0.1:' + port + '/json/version')).json();
-    report.browser = version.Browser;
-
-    const socket = new WebSocket(version.webSocketDebuggerUrl);
-    await new Promise((ok, fail) => {
-        socket.addEventListener('open', ok, { once: true });
-        socket.addEventListener('error', fail, { once: true });
-    });
-    const cdp = new Devtools(socket);
-
     const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
@@ -142,39 +66,8 @@ try {
         await sleep(1500);
     }
 
-    /* Real key events through the DevTools protocol, not synthesised ones: only a real
-       event activates the page, and activation is what the shell waits for before it
-       touches Web Audio. */
-    const KEYS = {
-        backquote: { key: '`', code: 'Backquote', text: '`' },
-        space: { key: ' ', code: 'Space', text: ' ' },
-        right: { key: 'ArrowRight', code: 'ArrowRight' },
-        five: { key: '5', code: 'Digit5', text: '5' },
-        six: { key: '6', code: 'Digit6', text: '6' },
-        meta: { key: 'Meta', code: 'MetaLeft' },
-    };
-
-    /* Deliberately no windowsVirtualKeyCode and no modifiers: given those, headless Chrome
-       answers a single modifier press with a flood of phantom keydown repeats carrying a
-       different key, which drowns the very measurement this pass is here to make. */
-    async function press(session, name) {
-        const k = KEYS[name];
-        await cdp.send('Input.dispatchKeyEvent',
-                       { type: k.text ? 'keyDown' : 'rawKeyDown', key: k.key, code: k.code, text: k.text },
-                       session);
-        await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: k.key, code: k.code }, session);
-    }
-
-    async function evaluateIn(session, expression) {
-        const result = await cdp.send('Runtime.evaluate', {
-            expression, returnByValue: true, awaitPromise: true,
-        }, session);
-        if (result.exceptionDetails) {
-            throw new Error(result.exceptionDetails.exception?.description || 'evaluate failed');
-        }
-        return result.result.value;
-    }
-
+    const press = (session, name) => cdp.press(session, name);
+    const evaluateIn = (session, expression) => cdp.evaluate(session, expression);
     const evaluate = (expression) => evaluateIn(sessionId, expression);
 
     await open(sessionId, 'file://' + pagePath);
@@ -386,18 +279,7 @@ try {
 
     report.modifierFirst = { afterModifier, afterSpace };
 } finally {
-    chrome.kill();
-    /* Chrome writes its profile out while it is dying, and a directory that is not empty
-       yet must not lose the whole report: the cleanup waits, retries and then gives up. */
-    for (let attempt = 0; attempt < 10; attempt++) {
-        await sleep(200);
-        try {
-            rmSync(profile, { recursive: true, force: true });
-            break;
-        } catch {
-            /* still busy */
-        }
-    }
+    await stopChrome(browser);
 }
 
 process.stdout.write(JSON.stringify(report, null, 1));

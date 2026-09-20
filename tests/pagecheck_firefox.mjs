@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST, SOURCE_PNG } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -221,6 +221,7 @@ try {
             await sleep(400);
             seen.hintVisible = await evaluate(
                 "!document.getElementById('hint').classList.contains('off')");
+            seen.sourcePng = await evaluate(SOURCE_PNG);
             seen.screenshot = (await send(socket, 'browsingContext.captureScreenshot',
                                           { context })).data;
             await press(context, KEY_BACKQUOTE);
@@ -264,6 +265,14 @@ try {
     report.box.tall = await look('tall', false);
     await viewport(420, 320);
     report.box.small = await look('small', false);
+
+    /* Large enough that one framebuffer pixel is shown as at least three device pixels in
+       each direction, which is what a comparison pixel for pixel needs.  At a real
+       devicePixelRatio of 1 that takes a viewport larger than most screens, which a headless
+       window can have and a visible one cannot; the tests use whichever look is large
+       enough rather than assuming this one is. */
+    await viewport(1960, 1250);
+    report.box.large = await look('large', true);
 
     /* Back to the size the window opened at, by asking for it: a null viewport, which is the
        documented way to give the window its own size back, is never answered in a visible

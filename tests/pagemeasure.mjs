@@ -151,3 +151,8 @@ export const PRESENT_COST = `(() => {
         best: kept[0],
     };
 })()`;
+
+/* The source canvas itself, as a PNG, so that the pytest side can compare every one of the
+   136,960 framebuffer pixels with a screenshot instead of a few sample points.  A data URL
+   rather than the pixels: the same bytes, a fiftieth of the JSON. */
+export const SOURCE_PNG = "window.__wofVideo.source.toDataURL('image/png')";

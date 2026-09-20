@@ -15,6 +15,9 @@ import sys
 
 import pytest
 
+from picture import (assert_the_blocks_have_hard_edges,
+                     assert_the_picture_lies_where_the_dom_says,
+                     assert_the_screenshot_is_the_picture)
 from conftest import (assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
                       assert_the_box_is_the_largest_that_fits,
@@ -31,6 +34,26 @@ STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason='Google Chrome is not installed')
+
+
+# The two pictures the scale-factor run photographs.
+SCALED = ('title', 'playScreen')
+
+
+@pytest.fixture(scope='session')
+def scaled(built):
+    """The same page under a true scale factor of 2, which is what a Retina display gives.
+
+    An emulated devicePixelRatio is not the same thing: Chrome then places the canvas on
+    whole CSS pixels, so where a box edge falls on half a CSS pixel the picture is shifted by
+    a device pixel or resampled a third time (SPEC 8, row Page).  That artefact would hide a
+    real one, so the picture itself is judged here and not in the emulated run."""
+    from conftest import ROOT
+    finished = subprocess.run(
+        ['node', str(ROOT / 'tests' / 'pagescale.mjs'), str(built), CHROME],
+        cwd=ROOT, capture_output=True, text=True)
+    assert finished.returncode == 0, 'tests/pagescale.mjs failed:\n%s' % finished.stderr
+    return json.loads(finished.stdout)
 
 
 @pytest.fixture(scope='session')
@@ -150,7 +173,13 @@ def test_the_picture_follows_a_resize(loaded):
 def test_a_retina_backing_store_is_the_css_size_times_two(loaded):
     """devicePixelRatio 2, emulated through the DevTools protocol: the canvas has to carry
     twice as many pixels in each direction as its CSS size, or the picture is resampled by
-    the browser on top of everything the shell did."""
+    the browser on top of everything the shell did.
+
+    The arithmetic is all this run can answer for.  An emulated ratio places the canvas on
+    whole CSS pixels, so where a box edge falls on half a CSS pixel the picture itself is
+    shifted by a device pixel or resampled again - a fault of the emulation, not of the
+    shell (SPEC 8, row Page).  What the picture really looks like at that ratio is measured
+    by the scale-factor tests above, which give Chrome the factor on its command line."""
     geometry = loaded['box']['retina']['geometry']
     assert geometry['dpr'] == 2, geometry
     assert geometry['backing']['width'] == round(geometry['rect']['width'] * 2), geometry
@@ -175,6 +204,60 @@ def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded):
         seen = loaded['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)
+
+
+# ------------------------------------------- the picture itself, under a true scale factor
+
+def test_the_scale_factor_run_puts_a_box_edge_on_half_a_css_pixel(scaled):
+    """The case that shows whether the picture is really laid out in device pixels, and the
+    reason this second run exists.  If the window ever stopped producing such an edge the
+    checks below would still pass while proving much less, so it is asserted, not assumed."""
+    for name in SCALED:
+        geometry = scaled[name]['geometry']
+        assert geometry['dpr'] == 2, geometry
+        rect = geometry['rect']
+        halves = [side for side in ('left', 'top', 'width', 'height')
+                  if abs(rect[side] % 1 - 0.5) < 0.01]
+        assert halves, 'no edge of the box is on half a CSS pixel: %s' % rect
+
+
+def test_the_scale_factor_run_is_the_same_page(scaled):
+    """It is the shipped page, showing the framebuffer, with nothing lying over it: the
+    gesture prompt is gone because a real key started the sound, and the hint bar with it."""
+    assert scaled['console'] == [], scaled['console']
+    for name in SCALED:
+        picture = scaled[name]['picture']
+        assert (picture['width'], picture['height']) == (640, 214), picture
+        assert picture['colours'] >= 8, picture
+        assert scaled[name]['hintVisible'] is False
+
+
+def test_the_screenshot_is_the_picture_pixel_for_pixel(scaled):
+    """Every one of the 136,960 framebuffer pixels, at the centre of the block it is shown
+    as, against a screenshot of what the compositor put on the screen."""
+    for name in SCALED:
+        seen = scaled[name]
+        assert_the_screenshot_is_the_picture(seen['sourcePng'], seen['screenshot'],
+                                             seen['geometry'], name)
+
+
+def test_the_picture_lies_where_the_dom_says(scaled):
+    """Fitted from the picture's own colour edges, to a fraction of a device pixel: this is
+    what catches a picture shifted or stretched by one, which a sample point in a flat area
+    and a rectangle read off the DOM both agree to."""
+    for name in SCALED:
+        seen = scaled[name]
+        assert_the_picture_lies_where_the_dom_says(seen['sourcePng'], seen['screenshot'],
+                                                   seen['geometry'], name)
+
+
+def test_the_blocks_have_hard_edges(scaled):
+    """Two-step scaling, seen from the outside: between the centres of two neighbouring
+    blocks of different colour there is almost nothing that is neither colour."""
+    for name in SCALED:
+        seen = scaled[name]
+        assert_the_blocks_have_hard_edges(seen['sourcePng'], seen['screenshot'],
+                                          seen['geometry'], name)
 
 
 def test_the_hint_bar_shares_the_diagnostics_key(loaded):

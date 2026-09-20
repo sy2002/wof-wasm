@@ -15,6 +15,10 @@ import subprocess
 
 import pytest
 
+from picture import (assert_the_blocks_have_hard_edges,
+                     assert_the_picture_lies_where_the_dom_says,
+                     assert_the_screenshot_is_the_picture,
+                     big_enough_blocks)
 from conftest import (ROOT,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
@@ -170,6 +174,38 @@ def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded_fi
                                                 seen['display'], name)
 
 
+def measurable(report):
+    """The looks whose screenshot can be judged pixel by pixel: a framebuffer pixel has to be
+    shown as at least three device pixels in each direction.  A real devicePixelRatio of 2
+    gives that at the size the window opens at; at 1 it takes a large viewport, which is why
+    the harness makes one."""
+    return [name for name, seen in report['box'].items()
+            if seen.get('screenshot') and seen.get('sourcePng')
+            and big_enough_blocks(seen['geometry'], seen['screenshot'])]
+
+
+def check_the_picture(report, note):
+    names = measurable(report)
+    assert names, ('no screenshot in this run shows the framebuffer large enough to judge '
+                   'it pixel by pixel: %s' % list(report['box']))
+    for name in names:
+        seen = report['box'][name]
+        where = '%s %s' % (note, name)
+        assert_the_screenshot_is_the_picture(seen['sourcePng'], seen['screenshot'],
+                                             seen['geometry'], where)
+        assert_the_picture_lies_where_the_dom_says(seen['sourcePng'], seen['screenshot'],
+                                                   seen['geometry'], where)
+        assert_the_blocks_have_hard_edges(seen['sourcePng'], seen['screenshot'],
+                                          seen['geometry'], where)
+    return names
+
+
+def test_the_screenshot_is_the_picture_pixel_for_pixel(loaded_firefox):
+    """Every framebuffer pixel against the screenshot, where it lies, and how hard its edges
+    are - the three the display box measured off the DOM cannot answer."""
+    check_the_picture(loaded_firefox, 'headless')
+
+
 def test_the_hint_bar_shares_the_diagnostics_key(loaded_firefox):
     assert loaded_firefox['hintVisibleWithOverlay']
     for name in ('default', 'wide', 'playScreen'):
@@ -213,6 +249,13 @@ def test_the_visible_compositor_shows_the_picture(loaded_firefox_visible):
         seen = loaded_firefox_visible['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)
+
+
+def test_the_visible_screenshot_is_the_picture_pixel_for_pixel(loaded_firefox_visible):
+    """The same three on a real window at this machine's real devicePixelRatio, which is the
+    one place in the suite where the whole path - accelerated canvas, compositor, screen
+    density - is the player's."""
+    check_the_picture(loaded_firefox_visible, 'visible')
 
 
 def test_the_visible_window_shows_it_in_the_display_aspect(loaded_firefox_visible):
