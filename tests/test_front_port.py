@@ -210,11 +210,22 @@ def test_the_key_buffer_and_the_latches_end_where_the_original_leaves_them(porte
                                  ('fire_prev_state', 0x026C8C, 2),
                                  ('fire_tap_latch', 0x027DFC, 2),
                                  ('fire_hold_latch', 0x027DFA, 2),
+                                 ('input_queue_count', 0x027354, 2),
+                                 ('rank_cursor', 0x026C64, 2),
+                                 ('rank_played', 0x0253BE, 2),
+                                 ('rank_chosen', 0x025558, 2),
+                                 ('mission_number', 0x0253C0, 2),
+                                 ('loaded_game', 0x026D40, 2),
+                                 ('quit_flag', 0x0253C2, 1),
                                  ('opt_invert_vertical', 0x0254F6, 1),
                                  ('opt_music_off', 0x0254F7, 1)):
         want = machine.o.r16(address) if width == 2 else machine.o.read(address, 1)[0]
         got = ported.g_at_mission(name)
         assert got == want, '%s: port %d, original %d' % (name, got, want)
+
+    assert ported.g_at_mission('fire_prev_state') == 1, (
+        'the button that ended the briefing is meant to be still down: its release is '
+        'sampled after the queue is cleared, so the first tick can carry the tap bit')
 
 
 # ------------------------------------------------------------------ the drawing calls

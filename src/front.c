@@ -423,8 +423,15 @@ wof_co_t wof_front(void)
         if (wof_f.briefing_result)
             continue;
 
+        /* The tail of main's mission set-up that is not the mission itself: one logic
+         * tick and then the queue cleared, so that the release of the press which ended
+         * the briefing is the first thing the mission samples (re/notes/input.md).  The
+         * tick is M4; clearing the queue is what leaves the latches where they belong. */
+        wof_input_queue_clear();
+
         /* The point the original reaches mission_display_setup at, which is where the
-         * mission begins; a differential test compares it with the harness's observer. */
+         * mission begins and where the harness's dump takes its step S; a differential
+         * test compares the state here with the state there. */
         wof_trace_add("mission", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
         wof_f.mission_count++;
         wof_trace_globals();
