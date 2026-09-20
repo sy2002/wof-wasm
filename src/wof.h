@@ -73,6 +73,10 @@ void wof_draw_list_add(uint32_t name, int16_t x, int16_t y, uint16_t layer,
 WOF_API(wof_init)              void            wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len);
 WOF_API(wof_set_video_hz)      void            wof_set_video_hz(int hz);
 WOF_API(wof_vblank)            void            wof_vblank(uint8_t raw);
+WOF_API(wof_key)               void            wof_key(uint8_t code, uint16_t qualifier);
+WOF_API(wof_port_key)          void            wof_port_key(uint8_t code, uint16_t qualifier);
+WOF_API(wof_set_invert_vertical) void          wof_set_invert_vertical(int on);
+WOF_API(wof_invert_vertical)   int             wof_invert_vertical(void);
 WOF_API(wof_pass)              void            wof_pass(void);
 WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);
@@ -99,6 +103,30 @@ WOF_API(wof_tick_count)         uint32_t  wof_tick_count(void);
 WOF_API(wof_pass_count)         uint32_t  wof_pass_count(void);
 WOF_API(wof_assets_ready)       uint32_t  wof_assets_ready(void);    /* 0 while an asset is missing */
 
+/* --------------------------------------------------------------- the front end (6.3) */
+
+/* What the front end keeps between one wof_pass and the next: the resume points of the
+ * coroutines and every local that lives across a wait (SPEC 6.3).  It grows screen by
+ * screen; what is here is what the key layer of SPEC 6.2 asks the core about. */
+typedef struct {
+    uint16_t editing;    /* text_input has the line: every key passes as it came */
+    uint16_t briefing;   /* mission_briefing is on screen: KeyR restarts from there too */
+} wof_front_t;
+
+/* ---------------------------------------------------------------- the ported globals */
+
+/* The original addresses every global as d16(a4) from one small-data base.  src/globals.def
+ * is the port's version of that page: one entry per ported global, with the original's name
+ * and address (SPEC 7.2).  The struct lives inside the core's state, so a ported global is
+ * part of a save state by construction and the tests can map it to its original address. */
+typedef struct {
+#define WOF_GLOBAL(name, type, addr)              type name;
+#define WOF_GLOBAL_ARRAY(name, type, count, addr) type name[count];
+#include "globals.def"
+#undef WOF_GLOBAL
+#undef WOF_GLOBAL_ARRAY
+} wof_globals_t;
+
 /* ------------------------------------------------------------------------ core state */
 
 /* Everything the core may change while running, in one struct, so that wof_state_save is a
@@ -117,19 +145,26 @@ typedef struct {
     uint32_t tone_phase_l;  /* test tone, 32-bit phase, one turn per cycle */
     uint32_t tone_phase_r;
     uint16_t video_hz;      /* 60 or 50 */
-    uint16_t raw;           /* raw controller state of the most recent VBlank */
-    uint16_t vblank_in_tick;/* 0..3, the count to 4 that vblank_server does */
-    uint16_t noise;         /* newest entropy value */
+    uint16_t raw;           /* the most recent VBlank's controller state, opposing
+                             * directions cancelled: the port's JOY1DAT and CIA-A PRA */
     uint16_t view_page;     /* M1 viewer: which page is on screen */
     uint16_t view_item;     /* M1 viewer: which container the browser shows */
     uint16_t view_sub;      /* M1 viewer: which page of that container */
     uint16_t view_dirty;    /* M1 viewer: the picture needs redrawing */
+    uint16_t invert_pref;   /* the shell's remembered vertical flip, 0 or 1 */
+    uint16_t invert_given;  /* whether the shell ever handed one over (SPEC 6.1) */
+    wof_globals_t g;        /* the original's own globals, src/globals.def */
+    wof_front_t   f;        /* the front end: coroutines, screens, dialogs (SPEC 6.3) */
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 2u
+#define WOF_STATE_VERSION 3u
 
 extern wof_state_t wof_s;
+
+/* The ported globals read as themselves: wof_g.key_count is the original's key_count. */
+#define wof_g (wof_s.g)
+#define wof_f (wof_s.f)
 
 /* ------------------------------------------------------------------ memory and blocks */
 
@@ -325,11 +360,34 @@ extern wof_assets_t wof_assets;
 
 void wof_assets_init(void);          /* orig 0x0134BC init_assets, as far as M1 goes */
 
+/* ------------------------------------------------------- the key buffer (keys.md) */
+
+/* The five readers take their keys from here, unchanged from the original.  wof_key is
+ * the half of input_handler that the port keeps; the mouse half writes rmb_down, which
+ * nothing in the executable reads, so it is dropped. */
+void     wof_keys_init(void);                       /* orig 0x0205CC, as far as it is kept */
+int      wof_key_available(void);                   /* orig 0x0207D8, 0xFF or 0 */
+uint32_t wof_key_get(void);                         /* orig 0x0207E4, (qualifier << 16) | code */
+uint16_t wof_key_to_char(uint32_t key);             /* orig 0x020700, through the ROM's keymap */
+
+/* --------------------------------------------------------- input sampling (input.md) */
+
+void     wof_input_init(void);
+int      wof_poll_fire(void);                       /* orig 0x02044C */
+int      wof_poll_joy_dir8(void);                   /* orig 0x020454, 0 centre, 1 up ... 8 up-left */
+uint16_t wof_read_joy_bits(void);                   /* orig 0x01520E, b0 forward b1 back b2 left b3 right */
+void     wof_input_queue_clear(void);               /* orig 0x01174A */
+uint16_t wof_input_queue_pop(void);                 /* orig 0x011714 */
+
+/* The port's key layer and the vertical flip as a preference (src/portkeys.c). */
+void     wof_invert_vertical_follow(void);          /* the flip command changed the byte */
+void     wof_invert_vertical_restore(void);         /* M7: after a loaded game */
+
 /* ---------------------------------------------------------------------- the M1 viewer */
 
 void wof_viewer_init(void);
 void wof_viewer_pass(void);
-WOF_API(wof_key_press) void wof_key_press(uint8_t code);
+WOF_API(wof_key_press) void wof_key_press(uint8_t code);   /* goes when M3 replaces the viewer */
 
 void wof_audio_init(void);
 

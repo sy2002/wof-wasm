@@ -34,9 +34,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,todo
 011510,sub_011510,asm,274,,,,1,sub_01e4d0,,8,,todo
 011622,sub_011622,asm,242,,,,1,sub_01e4d0,,4,,todo
-011714,input_queue_pop,asm,54,,,,2,os_disable os_enable,,2,,todo
-01174a,input_queue_clear,asm,10,,,-32694,2,,,2,,todo
-011754,vblank_server,asm,530,,,-32688,0,input_queue_pop vblank_every_frame read_joystick,,25,,todo
+011714,input_queue_pop,asm,54,,,,2,os_disable os_enable,,2,,ported
+01174a,input_queue_clear,asm,10,,,-32694,2,,,2,,ported
+011754,vblank_server,asm,530,,,-32688,0,input_queue_pop vblank_every_frame read_joystick,,25,,ported
 011966,sub_011966,asm,86,,,,0,,,5,,todo
 0119bc,sub_0119bc,asm,88,,,,1,sub_011a46 sub_011a8c sub_0150c8 sub_0152b0,,6,,todo
 011a14,sub_011a14,asm,46,,,-32682,0,sub_0150c8,,1,,todo
@@ -159,7 +159,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015174,draw_world_shape,asm,78,,,-32490,12,shape_draw,,4,,todo
 0151c2,draw_world_shape_xor,asm,74,,,-32484,0,shape_draw_xor,,4,,todo
 01520c,sub_01520c,asm,2,,,,1,,,0,,todo
-01520e,read_joy_bits,asm,60,,,-32478,1,,,2,,todo
+01520e,read_joy_bits,asm,60,,,-32478,1,,,2,,ported
 01524a,clip_playfield,asm,18,,,-32472,5,clip_set,,0,,todo
 01525c,clip_dash_window,asm,18,,,-32466,1,clip_set,,0,,todo
 01526e,sub_01526e,asm,62,,,-32460,2,clip_set,,6,,todo
@@ -336,8 +336,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01c5f4,sub_01c5f4,C,108,0,,,1,sub_015710 sub_01aaea sub_01c982,,7,,todo
 01c660,sub_01c660,C,802,14,,-32256,1,sub_015710 sub_01aaea sub_01aed8 sub_01af7c sub_01afba sub_01b45a sub_01b5b0 sub_01b92e sub_01b9f0 sub_01ba80 sub_01bc02 sub_01bcce sub_01bdba sub_01bdfa sub_01bff4 sub_01c378 sub_01c4e8 sub_01c5f4 sub_01c982 sub_01cae0 sub_01cb34,,21,,todo
 01c982,sub_01c982,C,72,4,8,,9,,,2,,todo
-01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,todo
-01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,todo
+01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,ported
+01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,ported
 01caa2,sub_01caa2,C,18,0,,,0,,,1,,todo
 01cab4,flash_set,C,20,0,8 10,,1,,,2,,todo
 01cac8,sub_01cac8,C,24,0,8,,8,rand_beam,,0,,todo
@@ -427,25 +427,25 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,todo
 0203e8,byterun1_row,asm,76,,,,1,,,0,,verified
 020434,sub_020434,C,24,0,,,0,,,0,,todo
-02044c,poll_fire,asm,8,,,-32064,8,read_fire_button,,1,,todo
-020454,poll_joy_dir8,asm,8,,,-32058,3,read_joy_dir8,,1,,todo
-02045c,poll_fire_and_dir8,asm,14,,,,0,read_fire_button read_joy_dir8,,2,,todo
-02046a,read_fire_button,asm,30,,,,2,,,0,,todo
-020488,read_joy_dir8,asm,56,,,,2,,,0,,todo
+02044c,poll_fire,asm,8,,,-32064,8,read_fire_button,,1,,ported
+020454,poll_joy_dir8,asm,8,,,-32058,3,read_joy_dir8,,1,,ported
+02045c,poll_fire_and_dir8,asm,14,,,,0,read_fire_button read_joy_dir8,,2,,drop
+02046a,read_fire_button,asm,30,,,,2,,,0,,replace
+020488,read_joy_dir8,asm,56,,,,2,,,0,,ported
 0204c0,sub_0204c0,C,36,0,,,0,sub_0228f8,,2,,todo
 0204e4,sub_0204e4,C,8,0,,,1,,,0,,todo
 0204ec,sub_0204ec,C,8,0,,,1,,,0,,todo
 0204f4,shape_find_c,C,26,4,8 12,-32052,3,shape_find,,0,,ported
 02050e,shape_by_index,C,82,0,8 12,-32046,2,,,0,,verified
 020560,shape_find,asm,84,,,-32040,4,,,0,,verified
-0205b4,key_set_qualifier_mask,C,24,2,8,,0,,,1,,todo
+0205b4,key_set_qualifier_mask,C,24,2,8,,0,,,1,,drop
 0205cc,keyboard_open,C,176,0,8,-32034,1,create_port create_std_io create_ext_io os_do_io os_open_device,,15,,replace
-02067c,keyboard_close,C,114,0,,-32028,1,sub_022b88 sub_022c30 sub_022ca4 sub_022cfa os_do_io,,5,,todo
-0206ee,key_wait_char,C,18,0,,-32022,0,key_to_char key_get,,0,,todo
-020700,key_to_char,C,90,28,8 10,-32016,4,os_console_raw_key_convert,,0,,todo
-02075a,input_handler,asm,126,,,-32010,0,,,6,,todo
-0207d8,key_available,asm,12,,,-32004,6,,,1,,todo
-0207e4,key_get,asm,100,,,-31998,5,key_available os_disable os_enable gfx_WaitTOF,,4,,todo
+02067c,keyboard_close,C,114,0,,-32028,1,sub_022b88 sub_022c30 sub_022ca4 sub_022cfa os_do_io,,5,,replace
+0206ee,key_wait_char,C,18,0,,-32022,0,key_to_char key_get,,0,,drop
+020700,key_to_char,C,90,28,8 10,-32016,4,os_console_raw_key_convert,,0,,verified
+02075a,input_handler,asm,126,,,-32010,0,,,6,,verified
+0207d8,key_available,asm,12,,,-32004,6,,,1,,verified
+0207e4,key_get,asm,100,,,-31998,5,key_available os_disable os_enable gfx_WaitTOF,,4,,verified
 020848,mem_alloc,C,22,0,8,-31992,8,sub_020874,,0,,replace
 02085e,mem_alloc_chip,C,22,0,8,-31986,3,sub_020874,,0,,replace
 020874,sub_020874,C,150,4,8 12,,4,sub_022d36,,1,,replace
@@ -614,4 +614,4 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 022f10,sub_022f10,asm,12,,,,1,,base@g_027fce LVO -78,1,,todo
 022f1c,os_close_window,asm,12,,,,1,,intuition.CloseWindow,1,,drop
 022f28,os_close_workbench,asm,8,,,,1,,intuition.CloseWorkBench,1,,drop
-022f30,os_console_raw_key_convert,asm,28,,,,1,,base@g_027f6a LVO -48,1,,todo
+022f30,os_console_raw_key_convert,asm,28,,,,1,,base@g_027f6a LVO -48,1,,replace

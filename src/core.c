@@ -1,25 +1,14 @@
 /* The core's entry points: initialisation, the VBlank clock, one pass of the main program,
  * and save states (SPEC 6.1).
  *
- * M1 ports the loaders, the decoders and the blit, not the game loop.  What runs per pass
- * is therefore still not the original's inner loop:
- *
- *   wof_vblank  will become the port of vblank_server (orig 0x011754) together with
- *               vblank_every_frame (orig 0x01C9CA): the fire-button press timer, the
- *               cancelling of opposing directions, the reversed-vertical option, the input
- *               byte and the six-entry queue.  For now it does only the part that the
- *               shell's clock has to get right from the start, namely the count to four.
- *   wof_pass    will resume the coroutine that the original's main loop becomes (SPEC 6.3)
- *               in M3.  For now it resumes the M1 viewer, which redraws when a key has
- *               changed what is on screen.
+ * wof_vblank is the port of vblank_server (orig 0x011754) with vblank_every_frame (orig
+ * 0x01C9CA) and lives in src/input.c, beside the rest of the sampling chain.  wof_pass
+ * resumes the coroutine that the original's main loop becomes (SPEC 6.3); until the front
+ * end takes it over it resumes the M1 viewer, which redraws when a key changed the page.
  */
 #include "wof.h"
 
 wof_state_t wof_s;
-
-/* Every 4th VBlank makes one logic tick: 15 Hz on a 60 Hz machine, 12.5 Hz on a 50 Hz one.
- * The program never asks which it is running on (re/notes/random.md). */
-#define VBLANKS_PER_TICK 4u
 
 void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
 {
@@ -33,6 +22,8 @@ void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
     wof_fs_open(fs, fs_len);
     wof_video_init();
     wof_audio_init();
+    wof_input_init();
+    wof_keys_init();
     wof_assets_init();
     wof_viewer_init();
     wof_viewer_pass();
@@ -41,23 +32,6 @@ void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
 void wof_set_video_hz(int hz)
 {
     wof_s.video_hz = (uint16_t)(hz == 50 ? 50 : 60);
-}
-
-/* raw: bit 0 forward (up), bit 1 back (down), bit 2 right, bit 3 left, bit 4 fire down. */
-void wof_vblank(uint8_t raw)
-{
-    wof_s.raw = (uint16_t)(raw & 0x1Fu);
-    wof_s.vblanks++;
-
-    if (++wof_s.vblank_in_tick < VBLANKS_PER_TICK)
-        return;
-
-    wof_s.vblank_in_tick = 0;
-    wof_s.ticks++;
-
-    /* Placeholder for the logic tick.  One entropy value per tick keeps the picture a
-     * function of the seed; the real consumers are the 43 rand_beam call sites. */
-    wof_s.noise = wof_entropy_next();
 }
 
 void wof_pass(void)
@@ -96,11 +70,14 @@ void wof_state_load(const uint8_t *src)
     wof_mem_copy(&in, src, sizeof in);
     if (in.magic != WOF_STATE_MAGIC || in.version != WOF_STATE_VERSION)
         return;                       /* not ours: leave the running state alone */
-    wof_s = in;
+    wof_mem_copy(&wof_s, &in, sizeof wof_s);
     wof_s.view_dirty = 1;             /* the picture follows the state, not the other way */
     wof_viewer_pass();
 }
 
-/* The save state is the struct's bytes, so the struct must not grow padding. */
-_Static_assert(sizeof(wof_state_t) == 9 * 4 + 8 * 2,
-               "wof_state_t has padding: wof_state_save would copy uninitialised bytes");
+/* The state travels as the struct's bytes, which is why it is copied with wof_mem_copy
+ * rather than assigned: a struct assignment need not carry the padding between members,
+ * and since the front end's globals moved into the struct (src/globals.def) it has some.
+ * wof_init zeroes the whole struct, so the padding is deterministic and the round trip is
+ * exact; tests/test_core_native.py holds it to that.  The registry's own claim, that the
+ * globals struct is the sum of its members, is checked in tests/test_oracle_m3.py. */

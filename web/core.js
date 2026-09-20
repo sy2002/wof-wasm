@@ -66,10 +66,31 @@ class Core {
         this.x.wof_pass();
     }
 
-    /* TEMPORARY - the M1 viewer's four keys (src/viewer.c).  The real key path, positional
-       Amiga codes into the core's key buffer, belongs to the front end of M3. */
+    /* TEMPORARY - the M1 viewer's four keys (src/viewer.c).  It goes when the front end
+       takes the page over. */
     keyPress(code) {
         this.x.wof_key_press(code & 0xff);
+    }
+
+    /* The real key path (SPEC 6.2): a positional raw Amiga key code and the qualifier bits
+       of Shift and Caps Lock, through the port's own layer in front of the key buffer. */
+    portKey(code, qualifier) {
+        this.x.wof_port_key(code & 0xff, qualifier & 0xffff);
+    }
+
+    /* The buffer itself, for a test that wants to bypass the port's layer. */
+    key(code, qualifier) {
+        this.x.wof_key(code & 0xff, qualifier & 0xffff);
+    }
+
+    /* The owner's remembered vertical flip.  It is a preference, not game state: the shell
+       stores it and hands it over at start, and it wins over a loaded game (SPEC 6.1). */
+    setInvertVertical(on) {
+        this.x.wof_set_invert_vertical(on ? 1 : 0);
+    }
+
+    invertVertical() {
+        return this.x.wof_invert_vertical() !== 0;
     }
 
     /* Interleaved stereo int16, as many frames as asked for, at the given sample rate. */

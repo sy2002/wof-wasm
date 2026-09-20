@@ -32,11 +32,94 @@ const PAD_BUTTONS = { 12: 0x01, 13: 0x02, 14: 0x08, 15: 0x04 };  /* d-pad up dow
 const PAD_FIRE = [0, 1, 2, 3, 6, 7];
 const PAD_DEADZONE = 0.4;
 
-export function createInput(target) {
+/* ------------------------------------------------------- the second path: raw key codes
+ *
+ * The menus, the briefing, the line editor and the in-flight commands read raw Amiga key
+ * codes, which are positional, so the shell maps KeyboardEvent.code, which is positional
+ * too: a German keyboard gives the same codes as an American one and the same characters
+ * come out of the core's conversion table (re/notes/keys.md, SPEC 6.2).
+ *
+ * The function keys and Help are deliberately absent.  A page that swallowed F5 or F12
+ * would take reload and the developer tools away from the player, and the only reader of
+ * them in the whole executable is the cheat debug set, which M4 ports.
+ */
+const RAW_CODES = {
+    Backquote: 0x00,
+    Digit1: 0x01, Digit2: 0x02, Digit3: 0x03, Digit4: 0x04, Digit5: 0x05,
+    Digit6: 0x06, Digit7: 0x07, Digit8: 0x08, Digit9: 0x09, Digit0: 0x0a,
+    Minus: 0x0b, Equal: 0x0c, IntlYen: 0x0d, Backspace: 0x41,
+
+    Tab: 0x42,
+    KeyQ: 0x10, KeyW: 0x11, KeyE: 0x12, KeyR: 0x13, KeyT: 0x14, KeyY: 0x15,
+    KeyU: 0x16, KeyI: 0x17, KeyO: 0x18, KeyP: 0x19,
+    BracketLeft: 0x1a, BracketRight: 0x1b,
+
+    CapsLock: 0x62,
+    KeyA: 0x20, KeyS: 0x21, KeyD: 0x22, KeyF: 0x23, KeyG: 0x24, KeyH: 0x25,
+    KeyJ: 0x26, KeyK: 0x27, KeyL: 0x28,
+    Semicolon: 0x29, Quote: 0x2a, Backslash: 0x2b, Enter: 0x44,
+
+    ShiftLeft: 0x60, IntlBackslash: 0x30,
+    KeyZ: 0x31, KeyX: 0x32, KeyC: 0x33, KeyV: 0x34, KeyB: 0x35, KeyN: 0x36, KeyM: 0x37,
+    Comma: 0x38, Period: 0x39, Slash: 0x3a, IntlRo: 0x3b, ShiftRight: 0x61,
+
+    Space: 0x40, Escape: 0x45, Delete: 0x46,
+    ArrowUp: 0x4c, ArrowDown: 0x4d, ArrowRight: 0x4e, ArrowLeft: 0x4f,
+
+    Numpad0: 0x0f, Numpad1: 0x1d, Numpad2: 0x1e, Numpad3: 0x1f,
+    Numpad4: 0x2d, Numpad5: 0x2e, Numpad6: 0x2f,
+    Numpad7: 0x3d, Numpad8: 0x3e, Numpad9: 0x3f,
+    NumpadDecimal: 0x3c, NumpadEnter: 0x43, NumpadSubtract: 0x4a,
+    NumpadLeftParen: 0x5a, NumpadRightParen: 0x5b,
+    NumpadDivide: 0x5c, NumpadMultiply: 0x5d, NumpadAdd: 0x5e,
+};
+
+/* The qualifier bits the shell sends.  Never Control: the game reads that bit and the
+   port's own key layer is what puts it there (SPEC 6.2). */
+const IEQUALIFIER_LSHIFT = 0x0001;
+const IEQUALIFIER_RSHIFT = 0x0002;
+const IEQUALIFIER_CAPSLOCK = 0x0004;
+
+export function createInput(target, core) {
     let held = 0;
     let sticky = 0;
+    let shiftLeft = false;
+    let shiftRight = false;
+
+    /* The qualifier word of a key press.  Which Shift key is down is tracked rather than
+       taken from event.shiftKey, which does not say; without either of them seen the left
+       one is assumed, because the two convert alike. */
+    function qualifier(e) {
+        let bits = 0;
+        if (shiftLeft || (e.shiftKey && !shiftRight)) {
+            bits |= IEQUALIFIER_LSHIFT;
+        }
+        if (shiftRight) {
+            bits |= IEQUALIFIER_RSHIFT;
+        }
+        if (e.getModifierState && e.getModifierState('CapsLock')) {
+            bits |= IEQUALIFIER_CAPSLOCK;
+        }
+        return bits;
+    }
 
     target.addEventListener('keydown', (e) => {
+        if (e.code === 'ShiftLeft') {
+            shiftLeft = true;
+        } else if (e.code === 'ShiftRight') {
+            shiftRight = true;
+        }
+
+        /* A key pressed with Control, Alt or Command belongs to the browser, not to the
+           game, and a page cannot take all of those away from it (SPEC 6.2). */
+        /* Backquote is the diagnostics toggle and is the one printable key the game
+           never sees; naming it by its position is what web/index.html does. */
+        const raw = e.code === 'Backquote' ? undefined : RAW_CODES[e.code];
+        if (raw !== undefined && !e.ctrlKey && !e.altKey && !e.metaKey && core) {
+            core.portKey(raw, qualifier(e));
+            e.preventDefault();
+        }
+
         const bit = KEYS[e.code];
         if (bit === undefined) {
             return;
@@ -47,6 +130,11 @@ export function createInput(target) {
     });
 
     target.addEventListener('keyup', (e) => {
+        if (e.code === 'ShiftLeft') {
+            shiftLeft = false;
+        } else if (e.code === 'ShiftRight') {
+            shiftRight = false;
+        }
         const bit = KEYS[e.code];
         if (bit === undefined) {
             return;
@@ -56,7 +144,7 @@ export function createInput(target) {
     });
 
     /* A key can be released while the page is not listening; forget everything held. */
-    window.addEventListener('blur', () => { held = 0; });
+    window.addEventListener('blur', () => { held = 0; shiftLeft = false; shiftRight = false; });
 
     function gamepad() {
         if (!navigator.getGamepads) {
@@ -96,5 +184,5 @@ export function createInput(target) {
 
     /* What the next consume() would return, without consuming the latch: the overlay has to
        show gamepad input too, and must not eat a press on its way past. */
-    return { consume, raw: () => (held | sticky | gamepad()) & 0x1f };
+    return { consume, raw: () => (held | sticky | gamepad()) & 0x1f, rawCodes: RAW_CODES };
 }

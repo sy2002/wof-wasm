@@ -35,8 +35,11 @@ def test_geometry_is_queryable_and_sane(wasm):
 
 
 def test_four_vblanks_make_one_tick(wasm):
+    """vblank_server counts a divider down from 4 and samples when it goes below 1.  The
+    divider lies in the zero-filled part of DATA, so the very first VBlank samples and the
+    next one is the fifth: N VBlanks give ceil(N / 4) samples, not floor."""
     for step in wasm['ticks']['steps']:
-        assert step['ticks'] == step['vblanks'] // 4, step
+        assert step['ticks'] == -(-step['vblanks'] // 4), step
         assert step['passes'] == step['vblanks'], step
     after = wasm['ticks']['after600']
     assert (after['vblanks'], after['ticks'], after['passes']) == (600, 150, 600)

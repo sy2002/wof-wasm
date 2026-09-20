@@ -29,6 +29,26 @@ const INERT_KEYS = new Set([
     'NumLock', 'ScrollLock', 'Fn', 'FnLock', 'Hyper', 'Super', 'Symbol', 'SymbolLock',
 ]);
 
+/* The shell's own settings live beside the game's files, under the same wof: prefix
+   (SPEC 6.2, Storage).  A browser that refuses storage must not stop the game. */
+const SETTINGS_PREFIX = 'wof:';
+
+function readSetting(name) {
+    try {
+        return window.localStorage.getItem(SETTINGS_PREFIX + name);
+    } catch (err) {
+        return null;
+    }
+}
+
+function writeSetting(name, value) {
+    try {
+        window.localStorage.setItem(SETTINGS_PREFIX + name, value);
+    } catch (err) {
+        /* private mode, or storage turned off: the setting simply does not survive */
+    }
+}
+
 function decodeBase64(text) {
     const binary = atob(text.replace(/\s+/g, ''));
     const out = new Uint8Array(binary.length);
@@ -51,13 +71,25 @@ async function boot() {
 
     const core = await loadCore(wasm, blob, SEED);
     const video = createVideo(document.getElementById('screen'), core);
-    const input = createInput(window);
+    const input = createInput(window, core);
+
+    /* The vertical flip is the owner's, not the game's: hand the remembered value over
+       before the first VBlank and write it back whenever the flip command changes it. */
+    let invert = readSetting('invertVertical') === '1';
+    core.setInvertVertical(invert);
+    function rememberInvert() {
+        if (core.invertVertical() !== invert) {
+            invert = core.invertVertical();
+            writeSetting('invertVertical', invert ? '1' : '0');
+        }
+    }
     const audio = createAudio(core);
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
         overlay.paint(now);
         checkAudioStarted();
+        rememberInvert();
     });
 
     /* The overlay needs the clock and the clock needs the overlay's paint function; the
@@ -126,14 +158,19 @@ async function boot() {
         window.removeEventListener('pointerdown', onGesture);
     }
 
+    /* The shell's own keys.  Only the diagnostics toggle is always live; everything else
+       the shell reads for itself works while the overlay is up, so that a key the game
+       wants - a digit typed into a name, say - never goes to the shell instead.  The
+       toggle is named by its position, because the character on it differs by keyboard,
+       and it is the one printable key the game cannot see. */
     window.addEventListener('keydown', (event) => {
         if (event.code === 'Backquote') {
             overlay.toggle();
             showOrHideHint();
             event.preventDefault();
-        } else if (event.code === 'Digit5') {
+        } else if (overlay.visible() && event.code === 'Digit5') {
             setStandard('pal');
-        } else if (event.code === 'Digit6') {
+        } else if (overlay.visible() && event.code === 'Digit6') {
             setStandard('ntsc');
         } else if (VIEWER_KEYS[event.code] !== undefined) {
             core.keyPress(VIEWER_KEYS[event.code]);

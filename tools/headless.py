@@ -116,6 +116,77 @@ DEFAULT_RUN = {
 }
 
 
+
+
+# ------------------------------------------------------------------ the Kickstart ROM
+# Two parts of the owner's ROM run for real, and the build needs one of them as well: the
+# key conversion table of SPEC 5 step 1 comes from the same RawKeyConvert with the same
+# keymap that a run uses (tools/extract_tables.py, re/notes/keys.md).  The three lookups
+# take the ROM image and its base so that both callers can use them.
+
+def rom_resident(rom, base, name):
+    """The offset of a resident module of the ROM, found by its name."""
+    wanted = name.encode() + b'\0'
+    for offset in range(0, len(rom) - 26, 2):
+        if rom[offset:offset + 2] != b'\x4a\xfc' or struct.unpack_from('>L', rom, offset + 2)[0] != base + offset:
+            continue
+        at = struct.unpack_from('>L', rom, offset + 14)[0] - base
+        if rom[at:at + len(wanted)] == wanted:
+            return offset
+    return None
+
+
+def rom_vectors(rom, base, table):
+    """A library or device function table of the ROM, as MakeLibrary reads it."""
+    at, vectors = table - base, []
+    if struct.unpack_from('>h', rom, at)[0] == -1:                # word offsets from the table
+        at += 2
+        while struct.unpack_from('>h', rom, at)[0] != -1:
+            vectors.append(table + struct.unpack_from('>h', rom, at)[0])
+            at += 2
+    else:
+        while struct.unpack_from('>l', rom, at)[0] != -1:
+            vectors.append(struct.unpack_from('>L', rom, at)[0])
+            at += 4
+    return vectors
+
+
+def find_rom_console(rom, base):
+    """console.device's RawKeyConvert and the keymap it converts with, both found in the
+    ROM by their contents, as re/notes/system-font.md finds topaz 8.
+
+    The resident module is found by its name.  It is not RTF_AUTOINIT, so its init code
+    builds the device itself; that code begins with a movem and three `lea d16(pc),Ax`,
+    of which the first gives the function table.  RawKeyConvert is LVO -48, the eighth
+    entry.  The keymap is the one the ROM's console.device uses when a caller passes
+    none: its LoKeyMap is found by the QWERTY row and the KeyMap record by a pointer to
+    it.  Returns (RawKeyConvert, KeyMap), either of them None when it is not found."""
+    if rom is None:
+        return None, None
+    convert = keymap = None
+    offset = rom_resident(rom, base, 'console.device')
+    if offset is not None:
+        init = struct.unpack_from('>L', rom, offset + 22)[0] - base
+        for at in range(init, init + 16, 2):
+            if rom[at:at + 2] == b'\x41\xfa':                     # lea d16(pc),a0
+                vectors = rom_vectors(rom, base, base + at + 2 + struct.unpack_from('>h', rom, at + 2)[0])
+                if len(vectors) == 8:
+                    convert = vectors[7]
+                break
+    # The LoKeyMap holds four bytes per raw code: alt-shift, alt, shift, plain.  Key 0x10
+    # is the first of the QWERTY row, 0x21 and 0x22 the next two of the home row.
+    for at in range(0, len(rom) - 0x100, 2):                   # at is the LoKeyMap itself
+        if (rom[at + 0x10 * 4 + 2:at + 0x10 * 4 + 4] != b'Qq' or
+                rom[at + 0x11 * 4 + 2:at + 0x11 * 4 + 4] != b'Ww' or
+                rom[at + 0x21 * 4 + 2:at + 0x21 * 4 + 4] != b'Ss'):
+            continue
+        found = rom.find(struct.pack('>L', base + at))            # km_LoKeyMap, the second long
+        if found > 4:
+            keymap = base + found - 4
+        break
+    return convert, keymap
+
+
 class Stuck(HarnessError):
     pass
 
@@ -398,31 +469,10 @@ class Headless(AmigaOS):
         return rom, base
 
     def _rom_resident(self, name):
-        """The offset of a resident module of the ROM, found by its name."""
-        rom, base = self.rom, self.rom_base
-        wanted = name.encode() + b'\0'
-        for offset in range(0, len(rom) - 26, 2):
-            if rom[offset:offset + 2] != b'\x4a\xfc' or struct.unpack_from('>L', rom, offset + 2)[0] != base + offset:
-                continue
-            at = struct.unpack_from('>L', rom, offset + 14)[0] - base
-            if rom[at:at + len(wanted)] == wanted:
-                return offset
-        return None
+        return rom_resident(self.rom, self.rom_base, name)
 
     def _rom_vectors(self, table):
-        """A library or device function table of the ROM, as MakeLibrary reads it."""
-        rom, base = self.rom, self.rom_base
-        at, vectors = table - base, []
-        if struct.unpack_from('>h', rom, at)[0] == -1:                # word offsets from the table
-            at += 2
-            while struct.unpack_from('>h', rom, at)[0] != -1:
-                vectors.append(table + struct.unpack_from('>h', rom, at)[0])
-                at += 2
-        else:
-            while struct.unpack_from('>l', rom, at)[0] != -1:
-                vectors.append(struct.unpack_from('>L', rom, at)[0])
-                at += 4
-        return vectors
+        return rom_vectors(self.rom, self.rom_base, table)
 
     def _map_rom_mathffp(self):
         """Game logic computes with mathffp.library.  Its routines are pure register arithmetic,
@@ -440,40 +490,7 @@ class Headless(AmigaOS):
         return vectors
 
     def _find_rom_console(self):
-        """console.device's RawKeyConvert and the keymap it converts with, both found in the
-        ROM by their contents, as re/notes/system-font.md finds topaz 8.
-
-        The resident module is found by its name.  It is not RTF_AUTOINIT, so its init code
-        builds the device itself; that code begins with a movem and three `lea d16(pc),Ax`,
-        of which the first gives the function table.  RawKeyConvert is LVO -48, the eighth
-        entry.  The keymap is the one the ROM's console.device uses when a caller passes
-        none: its LoKeyMap is found by the QWERTY row and the KeyMap record by a pointer to
-        it.  Returns (RawKeyConvert, KeyMap), either of them None when it is not found."""
-        if self.rom is None:
-            return None, None
-        rom, base = self.rom, self.rom_base
-        convert = keymap = None
-        offset = self._rom_resident('console.device')
-        if offset is not None:
-            init = struct.unpack_from('>L', rom, offset + 22)[0] - base
-            for at in range(init, init + 16, 2):
-                if rom[at:at + 2] == b'\x41\xfa':                     # lea d16(pc),a0
-                    vectors = self._rom_vectors(base + at + 2 + struct.unpack_from('>h', rom, at + 2)[0])
-                    if len(vectors) == 8:
-                        convert = vectors[7]
-                    break
-        # The LoKeyMap holds four bytes per raw code: alt-shift, alt, shift, plain.  Key 0x10
-        # is the first of the QWERTY row, 0x21 and 0x22 the next two of the home row.
-        for at in range(0, len(rom) - 0x100, 2):                   # at is the LoKeyMap itself
-            if (rom[at + 0x10 * 4 + 2:at + 0x10 * 4 + 4] != b'Qq' or
-                    rom[at + 0x11 * 4 + 2:at + 0x11 * 4 + 4] != b'Ww' or
-                    rom[at + 0x21 * 4 + 2:at + 0x21 * 4 + 4] != b'Ss'):
-                continue
-            found = rom.find(struct.pack('>L', base + at))            # km_LoKeyMap, the second long
-            if found > 4:
-                keymap = base + found - 4
-            break
-        return convert, keymap
+        return find_rom_console(self.rom, self.rom_base)
 
     def segment_block(self, index):
         return SEG_AREA + index * SEG_SPAN

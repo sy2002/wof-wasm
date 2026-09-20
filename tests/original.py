@@ -44,10 +44,18 @@ CMAP_FILE_TABLE = 0x016DD6
 SHAPE_DRAW      = 0x020CE2
 CLIP_SET        = 0x02129C
 
+# M3: the key buffer and its readers (re/notes/keys.md)
+INPUT_HANDLER   = 0x02075A
+KEY_AVAILABLE   = 0x0207D8
+KEY_GET         = 0x0207E4
+
 # Patched
 MEM_ALLOC_ASM     = 0x0158EC
 VPORT_CLEAR       = 0x01A74C
 FONT_LOAD_LOADCALL = 0x012798      # pea name / jsr load_file_public / addq.w #4,a7
+OS_DISABLE        = 0x022D48       # exec.Disable and exec.Enable thunks; key_get brackets
+OS_ENABLE         = 0x022D66       #   its shift with them and there is no SysBase here
+GFX_WAITTOF       = 0x022EEE       # key_get spins on it when the buffer is empty
 
 # Globals (A4-relative addresses resolved to the load layout of SPEC 3.2)
 DRAW_RASTPORT   = 0x026F1A
@@ -56,6 +64,13 @@ MASKBUFFER      = 0x027436
 MASKBUFFER_SIZE = 0x02743A
 
 VPORT_SIZE = 0xAC
+
+# The key buffer and the three words keyboard_open sets (re/notes/keys.md)
+KEY_BUFFER      = 0x026C98         # 10 raw codes
+KEY_QUAL_BUFFER = 0x026CA2         # 10 qualifier words
+KEY_COUNT       = 0x026CB6
+KEY_BUFFER_MAX  = 0x026CB8
+KEY_QUAL_MASK   = 0x026D30
 
 
 def game_file(name):
@@ -82,6 +97,14 @@ class Original:
 
     def stub_clear_planes(self):
         self.patch(VPORT_CLEAR, b'\x4e\x75')            # rts
+
+    def stub_key_os(self):
+        """key_get brackets its shift with exec Disable and Enable and spins on WaitTOF while
+        the buffer is empty.  None of the three is the routine under test and none of them has
+        a meaning without the operating system, so all three become an immediate return; every
+        caller of key_get asks key_available first, so the spin is never reached anyway."""
+        for address in (OS_DISABLE, OS_ENABLE, GFX_WAITTOF):
+            self.patch(address, b'\x4e\x75')
 
     def stub_font_loader(self, image):
         """The ten bytes that load newarmyfont become move.l #image,d0 and two nops."""
@@ -150,6 +173,40 @@ class Original:
         width, height = struct.unpack('>HH', self.get(start, 4))
         masks = [b for b in self.get(start + 14, 6) if b]
         return self.get(start, 20 + len(masks) * width * height)
+
+    # ------------------------------------------------------------ the key buffer, M3
+
+    def keys_init(self, mask=0):
+        """The three words keyboard_open (0x0205CC) sets before it opens anything."""
+        self.stub_key_os()
+        self.o.w16(KEY_QUAL_MASK, mask)
+        self.o.w16(KEY_BUFFER_MAX, 10)
+        self.o.w16(KEY_COUNT, 0)
+        self.o.write(KEY_BUFFER, bytes(10))
+        self.o.write(KEY_QUAL_BUFFER, bytes(20))
+
+    def key_event(self, code, qualifier=0):
+        """One IECLASS_RAWKEY event through input_handler, as input.device delivers it."""
+        event = self.o.alloc(22, fill=0)
+        self.o.w32(event, 0)                           # ie_NextEvent: one event in the chain
+        self.o.write(event + 4, bytes([1, 0]))         # ie_Class = IECLASS_RAWKEY, ie_SubClass
+        self.o.w16(event + 6, code)
+        self.o.w16(event + 8, qualifier)
+        self.o.call(INPUT_HANDLER, regs={'a0': event})
+
+    def key_available(self):
+        """moveq #$ff,d0 leaves -1 in the register; the byte it put there is what the port
+        hands back, and no caller reads more than the zero test."""
+        return self.o.call(KEY_AVAILABLE) & 0xFF
+
+    def key_get(self):
+        return self.o.call(KEY_GET) & 0xFFFFFFFF
+
+    def key_state(self):
+        """The buffer as the port's registry reports it: codes, qualifiers, count."""
+        codes = list(self.o.read(KEY_BUFFER, 10))
+        quals = [self.o.r16(KEY_QUAL_BUFFER + 2 * i) for i in range(10)]
+        return codes, quals, self.o.r16(KEY_COUNT)
 
     def colour_lerp(self, step, source, target):
         return self.o.call(COLOUR_LERP, self.o.W(step), self.o.W(source),

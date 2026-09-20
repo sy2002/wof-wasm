@@ -85,20 +85,16 @@ Observed under the harness (`test_the_rom_converts_raw_codes_as_the_game_expects
 | `0x4C` | none | two: no character for the game |
 | `0x50` | none | three: no character for the game |
 
-**For the port.** The port needs the same table. Two ways, neither built here:
-
-1. Take the default keymap out of `original/kick.rom` at build time the way the topaz 8 font is
-   taken, and reimplement `RawKeyConvert`'s few rules (the type byte selects which of the four
-   bytes of a key's longword applies; Control ands the result with `0x9F`; `KCF_STRING` and
-   `KCF_DEAD` entries point at descriptor tables). Faithful and needs no new data on the disk.
-2. Generate a plain `code x qualifier -> character` table at build time by running the ROM's
-   routine, as the harness does, and embed that. Smaller and simpler; it loses nothing the game
-   uses, because the game asks for single characters only.
-
-Recommendation: **(2)**, a generated table, with the extraction living beside the font extraction.
-The game never converts with a keymap of its own and never asks for more than one character, so
-the general routine buys nothing. Whichever is chosen, the port's key map is positional, so a
-German keyboard gives the same raw codes as an American one and the same characters come out.
+**For the port.** The port needs the same table, and M3 generates it: the build runs the ROM's
+own `RawKeyConvert` with the ROM's own default keymap, both located by their contents, over
+every raw code and every qualifier combination the shell can send, and embeds the single
+characters as a plain `code x qualifier -> character` table beside the font extraction
+(`SPEC.md` section 5 step 1, `re/notes/porting-m3.md`). Reimplementing the routine instead —
+the type byte selects which of the four bytes of a key's longword applies, Control ands the
+result with `0x9F`, `KCF_STRING` and `KCF_DEAD` entries point at descriptor tables — buys
+nothing here, because the game never converts with a keymap of its own and never asks for more
+than one character. The port's key map is positional either way, so a German keyboard gives the
+same raw codes as an American one and the same characters come out.
 
 ## The five readers
 
@@ -244,8 +240,9 @@ Both the restart and the load were run
 `test_the_flip_is_read_by_the_joystick_decoder_and_by_nothing_else`. The original therefore never
 remembers the flip past the end of the program, and a loaded game can take it away under the
 player. **For the port** that is worth diverging from: the flip is a preference, not game state,
-so it belongs in the shell's stored settings and should survive both a reload and a load, with the
-core's word set from the setting after every load. That is a decision for the owner.
+so it belongs in the shell's stored settings and survives both a reload and a load, with the
+core's word set from the setting after every load. The owner decided for it; what M3 built is in
+`re/notes/porting-m3.md`.
 
 ## The right mouse button
 

@@ -226,3 +226,99 @@ int wt_blit(int slot, int i, int bytes_per_row, int rows, int depth,
     wof_shape_draw(&c->shapes[i], (int16_t)x, (int16_t)y);
     return (int)n;
 }
+
+/* ------------------------------------------------------ the registry of src/globals.def
+ *
+ * SPEC 7.2: every ported global gets an entry in a registry, and the test harness uses it
+ * to copy state between the oracle and the port with byte-order conversion.  The entries
+ * are read here rather than mirrored in Python, so that a global added to globals.def is
+ * visible to the tests without a second edit.  An element is read and written as an
+ * integer, which is what makes the byte order the host's problem and not the test's.
+ */
+typedef struct {
+    const char *name;
+    uint32_t    elem;       /* bytes per element */
+    uint32_t    count;      /* elements */
+    uint32_t    addr;       /* the original's address, SPEC 3.2 load layout */
+    uint32_t    offset;     /* inside wof_globals_t */
+} wt_global_t;
+
+static const wt_global_t wt_globals[] = {
+#define WOF_GLOBAL(n, t, a)          { #n, (uint32_t)sizeof(t), 1u, (uint32_t)(a), \
+                                       (uint32_t)offsetof(wof_globals_t, n) },
+#define WOF_GLOBAL_ARRAY(n, t, c, a) { #n, (uint32_t)sizeof(t), (uint32_t)(c), (uint32_t)(a), \
+                                       (uint32_t)offsetof(wof_globals_t, n) },
+#include "globals.def"
+#undef WOF_GLOBAL
+#undef WOF_GLOBAL_ARRAY
+};
+
+int wt_global_count(void)
+{
+    return (int)(sizeof wt_globals / sizeof wt_globals[0]);
+}
+
+int wt_globals_bytes(void)
+{
+    return (int)sizeof(wof_globals_t);
+}
+
+static const wt_global_t *entry_at(int i)
+{
+    return (i < 0 || i >= wt_global_count()) ? 0 : &wt_globals[i];
+}
+
+const char *wt_global_name(int i)
+{
+    const wt_global_t *e = entry_at(i);
+
+    return e ? e->name : 0;
+}
+
+int wt_global_elem(int i)   { const wt_global_t *e = entry_at(i); return e ? (int)e->elem : -1; }
+int wt_global_elems(int i)  { const wt_global_t *e = entry_at(i); return e ? (int)e->count : -1; }
+unsigned wt_global_addr(int i)   { const wt_global_t *e = entry_at(i); return e ? e->addr : 0u; }
+unsigned wt_global_offset(int i) { const wt_global_t *e = entry_at(i); return e ? e->offset : 0u; }
+
+static uint8_t *element(int i, int index, uint32_t *size)
+{
+    const wt_global_t *e = entry_at(i);
+
+    if (!e || index < 0 || (uint32_t)index >= e->count)
+        return 0;
+    *size = e->elem;
+    return (uint8_t *)&wof_s.g + e->offset + (uint32_t)index * e->elem;
+}
+
+unsigned wt_global_get(int i, int index)
+{
+    uint32_t size = 0;
+    const uint8_t *at = element(i, index, &size);
+    uint32_t value = 0;
+
+    if (!at)
+        return 0u;
+    for (uint32_t b = 0; b < size; b++)               /* host order, both targets little */
+        value |= (uint32_t)at[b] << (8 * b);
+    return value;
+}
+
+void wt_global_set(int i, int index, unsigned value)
+{
+    uint32_t size = 0;
+    uint8_t *at = element(i, index, &size);
+
+    if (!at)
+        return;
+    for (uint32_t b = 0; b < size; b++)
+        at[b] = (uint8_t)(value >> (8 * b));
+}
+
+/* The two front-end flags the port's key layer asks about (SPEC 6.2).  A test sets them
+ * directly so that the layer can be checked in all four of its states without first
+ * driving the front end into each of them. */
+void wt_front_set(int editing, int briefing)
+{
+    wof_f.editing  = (uint16_t)(editing ? 1 : 0);
+    wof_f.briefing = (uint16_t)(briefing ? 1 : 0);
+}

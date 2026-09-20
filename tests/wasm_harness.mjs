@@ -160,7 +160,7 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     };
 }
 
-/* N VBlanks give N / 4 ticks, and the boundary lands where vblank_server puts it. */
+/* N VBlanks give ceil(N / 4) samples: the divider starts at 0, so the first one samples. */
 {
     const x = boot(1);
     const steps = [];

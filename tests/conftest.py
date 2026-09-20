@@ -274,6 +274,31 @@ class Ported:
             'wt_text_render': ([c, i, u8p, i, i, i, i, i], i),
             'wt_font_height': ([], i),
             'wt_blit': ([i] * 11 + [u8p, u8p], i),
+            # M3: the key path, the input sampling and the registry of src/globals.def
+            'wof_keys_init': ([], None),
+            'wof_key': ([ctypes.c_uint8, ctypes.c_uint16], None),
+            'wof_port_key': ([ctypes.c_uint8, ctypes.c_uint16], None),
+            'wof_key_available': ([], i),
+            'wof_key_get': ([], ctypes.c_uint32),
+            'wof_key_to_char': ([ctypes.c_uint32], ctypes.c_uint16),
+            'wof_set_invert_vertical': ([i], None),
+            'wof_invert_vertical': ([], i),
+            'wof_input_init': ([], None),
+            'wof_vblank': ([ctypes.c_uint8], None),
+            'wof_poll_fire': ([], i),
+            'wof_poll_joy_dir8': ([], i),
+            'wof_read_joy_bits': ([], ctypes.c_uint16),
+            'wof_input_queue_clear': ([], None),
+            'wt_global_count': ([], i),
+            'wt_globals_bytes': ([], i),
+            'wt_global_name': ([i], ctypes.c_char_p),
+            'wt_global_elem': ([i], i),
+            'wt_global_elems': ([i], i),
+            'wt_global_addr': ([i], ctypes.c_uint32),
+            'wt_global_offset': ([i], ctypes.c_uint32),
+            'wt_global_get': ([i, i], ctypes.c_uint32),
+            'wt_global_set': ([i, i, ctypes.c_uint32], None),
+            'wt_front_set': ([i, i], None),
         }
         for name, (argtypes, restype) in signatures.items():
             function = getattr(self.lib, name)
@@ -364,6 +389,81 @@ class Ported:
 
     def colour_lerp(self, step, source, target):
         return self.lib.wof_colour_lerp(step, source, target)
+
+    # ------------------------------------------------------------ the key path, M3
+
+    def keys_init(self):
+        self.lib.wof_keys_init()
+
+    def key(self, code, qualifier=0):
+        self.lib.wof_key(code, qualifier)
+
+    def port_key(self, code, qualifier=0):
+        self.lib.wof_port_key(code, qualifier)
+
+    def key_available(self):
+        return self.lib.wof_key_available()
+
+    def key_get(self):
+        return self.lib.wof_key_get()
+
+    def key_to_char(self, key):
+        return self.lib.wof_key_to_char(key)
+
+    def set_invert_vertical(self, on):
+        self.lib.wof_set_invert_vertical(1 if on else 0)
+
+    def invert_vertical(self):
+        return self.lib.wof_invert_vertical()
+
+    def input_init(self):
+        self.lib.wof_input_init()
+
+    def vblank(self, raw):
+        self.lib.wof_vblank(raw)
+
+    def poll_fire(self):
+        return self.lib.wof_poll_fire()
+
+    def poll_joy_dir8(self):
+        return self.lib.wof_poll_joy_dir8()
+
+    def read_joy_bits(self):
+        return self.lib.wof_read_joy_bits()
+
+    def input_queue_clear(self):
+        self.lib.wof_input_queue_clear()
+
+    # ------------------------------------------- the registry of src/globals.def, SPEC 7.2
+
+    def globals_registry(self):
+        """name -> (element size, element count, the original's address, struct offset)."""
+        out = {}
+        for index in range(self.lib.wt_global_count()):
+            out[self.lib.wt_global_name(index).decode()] = (
+                self.lib.wt_global_elem(index), self.lib.wt_global_elems(index),
+                self.lib.wt_global_addr(index), self.lib.wt_global_offset(index))
+        return out
+
+    def globals_bytes(self):
+        return self.lib.wt_globals_bytes()
+
+    def _global_index(self, name):
+        for index in range(self.lib.wt_global_count()):
+            if self.lib.wt_global_name(index).decode() == name:
+                return index
+        raise KeyError('%s is not in src/globals.def' % name)
+
+    def g(self, name, index=0):
+        return self.lib.wt_global_get(self._global_index(name), index)
+
+    def g_all(self, name):
+        which = self._global_index(name)
+        return [self.lib.wt_global_get(which, i)
+                for i in range(self.lib.wt_global_elems(which))]
+
+    def set_g(self, name, value, index=0):
+        self.lib.wt_global_set(self._global_index(name), index, value)
 
     # --------------------------------------------------------------------- blit
 

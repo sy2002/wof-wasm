@@ -153,6 +153,127 @@ def emit_strptrs(image, entry, header, source):
     emit_string_array(name, addr, raws, addrs, header, source)
 
 
+# ------------------------------------------------------------- the key conversion table
+
+# The qualifier bits the table covers.  The shell sends the two Shift keys and Caps Lock and
+# ignores a key pressed with Control, Alt or Command; the port's own key layer adds Control
+# in front of the game's command keys (SPEC 6.2).  Nothing else ever reaches key_to_char, so
+# four bits is the whole space the game can ask for.
+KEYMAP_CODES = 128                  # input_handler drops a code with bit 7 set: that is key-up
+KEYMAP_QUALIFIERS = 16              # lshift 1, rshift 2, capslock 4, ctrl 8
+
+# Without the ROM the table holds only what the positions of the raw codes give
+# (re/notes/keys.md): letters, digits and the space bar.  Everything else - Return, Escape,
+# the editing keys - is tested by its raw code before key_to_char is reached, so the line
+# editor and the menus still work; what is lost is typing anything but a letter or a digit.
+POSITIONAL = {}
+for _row, _text in ((0x01, '1234567890'), (0x10, 'qwertyuiop'),
+                    (0x20, 'asdfghjkl'), (0x31, 'zxcvbnm')):
+    for _i, _c in enumerate(_text):
+        POSITIONAL[_row + _i] = _c
+POSITIONAL[0x40] = ' '
+
+
+def keymap_positional():
+    """The fallback table: raw code and qualifier -> character, from the positions alone."""
+    table = bytearray(KEYMAP_CODES * KEYMAP_QUALIFIERS)
+    for code, letter in POSITIONAL.items():
+        for qualifier in range(KEYMAP_QUALIFIERS):
+            shifted = bool(qualifier & 0x03) or (bool(qualifier & 0x04) and letter.isalpha())
+            character = letter.upper() if shifted and letter.isalpha() else letter
+            value = ord(character)
+            if qualifier & 0x08:                # RawKeyConvert ands a Control result with 0x9F
+                value &= 0x9F
+            table[code * KEYMAP_QUALIFIERS + qualifier] = value
+    return bytes(table)
+
+
+def keymap_from_rom(rom, log):
+    """The real table: console.device's RawKeyConvert with the ROM's own default keymap, both
+    located by their contents, run over every raw code and every qualifier combination
+    (SPEC 5 step 1, re/notes/keys.md).  The game asks for one character and takes the key only
+    when exactly one comes back, so that is what a table entry holds; a key that yields two or
+    three - a cursor or function key - holds 0, which is what key_to_char returns for it."""
+    from unicorn import Uc, UC_ARCH_M68K, UC_MODE_BIG_ENDIAN
+    from unicorn.m68k_const import (UC_CPU_M68K_M68000, UC_M68K_REG_A0, UC_M68K_REG_A1,
+                                    UC_M68K_REG_A2, UC_M68K_REG_A6, UC_M68K_REG_A7,
+                                    UC_M68K_REG_D0, UC_M68K_REG_D1, UC_M68K_REG_PC,
+                                    UC_M68K_REG_SR)
+    sys.path.insert(0, HERE)
+    import headless                                            # the same two lookups a run uses
+
+    base = 0x1000000 - len(rom)
+    convert, keymap = headless.find_rom_console(rom, base)
+    if convert is None or keymap is None:
+        log('tables    keymap: console.device or its keymap is not in original/kick.rom; '
+            'the table falls back to the positions of the raw codes')
+        return None, None, None
+
+    ram, event, buffer, stack, trap = 0x100000, 0x010000, 0x010100, 0x0F0000, 0x0FFF00
+    uc = Uc(UC_ARCH_M68K, UC_MODE_BIG_ENDIAN)
+    uc.ctl_set_cpu_model(UC_CPU_M68K_M68000)
+    uc.mem_map(0, ram)
+    uc.mem_map(base, len(rom))
+    uc.mem_write(base, rom)
+
+    table = bytearray(KEYMAP_CODES * KEYMAP_QUALIFIERS)
+    for code in range(KEYMAP_CODES):
+        for qualifier in range(KEYMAP_QUALIFIERS):
+            uc.mem_write(event, bytes(22))
+            uc.mem_write(event + 4, b'\x01')                    # ie_Class: IECLASS_RAWKEY
+            uc.mem_write(event + 6, struct.pack('>HH', code, qualifier))
+            uc.mem_write(buffer, bytes(8))
+            uc.mem_write(stack, struct.pack('>L', trap))
+            uc.reg_write(UC_M68K_REG_SR, 0x2000)
+            uc.reg_write(UC_M68K_REG_A7, stack)
+            uc.reg_write(UC_M68K_REG_A0, event)
+            uc.reg_write(UC_M68K_REG_A1, buffer)
+            uc.reg_write(UC_M68K_REG_A2, keymap)
+            uc.reg_write(UC_M68K_REG_A6, 0)
+            uc.reg_write(UC_M68K_REG_D1, 1)                     # the buffer is one byte long
+            uc.emu_start(convert, trap, count=200000)
+            if uc.reg_read(UC_M68K_REG_PC) != trap:
+                raise SystemExit('RawKeyConvert did not return for code 0x%02X' % code)
+            if uc.reg_read(UC_M68K_REG_D0) & 0xFFFF == 1:
+                table[code * KEYMAP_QUALIFIERS + qualifier] = uc.mem_read(buffer, 1)[0]
+    return bytes(table), convert, keymap
+
+
+def emit_keymap(entry, header, source, log):
+    name = entry['name']
+    table = None
+
+    if os.path.exists(ROM):
+        with open(ROM, 'rb') as handle:
+            rom = handle.read()
+        table, convert, keymap = keymap_from_rom(rom, log)
+        if table is not None:
+            log('tables    keymap from RawKeyConvert 0x%06X with the keymap at 0x%06X: '
+                '%d codes x %d qualifiers, %d entries carry a character'
+                % (convert, keymap, KEYMAP_CODES, KEYMAP_QUALIFIERS, sum(1 for b in table if b)))
+    else:
+        log('tables    keymap: original/kick.rom is absent; the table falls back to the '
+            'positions of the raw codes (re/notes/keys.md)')
+
+    present = 1 if table is not None else 0
+    if table is None:
+        table = keymap_positional()
+
+    header.append('/* key_to_char: raw code x qualifier -> character, from the ROM\'s own')
+    header.append(' * RawKeyConvert and default keymap, or from the raw codes\' positions. */')
+    header.append('#define %sKEYMAP_CODES      %d' % (PREFIX.upper(), KEYMAP_CODES))
+    header.append('#define %sKEYMAP_QUALIFIERS %d' % (PREFIX.upper(), KEYMAP_QUALIFIERS))
+    header.append('extern const int     %s%s_present;' % (PREFIX, name))
+    header.append('extern const uint8_t %s%s[%d];' % (PREFIX, name, len(table)))
+    source.append('const int     %s%s_present = %d;' % (PREFIX, name, present))
+    source.append('const uint8_t %s%s[%d] = {' % (PREFIX, name, len(table)))
+    for i in range(0, len(table), KEYMAP_QUALIFIERS):
+        source.append('    ' + ' '.join('0x%02X,' % b for b in table[i:i + KEYMAP_QUALIFIERS])
+                      + '   /* 0x%02X */' % (i // KEYMAP_QUALIFIERS))
+    source.append('};')
+    source.append('')
+
+
 # ---------------------------------------------------------------------- the system font
 
 def find_topaz8(rom):
@@ -284,6 +405,8 @@ def main():
         kind = entry['kind']
         if kind == 'sysfont':
             emit_sysfont(entry, header, source, log)
+        elif kind == 'keymap':
+            emit_keymap(entry, header, source, log)
         elif kind in KINDS:
             KINDS[kind](image, entry, header, source)
         else:

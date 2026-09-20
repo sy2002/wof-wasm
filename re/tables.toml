@@ -224,3 +224,16 @@ count = 8
 [[table]]
 name = "topaz8"
 kind = "sysfont"
+
+# ------------------------------------------------------------- the key conversion table
+#
+# key_to_char runs console.device's RawKeyConvert with the system's default keymap and
+# takes the key only when exactly one character comes back (re/notes/keys.md).  The build
+# runs the ROM's own routine with the ROM's own keymap, both located by their contents,
+# over every raw code and every qualifier combination the shell and the port's key layer
+# can produce, and writes the characters as a table.  Without the ROM the table holds what
+# the positions of the raw codes give: letters, digits and the space bar.
+
+[[table]]
+name = "keymap"
+kind = "keymap"

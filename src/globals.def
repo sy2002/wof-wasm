@@ -1,0 +1,48 @@
+/* The registry of every global the port has taken over from the original (SPEC 7.2).
+ *
+ * The original addresses all of its globals as d16(a4) from one small-data base, so this
+ * file is the port's A4 page: the entries become the members of wof_globals_t, which lives
+ * inside the core's state struct, so a global is saved and loaded with the state and can
+ * never be forgotten there.  The test harness reads the same list through tests/shim.c and
+ * uses the original addresses to copy state between the oracle and the port.
+ *
+ *   WOF_GLOBAL(name, type, orig_address)
+ *   WOF_GLOBAL_ARRAY(name, type, count, orig_address)
+ *
+ * A name is the one re/names.txt gives the address.  The port's struct order is not the
+ * original's memory order; the address in the third column is what ties the two together.
+ * Where the original's adjacency is itself behaviour - key_get reads one entry past the
+ * key buffer - the routine says so and spells the neighbour out (src/keys.c).
+ */
+
+/* ------------------------------------------------ timing and the input queue (input.md) */
+
+WOF_GLOBAL(vblank_counter,     uint32_t, 0x026C92)  /* vblank_every_frame counts every VBlank */
+WOF_GLOBAL(vblank_total,       uint32_t, 0x0253CA)  /* vblank_server's is_Data, paused VBlanks left out */
+WOF_GLOBAL(fire_press_frame,   uint32_t, 0x026C8E)  /* vblank_counter when the current press began */
+WOF_GLOBAL(vblank_divider,     uint16_t, 0x027362)  /* counts 4..1: one input sample per 4 VBlanks */
+WOF_GLOBAL(input_byte,         uint16_t, 0x027366)  /* the sample vblank_server queues */
+WOF_GLOBAL_ARRAY(input_queue,  uint16_t, 6, 0x027356)
+WOF_GLOBAL(input_queue_count,  uint16_t, 0x027354)  /* 0..6; the oldest is dropped when full */
+WOF_GLOBAL(tick_input,         uint16_t, 0x026D42)  /* the byte the current logic tick reads */
+WOF_GLOBAL(fire_prev_state,    uint16_t, 0x026C8C)
+WOF_GLOBAL(fire_tap_latch,     uint16_t, 0x027DFC)  /* released inside 10 VBlanks -> bit 5 */
+WOF_GLOBAL(fire_hold_latch,    uint16_t, 0x027DFA)  /* down for 10 VBlanks or more -> bit 4 */
+WOF_GLOBAL(fire_state,         uint16_t, 0x027F66)  /* what poll_fire last read */
+WOF_GLOBAL(joy_dir8,           uint16_t, 0x027742)  /* what poll_joy_dir8 last read, 0..8 */
+WOF_GLOBAL(demo_mode,          uint16_t, 0x026D4C)  /* 0 play, 1 playback, 2 recording */
+WOF_GLOBAL(vblank_flag,        uint8_t,  0x0255BE)  /* set by vblank_server, consumed by wait_vblank */
+WOF_GLOBAL(pause_flag,         uint8_t,  0x025556)
+
+/* ---------------------------------------------------- the key buffer (keys.md, input.md) */
+
+WOF_GLOBAL_ARRAY(key_buffer,           uint8_t,  10, 0x026C98)
+WOF_GLOBAL_ARRAY(key_qualifier_buffer, uint16_t, 10, 0x026CA2)
+WOF_GLOBAL(key_count,                  uint16_t,     0x026CB6)
+WOF_GLOBAL(key_buffer_max,             uint16_t,     0x026CB8)  /* keyboard_open sets 10 */
+WOF_GLOBAL(key_qualifier_mask,         uint16_t,     0x026D30)  /* 0 for a game started from the CLI */
+
+/* ------------------------------------------------------------------------- the options */
+
+WOF_GLOBAL(opt_invert_vertical, uint8_t, 0x0254F6)  /* the vertical flip, read by read_joy_bits */
+WOF_GLOBAL(opt_music_off,       uint8_t, 0x0254F7)

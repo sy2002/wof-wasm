@@ -47,9 +47,11 @@ export function createClock(core, input, video, audio, onFrame) {
         rate.pass = (counters.passes - windowMark.passes) / seconds;
         rate.animation = animationFrames / seconds;
         /* Counted rates of something that happens 15 times a second are a whole number
-           either way; the cumulative ratio is the exact statement and must stay at 4. */
+           either way; the cumulative ratio is the exact statement and must stay at 4.
+           vblank_server's divider starts at 0, so the first VBlank samples and N of them
+           give ceil(N / 4) samples, which is the boundary this holds the core to. */
         rate.perTick = counters.ticks ? counters.vblanks / counters.ticks : 0;
-        rate.tickExact = counters.ticks === Math.floor(counters.vblanks / 4);
+        rate.tickExact = counters.ticks === Math.ceil(counters.vblanks / 4);
         windowStart = now;
         windowMark = counters;
         animationFrames = 0;
