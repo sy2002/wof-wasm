@@ -216,7 +216,8 @@ def assert_the_screenshot_is_the_picture(source_png, screenshot_png, geometry, n
             '%s: %d of %d pixels are wrong; at framebuffer (%d, %d) the screenshot shows %s '
             'where the framebuffer has %s - %s'
             % (note, int((differences > WHOLE_PICTURE_TOLERANCE).sum()), differences.size,
-               x, y, list(shown), list(source[y, x]), _measured(geometry, box, note)))
+               x, y, [int(v) for v in shown], [int(v) for v in source[y, x]],
+               _measured(geometry, box, note)))
     return worst
 
 
