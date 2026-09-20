@@ -330,7 +330,10 @@ where a real file system puts a new entry.
 **For the port.** The virtual file system has to keep a per-directory order, not sort by name, or
 the list of saved games comes out in a different order than on the Amiga. Three things follow.
 
-1. The order of the files that come from the disk should be baked in at build time from `wof.adf`.
+1. The order follows from the names alone, so nothing has to be taken from `wof.adf` at build
+   time: the dialog only ever shows names that begin `wof.`, an entry's chain is the hash above,
+   chains are walked upward, and the one such file the disk brings, `wof.mission 3`, is older than
+   anything the player saves.
 2. A saved game keeps **the case the player typed**. The dialog lists what `fib_FileName` holds
    and the file system keeps the case a file was created with. (The harness does not: its overlay
    keys files in lower case, `re/notes/headless.md`.)
@@ -378,5 +381,5 @@ to M5, where those routines are ported.
 - `graphics.library` `Move`, `Text`, `RectFill`, `Draw`, `SetAPen`, `SetBPen`, `SetDrMd` on the
   indexed framebuffer, with JAM1, JAM2 and COMPLEMENT, and the system font of
   `re/notes/system-font.md`. The dialogs and the high-score list use nothing else.
-- A per-directory file order in the virtual file system, and `localStorage` behind it
-  (`SPEC.md` section 6.2).
+- The file order of the dialog's list in the virtual file system, computed from the names, and
+  `localStorage` behind it (`SPEC.md` section 6.2).
