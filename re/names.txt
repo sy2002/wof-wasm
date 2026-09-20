@@ -217,6 +217,56 @@
 # ---- OS glue
 022d48 os_disable            ; exec.Disable thunk
 022d66 os_enable             ; exec.Enable thunk
+012910 install_vblank_server ; asm. Interrupt node "Interrupt_Server", priority -10, is_Data vblank_total, is_Code vblank_server; AddIntServer(5)
+0253ca vblank_total          ; long: vblank_server's is_Data, incremented on every VBlank that is not paused
+0125c6 task_setup            ; asm. FindTask: pr_WindowPtr to -1, SetTaskPri 1, custom_base; inspects the task's trap handler (re/notes/headless.md)
+012640 trap_handler          ; asm. the crash reporter task_setup installs as tc_TrapCode when the handler it finds is the one dos gives a process
+027440 this_task             ; long: FindTask(0)
+027444 saved_trap_code       ; long: the task's tc_TrapCode before task_setup
+027448 saved_trap_data       ; long: tc_TrapData
+02744c saved_window_ptr      ; long: pr_WindowPtr
+02743e saved_task_pri        ; word: what SetTaskPri returned
+027162 key_mask_default      ; word: 0, or 0x10 (left Alt) when the task's trap handler is not dos's; becomes key_qualifier_mask
+027450 foreign_trap_flag     ; word: 1 in that same case; written only
+026f60 foreign_trap_flag2    ; word: 1 in that same case; written only
+0205cc keyboard_open         ; C. (qualifier mask) two ports, input.device with input_handler at priority 127, console.device
+0205b4 key_set_qualifier_mask ; C. (mask) -> the previous mask
+022ba4 create_port           ; C library: CreatePort
+022c8e create_std_io         ; C library: CreateStdIO
+022cb6 create_ext_io         ; C library: CreateExtIO
+022dc4 os_open_device        ; exec.OpenDevice thunk
+022d50 os_do_io              ; exec.DoIO thunk
+022b7c os_avail_mem          ; exec.AvailMem thunk
+022f1c os_close_window       ; intuition.CloseWindow thunk
+022f28 os_close_workbench    ; intuition.CloseWorkBench thunk
+
+# ---- floating point: game logic computes with mathffp.library  (see re/notes/headless.md)
+021c9c ffp_add               ; asm. mathffp SPAdd (offset -66)
+021ca6 ffp_cmp               ; asm. mathffp SPCmp (-42)
+021cb0 ffp_neg               ; asm. mathffp SPNeg (-60)
+021cba ffp_tst               ; asm. mathffp SPTst (-48)
+021cc4 ffp_fix               ; asm. mathffp SPFix (-30)
+021cce ffp_sub               ; asm. mathffp SPSub (-72)
+021cd8 ffp_div               ; asm. mathffp SPDiv (-84)
+021ce2 ffp_flt               ; asm. mathffp SPFlt (-36)
+021cec ffp_mul               ; asm. mathffp SPMul (-78)
+021cf6 ffp_dispatch          ; asm. opens mathffp.library on first use into MathBase, then jumps to the offset its caller pushed
+027fae MathBase
+
+# ---- music: the player is a separate executable, reached through LoadSeg
+0123dc music_start           ; asm. (song file, song number): LoadSeg of wofsongs and songplay on first use; the player is one entry with a command in D0
+027428 songs_seglist         ; long: BPTR from LoadSeg("wofsongs"); its first instruction returns the song data in A0
+02742c song_data             ; long: that pointer, handed to the player in D2
+0255ea player_seglist        ; long: BPTR from LoadSeg("songplay")
+0255ee player_entry          ; long: the player's entry, called with D0 = command (0 init, 1 and 2 with the song number in D1, 4, 5 status, 6)
+0255f2 song_number
+
+# ---- front end
+018022 title_sequence        ; C. story scroller, then three pictures with fades; fire skips
+018262 rank_select           ; C. rank selection; 1800 VBlanks without input ask for demo playback
+018194 menu_input            ; C. (timeout flag) -> -1 up, 1 down, 0 chosen, 1000 timed out; keys 0x4C 0x4D 0x44 0x43, stick, fire; one WaitTOF per round
+026c64 rank_cursor           ; word 0..7: the rank under the cursor; 7 is the load dialog
+01f41a crack_text_screen     ; C. the crack's added screen; draws entropy; returns non-zero to go on. Not ported
 
 # ---- library bases
 026f74 SysBase
