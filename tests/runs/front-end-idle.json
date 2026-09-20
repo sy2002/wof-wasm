@@ -1,0 +1,8 @@
+{
+  "format": "wof-headless-run",
+  "version": 1,
+  "raw": [],
+  "stop": {
+    "vblanks": 7200
+  }
+}

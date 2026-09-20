@@ -94,6 +94,7 @@ class AmigaOS:
         self.handles = {}
         self.next_handle = 0x1000
         self.overlay = {name.lower(): bytes(data) for name, data in (files or {}).items()}
+        self.deleted = set()              # what DeleteFile took away; the disk itself is read-only
         self.ioerr = 0
         self.files_log = []               # (call, name, found)
         self.formatted = []               # what RawDoFmt produced
@@ -375,6 +376,8 @@ class AmigaOS:
     def file_bytes(self, name):
         if name.lower() in self.overlay:
             return self.overlay[name.lower()]
+        if name.lower() in self.deleted:
+            return None
         path = self._resolve(name)
         if path is None or not os.path.isfile(path):
             return None
@@ -408,7 +411,8 @@ class AmigaOS:
         order = adf_order(parts)
         if order is None:                     # no disk image: the extracted directory, by name
             order = [(name_hash(entry), entry) for entry in sorted(present)]
-        order = [(chain, entry) for chain, entry in order if entry in present]
+        order = [(chain, entry) for chain, entry in order
+                 if entry in present and (prefix + entry).lower() not in self.deleted]
         known = {entry.lower() for _, entry in order}
         for path in self.overlay:
             entry = path[len(prefix):]
@@ -484,6 +488,7 @@ class AmigaOS:
         if self.reg('d2') == MODE_NEWFILE:
             name = self.cstr(self.reg('d1'))
             self.files_log.append(('Open new', name, True))
+            self.deleted.discard(name.lower())
             return self._handle(name, b'', True)
         return self._open_existing('Open')
 
@@ -517,10 +522,15 @@ class AmigaOS:
         return self.ioerr
 
     def os_dos_DeleteFile(self):
+        """Nothing in original/ is ever written, so a deleted file is remembered instead: it is
+        gone from the overlay and from what the disk answers, which is what the clear command
+        of the high scores does."""
         name = self.cstr(self.reg('d1'))
-        self.files_log.append(('DeleteFile', name, name.lower() in self.overlay))
+        existed = self.file_bytes(name) is not None
+        self.files_log.append(('DeleteFile', name, existed))
         self.overlay.pop(name.lower(), None)
-        return DOS_TRUE
+        self.deleted.add(name.lower())
+        return DOS_TRUE if existed else 0
 
     def os_dos_Delay(self):
         """Delay counts fiftieths of a second, whatever the video standard."""

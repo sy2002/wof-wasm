@@ -1,6 +1,6 @@
 addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,strings,status
 010000,entry,asm,6,,,-32766,0,c_startup,,0,,todo
-010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sub_011f4e open_libraries install_vblank_server sub_012adc load_ship_shapes sounds_load init_assets sub_013562 sub_0135a8 sub_013684 build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select sub_01852a sub_018590 mission_display_setup sub_019856 wait_next_vblank sub_01aa50 sub_01ccb6 sub_01ccf6 sub_01edaa crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",todo
+010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sub_011f4e open_libraries install_vblank_server sub_012adc load_ship_shapes sounds_load init_assets sub_013562 sub_0135a8 sub_013684 build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select sub_01852a mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys sub_01edaa crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",todo
 01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets sub_012470 sub_0134d8,,1,,todo
 010228,frame_update,asm,228,,,,1,sub_010344 sub_0106be sub_010ee0 snapshot_for_draw draw_game_over player_lost_restart draw_world sub_013eee sub_01417e clip_playfield sub_0152f8 sub_01557c cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,todo
 01030c,flip_buffers,asm,56,,,,1,flip_view,,4,,todo
@@ -103,7 +103,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0134a4,sub_0134a4,asm,10,,,,1,mem_free_var,,1,,todo
 0134ae,sub_0134ae,asm,14,,,-32598,3,shapes_free,,2,,todo
 0134bc,init_assets,asm,28,,,,1,task_setup font_load alloc_pools load_permanent_shapes keyboard_open,,1,,ported
-0134d8,sub_0134d8,asm,54,,,,1,close_libraries sub_01276c sub_0127f6 sub_0128d6 sub_01295a sub_012a92 display_shutdown sub_02067c mem_free,intuition.OpenWorkBench,1,,todo
+0134d8,sub_0134d8,asm,54,,,,1,close_libraries sub_01276c sub_0127f6 sub_0128d6 sub_01295a sub_012a92 display_shutdown keyboard_close mem_free,intuition.OpenWorkBench,1,,todo
 01350e,sub_01350e,asm,70,,,,1,mem_alloc_asm,,1,,todo
 013554,sub_013554,asm,14,,,,1,,,1,,todo
 013562,sub_013562,asm,70,,,,1,sub_0135a8 sub_01e608 sub_01edea,,10,,todo
@@ -206,15 +206,15 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
 015d62,sub_015d62,C,8,2,,,1,,,0,,todo
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
-015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,sub_016e96 mem_alloc sub_022b3e,,0,,todo
-015dde,sub_015dde,C,60,0,8 12 16 20,,0,sub_022b60,,0,,todo
-015e1a,sub_015e1a,C,112,6,8,,1,sub_015ec2 sub_016e96 sub_021dce sub_022aae sub_022b02 sub_022b2c,,1,"""Couldn't OPEN file, error: %ld\n""",todo
-015e8a,sub_015e8a,C,56,6,8,,1,sub_015ec2 sub_022aae sub_022b2c,,1,,todo
+015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,sub_016e96 mem_alloc os_dos_read,,0,,todo
+015dde,sub_015dde,C,60,0,8 12 16 20,,0,os_dos_write,,0,,todo
+015e1a,sub_015e1a,C,112,6,8,,1,sub_015ec2 sub_016e96 sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
+015e8a,sub_015e8a,C,56,6,8,,1,sub_015ec2 os_dos_close os_dos_open,,1,,todo
 015ec2,sub_015ec2,C,368,10,8 12,,2,sub_015d62,,14,,todo
-016032,sub_016032,C,84,0,8 10,,1,sub_022e92 sub_022ec4,,1,,todo
-016086,sub_016086,C,1206,100,8 12 14 16,-32376,3,sub_016032 sub_018228 poll_fire poll_joy_dir8 sub_020700 sub_0207d8 sub_0207e4 sub_021e12 sub_022e78 sub_022ea4 sub_022eb4 sub_022ec4 sub_022ed4 gfx_WaitTOF,,2,,todo
+016032,text_caret,C,84,0,8 10,,1,os_gfx_rect_fill os_gfx_set_drmd,,1,,todo
+016086,text_input,C,1206,100,8 12 14 16,-32376,3,text_caret wait_input_release poll_fire poll_joy_dir8 key_to_char key_available key_get strlen os_gfx_move os_gfx_set_apen os_gfx_set_bpen os_gfx_set_drmd os_gfx_text gfx_WaitTOF,,2,,todo
 01653c,load_dash_assets,C,86,6,,,2,fatal_exit shapes_load load_file_public_asm,,8,,ported
-016592,sub_016592,C,50,0,8,,1,,,0,,todo
+016592,path_sanitise,C,50,0,8,,1,,,0,,todo
 0165c4,sub_0165c4,C,8,4,,,1,,,0,,todo
 0165cc,display_alloc_chip,C,18,0,8,,2,mem_alloc_chip,,0,,todo
 0165de,cop_rotate_unused,C,48,4,,,0,,,3,,todo
@@ -251,28 +251,28 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0173e6,fade_out_pair,C,60,66,8,,3,fade_to_pair,,0,,todo
 017422,load_picture_black,C,2348,2,8 12,,3,view_load_picture view_build_copper,,2,,todo
 017d4e,story_copper_build,C,306,2,8 10,,1,cop_move cop_move_ptr cop_wait view_build_copper,,5,,todo
-017e80,story_screen,C,418,16,,,1,text_draw_justified screen_story wait_frames_or_fire view_show story_copper_build poll_fire draw_set_target_c sub_021e12 sub_022e78 sub_022e92 sub_022ea4,,5,,todo
+017e80,story_screen,C,418,16,,,1,text_draw_justified screen_story wait_frames_or_fire view_show story_copper_build poll_fire draw_set_target_c strlen os_gfx_move os_gfx_rect_fill os_gfx_set_apen,,5,,todo
 018022,title_sequence,C,330,130,,-32346,1,music_start screen_picture wait_frames_or_fire view_show_wait fade_to fade_out load_picture_black story_screen,,2,"""wofsongs"" | ""shapes/broderbund"" | ""shapes/wingstitle"" | ""shapes/creditscreen""",todo
 01816c,sub_01816c,C,40,0,,-32340,2,sub_016e96,,0,"""User requested abort.""",todo
-018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 sub_0207d8 sub_0207e4 gfx_WaitTOF,,0,,todo
-018228,sub_018228,C,58,2,,,3,poll_fire poll_joy_dir8 sub_0207d8 gfx_WaitTOF,,0,,todo
-018262,rank_select,C,712,80,,-32334,1,music_start sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input sub_018228 sub_018b96 view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
-01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc sub_01fe50,,4,,todo
-018570,sub_018570,C,32,0,8,,4,text_draw sub_021e12,,0,,todo
-018590,sub_018590,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out sub_018570 poll_fire shape_find_c sub_020700 sub_0207d8 sub_0207e4 shape_draw_c draw_set_target_c clip_set_full sub_0215d8 sub_021eca sub_022e78 gfx_WaitTOF,,9,"""%d""",todo
+018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 key_available key_get gfx_WaitTOF,,0,,todo
+018228,wait_input_release,C,58,2,,,3,poll_fire poll_joy_dir8 key_available gfx_WaitTOF,,0,,todo
+018262,rank_select,C,712,80,,-32334,1,music_start sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
+01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc save_file,,4,,todo
+018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,todo
+018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",todo
 01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
 0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,todo
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait sub_01d1ea mem_free,,13,,todo
-018958,sub_018958,C,174,4,,,1,sub_021e12 sub_022e78 sub_022ec4 sub_022ed4,,3,,todo
-018a06,sub_018a06,C,400,12,,,1,sub_018958 mem_alloc mem_free sub_021e02 sub_021e82 sub_0222d2 sub_022ada sub_022aec sub_022b1a sub_022b50,,2,,todo
-018b96,sub_018b96,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a sub_016086 sub_016592 screen_dialog sub_016e96 view_show_wait fade_to fade_out menu_input sub_018228 sub_018a06 draw_set_target_c clip_set_full sub_021e12 sub_021e9a sub_021eca sub_0222a8 sub_022aca sub_022e48 sub_022e78 sub_022e92 sub_022ea4 sub_022ec4 sub_022ed4,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
-019288,sub_019288,C,38,0,,,2,sub_01fe50,,1,"""highscore""",todo
-0192ae,sub_0192ae,C,114,2,,,0,sub_019288 sub_0222d2,,1,"""Colin was here!""",todo
-019320,sub_019320,C,172,40,,,1,,,1,,todo
-0193cc,sub_0193cc,C,166,6,,,1,sub_0222d2 sub_022aae sub_022b2c sub_022b3e,,1,"""highscore"" | ""            """,todo
-019472,sub_019472,C,524,96,,,1,sub_016086 screen_dialog view_show_wait fade_to fade_out sub_019288 sub_019320 sub_0193cc draw_set_target_c clip_set_full sub_021e12 sub_021eca sub_0222d2 sub_022e48 sub_022e78 sub_022ea4 sub_022ec4 sub_022ed4,,6,"""Your name is to be entered"" | ""in the hall of fame.""",todo
-01967e,sub_01967e,C,472,112,,,1,sub_018570 draw_set_target_c sub_0215d8 sub_022e78 sub_022ea4 sub_022ec4,,5,"""%d"" | ""%-6ld"" | ""%-12s""",todo
-019856,sub_019856,C,258,538,,-32304,1,music_start screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black sub_019472 sub_01967e draw_set_target_c clip_set_full,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",todo
+018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,todo
+018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,todo
+018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a text_input path_sanitise screen_dialog sub_016e96 view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen sub_021e9a bcopy strcat sub_022aca os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
+019288,high_score_save,C,38,0,,,2,save_file,,1,"""highscore""",todo
+0192ae,high_score_reset_unused,C,114,2,,,0,high_score_save strncpy,,1,"""Colin was here!""",todo
+019320,high_score_sort,C,172,40,,,1,,,1,,todo
+0193cc,high_score_load,C,166,6,,,1,strncpy os_dos_close os_dos_open os_dos_read,,1,"""highscore"" | ""            """,todo
+019472,high_score_entry,C,524,96,,,1,text_input screen_dialog view_show_wait fade_to fade_out high_score_save high_score_sort high_score_load draw_set_target_c clip_set_full strlen bcopy strncpy os_gfx_draw os_gfx_move os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,6,"""Your name is to be entered"" | ""in the hall of fame.""",todo
+01967e,high_score_draw,C,472,112,,,1,text_draw_c draw_set_target_c sprintf os_gfx_move os_gfx_set_apen os_gfx_set_drmd,,5,"""%d"" | ""%-6ld"" | ""%-12s""",todo
+019856,high_score_screen,C,258,538,,-32304,1,music_start screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black high_score_entry high_score_draw draw_set_target_c clip_set_full,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",todo
 019958,cop_reset,C,16,0,8,,2,,,0,,todo
 019968,cop_init,C,32,0,8 12,,1,cop_reset,,0,,todo
 019988,cop_put_long_unused,C,52,0,8 12,,0,,,0,,todo
@@ -312,7 +312,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01abde,sub_01abde,C,762,12,8 10 12,,3,shape_mirror_x sub_01cb30,,13,,todo
 01aed8,sub_01aed8,C,164,10,,,1,sub_010820 sub_01aaea sub_01c982 sub_021e24,,4,,todo
 01af7c,sub_01af7c,C,62,0,,,1,sub_0135ce,,4,,todo
-01afba,sub_01afba,C,1184,16,,,2,sub_010820 sub_011a84 sub_0146c6 sub_0152ac sub_015710 sub_01aaea sub_01abde sub_01c982 sub_01cab4 sub_01cb34 sub_01cb74,,12,,todo
+01afba,sub_01afba,C,1184,16,,,2,sub_010820 sub_011a84 sub_0146c6 sub_0152ac sub_015710 sub_01aaea sub_01abde sub_01c982 flash_set sub_01cb34 sub_01cb74,,12,,todo
 01b45a,sub_01b45a,C,132,2,,,1,,,6,,todo
 01b4de,sub_01b4de,C,210,6,,,2,,,6,,todo
 01b5b0,sub_01b5b0,C,210,0,,,1,sub_01107c sub_015710 sub_01aaea sub_01b4de sub_01c982,,11,,todo
@@ -339,7 +339,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,todo
 01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,todo
 01caa2,sub_01caa2,C,18,0,,,0,,,1,,todo
-01cab4,sub_01cab4,C,20,0,8 10,,1,,,2,,todo
+01cab4,flash_set,C,20,0,8 10,,1,,,2,,todo
 01cac8,sub_01cac8,C,24,0,8,,8,rand_beam,,0,,todo
 01cae0,sub_01cae0,C,60,0,10 12 14,,5,sub_0154cc rand_beam,,0,,todo
 01cb1c,sub_01cb1c,asm,4,,,,0,sub_021dce,,0,,todo
@@ -350,7 +350,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01cbb2,sub_01cbb2,C,64,2,8,,1,,,2,,todo
 01cbf2,sub_01cbf2,C,196,4,8,-32238,1,sub_01cb34 sub_021dce,,2,"""Not over a ship in ShipNum.\n"" | ""COULDN'T FIND A SHIP in ShipNum.\n""",todo
 01ccb6,sub_01ccb6,C,64,0,8,-32232,1,os_avail_mem os_close_window os_close_workbench,,2,,drop
-01ccf6,sub_01ccf6,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sub_011f4e load_ship_shapes sounds_load sub_01346c sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair sub_018590 mission_display_setup sub_018b96 sub_01edaa sub_020700 sub_0207d8 sub_0207e4,,10,,todo
+01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sub_011f4e load_ship_shapes sounds_load sub_01346c sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog sub_01edaa key_to_char key_available key_get,,10,,todo
 01ce28,sub_01ce28,asm,868,,,,0,sub_011f4e sub_013756 sub_015078 sub_01555a sub_01edbc,dos.DeleteFile exec.AvailMem,28,"""highscore""",todo
 01d18c,sub_01d18c,C,94,6,8,,1,,,1,,todo
 01d1ea,sub_01d1ea,C,368,4,,,1,sub_01cb30,,12,,todo
@@ -397,9 +397,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01f2b0,sub_01f2b0,asm,44,,,,2,shape_blit,,1,,todo
 01f2dc,clip_dashboard,asm,16,,,-32112,2,clip_set,,0,,todo
 01f2ec,sub_01f2ec,C,70,12,8,,1,,,1,,todo
-01f332,sub_01f332,C,66,50,8 10 12 16,,1,sub_018570 sub_0215d8 sub_022e78,,1,,todo
-01f374,sub_01f374,C,166,0,8 10 12 14 16,,1,sub_022e48 sub_022e78 sub_022ea4,,1,,todo
-01f41a,crack_text_screen,C,898,140,,-32106,1,read_vhposr sub_016086 screen_hires2 view_show_wait fade_to fade_out sub_018570 sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full sub_021e9a sub_021eca sub_022e78 sub_022ea4,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",drop
+01f332,sub_01f332,C,66,50,8 10 12 16,,1,text_draw_c sprintf os_gfx_move,,1,,todo
+01f374,sub_01f374,C,166,0,8 10 12 14 16,,1,os_gfx_draw os_gfx_move os_gfx_set_apen,,1,,todo
+01f41a,crack_text_screen,C,898,140,,-32106,1,read_vhposr text_input screen_hires2 view_show_wait fade_to fade_out text_draw_c sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full sub_021e9a bcopy os_gfx_move os_gfx_set_apen,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",drop
 01f79c,os_viewport_new_unused,asm,258,,,,0,os_viewport_free_unused mem_alloc mem_alloc_chip,graphics.InitVPort graphics.GetColorMap graphics.InitRastPort graphics.InitBitMap,2,,todo
 01f89e,sub_01f89e,asm,4,,,,0,,,0,,todo
 01f8a2,os_viewport_free_unused,asm,164,,,,1,mem_free,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
@@ -412,14 +412,14 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01fdd6,sub_01fdd6,asm,40,,,,0,,,0,,todo
 01fdfe,sub_01fdfe,asm,56,,,,0,,graphics.BltBitMap,1,,todo
 01fe36,sub_01fe36,asm,26,,,,0,mem_free,,0,,todo
-01fe50,sub_01fe50,C,100,10,8 12 16,-32100,2,sub_022aae sub_022b02 sub_022b2c sub_022b60,,0,,todo
+01fe50,save_file,C,100,10,8 12 16,-32100,2,os_dos_close os_dos_io_err os_dos_open os_dos_write,,0,,todo
 01feb4,load_file_public,C,22,0,8,-32094,2,load_file,,0,,ported
 01feca,load_file_chip,C,22,0,8,-32088,1,load_file,,0,,ported
 01fee0,rpck_unpack,asm,54,,,,1,,,0,,verified
-01ff16,load_file,C,730,48,8 12,,2,rpck_unpack load_file_small mem_alloc sub_020874 mem_free sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50,,3,,verified
+01ff16,load_file,C,730,48,8 12,,2,rpck_unpack load_file_small mem_alloc sub_020874 mem_free os_dos_close os_dos_examine os_dos_io_err os_dos_lock os_dos_open os_dos_read os_dos_unlock,,3,,verified
 0201f0,sub_0201f0,C,24,0,8,,0,load_file_small,,0,,todo
 020208,sub_020208,C,24,0,8,,0,load_file_small,,0,,todo
-020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 mem_free sub_022aae sub_022ada sub_022b02 sub_022b1a sub_022b2c sub_022b3e sub_022b50 sub_022d36 sub_022d86,,3,,todo
+020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 mem_free os_dos_close os_dos_examine os_dos_io_err os_dos_lock os_dos_open os_dos_read os_dos_unlock sub_022d36 sub_022d86,,3,,todo
 020376,sub_020376,C,26,0,8 12,,0,sub_020220,,0,,todo
 020390,load_file_small,C,26,0,8 12,,3,sub_020220,,0,,replace
 0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
@@ -440,12 +440,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020560,shape_find,asm,84,,,-32040,4,,,0,,verified
 0205b4,key_set_qualifier_mask,C,24,2,8,,0,,,1,,todo
 0205cc,keyboard_open,C,176,0,8,-32034,1,create_port create_std_io create_ext_io os_do_io os_open_device,,15,,replace
-02067c,sub_02067c,C,114,0,,-32028,1,sub_022b88 sub_022c30 sub_022ca4 sub_022cfa os_do_io,,5,,todo
-0206ee,sub_0206ee,C,18,0,,-32022,0,sub_020700 sub_0207e4,,0,,todo
-020700,sub_020700,C,90,28,8 10,-32016,4,sub_022f30,,0,,todo
+02067c,keyboard_close,C,114,0,,-32028,1,sub_022b88 sub_022c30 sub_022ca4 sub_022cfa os_do_io,,5,,todo
+0206ee,key_wait_char,C,18,0,,-32022,0,key_to_char key_get,,0,,todo
+020700,key_to_char,C,90,28,8 10,-32016,4,os_console_raw_key_convert,,0,,todo
 02075a,input_handler,asm,126,,,-32010,0,,,6,,todo
-0207d8,sub_0207d8,asm,12,,,-32004,6,,,1,,todo
-0207e4,sub_0207e4,asm,100,,,-31998,5,sub_0207d8 os_disable os_enable gfx_WaitTOF,,4,,todo
+0207d8,key_available,asm,12,,,-32004,6,,,1,,todo
+0207e4,key_get,asm,100,,,-31998,5,key_available os_disable os_enable gfx_WaitTOF,,4,,todo
 020848,mem_alloc,C,22,0,8,-31992,8,sub_020874,,0,,replace
 02085e,mem_alloc_chip,C,22,0,8,-31986,3,sub_020874,,0,,replace
 020874,sub_020874,C,150,4,8 12,,4,sub_022d36,,1,,replace
@@ -477,7 +477,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0212d4,blit_end,asm,38,,,-31884,19,sub_022e40,,0,,todo
 0212fa,line_draw_c,asm,30,,,,0,blit_begin blit_end line_draw,,1,,todo
 021318,line_draw,asm,704,,,-31878,2,,,11,,todo
-0215d8,sub_0215d8,C,48,0,8 12 16,-31872,3,sub_0216b2,,1,,todo
+0215d8,sprintf,C,48,0,8 12 16,-31872,3,sub_0216b2,,1,,todo
 021608,sub_021608,C,28,0,9,,0,,,1,,todo
 021624,sub_021624,C,142,0,8 12 14 18,,1,sub_02240e sub_02241a,,1,,todo
 0216b2,sub_0216b2,C,910,222,8 12 16,,1,sub_021624 sub_021a40,,1,,todo
@@ -502,23 +502,23 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 021dce,sub_021dce,asm,20,,,-31866,6,sub_021de2,,0,,todo
 021de2,sub_021de2,asm,14,,,,2,,exec.RawDoFmt,0,,todo
 021df0,sub_021df0,asm,18,,,,0,sub_021de2,,0,,todo
-021e02,sub_021e02,asm,16,,,-31860,1,,,0,,todo
-021e12,sub_021e12,asm,18,,,-31854,6,,,0,,todo
+021e02,strcpy,asm,16,,,-31860,1,,,0,,todo
+021e12,strlen,asm,18,,,-31854,6,,,0,,todo
 021e24,sub_021e24,C,52,0,,,1,sub_0222f4,,1,,todo
 021e58,sub_021e58,C,18,0,8,,0,,,1,,todo
 021e6a,sub_021e6a,asm,24,,,,0,,,0,,todo
-021e82,sub_021e82,asm,24,,,-31848,1,,,0,,todo
+021e82,tolower,asm,24,,,-31848,1,,,0,,todo
 021e9a,sub_021e9a,asm,48,,,-31842,2,,,0,,todo
-021eca,sub_021eca,asm,42,,,-31836,4,,,0,,todo
+021eca,bcopy,asm,42,,,-31836,4,,,0,,todo
 021ef4,sub_021ef4,C,58,0,8,-31830,1,sub_022474,,0,,todo
 021f2e,c_startup,asm,62,,,-31824,1,geta4,exec.Supervisor,3,,todo
 021f6c,sub_021f6c,asm,52,,,,0,sub_021fa8,a6=? LVO -408 a6=? LVO -108,1,"""dos.library""",todo
 021fa0,geta4,asm,8,,,,1,,,0,,todo
 021fa8,sub_021fa8,C,312,0,8 12,,1,main sub_021d66 sub_0220e0 sub_022318 sub_022928 sub_022abe sub_022afa sub_022b30 sub_022b64 sub_022d3a sub_022d72 sub_022da6 sub_022e00,,8,"""*""",todo
-0220e0,sub_0220e0,C,456,0,8 12 14 16,,1,sub_0222ae sub_0222d2 sub_022d3a,,5,""" """,todo
-0222a8,sub_0222a8,asm,6,,,-31818,1,,,0,,todo
-0222ae,sub_0222ae,asm,36,,,,1,,,0,,todo
-0222d2,sub_0222d2,asm,34,,,-31812,5,,,0,,todo
+0220e0,sub_0220e0,C,456,0,8 12 14 16,,1,strncat strncpy sub_022d3a,,5,""" """,todo
+0222a8,strcat,asm,6,,,-31818,1,,,0,,todo
+0222ae,strncat,asm,36,,,,1,,,0,,todo
+0222d2,strncpy,asm,34,,,-31812,5,,,0,,todo
 0222f4,sub_0222f4,asm,36,,,,1,,,0,,todo
 022318,sub_022318,C,180,0,8 12,,1,sub_021d7c sub_022b30 sub_022b94 sub_022ef6 sub_022f04 sub_022f10,,1,"""icon.library"" | ""WINDOW"" | ""*""",todo
 0223cc,sub_0223cc,asm,40,,,-31806,3,sub_022424,,0,,todo
@@ -543,27 +543,27 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 02287a,sub_02287a,C,126,0,8 10 14,,1,sub_021d6e sub_0228f8 sub_022b06,,3,,todo
 0228f8,sub_0228f8,C,48,4,,,2,sub_01816c sub_022df2,,1,,todo
 022928,sub_022928,C,30,0,8,,1,sub_022946,,1,,todo
-022946,sub_022946,C,194,4,8,,1,sub_022a62 sub_022b50 sub_022b98 sub_022d8a,exec.Supervisor,10,,todo
+022946,sub_022946,C,194,4,8,,1,sub_022a62 os_dos_unlock sub_022b98 sub_022d8a,exec.Supervisor,10,,todo
 022a08,sub_022a08,asm,84,,,,0,sub_022d7e sub_022d8a sub_022de6,,6,,todo
 022a5c,sub_022a5c,asm,6,,,,0,,,0,,todo
 022a62,sub_022a62,C,76,0,8,,2,sub_022ab2,,3,,todo
-022aae,sub_022aae,asm,4,,,-31800,6,sub_022ab2,,0,,todo
+022aae,os_dos_close,asm,4,,,-31800,6,sub_022ab2,,0,,todo
 022ab2,sub_022ab2,asm,12,,,,2,,dos.Close,1,,todo
 022abe,sub_022abe,asm,12,,,,1,,dos.CurrentDir,1,,todo
 022aca,sub_022aca,asm,4,,,-31794,1,sub_022ace,,0,,todo
 022ace,sub_022ace,asm,12,,,,2,,dos.DeleteFile,1,,todo
-022ada,sub_022ada,asm,18,,,-31788,3,,dos.Examine,1,,todo
-022aec,sub_022aec,asm,14,,,-31782,1,,dos.ExNext,1,,todo
+022ada,os_dos_examine,asm,18,,,-31788,3,,dos.Examine,1,,todo
+022aec,os_dos_ex_next,asm,14,,,-31782,1,,dos.ExNext,1,,todo
 022afa,sub_022afa,asm,8,,,,1,,dos.Input,1,,todo
-022b02,sub_022b02,asm,4,,,-31776,4,sub_022b06,,0,,todo
+022b02,os_dos_io_err,asm,4,,,-31776,4,sub_022b06,,0,,todo
 022b06,sub_022b06,asm,8,,,,3,,dos.IoErr,1,,todo
 022b0e,sub_022b0e,asm,12,,,,1,,dos.IsInteractive,1,,todo
-022b1a,sub_022b1a,asm,18,,,-31770,3,,dos.Lock,1,,todo
-022b2c,sub_022b2c,asm,4,,,-31764,6,sub_022b30,,0,,todo
+022b1a,os_dos_lock,asm,18,,,-31770,3,,dos.Lock,1,,todo
+022b2c,os_dos_open,asm,4,,,-31764,6,sub_022b30,,0,,todo
 022b30,sub_022b30,asm,14,,,,3,,dos.Open,1,,todo
-022b3e,sub_022b3e,asm,18,,,-31758,4,,dos.Read,1,,todo
-022b50,sub_022b50,asm,16,,,-31752,4,,dos.UnLock,1,,todo
-022b60,sub_022b60,asm,4,,,-31746,2,sub_021d6e,,0,,todo
+022b3e,os_dos_read,asm,18,,,-31758,4,,dos.Read,1,,todo
+022b50,os_dos_unlock,asm,16,,,-31752,4,,dos.UnLock,1,,todo
+022b60,os_dos_write,asm,4,,,-31746,2,sub_021d6e,,0,,todo
 022b64,sub_022b64,asm,24,,,,1,,exec.Alert,1,,todo
 022b7c,os_avail_mem,asm,12,,,,1,,exec.AvailMem,1,,drop
 022b88,sub_022b88,asm,12,,,,1,,exec.CloseDevice,1,,todo
@@ -598,20 +598,20 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 022e0c,gfx_BltBitMap,asm,34,,,-31728,1,,graphics.BltBitMap,1,,todo
 022e2e,gfx_BltClear,asm,18,,,-31722,4,,graphics.BltClear,1,,todo
 022e40,sub_022e40,asm,8,,,,1,,graphics.DisownBlitter,1,,todo
-022e48,sub_022e48,asm,18,,,-31716,3,,graphics.Draw,1,,todo
+022e48,os_gfx_draw,asm,18,,,-31716,3,,graphics.Draw,1,,todo
 022e5a,gfx_InitBitMap,asm,18,,,-31710,2,,graphics.InitBitMap,1,,todo
 022e6c,gfx_InitRastPort,asm,12,,,-31704,2,,graphics.InitRastPort,1,,todo
-022e78,sub_022e78,asm,18,,,-31698,10,,graphics.Move,1,,todo
+022e78,os_gfx_move,asm,18,,,-31698,10,,graphics.Move,1,,todo
 022e8a,sub_022e8a,asm,8,,,,1,,graphics.OwnBlitter,1,,todo
-022e92,sub_022e92,asm,18,,,-31692,3,,graphics.RectFill,1,,todo
-022ea4,sub_022ea4,asm,16,,,-31686,7,,graphics.SetAPen,1,,todo
-022eb4,sub_022eb4,asm,16,,,-31680,1,,graphics.SetBPen,1,,todo
-022ec4,sub_022ec4,asm,16,,,-31674,6,,graphics.SetDrMd,1,,todo
-022ed4,sub_022ed4,asm,26,,,-31668,4,,graphics.Text,1,,todo
+022e92,os_gfx_rect_fill,asm,18,,,-31692,3,,graphics.RectFill,1,,todo
+022ea4,os_gfx_set_apen,asm,16,,,-31686,7,,graphics.SetAPen,1,,todo
+022eb4,os_gfx_set_bpen,asm,16,,,-31680,1,,graphics.SetBPen,1,,todo
+022ec4,os_gfx_set_drmd,asm,16,,,-31674,6,,graphics.SetDrMd,1,,todo
+022ed4,os_gfx_text,asm,26,,,-31668,4,,graphics.Text,1,,todo
 022eee,gfx_WaitTOF,asm,8,,,-31662,8,,graphics.WaitTOF,1,,todo
 022ef6,sub_022ef6,asm,14,,,,1,,base@g_027fce LVO -96,1,,todo
 022f04,sub_022f04,asm,12,,,,1,,base@g_027fce LVO -90,1,,todo
 022f10,sub_022f10,asm,12,,,,1,,base@g_027fce LVO -78,1,,todo
 022f1c,os_close_window,asm,12,,,,1,,intuition.CloseWindow,1,,drop
 022f28,os_close_workbench,asm,8,,,,1,,intuition.CloseWorkBench,1,,drop
-022f30,sub_022f30,asm,28,,,,1,,base@g_027f6a LVO -48,1,,todo
+022f30,os_console_raw_key_convert,asm,28,,,,1,,base@g_027f6a LVO -48,1,,todo

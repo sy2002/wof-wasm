@@ -258,7 +258,10 @@
 027428 songs_seglist         ; long: BPTR from LoadSeg("wofsongs"); its first instruction returns the song data in A0
 02742c song_data             ; long: that pointer, handed to the player in D2
 0255ea player_seglist        ; long: BPTR from LoadSeg("songplay")
-0255ee player_entry          ; long: the player's entry, called with D0 = command (0 init, 1 and 2 with the song number in D1, 4, 5 status, 6)
+0255ee player_entry          ; long: the player's entry, called with D0 = command; the dispatcher of songplay maps
+                            ;   0 OpenTimerInt, 1 ReadInstruments, 2 PlaySong, 3 StopSong, 4 close the timer,
+                            ;   5 GetSongStat, 6 FadeSong, 7 PlaySfx, 8 StopSfx, 9 SfxStat, 10 PauseMusic,
+                            ;   11 RestartMusic, 12 AdjustSfx
 0255f2 song_number
 
 # ---- front end
@@ -433,3 +436,71 @@
 0256a2 shapes_load_name      ; long: the file name shapes_load is working on, for its error text
 0236ac font_file_name        ; "newarmyfont"
 026d4c demo_mode             ; word: 0 play, 1 demo playback, 2 demo recording
+
+# ---- the key buffer and its readers  (see re/notes/keys.md)
+0205cc keyboard_open         ; C. (qualifier mask) two ports, input.device with input_handler at priority 127, console.device
+0205b4 key_set_qualifier_mask ; C. (mask) -> the previous mask. No caller
+02067c keyboard_close        ; C. removes the handler and closes both devices
+0207d8 key_available         ; asm. -> 0xFF when key_count is not 0
+0207e4 key_get               ; asm. waits on WaitTOF, pops one key: (qualifier << 16) | raw code, masked bits of key_qualifier_mask removed
+020700 key_to_char           ; C. (key long) -> one character through console.device RawKeyConvert, or 0 when the key gives none or more than one
+0206ee key_wait_char         ; C. key_get then key_to_char. No caller
+022f30 os_console_raw_key_convert ; console.device RawKeyConvert thunk, base in g_027f6a
+018228 wait_input_release    ; C. WaitTOF until fire and stick are centred, at most 9 rounds; returns at once on a pending key
+01ccf6 ingame_keys           ; asm. drains the key buffer each pass: the Control commands, Escape, and the cheat sequence
+0254f7 opt_music_off         ; byte: Control-S; music_start skips the second player call and music_stop the fade wait. Cleared by the outer loop
+025f18 cheat_state           ; word: how much of the five-letter cheat sequence has been typed; 5 unlocks the debug keys
+026f5c last_key              ; long: the key ingame_keys is working on, (qualifier << 16) | code, bit 31 cleared
+
+# ---- front-end screens  (see re/notes/frontend.md)
+018590 mission_briefing      ; C. rank shape, rank name, three numbers; fire or 240 VBlanks; Control-R returns 1, which restarts the outer loop
+018570 text_draw_c           ; C. (string) text_draw with strlen
+018b96 load_save_dialog      ; C. (mode: 0 load, 1 save) -> 0 when a game was loaded or saved
+018a06 dialog_file_list      ; C. Lock(0)/Examine/ExNext over the game's directory; keeps up to 6 names that begin with "wof."
+018958 dialog_draw_names     ; C. draws the six slot names, padded to 28 characters
+016592 path_sanitise         ; C. replaces ':' and '/' in a name with a space
+016086 text_input            ; C. (buffer, max, x, y, timeout) the line editor of the name entry and the file names
+016032 text_caret            ; C. (x, y) COMPLEMENT RectFill of one 8 x 8 cell
+019856 high_score_screen     ; C. name entry, then the slab and the picture, 1800 VBlanks or fire
+019472 high_score_entry      ; C. reads, sorts, and if the score beats entry 9 asks for a name, sorts again and writes
+01967e high_score_draw       ; C. the ten lines, each drawn three times for the outline
+019288 high_score_save       ; C. writes the 360 bytes of high_score_table
+0193cc high_score_load       ; C. reads them, or fills in ten empty entries
+019320 high_score_sort       ; C. bubble sort by score, descending
+0192ae high_score_reset_unused ; C. ten entries of 5000 with a fixed name, then save. No caller
+027dda high_score_table      ; long: the 10 x 36 bytes, a local of high_score_screen
+025910 rank_names            ; 7 pointers to the rank names
+02598c story_text            ; long: the first of the story scroller's lines
+025a50 hiscore_pens          ; 3 words: 0, 0, 15
+025a56 hiscore_offsets       ; 3 words: -1, 1, 0, added to x and y of every high-score line
+02592c briefing_palette      ; 16 words, the briefing's fade target
+025a5c dialog_palette        ; 16 words, the fade target of the dialog and the name entry
+025084 player_on_deck        ; word: 1 while the aircraft is on the carrier, 0 in the air; Control-G saves only when it is 1
+01cab4 flash_set             ; C. (count, colour) the sky flash of flip_buffers
+
+# ---- C library and OS thunks used by the front end
+0215d8 sprintf               ; C. (buffer, format, ...) through RawDoFmt
+021e02 strcpy
+021e12 strlen
+021e82 tolower
+021eca bcopy                 ; asm. (from, to, n)
+0222a8 strcat
+0222ae strncat
+0222d2 strncpy               ; asm. (dest, src, n), pads with zeros
+01fe50 save_file             ; C. (name, buffer, length) Open MODE_NEWFILE, Write, Close
+022aae os_dos_close
+022ada os_dos_examine
+022aec os_dos_ex_next
+022b02 os_dos_io_err
+022b1a os_dos_lock
+022b2c os_dos_open
+022b3e os_dos_read
+022b50 os_dos_unlock
+022b60 os_dos_write
+022e48 os_gfx_draw
+022e78 os_gfx_move
+022e92 os_gfx_rect_fill
+022ea4 os_gfx_set_apen
+022eb4 os_gfx_set_bpen
+022ec4 os_gfx_set_drmd
+022ed4 os_gfx_text
