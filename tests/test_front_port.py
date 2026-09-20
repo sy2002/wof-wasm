@@ -679,3 +679,62 @@ def test_the_dialog_with_nothing_to_load_starts_on_cancel(ported):
     assert ported.dialog_names() == [''] * 6
     ported.reset_core()
     ported.fs_reset()
+
+
+# ------------------------------------------ what the front end draws with graphics.Draw
+
+def test_every_draw_the_front_end_makes_is_parallel_to_an_axis(ported):
+    """SPEC 10, point 7 leaves the pixel pattern of the blitter's line mode open, and
+    graphics.Draw would need it for a sloped line.  It is not needed: every Draw the front
+    end makes is a side of one of the load and save dialog's eight boxes or of the name
+    entry's frame, and each of those is parallel to an axis.  This watches the original
+    make them, in both modes of the dialog and in the name entry, rather than reading the
+    tables and trusting them."""
+    seen = 0
+    for run_name in ('dialog-load', 'dialog-save'):
+        machine = headless_run(run_name, observe=['os_gfx_move', 'os_gfx_draw'])
+        pen = None
+        for o in machine.observed:
+            if o['routine'] == 'os_gfx_move':
+                pen = (signed(o['args'][1]), signed(o['args'][2]))
+                continue
+            to = (signed(o['args'][1]), signed(o['args'][2]))
+            assert pen is not None, 'a Draw with no Move before it'
+            assert pen[0] == to[0] or pen[1] == to[1], (
+                '%s: a sloped Draw from %s to %s' % (run_name, pen, to))
+            pen = to
+            seen += 1
+    assert seen >= 8 * 4, 'only %d Draw calls were seen; the dialog alone makes 32' % seen
+
+
+def test_the_port_draws_the_same_boxes_as_the_original(ported):
+    """The eight boxes of the dialog, as the original's own table gives them, against the
+    port's.  The dialog is driven on both sides, so this is the whole routine and not the
+    table alone."""
+    machine = headless_run('dialog-load', observe=['os_gfx_move', 'os_gfx_draw'])
+    want = []
+    pen = None
+    for o in machine.observed:
+        if o['routine'] == 'os_gfx_move':
+            pen = (signed(o['args'][1]), signed(o['args'][2]))
+        else:
+            to = (signed(o['args'][1]), signed(o['args'][2]))
+            want.append((pen, to))
+            pen = to
+
+    ported.reset_core()
+    ported.fs_reset()
+    ported.dialog_run(0, [(DOWN, 0), (DOWN, 0), (RETURN, 0)])
+
+    got = []
+    pen = None
+    for r in ported.traces():
+        if r['what'] == 'os_gfx_move':
+            pen = (r['a'], r['b'])
+        elif r['what'] == 'os_gfx_draw':
+            got.append(((r['a'], r['b']), (r['c'], r['d'])))
+            pen = (r['c'], r['d'])
+
+    assert got[:len(want)] == want, 'port %s\noriginal %s' % (got[:4], want[:4])
+    ported.reset_core()
+    ported.fs_reset()

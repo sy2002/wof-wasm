@@ -156,3 +156,16 @@ export const PRESENT_COST = `(() => {
    136,960 framebuffer pixels with a screenshot instead of a few sample points.  A data URL
    rather than the pixels: the same bytes, a fiftieth of the JSON. */
 export const SOURCE_PNG = "window.__wofVideo.source.toDataURL('image/png')";
+
+/* What the shell has put into browser storage: the game's own written files, under the
+   wof: prefix (SPEC 6.2, Storage).  Read as the page left it, not as the core holds it. */
+export const STORED_FILES = `(() => {
+    try {
+        const raw = window.localStorage.getItem('wof:files');
+        const files = raw ? JSON.parse(raw) : [];
+        return files.map((file) => ({ name: file.name, bytes: atob(file.data).length,
+                                      text: atob(file.data) }));
+    } catch (err) {
+        return { error: String(err) };
+    }
+})()`;

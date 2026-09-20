@@ -28,6 +28,11 @@ export const KEYS = {
     five: { key: '5', code: 'Digit5', text: '5' },
     six: { key: '6', code: 'Digit6', text: '6' },
     meta: { key: 'Meta', code: 'MetaLeft' },
+    enter: { key: 'Enter', code: 'Enter', text: '\r' },
+    one: { key: '1', code: 'Digit1', text: '1' },
+    two: { key: '2', code: 'Digit2', text: '2' },
+    keyA: { key: 'a', code: 'KeyA', text: 'a' },
+    keyB: { key: 'b', code: 'KeyB', text: 'b' },
 };
 
 export class Devtools {

@@ -17,7 +17,7 @@ import { resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST, STORED_FILES } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -237,6 +237,78 @@ try {
        viewport: the box has to come back to where it started. */
     await keepRanks();
     report.box.ranks = await look('ranks', true);
+
+    /* ------------------------------------ the dialog, the editor and browser storage
+     *
+     * M3's acceptance: the front end is walked to the save dialog and to the high-score
+     * name entry, a name is typed into each, and what the game wrote is read back out of
+     * localStorage and then out of a second visit to the page.  The save dialog and the
+     * high score have no way in before M4 ports the in-flight commands, so the shell
+     * offers one while the diagnostics overlay is up; everything after that is the game's
+     * own: the dialog's list, the line editor, the 360 bytes of the high-score file.
+     */
+    const storage = {};
+
+    /* This page has had other tabs in front of it, and a page that is not visible stops
+       its clock (SPEC 6.2); nothing below would move if it stayed that way. */
+    await cdp.send('Page.bringToFront', {}, sessionId);
+    await sleep(600);
+
+    /* Browser storage outlives a run, so the page is emptied of what an earlier one left:
+       what is read back below is then this run's own doing and nothing else's. */
+    await evaluate("(() => { try { window.localStorage.removeItem('wof:files'); } catch (e) {} })()");
+    storage.before = await evaluate(STORED_FILES);
+
+    /* look() leaves the overlay up, which is what the two development keys need. */
+    await press(sessionId, 'one');                  /* a score that beats the tenth entry */
+    await press(sessionId, 'two');                  /* the save dialog at the next rank */
+    await sleep(300);
+    await press(sessionId, 'backquote');            /* the overlay away again */
+    await sleep(300);
+
+    await press(sessionId, 'enter');                /* choose the rank under the cursor */
+    await sleep(2000);
+    storage.dialog = await settle();
+
+    await press(sessionId, 'keyA');                 /* type into the slot's name */
+    await sleep(500);
+    storage.edited = await evaluate(PICTURE);
+    await press(sessionId, 'enter');                /* accept: the saved game is written */
+    await sleep(2000);
+    storage.afterSave = await evaluate(STORED_FILES);
+
+    /* On through the briefing, which is left to run out by itself - fire would skip it,
+       but the key that ends it stays in the buffer and the name entry would take it as a
+       character, which is what the machine does too - and into the mission stand-in and out
+       at the high-score entry, where the name goes in. */
+    await sleep(8000);
+    storage.entry = await settle();
+    for (const key of ['keyA', 'keyB', 'keyA']) {
+        await press(sessionId, key);
+        await sleep(250);
+    }
+    await press(sessionId, 'enter');
+    await sleep(2500);
+    storage.afterEntry = await evaluate(STORED_FILES);
+    storage.highScores = await settle();
+
+    /* A second visit to the same page: what the game wrote is still there. */
+    const again = (await cdp.send('Target.createTarget', { url: 'about:blank' })).targetId;
+    const againSession = (await cdp.send('Target.attachToTarget',
+                                         { targetId: again, flatten: true })).sessionId;
+    await open(againSession, 'file://' + pagePath);
+    await sleep(1500);
+    storage.afterReload = await evaluateIn(againSession, STORED_FILES);
+    storage.reloadConsole = channel(againSession).console;
+    report.storage = storage;
+
+    /* Back to the page this run is about, with its clock running and its overlay up: what
+       follows reads the counters off it. */
+    await cdp.send('Page.bringToFront', {}, sessionId);
+    await sleep(600);
+    await press(sessionId, 'backquote');
+    await sleep(600);
+
 
     /* A stall must not be made up frame for frame: SPEC 6.2 replays at most 24 VBlanks,
        which is the original's queue of six ticks.  The counters come out of the overlay,

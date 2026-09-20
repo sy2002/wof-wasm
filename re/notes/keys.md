@@ -197,19 +197,21 @@ ends early on **fire** only.
 
 ### High-score name entry and the dialog's file names (`text_input` `0x016086`)
 
-Arguments: buffer, maximum length, x, y, and a round limit. The high-score entry calls it with
-16 and (82, 102); the save dialog with 27 and the slot's own position.
+Arguments: buffer, maximum length, x, y, and a fifth word both callers pass and **nothing
+reads**, like the second argument of `fade_to`. The high-score entry calls it with 16 and
+(82, 102); the save dialog with 28 and the slot's own position. The y it is given is the top
+of the text: the routine adds the RastPort's `TxBaseline` (+`0x3E`) before it moves the pen.
 
 | Raw code | Qualifier | Effect |
 |---|---|---|
 | `0x44`, `0x43` | any | accept and leave |
-| `0x4F` | any | cursor left |
-| `0x4E` | any | cursor right |
+| `0x4F` | any | cursor left; **with either Shift** it jumps to the start of the line |
+| `0x4E` | any | cursor right; **with either Shift** it jumps to the end |
 | `0x4C` | any | leave with −1 (the dialog moves to the slot above) |
 | `0x4D` | any | leave with +1 |
 | `0x41` | any | delete the character before the cursor |
 | `0x46` | any | delete the character under the cursor |
-| `0x32` | right Amiga | clear the whole line |
+| `0x32` | right Amiga | clear the whole line. The code is converted **without** the qualifier and compared with `x`, so it is right-Amiga-X, the system's own clear-line |
 | any other | any | `key_to_char` **with the qualifier**; a non-zero character is inserted at the cursor if the line is shorter than the maximum |
 
 Fire also accepts and leaves; the stick forward and back leave with −1 and +1. There is **no

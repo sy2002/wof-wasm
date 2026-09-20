@@ -332,3 +332,57 @@ def test_a_stall_is_not_made_up_frame_for_frame(loaded):
     assert resumed > blocked, 'the clock did not start again'
     assert resumed - blocked < real_time_would_give / 2, (
         'replayed %d VBlanks after a %d ms stall' % (resumed - blocked, stall['blockedMs']))
+
+
+# ------------------------------------- the dialog, the line editor and browser storage
+
+def test_the_save_dialog_and_the_line_editor_work_on_the_page(loaded):
+    """M3's acceptance, walked on the real page: the save dialog comes up, a letter typed
+    into a slot changes what is on screen, and accepting it writes a file whose name is the
+    one that was typed - which is the rename re/notes/frontend.md observed, because the slot
+    held the disk's own `wof.mission 3`."""
+    storage = loaded['storage']
+    assert storage['before'] == [], (
+        'the page began with files an earlier run left: %s' % storage['before'])
+    assert storage['dialog']['hash'] != storage['edited']['hash'], (
+        'typing into the slot changed nothing on screen')
+
+    saved = storage['afterSave']
+    assert isinstance(saved, list), saved
+    assert [file['name'] for file in saved] == ['wof.amission 3'], saved
+    assert all(file['bytes'] > 0 for file in saved)
+
+
+def test_a_high_score_typed_into_the_entry_reaches_the_file(loaded):
+    """The name entry appears because the score beats the tenth, the name goes in through
+    the line editor, and the 360 bytes of re/notes/highscore.md come out: a u32 score, a u16
+    rank and a NUL-padded name, best first."""
+    storage = loaded['storage']
+    files = {file['name']: file for file in storage['afterEntry']}
+
+    assert 'highscore' in files, storage['afterEntry']
+    entry = files['highscore']
+    assert entry['bytes'] == 360, 'the high-score file is ten entries of thirty-six bytes'
+
+    best = entry['text'][:36]
+    score = sum(ord(c) << (8 * (3 - i)) for i, c in enumerate(best[:4]))
+    assert score == 5000, 'the development key sets 5000; the file holds %d' % score
+    assert best[6:].split('\x00')[0] == 'aba', 'the name that was typed is %r' % best[6:12]
+
+
+def test_what_the_game_wrote_is_still_there_on_the_next_visit(loaded):
+    """SPEC 6.2, Storage, and M3's acceptance: high scores persist across reloads.  The
+    second visit is a fresh page on the same file:// origin, and it reads the same files."""
+    storage = loaded['storage']
+    assert storage['reloadConsole'] == [], storage['reloadConsole']
+
+    before = {file['name']: file['text'] for file in storage['afterEntry']}
+    after = {file['name']: file['text'] for file in storage['afterReload']}
+    assert after == before, 'the page came back with %s' % sorted(after)
+    assert 'highscore' in after and len(after['highscore']) == 360
+
+
+def test_the_high_score_screen_is_a_picture_and_a_slab(loaded):
+    """Two viewports of different depths, 320 x 75 at line 0 and 640 x 145 at line 76, each
+    faded up to its own colours (re/notes/display.md)."""
+    assert loaded['storage']['highScores']['colours'] >= 16, loaded['storage']['highScores']

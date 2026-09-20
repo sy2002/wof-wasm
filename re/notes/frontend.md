@@ -139,12 +139,14 @@ plus a copper rebuild, with no wait. The three extra VBlanks between the briefin
 - **Loads** no picture. It draws itself, entirely with `graphics.library` in the **system font**
   (`re/notes/system-font.md`), `SetAPen(0x28F)`, which is pen 15 on four planes, and `SetDrMd(0)`,
   JAM1.
-- **Static labels** come from a linked list walked at `0x018BE2`: each item holds the next
-  pointer, x, y and the string. Observed for both modes:
+- **Static labels** come from a table walked at `0x018BE2`: rows of eight bytes, a string
+  pointer and then x and y, ended by a zero pointer (`dialog_labels` `0x0259A8`). The
+  `Load` or `Save` at (85, 19) is not in it; it is drawn by itself, by the mode. Observed
+  for both modes:
 
   | Position | Text |
   |---|---|
-  | (85, 19) | `Load` (`0x019254`, 4) or `Save` (`0x019259`, 4), by the mode |
+  | (85, 19) | `Load` (`0x019254`, 4) or `Save` (`0x019259`, 4), by the mode, drawn apart from the table |
   | (127, 19) | `Game` (`0x018B80`, 4) |
   | (63, 193) | `Exit Game` (`0x018B85`, 9) |
   | (222, 194) | `Cancel` (`0x018B8F`, 6) |
@@ -152,9 +154,16 @@ plus a copper rebuild, with no wait. The three extra VBlanks between the briefin
 - **Six file slots**, each an outlined box `Move(43, 59 + 16i)` then `Draw` to (282, 59 + 16i),
   (282, 69 + 16i), (43, 69 + 16i) and back, for i = 0 to 5. The name is drawn at
   (45, 61 + 16i), padded to 28 characters with the 28-space string at `0x017CFC`.
-- **Two buttons**, outlined boxes (43, 183)–(147, 199) and (205, 183)–(285, 199).
-- **The selection** is one `RectFill(44, 60 + 16i, 281, 68 + 16i)` in `SetDrMd(2)`, COMPLEMENT,
-  which is undone by drawing it again.
+- **Two buttons**, outlined boxes (43, 183)–(147, 199) and (205, 183)–(285, 199). The six
+  slot boxes and the two button boxes are one table of (x0, y0, x1, y1) rows
+  (`dialog_boxes` `0x0259C8`), each drawn as four `Draw` calls; every one of them is
+  parallel to an axis, so the blitter's line mode is not needed here
+  (`test_every_draw_the_front_end_makes_is_parallel_to_an_axis`).
+- **The selection** is one `RectFill` in `SetDrMd(2)`, COMPLEMENT, which is undone by
+  drawing it again: `(44, 60 + 16i, 281, 68 + 16i)` on a slot, `(45, 185, 145, 197)` on
+  `Exit Game` and `(207, 185, 283, 197)` on `Cancel`.
+- **The fade target** is `dialog_box_palette` (`0x025A10`), 16 words; the name entry's own
+  is `dialog_palette` (`0x025A5C`).
 - **Timing:** `view_show_wait`, `fade_to`, then the loop; `fade_out` on the way out.
 
 **The file list** (`dialog_file_list` `0x018A06`), observed in
@@ -207,8 +216,10 @@ and `input_queue_clear`.
 - `view_show_wait`, `fade_to_pair(first viewport's colours, second viewport's colours)`.
 - **Waits 1800 rounds**, ending early on fire, then `fade_out_pair`.
 
-**The ten lines** (`high_score_draw` `0x01967E`), in the system font on the second viewport: three
-passes over the same ten entries, with `hiscore_offsets` (`0x025A56`) = −1, 1, 0 and
+**The ten lines** (`high_score_draw` `0x01967E`), on the second viewport in the **game** font:
+they go through `text_draw_c`, which is `text_draw`, which is the template through
+`BltTemplate`, not `graphics.Text`.  Of this screen only the name entry uses the system font.
+Three passes over the same ten entries, with `hiscore_offsets` (`0x025A56`) = −1, 1, 0 and
 `hiscore_pens` (`0x025A50`) = 0, 0, 15. Pass p draws every entry at
 x = offset[p] + 13 + column and y = offset[p] + 12 * i + 6, so the text gets a black outline one
 pixel up-left and one down-right before the white text goes on top. The four columns are the
@@ -225,7 +236,7 @@ position `"%d"` at +0, the score `"%-6ld"` at +0x28, the rank name `"%-12s"` fro
 - `SetAPen(2)`, then a rectangle outline (80, 100) – (225, 113) drawn with four `Draw` calls.
 - `bcopy(dialog_palette 0x025A5C, local, 0x20)`, `view_show_wait`, `fade_to(local)`.
 - `text_input(buffer, 16, 82, 102, 10000)` — the editor of `re/notes/keys.md`, so at most **16
-  characters**.
+  characters**. The fifth argument is read by nothing, like the second argument of `fade_to`.
 - The score goes into **entry 9**, the name with `strncpy(..., 17)` and the rank word from
   `0x0253BE`; then `fade_out`, sort, write. `re/notes/highscore.md` has the layout and the test
   that an inserted score lands where it belongs.
@@ -369,6 +380,13 @@ Read only by `flip_buffers` (`0x01031A`, `0x010322`, `0x01032C`). **Not observed
 600 ticks that takes off, climbs and fires never wrote either word, so the flash comes from
 something the script did not reach — a bomb or a shell hitting the ground. The observation belongs
 to M5, where those routines are ported.
+
+## What the port made of this
+
+`re/notes/porting-m3.md`: the timetable above is reproduced VBlank for VBlank, the screens
+are the same bands, and every drawing call is compared with the observers of the runs named
+here.  Where this note was wrong — the font of the high-score list, the shape of the label
+table — it now says what the code does.
 
 ## What M3 has to build
 
