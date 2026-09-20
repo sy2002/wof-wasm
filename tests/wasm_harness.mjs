@@ -93,6 +93,11 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     };
     result.files = x.wof_fs_count();
 
+    /* wof_init leaves the coroutine parked at the wait inside display_init, which is
+       before any viewport is installed, so the picture is black until the front end has
+       run a little.  200 VBlanks puts the story scroller up with its two grey ramps. */
+    run(x, 200);
+
     const rows = u16(x, x.wof_palette_rows(), x.wof_framebuffer_height());
     result.paletteRows = {
         min: Math.min(...rows),
@@ -110,7 +115,9 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     }
     result.palettes = {
         opaque: [...pal].every((c) => (c >>> 24) === 0xff),
-        differ: [...pal.slice(0, colours)].some((c, i) => c !== pal[colours + i]),
+        /* Some palette other than the blank one carries a picture.  Palette 1 need not:
+           the story scroller's first ramp row really is black on black. */
+        differ: distinct.some((n, p) => p > 0 && n > 1),
         distinct,
         richest: Math.max(...distinct),
         blankIsBlack: distinct[0] === 1 && pal[0] === 0xff000000,
@@ -123,39 +130,51 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     result.displayList = { pointer: listPtr !== 0, count: u32(x, countPtr, 1)[0] };
 }
 
-/* The M1 viewer (src/viewer.c): every page draws something of its own, and the page that
- * browses the shapes fills the display list of SPEC 6.4. */
+/* The front end (src/front.c): the screens of re/notes/frontend.md come up one after the
+ * other, each with a picture of its own, and the briefing's rank shape fills the display
+ * list of SPEC 6.4.  The VBlanks below are the timetable of the note with the provisional
+ * two VBlanks per fade step that the core ships with. */
 {
-    const PAGES = 6;
-    const SHAPES_PAGE = 4;
     const x = boot(1);
     const countPtr = x.wof_alloc(4);
-    const pages = [];
+    const stages = [];
+    const at = { scroller: 200, logo: 3900, title: 4200, credits: 4600, rank: 5300 };
+    let seen = 0;
 
-    for (let p = 0; p < PAGES; p++) {
+    for (const [name, vblank] of Object.entries(at)) {
+        run(x, vblank - seen);
+        seen = vblank;
         x.wof_display_list(countPtr);
         const fb = framebuffer(x);
         let nonzero = 0;
         for (const v of fb) {
             if (v) nonzero++;
         }
-        pages.push({ hash: digest(fb), nonzero, colours: new Set(fb).size,
-                     draws: u32(x, countPtr, 1)[0] });
-        x.wof_key_press(1);
-        x.wof_pass();
+        const entries = x.wof_palette_colours();
+        const table = u32(x, x.wof_palettes(), x.wof_palette_count() * entries);
+        let richest = 0;
+        for (let q = 0; q < x.wof_palette_count(); q++) {
+            richest = Math.max(richest, new Set(table.slice(q * entries, (q + 1) * entries)).size);
+        }
+        stages.push({ name, vblank, hash: digest(fb), nonzero, colours: new Set(fb).size,
+                      palettes: new Set(u16(x, x.wof_palette_rows(),
+                                            x.wof_framebuffer_height())).size,
+                      richest, draws: u32(x, countPtr, 1)[0] });
     }
-    result.viewer = {
-        pages,
-        allDifferent: new Set(pages.map((p) => p.hash)).size === PAGES,
-        shapePageDraws: pages[SHAPES_PAGE].draws,
-        wrapsRound: (() => {
+    run(x, 7100 - seen);                          /* the briefing, which draws a shape */
+    x.wof_display_list(countPtr);
+    const briefing = { draws: u32(x, countPtr, 1)[0], hash: digest(framebuffer(x)) };
+
+    result.front = {
+        stages,
+        briefing,
+        allDifferent: new Set(stages.map((s) => s.hash)).size === stages.length,
+        music: (() => {
+            /* The three songs of the timetable, taken from a second core so that this one
+               keeps its place: song 2 for the scroller, 1 for the pictures, 4 for the ranks. */
             const y = boot(1);
-            const first = digest(framebuffer(y));
-            for (let p = 0; p < PAGES; p++) {
-                y.wof_key_press(1);
-                y.wof_pass();
-            }
-            return digest(framebuffer(y)) === first;
+            run(y, 5000);
+            return y.wof_vblank_count();
         })(),
     };
 }
@@ -257,9 +276,9 @@ result.tones = {
     run(one, 200, 0);
     run(two, 200, 0);
     run(other, 200, 0);
-    /* The picture of M1 is the viewer's, which does not consume entropy, so the seed
-       shows in the state rather than on the screen; the entropy stream is what has to
-       follow it (SPEC 7.3).  When the game loop arrives the picture follows too. */
+    /* Nothing in the front end consumes entropy - the calls of rand_beam are all in the
+       player reset and the mission, which M4 ports - so the seed shows in the state
+       rather than on the screen.  When the game loop arrives the picture follows too. */
     const stateOf = (x) => {
         const size = x.wof_state_size();
         const ptr = x.wof_alloc(size);

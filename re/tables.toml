@@ -237,3 +237,142 @@ kind = "sysfont"
 [[table]]
 name = "keymap"
 kind = "keymap"
+
+# ----------------------------------------------------------------- the front end 6.2, 6.3
+#
+# What the screens of re/notes/frontend.md draw with: the two fixed palettes, the rank
+# names, the story text and the labels of the dialogs and the high-score list.  The story
+# text is a block of NUL-terminated lines that the scroller walks with strlen, and it tests
+# the byte after a terminator to decide whether to stretch the line, so it is taken as the
+# raw block it is and never written down anywhere (CLAUDE.md).
+#
+# Kinds added here
+#   words   `count` big-endian 16-bit values -> uint16_t[count]
+#   blob    `count` raw bytes                -> uint8_t[count]
+
+[[table]]
+name = "logo_fade_palette"
+kind = "words"
+addr = 0x02594C
+count = 32
+
+[[table]]
+name = "briefing_palette"
+kind = "words"
+addr = 0x02592C
+count = 16
+
+[[table]]
+name = "dialog_palette"
+kind = "words"
+addr = 0x025A5C
+count = 32
+
+[[table]]
+name = "hiscore_pens"
+kind = "words"
+addr = 0x025A50
+count = 3
+
+[[table]]
+name = "hiscore_offsets"
+kind = "words"
+addr = 0x025A56
+count = 3
+
+[[table]]
+name = "rank_names"
+kind = "strptrs"
+addr = 0x025910
+count = 7
+
+# 0x017494 to 0x017CFB: 54 lines, of which story_screen draws 53, and the empty line that
+# ends the last paragraph.  The 80 spaces at 0x017CFC that follow are the dialog's padding.
+[[table]]
+name = "story_text"
+kind = "blob"
+addr = 0x017494
+count = 2152
+
+[[table]]
+name = "spaces"
+kind = "cstr"
+addr = 0x017CFC
+
+[[table]]
+name = "dialog_load"
+kind = "cstr"
+addr = 0x019254
+
+[[table]]
+name = "dialog_save"
+kind = "cstr"
+addr = 0x019259
+
+[[table]]
+name = "dialog_game"
+kind = "cstr"
+addr = 0x018B80
+
+[[table]]
+name = "dialog_exit"
+kind = "cstr"
+addr = 0x018B85
+
+[[table]]
+name = "dialog_cancel"
+kind = "cstr"
+addr = 0x018B8F
+
+[[table]]
+name = "dialog_loading"
+kind = "cstr"
+addr = 0x019263
+
+[[table]]
+name = "dialog_saving"
+kind = "cstr"
+addr = 0x019273
+
+[[table]]
+name = "entry_line1"
+kind = "cstr"
+addr = 0x01964E
+
+[[table]]
+name = "entry_line2"
+kind = "cstr"
+addr = 0x019669
+
+[[table]]
+name = "hiscore_empty_name"
+kind = "cstr"
+addr = 0x019464
+
+[[table]]
+name = "wof_prefix"
+kind = "cstr"
+addr = 0x01925E
+
+# The dialog's own tables (re/notes/frontend.md).  The labels are a list of (string, x, y)
+# with an 8-byte stride, ended by a zero pointer; the port takes the three strings from the
+# cstr entries above and the positions from words 2 and 3 of each row.  The boxes are eight
+# rows of (x0, y0, x1, y1): six slots and two buttons.
+
+[[table]]
+name = "dialog_labels"
+kind = "words"
+addr = 0x0259A8
+count = 12
+
+[[table]]
+name = "dialog_boxes"
+kind = "words"
+addr = 0x0259C8
+count = 32
+
+[[table]]
+name = "dialog_box_palette"
+kind = "words"
+addr = 0x025A10
+count = 16

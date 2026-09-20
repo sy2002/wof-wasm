@@ -119,6 +119,9 @@ export function createClock(core, input, video, audio, onFrame) {
             hz = value === 50 ? 50 : 60;
             period = 1000 / hz;
             accumulator = 0;
+            /* The measurement window starts again with the standard: a window that
+               straddled the change would report a rate that is neither of the two. */
+            windowMark = null;
             core.setVideoHz(hz);
         },
         stats: () => ({ rate, hz, stalls, backlog: accumulator / period }),

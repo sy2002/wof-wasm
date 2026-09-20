@@ -13,16 +13,6 @@ import { createOverlay } from './overlay.js';
    is a front-end question and belongs to M3. */
 const SEED = 0x57494e47;
 
-/* TEMPORARY - the four keys of the M1 viewer (src/viewer.c).  In M3 the menus take the
-   second input path of SPEC 6.2 instead: positional KeyboardEvent.code mapped to raw Amiga
-   key codes and fed to the core's key buffer. */
-const VIEWER_KEYS = {
-    ArrowRight: 1, Space: 1,
-    ArrowLeft: 2,
-    ArrowDown: 3,
-    ArrowUp: 4,
-};
-
 /* Keys that produce no character and therefore no user activation. */
 const INERT_KEYS = new Set([
     'Meta', 'Control', 'Alt', 'AltGraph', 'Shift', 'CapsLock', 'Dead',
@@ -47,6 +37,40 @@ function writeSetting(name, value) {
     } catch (err) {
         /* private mode, or storage turned off: the setting simply does not survive */
     }
+}
+
+/* The high-score file and the saved games, kept between visits (SPEC 6.2, Storage).  They
+   live under one key so that the order they were written in survives with them: the load
+   and save dialog lists them in the order the file system hands them out, and that order
+   is made of the names and of which file is the newer (re/notes/frontend.md). */
+const FILES_KEY = 'files';
+
+function encodeBase64(bytes) {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+function restoreFiles(core) {
+    const stored = readSetting(FILES_KEY);
+    if (!stored) {
+        return;
+    }
+    try {
+        for (const file of JSON.parse(stored)) {
+            core.fsPut(file.name, decodeBase64(file.data));
+        }
+    } catch (err) {
+        /* Something else wrote the key, or it was truncated: start with the disk alone. */
+    }
+}
+
+function storeFiles(core) {
+    const files = core.fsFiles().map((file) => (
+        { name: file.name, data: encodeBase64(file.data) }));
+    writeSetting(FILES_KEY, JSON.stringify(files));
 }
 
 function decodeBase64(text) {
@@ -77,6 +101,16 @@ async function boot() {
        before the first VBlank and write it back whenever the flip command changes it. */
     let invert = readSetting('invertVertical') === '1';
     core.setInvertVertical(invert);
+
+    /* What the game wrote last time, back before the first pass. */
+    restoreFiles(core);
+    let fsSeen = core.fsChanges();
+    function rememberFiles() {
+        if (core.fsChanges() !== fsSeen) {
+            fsSeen = core.fsChanges();
+            storeFiles(core);
+        }
+    }
     function rememberInvert() {
         if (core.invertVertical() !== invert) {
             invert = core.invertVertical();
@@ -90,6 +124,7 @@ async function boot() {
         overlay.paint(now);
         checkAudioStarted();
         rememberInvert();
+        rememberFiles();
     });
 
     /* The overlay needs the clock and the clock needs the overlay's paint function; the
@@ -172,8 +207,14 @@ async function boot() {
             setStandard('pal');
         } else if (overlay.visible() && event.code === 'Digit6') {
             setStandard('ntsc');
-        } else if (VIEWER_KEYS[event.code] !== undefined) {
-            core.keyPress(VIEWER_KEYS[event.code]);
+        } else if (overlay.visible() && event.code === 'Digit1') {
+            core.devSetScore(5000);          /* enough to beat the tenth entry */
+            event.preventDefault();
+        } else if (overlay.visible() && event.code === 'Digit2') {
+            core.devOpenDialog(1);           /* the save dialog, at the next rank chosen */
+            event.preventDefault();
+        } else if (overlay.visible() && event.code === 'Digit3') {
+            core.devOpenDialog(0);           /* the load dialog, the same way */
             event.preventDefault();
         }
     });

@@ -40,10 +40,12 @@
 /* A viewport's colour table is 32 words on the machine whatever its depth is. */
 #define WOF_PAL_COLOURS 32
 
-/* One palette per viewport that can be on screen at once, plus the blank one at index 0.
- * wof_palette_rows() says which applies to each output row.  The mechanisms of SPEC 6.4
- * that need more of them - the sky/ocean split, the ticker ramp - arrive with M4. */
-#define WOF_PAL_COUNT   5
+/* One palette per distinct set of colours that is on screen at once, plus the blank one at
+ * index 0.  wof_palette_rows() says which applies to each output row.  The front end needs
+ * the most of them: the story scroller changes COLOR01 on every row of two sixteen-row
+ * ramps, which is seventeen (re/notes/display.md).  The sky-to-ocean split and the ticker's
+ * ten-line ramp of the play screen fit in the same budget. */
+#define WOF_PAL_COUNT   24
 #define WOF_PAL_BLANK   0
 
 /* A palette entry is RGBA in memory order (0xAABBGGRR as a little-endian uint32), which is
@@ -77,6 +79,14 @@ WOF_API(wof_key)               void            wof_key(uint8_t code, uint16_t qu
 WOF_API(wof_port_key)          void            wof_port_key(uint8_t code, uint16_t qualifier);
 WOF_API(wof_set_invert_vertical) void          wof_set_invert_vertical(int on);
 WOF_API(wof_invert_vertical)   int             wof_invert_vertical(void);
+WOF_API(wof_set_fade_vblanks)  void            wof_set_fade_vblanks(int n);
+WOF_API(wof_fade_vblanks)      int             wof_fade_vblanks(void);
+
+/* Development entries, for looking at what a mission would otherwise be needed to reach.
+ * They are not part of the game and not part of the port's key layer: the shell offers them
+ * only while the diagnostics overlay is up (SPEC 6.2, and M3's deliverable 7). */
+WOF_API(wof_dev_set_score)     void            wof_dev_set_score(uint32_t score);
+WOF_API(wof_dev_open_dialog)   void            wof_dev_open_dialog(int mode);
 WOF_API(wof_pass)              void            wof_pass(void);
 WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);
@@ -103,14 +113,204 @@ WOF_API(wof_tick_count)         uint32_t  wof_tick_count(void);
 WOF_API(wof_pass_count)         uint32_t  wof_pass_count(void);
 WOF_API(wof_assets_ready)       uint32_t  wof_assets_ready(void);    /* 0 while an asset is missing */
 
+/* --------------------------------------------------------------------- viewports 6.4 */
+
+/* The port's stand-in for one of the original's ViewPort records (re/notes/display.md).
+ * The planar BitMap becomes one indexed surface; `bytes_per_row` is kept because the
+ * picture decoder writes rows back to back at the picture's stride, not the viewport's. */
+typedef struct {
+    uint16_t width;          /* displayed pixels        (vport +0xA8) */
+    uint16_t height;         /* rows of the bitmap      (vport +0xAA, BitMap Rows) */
+    uint16_t bytes_per_row;  /* BitMap BytesPerRow      (vport +4) */
+    uint16_t rows;           /* BitMap Rows             (vport +6) */
+    uint16_t disp_rows;      /* rows the copper shows   (vport +0xA2); 230 for the scroller */
+    uint16_t out_y;          /* first display line      (vport +0xA6) */
+    uint16_t scroll;         /* rows the plane pointer has advanced (story_screen) */
+    uint16_t ring_at;        /* viewport row where the plane pointer is reloaded, else NONE */
+    uint16_t ramp;           /* the story scroller's ramp count, 0 when there is none */
+    uint16_t split_line;     /* vport +0x92 */
+    uint16_t split_on;       /* vport +0x94 */
+    uint32_t plane;          /* offset of the surface inside wof_f.vram */
+    uint8_t  depth;          /* BitMap Depth            (vport +9) */
+    uint8_t  hires;          /* 0 = low resolution, doubled on the 640-wide output */
+    uint8_t  next;           /* index of the next viewport in the chain, or WOF_VP_NONE */
+    uint8_t  has_colours2;   /* the viewport has a second colour table (vport +0x9C) */
+
+    /* The RastPort the original embeds at vport +0x2C.  Only the five fields the front end
+     * sets and reads are kept: the two pens, the draw mode and the pen position. */
+    uint8_t  apen;           /* RastPort FgPen  (+0x19), SetAPen */
+    uint8_t  bpen;           /* RastPort BgPen  (+0x1A), SetBPen */
+    uint8_t  drmd;           /* RastPort DrawMode (+0x1C): JAM1 0, JAM2 1, COMPLEMENT 2 */
+    int16_t  cp_x;           /* RastPort cp_x (+0x24), Move and Text */
+    int16_t  cp_y;           /* RastPort cp_y (+0x26) */
+    uint16_t colours[WOF_PAL_COLOURS];    /* colour table 1 (vport +0x98) */
+    uint16_t colours2[WOF_PAL_COLOURS];   /* colour table 2 (vport +0x9C) */
+} wof_vport_t;
+
+/* The surface of a viewport, and the row its drawing starts at once the plane pointer has
+ * advanced.  Both are computed rather than stored, so that no pointer lives in the state. */
+uint8_t     *wof_vport_pixels(const wof_vport_t *v);
+wof_vport_t *wof_vport_make(uint16_t width, uint16_t height, uint8_t depth, uint8_t hires);
+void         wof_vport_clear_planes(wof_vport_t *v);     /* orig 0x01A74C */
+
+/* --------------------------------------------------------------- the display memory */
+
+/* The port's bitplanes.  The original keeps two views of 0xACD0 bytes each plus the
+ * single-buffered ticker plane, all in chip memory (re/notes/display.md); the port keeps
+ * one indexed byte per pixel instead, so the same picture needs eight times the bytes of
+ * one plane and a fraction of the bytes of five.
+ *
+ * A view has to hold the tallest thing any screen asks of it.  That is the story scroller:
+ * its bitmap is 640 x 200, but story_screen advances the plane by one row per step, 210
+ * times, and the copper shows 230 rows from wherever the plane then starts, so the display
+ * reads up to row 258 of the view's memory and the text is drawn down to row 209 of it.
+ * Rows beyond the bitmap are the cleared rest of the view's block on the machine, and they
+ * are black here for the same reason. */
+#define WOF_VIEW_W       640
+#define WOF_VIEW_ROWS    260
+#define WOF_VIEW_BYTES   (WOF_VIEW_W * WOF_VIEW_ROWS)
+#define WOF_TICKER_BYTES (84 * 8 * WOF_TICKER_H)     /* the bitmap is 84 bytes wide, 640 shown */
+#define WOF_VRAM_BYTES   (2 * WOF_VIEW_BYTES + WOF_TICKER_BYTES)
+
+/* The five viewport records the original keeps in BSS (re/notes/display.md), and room for
+ * what the M1 viewer still makes for itself until the front end replaces it. */
+#define WOF_VP_A1     0
+#define WOF_VP_B1     1
+#define WOF_VP_A2     2
+#define WOF_VP_B2     3
+#define WOF_VP_TICKER 4
+#define WOF_VP_FIXED  5
+#define WOF_VP_MAX    11
+#define WOF_VP_NONE   0xFF
+
+#define WOF_VIEW_A 0
+#define WOF_VIEW_B 1
+
+/* The music calls of one run of the front end, recorded with the VBlank they happened at
+ * (re/notes/frontend.md); the player itself is M8. */
+#define WOF_MUSIC_LOG 32
+
 /* --------------------------------------------------------------- the front end (6.3) */
 
 /* What the front end keeps between one wof_pass and the next: the resume points of the
- * coroutines and every local that lives across a wait (SPEC 6.3).  It grows screen by
- * screen; what is here is what the key layer of SPEC 6.2 asks the core about. */
+ * coroutines, every local that lives across a wait (SPEC 6.3), the viewport records and the
+ * display memory itself.  All of it is inside the core's state, so wof_state_save is a copy
+ * and a loaded state brings the picture back with the logic.  Nothing here is a pointer:
+ * a viewport names its surface by an offset into `vram` and its neighbour by an index. */
+/* A coroutine's resume point.  One per routine that can wait; no routine of the front end
+ * is ever inside itself, so a context per routine is enough and no stack is needed. */
+typedef struct { uint16_t line; } wof_ctx_t;
+
 typedef struct {
     uint16_t editing;    /* text_input has the line: every key passes as it came */
     uint16_t briefing;   /* mission_briefing is on screen: KeyR restarts from there too */
+
+    uint8_t  front_view; /* which of the two views is installed (view_show) */
+    uint8_t  back_view;
+    uint8_t  view_first[2];   /* index of each view's first viewport, or WOF_VP_NONE */
+    uint32_t view_base[2];    /* offset of each view's display memory inside vram */
+    uint32_t ticker_base;
+    uint32_t vram_used;       /* the bump pointer display_init leaves behind */
+
+    /* The resume points, by the routine that owns each one. */
+    wof_ctx_t co_main;        /* main's outer loop (orig 0x010066) */
+    wof_ctx_t co_stage;       /* title_sequence, rank_select, mission_briefing, high scores */
+    wof_ctx_t co_inner;       /* story_screen, load_save_dialog, high_score_entry */
+    wof_ctx_t co_screen;      /* the five screen_ routines */
+    wof_ctx_t co_show;        /* view_show_wait and cop_show_wait */
+    wof_ctx_t co_vblank;      /* wait_vblank */
+    wof_ctx_t co_fade;        /* the four fades */
+    wof_ctx_t co_frames;      /* wait_frames_or_fire */
+    wof_ctx_t co_menu;        /* menu_input */
+    wof_ctx_t co_release;     /* wait_input_release */
+    wof_ctx_t co_text;        /* text_input */
+
+    /* Locals that live across a wait.  The original keeps them on its stack; a stackless
+     * coroutine cannot, so they carry the name they have in the routine that owns them. */
+    uint16_t fade_step;       /* fade_to: 0..15 */
+    uint16_t fade_count;      /* 1 << depth of the front view's first viewport */
+    uint16_t fade_pair;       /* fade_to_pair rather than fade_to */
+    uint16_t fade_start1[WOF_PAL_COLOURS];   /* the tables the fade starts from */
+    uint16_t fade_start2[WOF_PAL_COLOURS];
+    uint16_t fade_start3[WOF_PAL_COLOURS];
+    uint16_t fade_target1[WOF_PAL_COLOURS];  /* and the ones it is going to */
+    uint16_t fade_target2[WOF_PAL_COLOURS];
+
+    uint16_t frames_i;        /* wait_frames_or_fire: the round it is on */
+    uint16_t frames_n;        /* and how many it was asked for */
+    uint16_t frames_fire;     /* what it returns */
+
+    uint16_t fade_wait;       /* the VBlanks a fade step still owes */
+
+    uint16_t menu_rounds;     /* menu_input */
+    uint16_t menu_timeout;
+    int16_t  menu_result;
+    uint16_t release_i;       /* wait_input_release */
+
+    uint8_t  show_view;       /* which view view_show_wait was given */
+
+    /* title_sequence (orig 0x018022) and its three pictures */
+    uint16_t title_pal[WOF_PAL_COLOURS];
+
+    /* story_screen (orig 0x017E80).  d4, d5 and d6 of the original live here. */
+    uint16_t story_step;      /* -8(a5): the step, which decides when a line is drawn */
+    uint16_t story_at;        /* -4(a5): where the next line starts in the text block */
+    uint16_t story_lines;     /* -6(a5): how many have been drawn */
+    int16_t  story_wrap;      /* d5: rows left before the plane pointer restarts */
+    int16_t  story_last;      /* d4: rounds left since the last line was drawn */
+    uint16_t story_ramp;      /* -0x10(a5): the wind-down's ramp count */
+
+    /* rank_select (orig 0x018262) */
+    uint16_t rank_pal[WOF_PAL_COLOURS];
+    uint16_t rank_prev;       /* -0x46(a5): the cursor the highlight is drawn at */
+    int16_t  rank_shape;      /* -0x4c(a5): the highlight's shape, as an index */
+
+    /* mission_briefing (orig 0x018590) */
+    uint16_t briefing_pal[WOF_PAL_COLOURS];
+    uint16_t briefing_i;      /* -0x80(a5): the round it is on, of 240 */
+    uint16_t briefing_result; /* 1 when Control-R sent it back to the outer loop */
+
+    /* load_save_dialog (orig 0x018B96) and high_score_screen (orig 0x019856) */
+    uint16_t dialog_mode;     /* 0 load, 1 save */
+    uint16_t dialog_result;   /* 0 when a game was loaded or saved */
+    int16_t  dialog_cursor;   /* 0..5 the slots, 6 and 7 the two buttons */
+    int16_t  dialog_prev;     /* where the highlight is drawn */
+    int16_t  dialog_move;     /* what menu_input or the editor last returned */
+    uint16_t dialog_i;
+    uint16_t dialog_count;    /* how many names the list found */
+    uint16_t dialog_pal[WOF_PAL_COLOURS];
+    char     dialog_names[6][29];    /* orig 0x027C7E, the slot names */
+    char     dialog_copy[6][29];     /* orig 0x027D2C, the copy it keeps beside them */
+    char     dialog_path[40];        /* the name it opens, with `wof.` in front */
+
+    /* text_input (orig 0x016086), the line editor of both */
+    uint16_t text_max;        /* the longest line it will take */
+    int16_t  text_x, text_y;
+    int16_t  text_cursor;     /* -0x52(a5) */
+    int16_t  text_prev;       /* -0x54(a5), the column the caret is drawn at */
+    int16_t  text_result;     /* -0x64(a5): 0 accepted, -1 upward, 1 downward */
+    uint16_t text_redraw;     /* -0x5a(a5) */
+    uint16_t text_which;      /* which buffer the editor has: a slot, or the name entry */
+    char     text_pad[0x51];  /* -0x50(a5), the spaces it blanks the rest of the line with */
+
+    /* high_score_screen (orig 0x019856) and what it draws */
+    uint8_t  hiscore[360];    /* the table, a local of high_score_screen (0x027DDA) */
+    char     entry_name[18];  /* -0x51(a5) of high_score_entry, at most 16 characters */
+    uint16_t hiscore_pal[WOF_PAL_COLOURS];
+    uint16_t slab_pal[WOF_PAL_COLOURS];
+    uint16_t hs_pass;
+    uint16_t hs_row;
+
+    uint16_t mission_count;   /* how often the mission stand-in has been reached */
+    uint16_t dev_dialog;      /* a development request: 1 the load dialog, 2 the save one */
+
+    /* The music calls, recorded rather than played: the player is M8. */
+    uint16_t music_count;
+    uint16_t music_song[WOF_MUSIC_LOG];
+    uint32_t music_vblank[WOF_MUSIC_LOG];
+
+    wof_vport_t vport[WOF_VP_MAX];
+    uint8_t     vram[WOF_VRAM_BYTES];
 } wof_front_t;
 
 /* ---------------------------------------------------------------- the ported globals */
@@ -147,10 +347,6 @@ typedef struct {
     uint16_t video_hz;      /* 60 or 50 */
     uint16_t raw;           /* the most recent VBlank's controller state, opposing
                              * directions cancelled: the port's JOY1DAT and CIA-A PRA */
-    uint16_t view_page;     /* M1 viewer: which page is on screen */
-    uint16_t view_item;     /* M1 viewer: which container the browser shows */
-    uint16_t view_sub;      /* M1 viewer: which page of that container */
-    uint16_t view_dirty;    /* M1 viewer: the picture needs redrawing */
     uint16_t invert_pref;   /* the shell's remembered vertical flip, 0 or 1 */
     uint16_t invert_given;  /* whether the shell ever handed one over (SPEC 6.1) */
     wof_globals_t g;        /* the original's own globals, src/globals.def */
@@ -206,6 +402,25 @@ int32_t  wof_dos_read(wof_file_t *f, uint8_t *dst, int32_t n); /* bytes read */
 void     wof_dos_close(wof_file_t *f);
 int32_t  wof_dos_ioerr(void);
 
+/* The write side (SPEC 6.2, Storage): an overlay in front of the read-only disk, which the
+ * shell copies into localStorage under the wof: prefix.  It is not part of the core's
+ * state: a save state is a snapshot of the running game and must not un-write a file. */
+void        wof_fs_writes_reset(void);
+int         wof_fs_write(const char *name, const uint8_t *data, uint32_t len);
+int         wof_fs_delete(const char *name);          /* orig dos.DeleteFile */
+const uint8_t *wof_fs_written_data(uint32_t index, uint32_t *len);
+const char *wof_fs_dir_entry(uint32_t index);         /* the `wof.` files in ExNext order */
+
+/* What the shell stores and hands back (SPEC 6.2, Storage).  It watches wof_fs_changes and
+ * writes the files out when it moves; at start it puts back what it stored, in the order it
+ * stored them, because that order is what the dialog's list is made of. */
+WOF_API(wof_fs_changes)        uint32_t wof_fs_changes(void);
+WOF_API(wof_fs_written_count)  uint32_t wof_fs_written_count(void);
+WOF_API(wof_fs_written_name)   const char *wof_fs_written_name(uint32_t index);
+WOF_API(wof_fs_written_size)   uint32_t wof_fs_written_size(uint32_t index);
+WOF_API(wof_fs_written_bytes)  const uint8_t *wof_fs_written_bytes(uint32_t index);
+WOF_API(wof_fs_put)            int wof_fs_put(const char *name, const uint8_t *data, uint32_t len);
+
 /* ---------------------------------------------------------------------- file loading */
 
 /* Port of load_file (orig 0x01FF16): the whole file, Rpck-unwrapped, in arena scratch.
@@ -252,42 +467,35 @@ void     wof_shape_mirror_x(wof_shape_t *s);                        /* orig 0x01
 void     wof_shape_set_facing(wof_shape_t *s, int16_t facing);      /* the +8 marker rule */
 uint16_t wof_namelist_count(const uint32_t *list);
 
-/* --------------------------------------------------------------------- viewports 6.4 */
-
-/* The port's stand-in for one of the original's ViewPort records (re/notes/display.md).
- * The planar BitMap becomes one indexed surface; `bytes_per_row` is kept because the
- * picture decoder writes rows back to back at the picture's stride, not the viewport's. */
-typedef struct {
-    uint16_t width;          /* displayed pixels        (vport +0xA8) */
-    uint16_t height;         /* displayed rows          (vport +0xAA) */
-    uint16_t bytes_per_row;  /* BitMap BytesPerRow      (vport +4) */
-    uint16_t rows;           /* BitMap Rows             (vport +6) */
-    uint8_t  depth;          /* BitMap Depth            (vport +9) */
-    uint8_t  hires;          /* 0 = low resolution, doubled on the 640-wide output */
-    uint8_t *pixels;         /* indexed, 8*bytes_per_row x rows */
-    uint16_t colours[WOF_PAL_COLOURS];   /* colour table 1, 12-bit Amiga words (vport +0x98) */
-} wof_vport_t;
-
-wof_vport_t *wof_vport_make(uint16_t width, uint16_t height, uint8_t depth, uint8_t hires);
-void         wof_vport_clear_planes(wof_vport_t *v);     /* orig 0x01A74C */
-
 /* A screen is the stack of viewports that is on the output at one moment.  Every band
  * names its source viewport, where it starts on the output and which palette its rows go
  * through, which is how SPEC 6.4's per-row palette interface is fed. */
-#define WOF_MAX_BANDS 6
+/* One band per run of output rows that share a palette and a source row.  The story
+ * scroller is the worst case: two sixteen-row ramps, the run between them, the run below
+ * them, and the ring's reload splits one of those in two. */
+#define WOF_MAX_BANDS 48
 
 typedef struct {
-    const wof_vport_t *vp;
     uint16_t out_y;
     uint16_t rows;
-    uint16_t src_y;
-    uint16_t palette;
+    int32_t  src_row;        /* may lie past the bitmap: the scroller's ring does */
+    uint32_t plane;          /* the source viewport's surface, as an offset into vram */
+    uint16_t stride;
+    uint16_t width;
+    uint8_t  hires;
+    uint16_t colours[WOF_PAL_COLOURS];
 } wof_band_t;
 
 void wof_screen_reset(void);
-void wof_screen_band(const wof_vport_t *vp, uint16_t out_y, uint16_t rows, uint16_t src_y,
-                     uint16_t palette);
+void wof_screen_band(const wof_vport_t *vp, uint16_t out_y, uint16_t rows, int32_t src_row,
+                     const uint16_t *colours);   /* 0: the viewport's own colour table 1 */
 void wof_screen_present(void);           /* bands and colour tables -> framebuffer, palettes */
+
+/* The row where a viewport's plane pointer is not reloaded at all (story_copper_build). */
+#define WOF_VP_RING_NONE 0xFFFFu
+
+void wof_vport_init_bitmap(wof_vport_t *v, uint32_t *mem, uint16_t width, uint16_t height,
+                           uint8_t depth);   /* orig 0x0167F2 */
 
 void wof_video_init(void);
 
@@ -319,6 +527,7 @@ void wof_shape_draw(const wof_shape_t *s, int16_t x, int16_t y);       /* orig 0
 void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y); /* orig 0x020B0C */
 void wof_draw_context(uint16_t layer, uint16_t owner);   /* what the display list records */
 const wof_target_t *wof_draw_target(void);
+wof_vport_t        *wof_draw_target_vport(void);
 
 /* ----------------------------------------------------------------------------- fonts */
 
@@ -335,6 +544,7 @@ void     wof_text_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_
 void     wof_sysfont_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_t pen);
 uint16_t wof_sysfont_width(const char *s, uint16_t len);
 int      wof_sysfont_present(void);
+uint16_t wof_sysfont_baseline(void);
 
 /* ------------------------------------------------------------------------ the assets */
 
@@ -383,11 +593,134 @@ uint16_t wof_input_queue_pop(void);                 /* orig 0x011714 */
 void     wof_invert_vertical_follow(void);          /* the flip command changed the byte */
 void     wof_invert_vertical_restore(void);         /* M7: after a loaded game */
 
-/* ---------------------------------------------------------------------- the M1 viewer */
+/* ------------------------------------------- views, screens and the picture (6.4, 6.3) */
 
-void wof_viewer_init(void);
-void wof_viewer_pass(void);
-WOF_API(wof_key_press) void wof_key_press(uint8_t code);   /* goes when M3 replaces the viewer */
+#include "coro.h"
+
+void         wof_display_init(void);                  /* orig 0x016670, as far as M3 needs */
+wof_vport_t *wof_front_vport(void);
+wof_vport_t *wof_back_vport(void);
+void         wof_view_layout(uint8_t view);           /* orig 0x01692C */
+void         wof_view_copy(uint8_t from, uint8_t to); /* orig 0x01A9CA */
+void         wof_view_show(uint8_t view);             /* orig 0x016F20 */
+wof_co_t     wof_wait_vblank(void);                   /* orig 0x01AA3E */
+wof_co_t     wof_view_show_wait(uint8_t view);        /* orig 0x016FC4 */
+wof_co_t     wof_cop_show_blank(void);                /* orig 0x01A9FC with cop_blank */
+wof_co_t     wof_screen_picture(void);                /* orig 0x016AD8 */
+wof_co_t     wof_screen_story(void);                  /* orig 0x016A60 */
+wof_co_t     wof_screen_hires3(void);                 /* orig 0x016B04 */
+wof_co_t     wof_screen_dialog(void);                 /* orig 0x0169A4 */
+wof_co_t     wof_screen_hiscore(void);                /* orig 0x016D7A */
+void         wof_screen_from_front_view(void);
+
+/* --------------------------------------------- graphics.library on indexed pixels 6.4 */
+
+/* The dialogs, the name entry, the high-score list and the story scroller draw with
+ * graphics.library on the viewport's own RastPort and never open a font, so the text is
+ * topaz 8 from the ROM (re/notes/system-font.md).  These are the seven calls they make
+ * (re/notes/drawing.md); everything else goes through the blitter library of M1.
+ *
+ * None of them clips.  There is no Layer on these RastPorts, so on the machine a Move to a
+ * negative row and a RectFill from it write before the plane, and the story scroller relies
+ * on exactly that: its plane pointer has walked up the view's memory and the text is drawn
+ * fourteen rows before it (re/notes/frontend.md).  The port bounds a write by the view's
+ * memory block, which is where the original's own arithmetic keeps it. */
+#define WOF_JAM1       0
+#define WOF_JAM2       1
+#define WOF_COMPLEMENT 2
+
+void wof_gfx_set_apen(wof_vport_t *v, uint8_t pen);
+void wof_gfx_set_bpen(wof_vport_t *v, uint8_t pen);
+void wof_gfx_set_drmd(wof_vport_t *v, uint8_t mode);
+void wof_gfx_move(wof_vport_t *v, int16_t x, int16_t y);
+void wof_gfx_draw(wof_vport_t *v, int16_t x, int16_t y);
+void wof_gfx_rect_fill(wof_vport_t *v, int16_t x0, int16_t y0, int16_t x1, int16_t y1);
+void wof_gfx_text(wof_vport_t *v, const char *s, uint16_t len);
+
+/* orig 0x015910 text_draw and 0x015A8C text_draw_justified: the game font through
+ * MaskBuffer and BltTemplate, at the RastPort's pen position and in its pens and mode. */
+void wof_text_draw_line(wof_vport_t *v, const char *s, uint16_t len);
+void wof_text_draw_justified(wof_vport_t *v, const char *s, uint16_t len, int16_t width);
+
+/* orig 0x020E24 shape_draw_xor - the exclusive-or blit the rank selection highlights with. */
+void wof_shape_draw_xor(const wof_shape_t *s, int16_t x, int16_t y);
+
+/* ----------------------------------------------- the waits and the fades (6.3, fade.c) */
+
+wof_co_t wof_wait_frames_or_fire(uint16_t n);         /* orig 0x016EEE */
+int      wof_frames_fire(void);                       /* what it returned */
+wof_co_t wof_menu_input(uint16_t timeout);            /* orig 0x018194 */
+int      wof_menu_result(void);
+wof_co_t wof_wait_input_release(void);                /* orig 0x018228 */
+wof_co_t wof_fade(const uint16_t *target1, const uint16_t *target2, int pair);
+wof_co_t wof_fade_to(const uint16_t *target);         /* orig 0x017084 */
+wof_co_t wof_fade_out(void);                          /* orig 0x0173B0 */
+wof_co_t wof_fade_to_pair(const uint16_t *a, const uint16_t *b);  /* orig 0x0171F2 */
+wof_co_t wof_fade_out_pair(void);                     /* orig 0x0173E6 */
+
+/* ------------------------------------------------------ what the port did (SPEC 8) */
+
+/* One recorded call: which routine, four numbers whose meaning the routine gives, and a
+ * string - the text that was drawn, the file that was opened, the shape's four-character
+ * name.  Compiled into the native test library only (src/trace.c). */
+#define WOF_TRACE_MAX  4096
+#define WOF_TRACE_TEXT 64   /* the story scroller's lines are 48 characters */
+
+typedef struct {
+    uint32_t vblank;
+    int32_t  a, b, c, d;
+    char     what[16];
+    char     text[WOF_TRACE_TEXT];
+} wof_trace_t;
+
+#ifdef WOF_TRACE
+void               wof_trace_add(const char *what, int32_t a, int32_t b, int32_t c,
+                                 int32_t d, const char *text, uint16_t len);
+void               wof_trace_reset(void);
+uint32_t           wof_trace_count(void);
+uint32_t           wof_trace_dropped(void);
+const wof_trace_t *wof_trace_at(uint32_t i);
+
+/* The ported globals as they stood at one moment.  The front end takes one where it ends,
+ * which is the moment the harness's dump calls step S, because the outer loop runs on into
+ * the next rank selection in the same pass while the M3 mission is a stand-in. */
+void                   wof_trace_globals(void);
+const wof_globals_t   *wof_trace_globals_at(void);
+#else
+#define wof_trace_add(what, a, b, c, d, text, len) ((void)0)
+#define wof_trace_globals() ((void)0)
+#endif
+
+/* ------------------------------------------------------------------- the front end */
+
+wof_co_t wof_front(void);                 /* orig 0x010006 main, the outer loop at 0x010066 */
+void     wof_front_init(void);
+void     wof_music_start(const char *file, uint16_t song);   /* orig 0x0123DC, recorded */
+uint16_t wof_number(char *dst, int32_t value);               /* the sprintf("%d") in use */
+void     wof_view_set_picture(uint8_t view);                 /* orig 0x016A98 */
+wof_co_t wof_load_save_dialog(uint16_t mode);                /* orig 0x018B96 */
+wof_co_t wof_high_score_screen(void);                        /* orig 0x019856 */
+void     wof_load_picture_black(const char *name, uint16_t *palette_out);  /* orig 0x017422 */
+void     wof_load_picture_black_into(uint8_t vport, const char *name, uint16_t *palette_out);
+uint16_t wof_format(char *dst, const char *format, int32_t number, const char *text);
+
+/* The line editor of the name entry and the file names (orig 0x016086, re/notes/keys.md).
+ * `buffer` is the line it edits; it returns 0 when the line was accepted, -1 when the
+ * player left it upward and 1 downward. */
+wof_co_t wof_text_input(char *buffer, uint16_t max, int16_t x, int16_t y);
+int      wof_text_result(void);
+void     wof_path_sanitise(char *name);                      /* orig 0x016592 */
+
+/* The high-score file (re/notes/highscore.md).  The table is 360 bytes, ten entries of a
+ * u32 score, a u16 rank and a 30-byte NUL-padded name, best first, all big-endian. */
+#define WOF_HS_ENTRIES 10
+#define WOF_HS_STRIDE  36
+void     wof_high_score_load(void);                          /* orig 0x0193CC */
+void     wof_high_score_sort(void);                          /* orig 0x019320 */
+void     wof_high_score_save(void);                          /* orig 0x019288 */
+uint32_t wof_high_score_of(uint16_t i);
+wof_co_t wof_high_score_entry(void);                         /* orig 0x019472 */
+void     wof_high_score_draw(void);                          /* orig 0x01967E */
 
 void wof_audio_init(void);
 

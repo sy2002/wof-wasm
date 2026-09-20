@@ -59,7 +59,31 @@ try {
     await cdp.press(sessionId, 'backquote');
     await sleep(500);
 
+    /* The front end moves on its own, and a measurement that spanned a fade would be of no
+       picture at all: this waits until two reads running give the same picture. */
+    async function settle(limitMs = 8000) {
+        let last = null;
+        for (let waited = 0; waited < limitMs; waited += 300) {
+            await sleep(300);
+            const now = await cdp.evaluate(sessionId, PICTURE);
+            if (last && now.hash === last.hash) {
+                return now;
+            }
+            last = now;
+        }
+        return last;
+    }
+
+    /* One VBlank of fire can fall between two of the front end's polls; a player holds a
+       key for a tenth of a second, and so does this. */
+    async function fire() {
+        await cdp.hold(sessionId, 'space');
+        await sleep(250);
+        await cdp.release(sessionId, 'space');
+    }
+
     async function look(label) {
+        await settle();
         const seen = {
             label,
             geometry: await cdp.evaluate(sessionId, GEOMETRY),
@@ -73,17 +97,19 @@ try {
         return seen;
     }
 
-    /* The title picture, which has colours all over it, and then the play screen, which has
-       three viewports of different depths stacked with blank lines between them. */
-    await cdp.press(sessionId, 'right');
-    await sleep(500);
+    /* The front end walked the way a player walks it (re/notes/frontend.md): fire ends the
+       story scroller, the publisher logo and then the title come up, and a second fire
+       skips the rest of the sequence to the rank selection.  Both pictures have colours
+       all over them, which is what this run photographs. */
+    await fire();
+    await sleep(3400);
+    await settle();                       /* the logo, in the picture's own colours */
+    await sleep(3200);
     report.title = await look('title');
 
-    for (let i = 0; i < 4; i++) {
-        await cdp.press(sessionId, 'right');
-        await sleep(250);
-    }
-    report.playScreen = await look('play screen');
+    await fire();
+    await sleep(1500);
+    report.ranks = await look('ranks');
 } finally {
     await stopChrome(browser);
 }

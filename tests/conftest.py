@@ -237,6 +237,9 @@ SHAPE_FIELDS = ['wbytes', 'height', 'hot_x', 'hot_y', 'marker', 'src_y', 'clear'
 # the largest shape's pixels (rank, 3,040 bytes a plane, is 24,320 indexed pixels).
 SCRATCH = 128 * 1024
 
+# src/wof.h WOF_TRACE_TEXT: how much of a recorded string the trace keeps.
+WOF_TRACE_TEXT = 64
+
 
 class Ported:
     """The ported routines, reached through tests/shim.c on the native library.
@@ -299,19 +302,124 @@ class Ported:
             'wt_global_get': ([i, i], ctypes.c_uint32),
             'wt_global_set': ([i, i, ctypes.c_uint32], None),
             'wt_front_set': ([i, i], None),
+            'wt_trace_count': ([], i),
+            'wt_trace_dropped': ([], i),
+            'wt_trace_reset': ([], None),
+            'wt_trace_get': ([i, ctypes.c_char_p, ctypes.c_char_p,
+                              ctypes.POINTER(ctypes.c_int)], i),
+            'wt_music_count': ([], i),
+            'wt_music_song': ([i], i),
+            'wt_music_vblank': ([i], i),
+            'wt_front_line': ([], i),
+            'wt_mission_count': ([], i),
+            'wt_global_get_at_mission': ([i, i], ctypes.c_uint32),
+            'wt_front_vport_field': ([i, i], i),
+            'wt_front_vport_pen': ([i, i], i),
+            # M3 deliverables 5 and 6: the high-score file, the editor and the dialog
+            'wt_hs_get': ([u8p], None),
+            'wt_hs_put': ([u8p], None),
+            'wt_hs_load': ([], None),
+            'wt_hs_sort': ([], None),
+            'wt_hs_save': ([], None),
+            'wt_text_input_run': ([c, i, i, i, u8p, u16p, i], i),
+            'wt_dir_entry': ([i], ctypes.c_char_p),
+            'wt_fs_write': ([c, u8p, i], i),
+            'wt_fs_delete': ([c], i),
+            'wt_fs_writes_reset': ([], None),
+            'wt_fs_written_count': ([], i),
+            'wt_fs_written_name': ([i], ctypes.c_char_p),
+            'wt_fs_written_size': ([i], i),
+            'wt_fs_written_bytes': ([i, u8p, i], i),
+            'wt_path_sanitise': ([c], None),
+            'wt_hs_entry_run': ([u8p, u16p, i], i),
+            'wt_dialog_run': ([i, u8p, u16p, i, ctypes.POINTER(ctypes.c_int)], i),
+            'wt_dialog_name': ([i], ctypes.c_char_p),
+            'wt_dialog_count': ([], i),
+            'wof_dev_set_score': ([ctypes.c_uint32], None),
+            'wof_dev_open_dialog': ([i], None),
+            'wof_pass': ([], None),
+            # M3 deliverable 2: the screens, the waits and the fades
+            'wof_set_fade_vblanks': ([i], None),
+            'wof_fade_vblanks': ([], i),
+            'wt_view_setup': ([i, i, i], i),
+            'wt_vport_colours_set': ([i, i, u16p], None),
+            'wt_vport_colours_get': ([i, i, u16p], None),
+            'wt_fade_run': ([u16p, u16p, i], i),
+            'wt_frames_run': ([i, i, i, i], i),
+            'wt_release_run': ([i, i, i], i),
+            'wt_menu_run': ([i, i, i, ctypes.POINTER(ctypes.c_int)], i),
+            'wt_story_bands': ([i, i, i, i, ctypes.POINTER(ctypes.c_uint32)], i),
         }
         for name, (argtypes, restype) in signatures.items():
             function = getattr(self.lib, name)
             function.argtypes = argtypes
             function.restype = restype
 
-        self.lib.wof_arena_reset()
-        pointer = self.lib.wof_alloc(len(blob))
-        assert pointer, 'core arena too small for the blob'
-        ctypes.memmove(pointer, blob, len(blob))
-        self.lib.wof_init(1, pointer, len(blob))
-        assert self.lib.wof_assets_ready() == 1, 'the core did not load every asset'
+        self.blob = blob
+        self.reset_core()
         self.scratch = (ctypes.c_uint8 * SCRATCH)()
+
+    def reset_core(self, seed=1, fade_vblanks=None):
+        """A fresh core on the same blob: the arena back to empty and wof_init again.  The
+        front end then stands where it stands after the original's own initialisation, at
+        the wait inside display_init."""
+        self.lib.wof_arena_reset()
+        pointer = self.lib.wof_alloc(len(self.blob))
+        assert pointer, 'core arena too small for the blob'
+        ctypes.memmove(pointer, self.blob, len(self.blob))
+        if fade_vblanks is not None:
+            self.lib.wof_set_fade_vblanks(fade_vblanks)
+        self.lib.wt_trace_reset()
+        self.lib.wof_init(seed, pointer, len(self.blob))
+        assert self.lib.wof_assets_ready() == 1, 'the core did not load every asset'
+
+    # --------------------------------------------------- driving the front end, M3
+
+    def pass_(self):
+        self.lib.wof_pass()
+
+    def music_count(self):
+        return self.lib.wt_music_count()
+
+    def music_song(self, i):
+        return self.lib.wt_music_song(i)
+
+    def music_vblank(self, i):
+        return self.lib.wt_music_vblank(i)
+
+    def front_line(self):
+        return self.lib.wt_front_line()
+
+    def mission_count(self):
+        return self.lib.wt_mission_count()
+
+    def vport(self, field, back=False):
+        names = ['width', 'height', 'depth', 'out_y', 'disp_rows', 'scroll', 'ring_at',
+                 'ramp', 'hires', 'next']
+        pens = ['apen', 'bpen', 'drmd']
+        if field in pens:
+            return self.lib.wt_front_vport_pen(1 if back else 0, pens.index(field))
+        return self.lib.wt_front_vport_field(1 if back else 0, names.index(field))
+
+    def traces(self, what=None):
+        """What the port recorded (src/trace.c): the routine, the VBlank, four numbers and
+        a string.  `what` filters by routine name."""
+        assert self.lib.wt_trace_dropped() == 0, 'the trace ring overflowed'
+        name = ctypes.create_string_buffer(16)
+        text = ctypes.create_string_buffer(WOF_TRACE_TEXT)
+        numbers = (ctypes.c_int * 5)()
+        out = []
+        for index in range(self.lib.wt_trace_count()):
+            assert self.lib.wt_trace_get(index, name, text, numbers)
+            routine = name.value.decode('latin1')
+            if what is not None and routine != what:
+                continue
+            out.append({'what': routine, 'vblank': numbers[0], 'text': text.value.decode('latin1'),
+                        'a': numbers[1], 'b': numbers[2], 'c': numbers[3], 'd': numbers[4]})
+        return out
+
+    def file_log(self):
+        return [(r['vblank'], r['text'], bool(r['a'])) for r in self.traces('load_file')]
 
     # ------------------------------------------------------------------ loaders
 
@@ -434,6 +542,47 @@ class Ported:
     def input_queue_clear(self):
         self.lib.wof_input_queue_clear()
 
+    # ------------------------------------------------ the screens, waits and fades, M3
+
+    def set_fade_vblanks(self, n):
+        self.lib.wof_set_fade_vblanks(n)
+
+    def fade_vblanks(self):
+        return self.lib.wof_fade_vblanks()
+
+    def view_setup(self, depth, depth2=0, colours2=False):
+        return self.lib.wt_view_setup(depth, depth2, 1 if colours2 else 0)
+
+    def set_colours(self, which, table, values):
+        buffer = (ctypes.c_uint16 * 32)(*values)
+        self.lib.wt_vport_colours_set(which, table, buffer)
+
+    def colours(self, which, table):
+        buffer = (ctypes.c_uint16 * 32)()
+        self.lib.wt_vport_colours_get(which, table, buffer)
+        return list(buffer)
+
+    def fade_run(self, target1=None, target2=None, pair=False):
+        a = (ctypes.c_uint16 * 32)(*target1) if target1 else None
+        b = (ctypes.c_uint16 * 32)(*target2) if target2 else None
+        return self.lib.wt_fade_run(a, b, 1 if pair else 0)
+
+    def frames_run(self, n, raw=0, raw_after=0, switch_at=-1):
+        return self.lib.wt_frames_run(n, raw, raw_after, switch_at)
+
+    def release_run(self, raw=0, raw_after=0, switch_at=-1):
+        return self.lib.wt_release_run(raw, raw_after, switch_at)
+
+    def menu_run(self, timeout=0, raw=0, limit=4000):
+        rounds = ctypes.c_int(0)
+        result = self.lib.wt_menu_run(timeout, raw, limit, ctypes.byref(rounds))
+        return result, rounds.value
+
+    def story_bands(self, scroll, ring_at, ramp, row=-1):
+        colour = ctypes.c_uint32(0)
+        used = self.lib.wt_story_bands(scroll, ring_at, ramp, row, ctypes.byref(colour))
+        return used, colour.value
+
     # ------------------------------------------- the registry of src/globals.def, SPEC 7.2
 
     def globals_registry(self):
@@ -464,6 +613,95 @@ class Ported:
 
     def set_g(self, name, value, index=0):
         self.lib.wt_global_set(self._global_index(name), index, value)
+
+    # -------------------------------------- the high scores, the editor and the dialog
+
+    def hs_table(self):
+        buffer = (ctypes.c_uint8 * 360)()
+        self.lib.wt_hs_get(buffer)
+        return bytes(buffer)
+
+    def set_hs_table(self, data):
+        assert len(data) == 360
+        self.lib.wt_hs_put((ctypes.c_uint8 * 360).from_buffer_copy(data))
+
+    def hs_load(self):
+        self.lib.wt_hs_load()
+
+    def hs_sort(self):
+        self.lib.wt_hs_sort()
+
+    def hs_save(self):
+        self.lib.wt_hs_save()
+
+    def text_input(self, text, keys, max_length=16, x=0, y=0):
+        """One run of the line editor: the buffer it starts with, the keys, what it left."""
+        buffer = ctypes.create_string_buffer(text.encode('latin1'), max_length + 8)
+        codes = (ctypes.c_uint8 * max(len(keys), 1))(*[k[0] for k in keys])
+        quals = (ctypes.c_uint16 * max(len(keys), 1))(*[k[1] for k in keys])
+        result = self.lib.wt_text_input_run(buffer, max_length, x, y, codes, quals, len(keys))
+        return result, buffer.value.decode('latin1')
+
+    def hs_entry_run(self, keys=((0x44, 0),)):
+        """high_score_entry to its end, with the keys the name entry is given."""
+        codes = (ctypes.c_uint8 * max(len(keys), 1))(*[k[0] for k in keys])
+        quals = (ctypes.c_uint16 * max(len(keys), 1))(*[k[1] for k in keys])
+        return self.lib.wt_hs_entry_run(codes, quals, len(keys))
+
+    def dialog_run(self, mode, keys):
+        """The whole load and save dialog, with its keys fed as it takes them."""
+        codes = (ctypes.c_uint8 * max(len(keys), 1))(*[k[0] for k in keys])
+        quals = (ctypes.c_uint16 * max(len(keys), 1))(*[k[1] for k in keys])
+        rounds = ctypes.c_int(0)
+        result = self.lib.wt_dialog_run(mode, codes, quals, len(keys), ctypes.byref(rounds))
+        return result, rounds.value
+
+    def dialog_names(self):
+        return [self.lib.wt_dialog_name(i).decode('latin1') for i in range(6)]
+
+    def path_sanitise(self, name):
+        buffer = ctypes.create_string_buffer(name.encode('latin1'), len(name) + 8)
+        self.lib.wt_path_sanitise(buffer)
+        return buffer.value.decode('latin1')
+
+    def dir_entries(self):
+        out = []
+        while True:
+            name = self.lib.wt_dir_entry(len(out))
+            if not name:
+                return out
+            out.append(name.decode('latin1'))
+
+    def fs_write(self, name, data):
+        return self.lib.wt_fs_write(name.encode('latin1'),
+                                    (ctypes.c_uint8 * len(data)).from_buffer_copy(data),
+                                    len(data))
+
+    def fs_delete(self, name):
+        return self.lib.wt_fs_delete(name.encode('latin1'))
+
+    def fs_reset(self):
+        self.lib.wt_fs_writes_reset()
+
+    def fs_written(self):
+        out = []
+        buffer = (ctypes.c_uint8 * 8192)()
+        for i in range(self.lib.wt_fs_written_count()):
+            n = self.lib.wt_fs_written_bytes(i, buffer, 8192)
+            out.append((self.lib.wt_fs_written_name(i).decode('latin1'), bytes(buffer[:n])))
+        return out
+
+    def dev_set_score(self, score):
+        self.lib.wof_dev_set_score(score)
+
+    def dev_open_dialog(self, mode):
+        self.lib.wof_dev_open_dialog(1 if mode else 0)
+
+    def g_at_mission(self, name, index=0):
+        """A global as it stood where the front end ended, which is the moment the harness
+        calls step S.  The outer loop runs on into the next rank selection in the same pass
+        while the mission is a stand-in, so the value has to be taken there."""
+        return self.lib.wt_global_get_at_mission(self._global_index(name), index)
 
     # --------------------------------------------------------------------- blit
 

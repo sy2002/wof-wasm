@@ -57,9 +57,10 @@ def test_palettes_are_opaque_and_distinct(wasm):
     the copper's BPLCON0 = 0x0200 gives on the machine; the picture's own colours are in
     the palette its band names."""
     assert wasm['palettes']['opaque'], 'palette entries must carry alpha 0xFF'
-    assert wasm['palettes']['differ'], 'the two palettes must not be the same table'
+    assert wasm['palettes']['differ'], 'no palette but the blank one carries a picture'
     assert wasm['palettes']['blankIsBlack'], wasm['palettes']['distinct']
-    assert wasm['palettes']['richest'] >= 16, wasm['palettes']['distinct']
+    logo = next(s for s in wasm['front']['stages'] if s['name'] == 'logo')
+    assert logo['richest'] >= 16, 'the publisher logo is a five-plane picture: %s' % logo
 
 
 def test_framebuffer_holds_indices_inside_the_palette(wasm):
@@ -69,12 +70,12 @@ def test_framebuffer_holds_indices_inside_the_palette(wasm):
     assert framebuffer['nonzero'] > framebuffer['size'] // 10, 'the test pattern is nearly empty'
 
 
-def test_display_list_exists_and_a_shape_page_fills_it(wasm):
-    """SPEC 6.4: every shape draw appends a record.  The first page draws a picture, not
-    shapes, so the list starts empty and fills when the browser draws."""
+def test_display_list_exists_and_the_briefing_fills_it(wasm):
+    """SPEC 6.4: every shape draw appends a record.  The story scroller draws text, not
+    shapes, so the list starts empty; the briefing's rank shape fills it."""
     assert wasm['displayList']['pointer']
     assert wasm['displayList']['count'] == 0
-    assert wasm['viewer']['shapePageDraws'] > 0, 'the shape page appended nothing'
+    assert wasm['front']['briefing']['draws'] > 0, 'the briefing appended nothing'
 
 
 def test_the_assets_all_loaded(wasm):
@@ -82,18 +83,30 @@ def test_the_assets_all_loaded(wasm):
     assert wasm['assetsReady'] == 1
 
 
-def test_every_viewer_page_draws_something_of_its_own(wasm):
-    viewer = wasm['viewer']
-    for index, page in enumerate(viewer['pages']):
-        assert page['nonzero'] > 1000, 'page %d is nearly empty: %s' % (index, page)
-    assert viewer['allDifferent'], [p['hash'][:8] for p in viewer['pages']]
-    assert viewer['wrapsRound'], 'stepping through every page did not come back to the first'
+def test_every_front_end_screen_draws_something_of_its_own(wasm):
+    """The screens of re/notes/frontend.md, sampled at the VBlanks its timetable puts them
+    at, with the provisional two VBlanks per fade step the core ships with."""
+    for stage in wasm['front']['stages']:
+        assert stage['nonzero'] > 500, stage
+        assert stage['colours'] >= 2, stage
+    assert wasm['front']['allDifferent'], [s['hash'][:8] for s in wasm['front']['stages']]
+
+
+def test_the_scroller_needs_a_palette_for_every_row_of_its_ramps(wasm):
+    """story_copper_build changes COLOR01 on every row of two sixteen-row ramps, which is
+    what the per-row palette interface of SPEC 6.4 is there for (re/notes/display.md)."""
+    scroller = wasm['front']['stages'][0]
+    assert scroller['name'] == 'scroller'
+    assert scroller['palettes'] == 17, scroller
+    assert scroller['palettes'] <= wasm['geometry']['paletteCount']
 
 
 def test_the_pictures_have_their_own_colours(wasm):
-    """The three pictures of the M1 acceptance criterion, pages 0 to 2."""
-    for index in (0, 1, 2):
-        assert wasm['viewer']['pages'][index]['colours'] >= 8, wasm['viewer']['pages'][index]
+    """The logo, the title and the credits are decoded from the disk and faded up to their
+    own palettes, so each of them is a real picture and not a test pattern."""
+    for name in ('logo', 'title', 'credits'):
+        stage = next(s for s in wasm['front']['stages'] if s['name'] == name)
+        assert stage['colours'] >= 8, stage
 
 
 @pytest.mark.parametrize('case,left,right', [

@@ -127,7 +127,7 @@ static void body_to_vport(const uint8_t *bmhd, const uint8_t *body, const uint8_
                          src_bpr);
 
     for (uint16_t y = 0; y < v->rows; y++) {
-        uint8_t *out = v->pixels + (uint32_t)y * v->bytes_per_row * 8u;
+        uint8_t *out = wof_vport_pixels(v) + (uint32_t)y * v->bytes_per_row * 8u;
 
         for (uint8_t p = 0; p < planes; p++) {
             const uint8_t *row = store + (uint32_t)p * plane_bytes

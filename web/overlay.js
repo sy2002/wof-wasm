@@ -31,7 +31,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
         const css = (n) => (Math.round(n * 10) / 10);
 
         element.innerHTML =
-            '<b>Wings of Fury - M1 diagnostics</b>\n' +
+            '<b>Wings of Fury - M3 diagnostics</b>\n' +
             'clock        ' + s.hz + ' Hz emulated, ' + (s.backlog).toFixed(2) + ' vbl backlog\n' +
             'vblanks/s    ' + s.rate.vblank.toFixed(2) + '   (want ' + s.hz + ')\n' +
             'ticks/s      ' + s.rate.tick.toFixed(2) + '   (want ' + expectedTick + ')\n' +
@@ -52,7 +52,10 @@ export function createOverlay(element, core, clock, audio, input, video) {
                 ' palettes, ' + c.files + ' files\n' +
             'assets       ' + (c.assetsReady ? 'loaded' : 'INCOMPLETE') + '\n' +
             'arena        ' + (c.arenaUsed / 1024).toFixed(0) + ' of ' +
-                (c.arenaSize / 1024).toFixed(0) + ' KiB';
+                (c.arenaSize / 1024).toFixed(0) + ' KiB\n' +
+            'files stored ' + c.filesWritten + '\n' +
+            'while this is up: 5 PAL, 6 NTSC, 1 a high score, 2 the save dialog,\n' +
+            '                  3 the load dialog (development keys, not the game\'s)';
     }
 
     function toggle() {

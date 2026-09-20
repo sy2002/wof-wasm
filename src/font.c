@@ -223,6 +223,13 @@ int wof_sysfont_present(void)
     return wof_tbl_topaz8_present;
 }
 
+/* graphics.library puts the pen on the baseline, and InitRastPort takes the number from
+ * the font it sets: text_input adds it to the row it was given (RastPort +0x3E). */
+uint16_t wof_sysfont_baseline(void)
+{
+    return wof_tbl_topaz8_present ? wof_tbl_topaz8_baseline : 0;
+}
+
 uint16_t wof_sysfont_width(const char *s, uint16_t len)
 {
     if (!wof_tbl_topaz8_present)

@@ -181,10 +181,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015898,sub_015898,asm,84,,,,0,,,2,,todo
 0158ec,mem_alloc_asm,asm,18,,,,6,mem_alloc,,0,,replace
 0158fe,sub_0158fe,asm,18,,,,1,display_alloc_chip,,0,,replace
-015910,text_draw,asm,14,,,,1,,,0,,todo
+015910,text_draw,asm,14,,,,1,,,0,,verified
 01591e,text_width,asm,56,,,,1,,,3,,verified
 015956,text_render,asm,310,,,,1,text_width,,15,,verified
-015a8c,text_draw_justified,asm,92,,,,1,text_render,graphics.BltTemplate,5,,todo
+015a8c,text_draw_justified,asm,92,,,,1,text_render,graphics.BltTemplate,5,,verified
 015ae8,sub_015ae8,asm,46,,,,2,,,4,,todo
 015b16,sub_015b16,asm,4,,,,0,,,0,,todo
 015b1a,file_length,asm,62,,,,2,,dos.Open dos.Seek dos.Close,1,,todo
@@ -206,86 +206,86 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
 015d62,sub_015d62,C,8,2,,,1,,,0,,todo
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
-015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,sub_016e96 mem_alloc os_dos_read,,0,,todo
+015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,exit_game mem_alloc os_dos_read,,0,,todo
 015dde,sub_015dde,C,60,0,8 12 16 20,,0,os_dos_write,,0,,todo
-015e1a,sub_015e1a,C,112,6,8,,1,sub_015ec2 sub_016e96 sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
-015e8a,sub_015e8a,C,56,6,8,,1,sub_015ec2 os_dos_close os_dos_open,,1,,todo
+015e1a,save_game_read,C,112,6,8,,1,sub_015ec2 exit_game sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
+015e8a,save_game_write,C,56,6,8,,1,sub_015ec2 os_dos_close os_dos_open,,1,,todo
 015ec2,sub_015ec2,C,368,10,8 12,,2,sub_015d62,,14,,todo
-016032,text_caret,C,84,0,8 10,,1,os_gfx_rect_fill os_gfx_set_drmd,,1,,todo
-016086,text_input,C,1206,100,8 12 14 16,-32376,3,text_caret wait_input_release poll_fire poll_joy_dir8 key_to_char key_available key_get strlen os_gfx_move os_gfx_set_apen os_gfx_set_bpen os_gfx_set_drmd os_gfx_text gfx_WaitTOF,,2,,todo
+016032,text_caret,C,84,0,8 10,,1,os_gfx_rect_fill os_gfx_set_drmd,,1,,ported
+016086,text_input,C,1206,100,8 12 14 16,-32376,3,text_caret wait_input_release poll_fire poll_joy_dir8 key_to_char key_available key_get strlen os_gfx_move os_gfx_set_apen os_gfx_set_bpen os_gfx_set_drmd os_gfx_text gfx_WaitTOF,,2,,verified
 01653c,load_dash_assets,C,86,6,,,2,fatal_exit shapes_load load_file_public_asm,,8,,ported
-016592,path_sanitise,C,50,0,8,,1,,,0,,todo
+016592,path_sanitise,C,50,0,8,,1,,,0,,verified
 0165c4,sub_0165c4,C,8,4,,,1,,,0,,todo
-0165cc,display_alloc_chip,C,18,0,8,,2,mem_alloc_chip,,0,,todo
-0165de,cop_rotate_unused,C,48,4,,,0,,,3,,todo
-01660e,display_shutdown,C,98,0,,,1,sub_0124dc gfx_WaitTOF,,9,,todo
-016670,display_init,C,386,0,,,1,display_alloc_chip sub_016e72 cop_init cop_move cop_sprites_off cop_show_wait,,34,,todo
-0167f2,vport_init_bitmap,C,314,6,8 12 16 18 20,,1,gfx_InitBitMap gfx_InitRastPort,,0,,todo
-01692c,view_layout,C,120,8,8,,8,vport_init_bitmap view_build_copper gfx_BltClear,,0,,todo
-0169a4,screen_dialog,C,64,0,,,2,view_layout cop_show_wait,,3,,todo
+0165cc,display_alloc_chip,C,18,0,8,,2,mem_alloc_chip,,0,,replace
+0165de,cop_rotate_unused,C,48,4,,,0,,,3,,drop
+01660e,display_shutdown,C,98,0,,,1,sub_0124dc gfx_WaitTOF,,9,,drop
+016670,display_init,C,386,0,,,1,display_alloc_chip sub_016e72 cop_init cop_move cop_sprites_off cop_show_wait,,34,,replace
+0167f2,vport_init_bitmap,C,314,6,8 12 16 18 20,,1,gfx_InitBitMap gfx_InitRastPort,,0,,ported
+01692c,view_layout,C,120,8,8,,8,vport_init_bitmap view_build_copper gfx_BltClear,,0,,ported
+0169a4,screen_dialog,C,64,0,,,2,view_layout cop_show_wait,,3,,ported
 0169e4,screen_a_lores5_unused,C,50,0,,,0,view_layout cop_show_wait,,6,,todo
-016a16,view_set_story,C,74,4,8,,1,view_layout,,0,,todo
-016a60,screen_story,C,56,0,,,1,view_set_story view_show_wait cop_show_wait,,5,,todo
-016a98,view_set_picture,C,64,4,8,,2,view_layout,,0,,todo
-016ad8,screen_picture,C,44,0,,,2,view_set_picture view_show_wait cop_show_wait,,3,,todo
-016b04,screen_hires3,C,92,0,,,1,view_layout view_show_wait cop_show_wait,,11,,todo
-016b60,screen_hires2,C,92,0,,-32370,1,view_layout view_show_wait cop_show_wait,,11,,todo
+016a16,view_set_story,C,74,4,8,,1,view_layout,,0,,ported
+016a60,screen_story,C,56,0,,,1,view_set_story view_show_wait cop_show_wait,,5,,ported
+016a98,view_set_picture,C,64,4,8,,2,view_layout,,0,,ported
+016ad8,screen_picture,C,44,0,,,2,view_set_picture view_show_wait cop_show_wait,,3,,ported
+016b04,screen_hires3,C,92,0,,,1,view_layout view_show_wait cop_show_wait,,11,,ported
+016b60,screen_hires2,C,92,0,,-32370,1,view_layout view_show_wait cop_show_wait,,11,,drop
 016bbc,ticker_clear,C,28,0,,,2,gfx_BltClear,,1,,todo
 016bd8,ticker_vport_init,C,96,0,,,1,gfx_InitBitMap gfx_InitRastPort,,12,,todo
 016c38,view_set_game,C,142,8,8,,2,view_layout,,1,,todo
 016cc6,screen_game,C,108,0,,,1,ticker_vport_init view_set_game view_build_copper gfx_BltClear,,8,,todo
 016d32,screen_game_restore,C,72,0,,,1,view_set_game cop_add_ticker_ramp view_build_copper view_copy,,6,,todo
-016d7a,screen_hiscore,C,92,0,,,1,view_layout view_build_copper cop_show_wait,,11,,todo
+016d7a,screen_hiscore,C,92,0,,,1,view_layout view_build_copper cop_show_wait,,11,,ported
 016dd6,cmap_file_to_table,C,156,12,8 12,,1,,,0,,verified
-016e72,sub_016e72,C,36,0,,,1,sub_016e96,,0,"""Not enough memory.\n""",todo
-016e96,sub_016e96,C,28,0,8,,5,fatal_exit sub_021ef4,,0,,todo
-016eb2,view_load_picture,C,60,4,8 12 16,,1,load_file_public_asm view_build_copper iff_to_vport mem_free,,0,,todo
-016eee,wait_frames_or_fire,C,50,2,8,,3,poll_fire gfx_WaitTOF,,0,,todo
-016f20,view_show,C,164,0,8,,5,cop_install,,14,,todo
-016fc4,view_show_wait,C,22,0,8,-32364,11,view_show wait_vblank,,0,,todo
+016e72,sub_016e72,C,36,0,,,1,exit_game,,0,"""Not enough memory.\n""",todo
+016e96,exit_game,C,28,0,8,,5,fatal_exit sub_021ef4,,0,,drop
+016eb2,view_load_picture,C,60,4,8 12 16,,1,load_file_public_asm view_build_copper iff_to_vport mem_free,,0,,ported
+016eee,wait_frames_or_fire,C,50,2,8,,3,poll_fire gfx_WaitTOF,,0,,verified
+016f20,view_show,C,164,0,8,,5,cop_install,,14,,ported
+016fc4,view_show_wait,C,22,0,8,-32364,11,view_show wait_vblank,,0,,ported
 016fda,sub_016fda,C,28,0,8 10,,0,,,0,,todo
 016ff6,colour_lerp,C,142,2,8 10 12,,2,sub_0223cc,,0,,verified
-017084,fade_to,C,366,138,8,-32358,7,view_show colour_lerp view_build_copper,,3,,todo
-0171f2,fade_to_pair,C,446,202,8 12,,2,view_show colour_lerp view_build_copper,,3,,todo
-0173b0,fade_out,C,54,66,8,-32352,6,fade_to,,0,,todo
-0173e6,fade_out_pair,C,60,66,8,,3,fade_to_pair,,0,,todo
-017422,load_picture_black,C,2348,2,8 12,,3,view_load_picture view_build_copper,,2,,todo
-017d4e,story_copper_build,C,306,2,8 10,,1,cop_move cop_move_ptr cop_wait view_build_copper,,5,,todo
-017e80,story_screen,C,418,16,,,1,text_draw_justified screen_story wait_frames_or_fire view_show story_copper_build poll_fire draw_set_target_c strlen os_gfx_move os_gfx_rect_fill os_gfx_set_apen,,5,,todo
-018022,title_sequence,C,330,130,,-32346,1,music_start screen_picture wait_frames_or_fire view_show_wait fade_to fade_out load_picture_black story_screen,,2,"""wofsongs"" | ""shapes/broderbund"" | ""shapes/wingstitle"" | ""shapes/creditscreen""",todo
-01816c,sub_01816c,C,40,0,,-32340,2,sub_016e96,,0,"""User requested abort.""",todo
-018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 key_available key_get gfx_WaitTOF,,0,,todo
-018228,wait_input_release,C,58,2,,,3,poll_fire poll_joy_dir8 key_available gfx_WaitTOF,,0,,todo
-018262,rank_select,C,712,80,,-32334,1,music_start sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",todo
+017084,fade_to,C,366,138,8,-32358,7,view_show colour_lerp view_build_copper,,3,,verified
+0171f2,fade_to_pair,C,446,202,8 12,,2,view_show colour_lerp view_build_copper,,3,,verified
+0173b0,fade_out,C,54,66,8,-32352,6,fade_to,,0,,verified
+0173e6,fade_out_pair,C,60,66,8,,3,fade_to_pair,,0,,verified
+017422,load_picture_black,C,2348,2,8 12,,3,view_load_picture view_build_copper,,2,,ported
+017d4e,story_copper_build,C,306,2,8 10,,1,cop_move cop_move_ptr cop_wait view_build_copper,,5,,replace
+017e80,story_screen,C,418,16,,,1,text_draw_justified screen_story wait_frames_or_fire view_show story_copper_build poll_fire draw_set_target_c strlen os_gfx_move os_gfx_rect_fill os_gfx_set_apen,,5,,ported
+018022,title_sequence,C,330,130,,-32346,1,music_start screen_picture wait_frames_or_fire view_show_wait fade_to fade_out load_picture_black story_screen,,2,"""wofsongs"" | ""shapes/broderbund"" | ""shapes/wingstitle"" | ""shapes/creditscreen""",ported
+01816c,sub_01816c,C,40,0,,-32340,2,exit_game,,0,"""User requested abort.""",todo
+018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 key_available key_get gfx_WaitTOF,,0,,verified
+018228,wait_input_release,C,58,2,,,3,poll_fire poll_joy_dir8 key_available gfx_WaitTOF,,0,,verified
+018262,rank_select,C,712,80,,-32334,1,music_start sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",ported
 01852a,sub_01852a,C,70,0,,-32328,1,sub_0124dc save_file,,4,,todo
-018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,todo
-018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",todo
+018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,ported
+018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",ported
 01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
 0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,todo
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait sub_01d1ea mem_free,,13,,todo
-018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,todo
-018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,todo
-018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 sub_015e1a sub_015e8a text_input path_sanitise screen_dialog sub_016e96 view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen sub_021e9a bcopy strcat sub_022aca os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",todo
-019288,high_score_save,C,38,0,,,2,save_file,,1,"""highscore""",todo
-0192ae,high_score_reset_unused,C,114,2,,,0,high_score_save strncpy,,1,"""Colin was here!""",todo
-019320,high_score_sort,C,172,40,,,1,,,1,,todo
-0193cc,high_score_load,C,166,6,,,1,strncpy os_dos_close os_dos_open os_dos_read,,1,"""highscore"" | ""            """,todo
-019472,high_score_entry,C,524,96,,,1,text_input screen_dialog view_show_wait fade_to fade_out high_score_save high_score_sort high_score_load draw_set_target_c clip_set_full strlen bcopy strncpy os_gfx_draw os_gfx_move os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,6,"""Your name is to be entered"" | ""in the hall of fame.""",todo
-01967e,high_score_draw,C,472,112,,,1,text_draw_c draw_set_target_c sprintf os_gfx_move os_gfx_set_apen os_gfx_set_drmd,,5,"""%d"" | ""%-6ld"" | ""%-12s""",todo
-019856,high_score_screen,C,258,538,,-32304,1,music_start screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black high_score_entry high_score_draw draw_set_target_c clip_set_full,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",todo
-019958,cop_reset,C,16,0,8,,2,,,0,,todo
-019968,cop_init,C,32,0,8 12,,1,cop_reset,,0,,todo
-019988,cop_put_long_unused,C,52,0,8 12,,0,,,0,,todo
-0199bc,cop_move,C,76,0,8 12 14,,7,,,0,,todo
-019a08,cop_move_ptr,C,148,0,8 12 14,,3,,,0,,todo
-019a9c,cop_wait,C,190,0,8 12 14,,8,cop_wait,,0,,todo
-019b5a,cop_colours,C,176,2,8 12 16 18 20,,2,cop_wait,,0,,todo
-019c0a,cop_vport_colours,C,58,0,8 12,,1,cop_colours,,0,,todo
-019c44,cop_vport_colours2_unused,C,60,0,8 12,,0,cop_colours,,0,,todo
-019c80,cop_vport_split,C,152,2,8 12,,1,cop_move cop_wait,,0,,todo
-019d18,cop_vport_planes,C,852,28,8 12 16 18,,1,cop_move cop_move_ptr cop_wait,,0,,todo
-01a06c,cop_sprites_off,C,104,2,8,,2,cop_move cop_move_ptr,,1,,todo
-01a0d4,view_build_copper,C,290,8,8,,11,cop_reset cop_move cop_wait cop_vport_colours cop_vport_split cop_vport_planes cop_sprites_off,,1,,todo
+018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,ported
+018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,ported
+018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 sub_012bbe sub_01344e sub_0134a4 save_game_read save_game_write text_input path_sanitise screen_dialog exit_game view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen strcmp bcopy strcat os_dos_delete_file os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",ported
+019288,high_score_save,C,38,0,,,2,save_file,,1,"""highscore""",verified
+0192ae,high_score_reset_unused,C,114,2,,,0,high_score_save strncpy,,1,"""Colin was here!""",drop
+019320,high_score_sort,C,172,40,,,1,,,1,,verified
+0193cc,high_score_load,C,166,6,,,1,strncpy os_dos_close os_dos_open os_dos_read,,1,"""highscore"" | ""            """,verified
+019472,high_score_entry,C,524,96,,,1,text_input screen_dialog view_show_wait fade_to fade_out high_score_save high_score_sort high_score_load draw_set_target_c clip_set_full strlen bcopy strncpy os_gfx_draw os_gfx_move os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,6,"""Your name is to be entered"" | ""in the hall of fame.""",ported
+01967e,high_score_draw,C,472,112,,,1,text_draw_c draw_set_target_c sprintf os_gfx_move os_gfx_set_apen os_gfx_set_drmd,,5,"""%d"" | ""%-6ld"" | ""%-12s""",ported
+019856,high_score_screen,C,258,538,,-32304,1,music_start screen_hiscore wait_frames_or_fire view_show_wait fade_to_pair fade_out_pair load_picture_black high_score_entry high_score_draw draw_set_target_c clip_set_full,,6,"""wofsongs"" | ""shapes/hiscoreslab"" | ""shapes/hiscore.iff""",ported
+019958,cop_reset,C,16,0,8,,2,,,0,,replace
+019968,cop_init,C,32,0,8 12,,1,cop_reset,,0,,replace
+019988,cop_put_long_unused,C,52,0,8 12,,0,,,0,,drop
+0199bc,cop_move,C,76,0,8 12 14,,7,,,0,,replace
+019a08,cop_move_ptr,C,148,0,8 12 14,,3,,,0,,replace
+019a9c,cop_wait,C,190,0,8 12 14,,8,cop_wait,,0,,replace
+019b5a,cop_colours,C,176,2,8 12 16 18 20,,2,cop_wait,,0,,replace
+019c0a,cop_vport_colours,C,58,0,8 12,,1,cop_colours,,0,,replace
+019c44,cop_vport_colours2_unused,C,60,0,8 12,,0,cop_colours,,0,,drop
+019c80,cop_vport_split,C,152,2,8 12,,1,cop_move cop_wait,,0,,replace
+019d18,cop_vport_planes,C,852,28,8 12 16 18,,1,cop_move cop_move_ptr cop_wait,,0,,replace
+01a06c,cop_sprites_off,C,104,2,8,,2,cop_move cop_move_ptr,,1,,replace
+01a0d4,view_build_copper,C,290,8,8,,11,cop_reset cop_move cop_wait cop_vport_colours cop_vport_split cop_vport_planes cop_sprites_off,,1,,replace
 01a1f6,iff_cmap_to_table,C,142,6,8 12,,1,sub_0223cc,,0,,verified
 01a284,iff_cmp2_to_table,C,178,6,8 12,,1,sub_0223cc,,0,,todo
 01a336,iff_next_chunk,C,44,0,8 12,,1,,,0,,todo
@@ -293,17 +293,17 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01a452,iff_parse_ilbm,C,246,20,8 12,,1,iff_cmap_to_table iff_cmp2_to_table iff_next_chunk iff_body_to_vport,,0,,verified
 01a548,iff_to_vport,C,160,8,8 12,,2,iff_parse_ilbm sub_021dce,,0,"""*** Error - null pointer passed to ConvertIFFtoM...""",verified
 01a5e8,sub_01a5e8,C,38,0,8 9,,0,,,0,,todo
-01a60e,view_poke_colours1,C,158,10,8 12 16 20,,1,,,0,,todo
-01a6ac,view_poke_colours2,C,160,10,8 12 16 20,,1,,,0,,todo
+01a60e,view_poke_colours1,C,158,10,8 12 16 20,,1,,,0,,replace
+01a6ac,view_poke_colours2,C,160,10,8 12 16 20,,1,,,0,,replace
 01a74c,vport_clear_planes,C,96,6,8,,2,gfx_BltClear,,0,,ported
-01a7ac,view_clear_unused,C,136,6,8,,0,vport_clear_planes,,0,,todo
-01a834,view_copy_bitmaps,C,144,12,8 12,,1,gfx_BltBitMap,,0,,todo
-01a8c4,view_copy_colours,C,262,10,8 12,,1,view_poke_colours1 view_poke_colours2,,0,,todo
-01a9ca,view_copy,C,50,0,8 12,,3,view_copy_bitmaps view_copy_colours,,0,,todo
-01a9fc,cop_show_wait,C,18,0,8,,9,cop_install wait_vblank,,0,,todo
-01aa0e,cop_install,asm,36,,,,2,,,2,,todo
+01a7ac,view_clear_unused,C,136,6,8,,0,vport_clear_planes,,0,,drop
+01a834,view_copy_bitmaps,C,144,12,8 12,,1,gfx_BltBitMap,,0,,ported
+01a8c4,view_copy_colours,C,262,10,8 12,,1,view_poke_colours1 view_poke_colours2,,0,,ported
+01a9ca,view_copy,C,50,0,8 12,,3,view_copy_bitmaps view_copy_colours,,0,,ported
+01a9fc,cop_show_wait,C,18,0,8,,9,cop_install wait_vblank,,0,,ported
+01aa0e,cop_install,asm,36,,,,2,,,2,,replace
 01aa32,wait_next_vblank,asm,12,,,-32298,2,,,1,,todo
-01aa3e,wait_vblank,asm,18,,,-32292,3,,,1,,todo
+01aa3e,wait_vblank,asm,18,,,-32292,3,,,1,,ported
 01aa50,sub_01aa50,C,18,0,,-32286,1,,,2,,todo
 01aa62,sub_01aa62,C,12,0,,,0,,,1,,todo
 01aa6e,sub_01aa6e,C,124,4,,,1,,,3,,todo
@@ -399,7 +399,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01f2ec,sub_01f2ec,C,70,12,8,,1,,,1,,todo
 01f332,sub_01f332,C,66,50,8 10 12 16,,1,text_draw_c sprintf os_gfx_move,,1,,todo
 01f374,sub_01f374,C,166,0,8 10 12 14 16,,1,os_gfx_draw os_gfx_move os_gfx_set_apen,,1,,todo
-01f41a,crack_text_screen,C,898,140,,-32106,1,read_vhposr text_input screen_hires2 view_show_wait fade_to fade_out text_draw_c sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full sub_021e9a bcopy os_gfx_move os_gfx_set_apen,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",drop
+01f41a,crack_text_screen,C,898,140,,-32106,1,read_vhposr text_input screen_hires2 view_show_wait fade_to fade_out text_draw_c sub_01f2ec sub_01f332 sub_01f374 rand_beam draw_set_target_c clip_set_full strcmp bcopy os_gfx_move os_gfx_set_apen,graphics.MakeVPort graphics.MrgCop graphics.FreeVPortCopLists,5,"""         WINGS OF FURY        "" | ""Cracked by ULTRAFOX from the  "" | ""PREDATORS AUSTRALIA on 7.8.90"" | ""   Hit Return to continue"" | ""            "" | ""Please enter the word at -"" | ""PAGE %d  LINE %d ",drop
 01f79c,os_viewport_new_unused,asm,258,,,,0,os_viewport_free_unused mem_alloc mem_alloc_chip,graphics.InitVPort graphics.GetColorMap graphics.InitRastPort graphics.InitBitMap,2,,todo
 01f89e,sub_01f89e,asm,4,,,,0,,,0,,todo
 01f8a2,os_viewport_free_unused,asm,164,,,,1,mem_free,graphics.FreeVPortCopLists graphics.FreeColorMap,1,,todo
@@ -459,8 +459,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020cc4,shape_draw_c,asm,30,,,-31962,1,shape_draw blit_begin blit_end,,1,,ported
 020ce2,shape_draw,asm,264,,,-31956,16,shape_clear_box blit_begin blit_end,,3,,verified
 020dea,shape_clear_box,asm,32,,,,1,rect_fill,,0,,todo
-020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,todo
-020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,todo
+020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,ported
+020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,ported
 020f54,blit_raw_c_unused,asm,40,,,,0,blit_raw_unused blit_begin blit_end,,1,,todo
 020f7c,blit_raw_unused,asm,118,,,,1,,,0,,todo
 020ff2,rect_fill_c,asm,30,,,-31938,0,rect_fill blit_begin blit_end,,1,,todo
@@ -508,7 +508,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 021e58,sub_021e58,C,18,0,8,,0,,,1,,todo
 021e6a,sub_021e6a,asm,24,,,,0,,,0,,todo
 021e82,tolower,asm,24,,,-31848,1,,,0,,todo
-021e9a,sub_021e9a,asm,48,,,-31842,2,,,0,,todo
+021e9a,strcmp,asm,48,,,-31842,2,,,0,,todo
 021eca,bcopy,asm,42,,,-31836,4,,,0,,todo
 021ef4,sub_021ef4,C,58,0,8,-31830,1,sub_022474,,0,,todo
 021f2e,c_startup,asm,62,,,-31824,1,geta4,exec.Supervisor,3,,todo
@@ -550,7 +550,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 022aae,os_dos_close,asm,4,,,-31800,6,sub_022ab2,,0,,todo
 022ab2,sub_022ab2,asm,12,,,,2,,dos.Close,1,,todo
 022abe,sub_022abe,asm,12,,,,1,,dos.CurrentDir,1,,todo
-022aca,sub_022aca,asm,4,,,-31794,1,sub_022ace,,0,,todo
+022aca,os_dos_delete_file,asm,4,,,-31794,1,sub_022ace,,0,,todo
 022ace,sub_022ace,asm,12,,,,2,,dos.DeleteFile,1,,todo
 022ada,os_dos_examine,asm,18,,,-31788,3,,dos.Examine,1,,todo
 022aec,os_dos_ex_next,asm,14,,,-31782,1,,dos.ExNext,1,,todo

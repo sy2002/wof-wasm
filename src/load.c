@@ -63,6 +63,7 @@ uint8_t *wof_load_file(const char *name, uint32_t *len)
         *len = 0;
 
     lock = wof_dos_lock(name);
+    wof_trace_add("load_file", lock >= 0, 0, 0, 0, name, 32);
     if (lock < 0)
         return 0;
     size = wof_dos_examine_size(lock);

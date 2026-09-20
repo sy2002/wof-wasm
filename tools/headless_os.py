@@ -97,6 +97,9 @@ class AmigaOS:
         self.deleted = set()              # what DeleteFile took away; the disk itself is read-only
         self.ioerr = 0
         self.files_log = []               # (call, name, found)
+        # The same log with the VBlank each call happened at.  A port test replays a run's
+        # schedule and compares what it opened, call for call, against this (SPEC 8).
+        self.files_at = []                # (vblank, call, name, found)
         self.formatted = []               # what RawDoFmt produced
         self.devices = []
         self.input_handlers = []          # (is_Data, is_Code) of input.device handlers
@@ -393,6 +396,7 @@ class AmigaOS:
         name = self.cstr(self.reg('d1'))
         data = self.file_bytes(name)
         self.files_log.append((call, name, data is not None))
+        self.files_at.append((getattr(self, 'vblanks', 0), call, name, data is not None))
         if data is None:
             self.ioerr = ERROR_OBJECT_NOT_FOUND
             return 0
@@ -438,6 +442,7 @@ class AmigaOS:
         path = self._resolve(name)
         if path is not None and os.path.isdir(path):
             self.files_log.append(('Lock dir', name, True))
+            self.files_at.append((getattr(self, 'vblanks', 0), 'Lock dir', name, True))
             return self._dir_handle(name)
         return self._open_existing('Lock')
 
@@ -488,6 +493,7 @@ class AmigaOS:
         if self.reg('d2') == MODE_NEWFILE:
             name = self.cstr(self.reg('d1'))
             self.files_log.append(('Open new', name, True))
+            self.files_at.append((getattr(self, 'vblanks', 0), 'Open new', name, True))
             self.deleted.discard(name.lower())
             return self._handle(name, b'', True)
         return self._open_existing('Open')
@@ -528,6 +534,7 @@ class AmigaOS:
         name = self.cstr(self.reg('d1'))
         existed = self.file_bytes(name) is not None
         self.files_log.append(('DeleteFile', name, existed))
+        self.files_at.append((getattr(self, 'vblanks', 0), 'DeleteFile', name, existed))
         self.overlay.pop(name.lower(), None)
         self.deleted.add(name.lower())
         return DOS_TRUE if existed else 0
@@ -543,6 +550,7 @@ class AmigaOS:
         whose entry is a stop of its own, and every call into it is recorded."""
         name = self.cstr(self.reg('d1'))
         self.files_log.append(('LoadSeg', name, self.file_bytes(name) is not None))
+        self.files_at.append((getattr(self, 'vblanks', 0), 'LoadSeg', name, self.file_bytes(name) is not None))
         block = self.segment_block(len(self.segments))
         self.segments.append(name)
         self.o.w32(block, 0x100)                                     # the segment's size

@@ -32,7 +32,7 @@ from conftest import (ROOT,
 
 # What the shell was showing when each measurement was taken.
 STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL',
-               'tall': 'PAL', 'small': 'PAL', 'playScreen': 'PAL'}
+               'tall': 'PAL', 'small': 'PAL', 'ranks': 'PAL'}
 
 FIREFOX = os.environ.get('WOF_FIREFOX', '/Applications/Firefox.app/Contents/MacOS/firefox')
 HARNESS = ROOT / 'tests' / 'pagecheck_firefox.mjs'
@@ -105,20 +105,26 @@ def test_firefox_is_silenced_by_its_profile(loaded_firefox):
 def test_the_picture_is_the_core_geometry(loaded_firefox):
     picture = loaded_firefox['picture']
     assert (picture['width'], picture['height']) == (640, 214)
-    assert picture['colours'] >= 8, 'the publisher logo has almost no colours in it'
+    assert picture['colours'] >= 8, 'the rank selection has almost no colours in it'
 
 
-def test_the_three_pictures_are_on_the_canvas(loaded_firefox):
-    for index in (0, 1, 2):
-        assert loaded_firefox['pages'][index]['colours'] >= 8, loaded_firefox['pages'][index]
-    hashes = [loaded_firefox['pages'][i]['hash'] for i in range(3)]
-    assert len(set(hashes)) == 3, 'two of the three pictures are the same picture'
+def test_the_front_end_runs_on_the_page(loaded_firefox):
+    """The same walk as in Chrome: the story scroller, the publisher logo when fire ends it,
+    the title, and the rank selection when a second fire skips the rest."""
+    front = loaded_firefox['front']
+    assert front['scroller']['colours'] >= 2, 'the story scroller drew nothing'
+    for name in ('logo', 'title', 'ranks'):
+        assert front[name]['colours'] >= 8, (name, front[name]['colours'])
+    hashes = [front[name]['hash'] for name in ('scroller', 'logo', 'title', 'ranks')]
+    assert len(set(hashes)) == 4, 'two of the four screens are the same picture'
 
 
-def test_the_play_screen_stacks_three_viewports(loaded_firefox):
-    rows = loaded_firefox['playScreen']['rows']
-    assert rows['playfield'] > 0 and rows['dashboard'] > 0 and rows['ticker'] > 0, rows
-    assert rows['blankAboveDash'] == 0 and rows['blankAboveTicker'] == 0, rows
+def test_a_front_end_screen_leaves_the_rows_below_it_black(loaded_firefox):
+    """One viewport of 200 lines at line 0; the fourteen below it go through the blank
+    palette.  The play screen's three stacked viewports arrive with M4."""
+    rows = loaded_firefox['picture']['rows']
+    assert rows['playfield'] > 0, rows
+    assert rows['blankAboveTicker'] == 0 and rows['ticker'] == 0, rows
 
 
 def test_the_emulated_clock_is_steady(loaded_firefox):
@@ -173,7 +179,7 @@ def test_the_canvas_on_the_page_shows_the_picture(loaded_firefox):
 
 
 def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded_firefox):
-    for name in ('default', 'wide', 'playScreen'):
+    for name in ('default', 'wide', 'ranks'):
         seen = loaded_firefox['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)
@@ -213,7 +219,7 @@ def test_the_screenshot_is_the_picture_pixel_for_pixel(loaded_firefox):
 
 def test_the_hint_bar_shares_the_diagnostics_key(loaded_firefox):
     assert loaded_firefox['hintVisibleWithOverlay']
-    for name in ('default', 'wide', 'playScreen'):
+    for name in ('default', 'wide', 'ranks'):
         assert loaded_firefox['box'][name]['hintVisible'] is False, name
 
 
@@ -235,8 +241,8 @@ def test_the_visible_canvas_shows_the_picture(loaded_firefox_visible):
     picture = loaded_firefox_visible['picture']
     assert picture['colours'] > 1, 'the shipped canvas reads back as one colour'
     assert picture['colours'] >= 8
-    rows = loaded_firefox_visible['playScreen']['rows']
-    assert rows['playfield'] > 0 and rows['dashboard'] > 0 and rows['ticker'] > 0, rows
+    rows = loaded_firefox_visible['picture']['rows']
+    assert rows['playfield'] > 0, rows
 
 
 def test_the_visible_page_shows_the_picture_it_was_given(loaded_firefox_visible):
@@ -250,7 +256,7 @@ def test_the_visible_page_shows_the_picture_it_was_given(loaded_firefox_visible)
 def test_the_visible_compositor_shows_the_picture(loaded_firefox_visible):
     """And what the compositor really puts on the screen, which no canvas read-back can
     answer for: inside the box the picture, outside it black."""
-    for name in ('default', 'wide', 'playScreen'):
+    for name in ('default', 'wide', 'ranks'):
         seen = loaded_firefox_visible['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)

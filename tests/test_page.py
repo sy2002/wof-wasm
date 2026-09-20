@@ -30,7 +30,7 @@ from conftest import (assert_a_modifier_alone_starts_nothing,
 
 # What the shell was showing when each measurement was taken.
 STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL',
-               'tall': 'PAL', 'small': 'PAL', 'retina': 'PAL', 'playScreen': 'PAL'}
+               'tall': 'PAL', 'small': 'PAL', 'retina': 'PAL', 'ranks': 'PAL'}
 
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
@@ -38,7 +38,7 @@ pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason='Google Chrom
 
 
 # The two pictures the scale-factor run photographs.
-SCALED = ('title', 'playScreen')
+SCALED = ('title', 'ranks')
 
 
 @pytest.fixture(scope='session')
@@ -78,39 +78,35 @@ def test_page_loads_without_errors(loaded):
 
 
 def test_the_picture_is_the_core_geometry(loaded):
-    """SPEC 6.4: 640 x 214, the play screen's three viewports stacked."""
+    """SPEC 6.4: 640 x 214, which is the play screen's three viewports stacked.  The front
+    end fills the first 200 of those lines and leaves the rest black."""
     picture = loaded['picture']
     assert (picture['width'], picture['height']) == (640, 214)
-    assert picture['colours'] >= 8, 'the publisher logo has almost no colours in it'
+    assert picture['colours'] >= 8, 'the rank selection has almost no colours in it'
 
 
-def test_the_three_pictures_are_on_the_canvas(loaded):
-    """The M1 acceptance criterion: the publisher logo, the title and the credit picture,
-    each decoded by the ported ILBM reader with its own colours."""
-    for index, what in ((0, 'publisher logo'), (1, 'title'), (2, 'credits')):
-        page = loaded['pages'][index]
-        assert page['colours'] >= 8, 'the %s has %d colours' % (what, page['colours'])
-    hashes = [loaded['pages'][i]['hash'] for i in range(3)]
-    assert len(set(hashes)) == 3, 'two of the three pictures are the same picture'
+def test_the_front_end_runs_on_the_page(loaded):
+    """M3's acceptance, walked the way a player walks it: the story scroller when the page
+    opens, the publisher logo when fire ends it, the title after it, and the rank selection
+    when a second fire skips the rest (re/notes/frontend.md).  Each of the three pictures is
+    decoded by the ported ILBM reader and faded up to its own colours."""
+    front = loaded['front']
+    assert front['scroller']['colours'] >= 2, 'the story scroller drew nothing'
+    for name in ('logo', 'title', 'ranks'):
+        assert front[name]['colours'] >= 8, (
+            'the %s has %d colours' % (name, front[name]['colours']))
+    hashes = [front[name]['hash'] for name in ('scroller', 'logo', 'title', 'ranks')]
+    assert len(set(hashes)) == 4, 'two of the four screens are the same picture'
 
 
-def test_every_viewer_page_draws_something(loaded):
-    for index, page in enumerate(loaded['pages']):
-        assert page['colours'] >= 2, 'page %d is one flat colour' % index
-    assert len(set(page['hash'] for page in loaded['pages'])) == len(loaded['pages'])
-    assert loaded['wrapped']['hash'] == loaded['pages'][0]['hash'], (
-        'stepping past the last page did not come back to the first')
-
-
-def test_the_play_screen_stacks_three_viewports(loaded):
-    """The playfield, the dashboard at line 163 and the ticker at line 201, with lines 162
-    and 200 blank - which is what the copper does above every lower viewport."""
-    rows = loaded['playScreen']['rows']
-    assert rows['playfield'] > 0, 'the playfield is empty'
-    assert rows['dashboard'] > 0, 'the dashboard is empty'
-    assert rows['ticker'] > 0, 'the ticker is empty'
-    assert rows['blankAboveDash'] == 0, 'line 162 is not blank'
-    assert rows['blankAboveTicker'] == 0, 'line 200 is not blank'
+def test_a_front_end_screen_leaves_the_rows_below_it_black(loaded):
+    """A front-end screen is one viewport of 200 lines at line 0, so the fourteen lines
+    below it go through the blank palette, which is what the copper's BPLCON0 = 0x0200 gives
+    on the machine.  The play screen's three stacked viewports arrive with M4."""
+    rows = loaded['picture']['rows']
+    assert rows['playfield'] > 0, 'the picture is empty'
+    assert rows['blankAboveTicker'] == 0, 'row 200 is below a 200-line screen'
+    assert rows['ticker'] == 0, 'row 205 is below the front-end screen and must be black'
 
 
 def test_the_emulated_clock_is_steady(loaded):
@@ -200,7 +196,7 @@ def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded):
     """A screenshot is what the compositor puts on the screen, which a canvas read-back is
     not: it also proves that the canvas is where the measurements say it is."""
     shot = [name for name in STANDARD_OF if loaded['box'][name].get('screenshot')]
-    assert sorted(shot) == ['default', 'playScreen', 'retina', 'tall', 'wide'], shot
+    assert sorted(shot) == ['default', 'ranks', 'retina', 'tall', 'wide'], shot
     for name in shot:
         seen = loaded['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
@@ -273,7 +269,7 @@ def test_the_hint_bar_shares_the_diagnostics_key(loaded):
     """It would lie over the ticker rows in every window wider than the box, so it goes with
     the gesture prompt and comes back only with the diagnostics overlay."""
     assert loaded['hintVisibleWithOverlay'], 'the hint bar is not shown with the overlay'
-    for name in ('default', 'wide', 'tall', 'retina', 'playScreen'):
+    for name in ('default', 'wide', 'tall', 'retina', 'ranks'):
         assert loaded['box'][name]['hintVisible'] is False, (
             'the hint bar is still up with the overlay closed (%s)' % name)
 

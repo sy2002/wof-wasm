@@ -302,6 +302,7 @@ class Headless(AmigaOS):
         self.video_hz = int(run['video_hz'])
         self.since_pass = 0
         self.schedule = []                # the run as it happened: V raw, P, T byte, S
+        self.key_log = []                 # (vblank, code, qualifier), for the port's replay
         self.in_tick = False
         self.tick_return = None
         self.inner_reached = False
@@ -634,15 +635,18 @@ class Headless(AmigaOS):
         if d0 is not None:
             self.setreg('d0', d0)
 
-    def nested(self, address, regs):
+    def nested(self, address, regs, args=b''):
         """Run a routine of the original to its rts while the program is parked: an interrupt
         server, a callback.  It has a stack of its own and may call the operating system.
-        Returns the registers it left."""
+        `args` are the bytes a C routine reads above its return address, right to left as
+        the caller would have pushed them.  Returns the registers it left."""
         if self.depth >= 3:
             raise HarnessError('nested calls too deep')
         saved = self.context(), self.pc, self._reason, self._pause
         self.depth += 1
-        sp = NESTED_STACK_TOP - 0x2000 * (self.depth - 1) - 4
+        sp = NESTED_STACK_TOP - 0x2000 * (self.depth - 1) - 4 - len(args)
+        if args:
+            self.o.write(sp + 4, args)
         self.o.w32(sp, NESTED_TRAP)
         self.uc.reg_write(UC_M68K_REG_A7, sp)
         for name, value in regs.items():
@@ -733,6 +737,9 @@ class Headless(AmigaOS):
         self.set_ciaa_pra(0x7F if fire else 0xFF)                 # port 2's button, active low
         for code, qualifier in keys:
             self.key_event(code, qualifier)
+            # The keys with the VBlank each one was delivered at, so that a port test can
+            # replay them through wof_key in the same order (SPEC 8).
+            self.key_log.append((self.vblanks + 1, code, qualifier))
         self.vblanks += 1
         self.since_pass += 1
         self.progress += 1

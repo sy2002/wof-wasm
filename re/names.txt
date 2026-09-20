@@ -452,6 +452,19 @@
 025f18 cheat_state           ; word: how much of the five-letter cheat sequence has been typed; 5 unlocks the debug keys
 026f5c last_key              ; long: the key ingame_keys is working on, (qualifier << 16) | code, bit 31 cleared
 
+# ---- the outer loop's state  (see re/notes/frontend.md)
+0253c0 mission_number        ; word: the number the briefing draws
+025382 briefing_number_1     ; byte: one digit at the start of a campaign; what it counts is M7
+025370 briefing_number_2     ; byte: the same
+0253be rank_played           ; word: the rank the run is played at; high_score_entry writes it into the entry
+025558 rank_chosen           ; word: the rank the cursor chose
+026d40 loaded_game           ; word: set when the load dialog loaded a game
+0255c0 end_of_mission        ; byte
+02534c player_score          ; long: compared with entry 9 by high_score_entry
+026f8c demo_was_played       ; byte: set when the run was a demo playback; skips the high-score screen
+02464e outside_mission       ; byte: non-zero outside a mission; vblank_server then skips the ticker scroll
+027364 vblank_skip_input     ; word: tested by vblank_server, written nowhere in the executable
+
 # ---- front-end screens  (see re/notes/frontend.md)
 018590 mission_briefing      ; C. rank shape, rank name, three numbers; fire or 240 VBlanks; Control-R returns 1, which restarts the outer loop
 018570 text_draw_c           ; C. (string) text_draw with strlen
@@ -474,7 +487,18 @@
 025a50 hiscore_pens          ; 3 words: 0, 0, 15
 025a56 hiscore_offsets       ; 3 words: -1, 1, 0, added to x and y of every high-score line
 02592c briefing_palette      ; 16 words, the briefing's fade target
-025a5c dialog_palette        ; 16 words, the fade target of the dialog and the name entry
+025a5c dialog_palette        ; 16 words, the fade target of the name entry
+025a10 dialog_box_palette    ; 16 words, the fade target of the load and save dialog
+0259a8 dialog_labels         ; (string, x, y) rows of 8 bytes, ended by a zero pointer: Game, Exit Game, Cancel
+0259c8 dialog_boxes          ; (x0, y0, x1, y1) rows of 8 bytes: six slots and two buttons
+025990 dialog_pad_string     ; long: the 80 spaces at 0x017cfc, which pad a slot name to 28
+027c7e dialog_names          ; six 29-byte slot names, the part after "wof."
+027d2c dialog_names_copy     ; the same names as the list found them; a save compares against it
+016e96 exit_game             ; C. the dialog's "Exit Game": frees and calls fatal_exit. Not ported
+015e1a save_game_read        ; C. (name) reads a saved game; its layout belongs to M7
+015e8a save_game_write       ; C. (name) writes one; the same
+021e9a strcmp                ; C library
+022aca os_dos_delete_file    ; dos.DeleteFile thunk
 025084 player_on_deck        ; word: 1 while the aircraft is on the carrier, 0 in the air; Control-G saves only when it is 1
 01cab4 flash_set             ; C. (count, colour) the sky flash of flip_buffers
 

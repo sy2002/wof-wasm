@@ -385,3 +385,261 @@ def test_the_queue_holds_six_and_drops_the_oldest(ported):
     assert ported.g('input_queue_count') == 6
     ported.input_queue_clear()
     assert ported.g('input_queue_count') == 0
+
+
+# ------------------------------------------------------------------- the fades, SPEC 6.3
+
+def random_table(rng):
+    return [rng.randrange(0x1000) for _ in range(32)]
+
+
+def fade_case(ported, rng, depth, depth2, colours2, pair, to_black):
+    """One fade, run by the original and by the port on the same starting tables."""
+    machine = original.Original()
+    machine.fade_setup(depth, depth2, colours2)
+
+    start = {name: random_table(rng) for name in machine.tables}
+    for name, table in start.items():
+        machine.set_table(name, table)
+
+    ported.set_fade_vblanks(0)
+    ported.view_setup(depth, depth2, colours2)
+    ported.set_colours(0, 0, start['a1'])
+    if colours2:
+        ported.set_colours(0, 1, start['a2'])
+    if depth2:
+        ported.set_colours(1, 0, start['b1'])
+
+    target1 = random_table(rng)
+    target2 = random_table(rng)
+
+    if pair:
+        if to_black:
+            machine.fade_out_pair()
+            ported.fade_run(pair=True)
+        else:
+            machine.fade_to_pair(target1, target2)
+            ported.fade_run(target1, target2, pair=True)
+    else:
+        if to_black:
+            machine.fade_out()
+            ported.fade_run()
+        else:
+            machine.fade_to(target1)
+            ported.fade_run(target1)
+
+    n = 1 << depth
+    for name, which, table in (('a1', 0, 0), ('a2', 0, 1), ('b1', 1, 0)):
+        if name not in machine.tables:
+            continue
+        want, got = machine.get_table(name), ported.colours(which, table)
+        assert want[:n] == got[:n], '%s: %s vs %s' % (name, want[:n], got[:n])
+        assert got[n:] == start[name][n:], '%s: the fade touched a colour past 1 << depth' % name
+
+
+@pytest.mark.parametrize('depth, depth2, colours2, pair, to_black', [
+    (5, 0, False, False, False),      # the picture screens: one viewport, one table
+    (5, 0, False, False, True),       # fade_out, whose carry is what the note warns about
+    (4, 0, True,  False, False),      # a viewport with a second colour table
+    (4, 0, True,  False, True),
+    (3, 0, False, False, False),      # the briefing
+    (5, 4, False, True,  False),      # the high-score screen: two viewports, two targets
+    (5, 4, True,  True,  False),
+    (5, 4, True,  True,  True),       # fade_out_pair, which ends the mission
+])
+def test_the_fades_agree_with_the_original(ported, depth, depth2, colours2, pair, to_black):
+    rng = random.Random(0x1234 + depth * 16 + depth2 + pair * 4 + to_black * 2 + colours2)
+    for _ in range(4):
+        fade_case(ported, rng, depth, depth2, colours2, pair, to_black)
+
+
+def test_the_number_of_colours_comes_from_the_first_viewports_depth(ported):
+    """Both loops of fade_to_pair run 1 << depth of the **first** viewport, even over the
+    second one, which here has four planes and therefore sixteen colours of its own.  All
+    thirty-two entries of its table are written."""
+    machine = original.Original()
+    machine.fade_setup(5, 4, False)
+    rng = random.Random(9)
+    start = {name: random_table(rng) for name in machine.tables}
+    for name, table in start.items():
+        machine.set_table(name, table)
+    machine.fade_to_pair([0] * 32, [0xFFF] * 32)
+    assert machine.get_table('b1') == [0xFFF] * 32
+    assert machine.get_table('a1') == [0] * 32
+
+    ported.set_fade_vblanks(0)
+    ported.view_setup(5, 4, False)
+    ported.set_colours(0, 0, start['a1'])
+    ported.set_colours(1, 0, start['b1'])
+    ported.fade_run([0] * 32, [0xFFF] * 32, pair=True)
+    assert ported.colours(1, 0) == [0xFFF] * 32
+    assert ported.colours(0, 0) == [0] * 32
+
+
+def test_a_fade_step_takes_the_provisional_number_of_vblanks(ported):
+    """PROVISIONAL (SPEC 10, point 6).  The original's fade is CPU time and nothing in the
+    executable says how much, so a step is given a fixed number of VBlanks; the differential
+    tests set it to 0, where the harness's fades take no time either."""
+    ported.view_setup(5, 0, False)
+    for n in (0, 1, 2, 4):
+        ported.set_fade_vblanks(n)
+        assert ported.fade_vblanks() == n
+        assert ported.fade_run([0] * 32) == 16 * n
+    ported.set_fade_vblanks(0)
+
+
+# ------------------------------------------------------ the waits as coroutines, SPEC 6.3
+
+@pytest.mark.parametrize('n, vblanks', [(1, 1), (2, 2), (3, 3), (60, 60), (240, 240), (1800, 1800)])
+def test_wait_frames_or_fire_costs_exactly_its_argument_in_vblanks(ported, n, vblanks):
+    """One round is one WaitTOF, which is one VBlank, which is one pass.  That is what makes
+    the port's front end run to the same timetable as the headless original's."""
+    ported.input_init()
+    assert ported.frames_run(n) == vblanks
+
+
+def test_wait_frames_or_fire_ends_early_on_fire_and_says_so(ported):
+    ported.input_init()
+    assert ported.frames_run(600, raw=0, raw_after=0x10, switch_at=5) < 600
+    assert ported.frames_run(600, raw=0x10) == 1, 'the first WaitTOF happens whatever else does'
+
+
+def test_wait_input_release_waits_for_the_stick_and_the_button(ported):
+    """It returns after one round when nothing is held, keeps going while something is, and
+    gives up after nine; a key already waiting ends it at once."""
+    ported.input_init()
+    ported.keys_init()
+    assert ported.release_run(raw=0) == 1
+    assert ported.release_run(raw=0x10) == 9, 'a held button did not keep it waiting'
+    assert ported.release_run(raw=0x04) == 9, 'a pushed stick did not keep it waiting'
+    assert ported.release_run(raw=0x10, raw_after=0, switch_at=3) == 3, \
+        'it went on waiting after the button came up'
+    ported.key(0x13)
+    assert ported.release_run(raw=0x10) == 1, 'a waiting key did not end it'
+    ported.keys_init()
+
+
+def test_menu_input_answers_the_keys_the_stick_and_the_button(ported):
+    ported.input_init()
+    for raw, want in ((0x00, None), (0x01, -1), (0x02, 1), (0x10, 0), (0x04, None)):
+        ported.keys_init()
+        result, rounds = ported.menu_run(timeout=0, raw=raw, limit=20)
+        if want is None:
+            assert rounds == 20, 'raw 0x%02X ended the menu' % raw
+        else:
+            assert result == want and rounds == 0, (raw, result, rounds)
+
+    for code, want in ((0x4C, -1), (0x4D, 1), (0x44, 0), (0x43, 0)):
+        ported.input_init()
+        ported.keys_init()
+        ported.key(code, 0x0008)                 # any qualifier: menu_input takes the code
+        result, rounds = ported.menu_run(timeout=0, raw=0, limit=20)
+        assert (result, rounds) == (want, 0), (code, result, rounds)
+
+    ported.input_init()
+    ported.keys_init()
+    ported.key(0x20)                             # a key it does not know falls through
+    result, rounds = ported.menu_run(timeout=0, raw=0, limit=20)
+    assert rounds == 20 and ported.g('key_count') == 0, 'the key was not taken out of the buffer'
+
+
+def test_menu_input_gives_up_after_1800_rounds_and_asks_for_a_demo(ported):
+    """The timeout that sets demo_mode to 1 in the rank selection (re/notes/frontend.md)."""
+    ported.input_init()
+    ported.keys_init()
+    result, rounds = ported.menu_run(timeout=1, raw=0, limit=4000)
+    assert result == 1000
+    assert rounds == 1801, 'menu_input gave up after %d rounds' % rounds
+
+    ported.input_init()
+    ported.keys_init()
+    result, rounds = ported.menu_run(timeout=0, raw=0, limit=2500)
+    assert rounds == 2500, 'without the flag it gave up anyway'
+
+
+# --------------------------------------------------- the story scroller's ring and ramps
+
+def test_the_scrollers_ramps_are_the_grey_ramp_of_the_copper_builder(ported):
+    """story_copper_build puts i x 0x111 on COLOR01 at viewport row i and again at row
+    196 - i, keeps the brightest value between them and black below (re/notes/display.md).
+    The rows here are output rows: the viewport sits at display line 5."""
+    def colour_at(row, ramp=16):
+        _, rgba = ported.story_bands(0, 0xFFFF, ramp, 5 + row)
+        return rgba
+
+    def grey(value):
+        component = ((value >> 8) & 0xF) * 17
+        return 0xFF000000 | (component << 16) | (component << 8) | component
+
+    for row in range(16):
+        assert colour_at(row) == grey(row * 0x111), 'top ramp row %d' % row
+    assert colour_at(100) == grey(0xFFF)
+    for i in range(16):
+        assert colour_at(196 - i) == grey(i * 0x111), 'bottom ramp row %d' % (196 - i)
+    assert colour_at(197) == grey(0)
+    assert colour_at(203) == grey(0), 'below the lower ramp COLOR01 stays black'
+
+    used, _ = ported.story_bands(0, 0xFFFF, 16)
+    assert used == 17, 'the scroller needs %d palettes, not 17' % used
+    assert used <= 24
+
+    for ramp in (1, 4, 8, 16):
+        used, _ = ported.story_bands(0, 0xFFFF, ramp)
+        assert used <= 24
+    assert colour_at(100, ramp=1) == grey(0), 'the wind-down did not take the ramp out'
+
+
+def test_the_scrollers_ring_sends_the_display_back_to_the_first_row(ported):
+    """The plane pointer walks up the view's memory and the copper reloads it at the wrap
+    row, which is what makes a 200-row bitmap a ring of 210."""
+    used, _ = ported.story_bands(30, 180, 16)
+    assert used <= 24
+    used, _ = ported.story_bands(209, 1, 16)
+    assert used <= 24
+
+
+# ------------------------------------- the justified spacing of the story scroller (M3)
+
+STORY_TEXT = 0x017494          # the block of lines, 2,152 bytes (re/notes/frontend.md)
+STORY_WIDTH = 0x267            # what story_screen stretches a line to
+
+
+def story_lines(machine, count):
+    """The lines as the scroller walks them, read out of the executable and never written
+    down (CLAUDE.md): a block of NUL-terminated strings."""
+    block = machine.o.read(STORY_TEXT, 2152)
+    out, at = [], 0
+    while len(out) < count and at < len(block):
+        end = block.index(b'\x00', at)
+        out.append(block[at:end].decode('latin1'))
+        at = end + 1
+    return out
+
+
+@pytest.mark.parametrize('justify', [0, STORY_WIDTH])
+def test_the_justified_template_agrees_with_the_original(ported, justify):
+    """The surplus over the text's own width is spread over the gaps: the quotient to every
+    gap and one more pixel to the first remainder gaps (re/notes/drawing.md).  That is what
+    makes the scroller's lines fill the screen, and it is compared here template for
+    template on the lines it really draws."""
+    machine = original.Original()
+    machine.font_load()
+
+    for line in story_lines(machine, 14):
+        if not line:
+            continue                       # an empty line ends a paragraph and is not drawn
+        want = machine.text_render(line, 0, 0, justify, 640, 12)
+        got = ported.text_render(line, 0, 0, justify, 640, 12)
+        assert got == want, 'line %r at justify %d' % (line[:20], justify)
+
+
+def test_a_wider_justify_than_the_text_spreads_and_a_narrower_one_does_not(ported):
+    """Both sides of the branch, over strings of the port's own choosing."""
+    machine = original.Original()
+    machine.font_load()
+
+    for text in ('a b c', 'one two three four', 'x y', 'hello world'):
+        for justify in (0, 40, 100, 300, 615):
+            want = machine.text_render(text, 0, 0, justify, 640, 12)
+            got = ported.text_render(text, 0, 0, justify, 640, 12)
+            assert got == want, (text, justify)

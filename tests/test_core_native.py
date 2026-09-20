@@ -66,7 +66,10 @@ def test_the_packed_file_system_reaches_the_core(native_core_factory, blob, game
 
 
 def test_palette_rows_cover_the_whole_picture(native_core_factory, wasm, blob):
+    """The picture is black until the front end has run: wof_init leaves the coroutine at
+    the wait inside display_init, where no viewport is installed yet."""
     core = native_core_factory(1, blob)
+    core.run(200)
     rows = core.palette_rows()
     assert len(rows) == core.height
     assert max(rows) < wasm['geometry']['paletteCount']

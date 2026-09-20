@@ -86,15 +86,25 @@ const void *wof_display_list(uint32_t *count)
 
 /* orig 0x02124A - remembers the RastPort and its BitMap and sets the RastPort's Mask byte
  * to the depth mask, which is what every draw ANDs its plane bytes with. */
+static wof_vport_t *target_vport;
+
+/* The viewport draw_set_target was last given, which is what the original calls
+ * draw_rastport: the line editor draws on it without being told which it is. */
+wof_vport_t *wof_draw_target_vport(void)
+{
+    return target_vport;
+}
+
 void wof_draw_set_target(wof_vport_t *v)
 {
+    target_vport = v;
     if (!v) {
         target.pixels = 0;
         target.stride = target.width = target.height = 0;
         target.mask   = 0;
         return;
     }
-    target.pixels = v->pixels;
+    target.pixels = wof_vport_pixels(v);
     target.width  = (int32_t)v->bytes_per_row * 8;
     target.stride = target.width;
     target.height = v->rows;
@@ -188,9 +198,72 @@ void wof_shape_draw(const wof_shape_t *s, int16_t x, int16_t y)
         return;                           /* blit_clip_setup rejects a null record */
 
     useMask = s->plane_bytes <= MASKBUFFER_SIZE && s->planes > 0;
+    {
+        char name[5];                     /* the 4-character name, in the order it is read */
+
+        name[0] = (char)(s->name >> 24); name[1] = (char)(s->name >> 16);
+        name[2] = (char)(s->name >> 8);  name[3] = (char)s->name; name[4] = 0;
+        wof_trace_add("shape_draw_c", x, y, s->wbytes, s->height, name, 4);
+    }
     wof_shape_blit(s, useMask, x, y);
 
     /* SPEC 6.4: every shape draw also appends a display-list record.  The classic
      * renderer ignores it; it is here so that an enhanced one can be added later. */
     wof_draw_list_add(s->name, x, y, draw_layer, (uint16_t)(useMask ? 0 : 1), draw_owner);
+}
+
+/* orig 0x020E24 shape_draw_xor - the exclusive-or blit.  It uses no mask, so the whole
+ * clipped box is written, and it ignores the clear byte at +12: inside the box it inverts
+ * the planes of `set & M` and exclusive-ors each stored plane into the planes of its own
+ * destination mask (minterm 0x6A, re/notes/drawing.md).  Because no container on the disk
+ * has overlapping plane masks, the exclusive-or of the stored planes is the converted
+ * pixel, so one exclusive-or of `(set ^ p) & M` is the whole operation.  Drawing twice
+ * restores the background, which is what the rank selection's highlight relies on. */
+void wof_shape_draw_xor(const wof_shape_t *s, int16_t x, int16_t y)
+{
+    if (!s || !target.pixels)
+        return;
+
+    int32_t w = (int32_t)s->wbytes * 8;
+    int32_t h = (int32_t)s->height;
+    int32_t x0 = x, y0 = y;
+    int32_t sx0 = 0, sy0 = 0, sx1 = w, sy1 = h;
+
+    if (x0 + sx0 < clip_left)   sx0 = clip_left - x0;
+    if (x0 + sx1 > clip_right)  sx1 = clip_right - x0;
+    if (y0 + sy0 < clip_top)    sy0 = clip_top - y0;
+    if (y0 + sy1 > clip_bottom) sy1 = clip_bottom - y0;
+    if (sx0 < 0) sx0 = 0;
+    if (sy0 < 0) sy0 = 0;
+    if (sx1 > w) sx1 = w;
+    if (sy1 > h) sy1 = h;
+    if (x0 + sx1 > target.width)  sx1 = target.width - x0;
+    if (y0 + sy1 > target.height) sy1 = target.height - y0;
+    if (x0 + sx0 < 0) sx0 = -x0;
+    if (y0 + sy0 < 0) sy0 = -y0;
+    if (sx0 >= sx1 || sy0 >= sy1)
+        return;
+
+    uint8_t M  = target.mask;
+    uint8_t st = (uint8_t)(s->set & M);
+
+    {
+        char name[5];
+
+        name[0] = (char)(s->name >> 24); name[1] = (char)(s->name >> 16);
+        name[2] = (char)(s->name >> 8);  name[3] = (char)s->name; name[4] = 0;
+        wof_trace_add("shape_xor_c", x, y, s->wbytes, s->height, name, 4);
+    }
+
+    for (int32_t r = sy0; r < sy1; r++) {
+        const uint8_t *src = s->pixels ? s->pixels + (uint32_t)r * w : 0;
+        uint8_t       *dst = target.pixels + (int32_t)(y0 + r) * target.stride + x0;
+
+        for (int32_t c = sx0; c < sx1; c++) {
+            uint8_t p = src ? src[c] : 0;
+
+            dst[c] ^= (uint8_t)((st ^ p) & M);
+        }
+    }
+    wof_draw_list_add(s->name, x, y, draw_layer, 2, draw_owner);
 }

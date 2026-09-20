@@ -20,13 +20,20 @@ void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
 
     wof_entropy_seed(seed);
     wof_fs_open(fs, fs_len);
+    wof_fs_writes_reset();
     wof_video_init();
+    wof_display_init();
     wof_audio_init();
     wof_input_init();
     wof_keys_init();
     wof_assets_init();
-    wof_viewer_init();
-    wof_viewer_pass();
+    wof_front_init();
+
+    /* The original runs from its first instruction to its first wait before any VBlank
+     * happens, so the port does too: wof_init leaves the coroutine parked at the wait
+     * inside display_init, and pass N then runs what the original runs after VBlank N. */
+    wof_front();
+    wof_screen_from_front_view();
 }
 
 void wof_set_video_hz(int hz)
@@ -34,10 +41,13 @@ void wof_set_video_hz(int hz)
     wof_s.video_hz = (uint16_t)(hz == 50 ? 50 : 60);
 }
 
+/* One resume of the coroutine the original's main program becomes (SPEC 6.3), and the
+ * picture that follows from where it now stands. */
 void wof_pass(void)
 {
     wof_s.passes++;
-    wof_viewer_pass();
+    wof_front();
+    wof_screen_from_front_view();
 }
 
 uint32_t wof_vblank_count(void) { return wof_s.vblanks; }
@@ -71,8 +81,7 @@ void wof_state_load(const uint8_t *src)
     if (in.magic != WOF_STATE_MAGIC || in.version != WOF_STATE_VERSION)
         return;                       /* not ours: leave the running state alone */
     wof_mem_copy(&wof_s, &in, sizeof wof_s);
-    wof_s.view_dirty = 1;             /* the picture follows the state, not the other way */
-    wof_viewer_pass();
+    wof_screen_from_front_view();     /* the picture follows the state, not the other way */
 }
 
 /* The state travels as the struct's bytes, which is why it is copied with wof_mem_copy

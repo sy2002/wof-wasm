@@ -44,7 +44,10 @@ SKIP_NAMES = {'Wings', 'UFXintro', 'wingt'}
 
 CC_WASM = ['-target', 'wasm32-freestanding', '-std=c11', '-O2', '-Wall', '-Wextra',
            '-nostdlib', '-Wl,--no-entry', '-I', SRC]
-CC_NATIVE = ['-std=c11', '-O2', '-Wall', '-Wextra', '-dynamiclib', '-I', SRC]
+# WOF_TRACE turns on the recording of src/trace.c: which file the core opened, which song
+# it asked for and every drawing call it made, which is how the differential tests compare
+# the port with the headless original's observers.  dist/core.wasm is built without it.
+CC_NATIVE = ['-std=c11', '-O2', '-Wall', '-Wextra', '-dynamiclib', '-DWOF_TRACE=1', '-I', SRC]
 
 FS_MAGIC = b'WOFS'
 FS_VERSION = 1

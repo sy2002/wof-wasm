@@ -82,22 +82,63 @@ try {
     await sleep(2000);
     report.audioAfterKey = await evaluate('window.__wofAudio');
 
-    report.picture = await evaluate(PICTURE);
+    /* The front end runs in real time here, so the page is walked the way a player walks
+       it (re/notes/frontend.md): the story scroller is up when the page opens, fire ends
+       it, the publisher logo comes up and fades in, the title follows it, and a second
+       fire skips the rest of the sequence to the rank selection.  The waits below are the
+       note's timetable in seconds at 50 Hz, with room for the fades. */
 
-    /* The M1 viewer's pages, stepped with the right arrow the way a person steps them.
-       Page 0 is the publisher logo, 1 the title, 2 the credits, 5 the play screen. */
-    report.pages = [report.picture];
-    for (let i = 0; i < 5; i++) {
-        await press(sessionId, 'right');
-        await sleep(300);
-        report.pages.push(await evaluate(PICTURE));
+    /* The front end moves on its own: a fade changes the picture between one read and the
+       next, and a measurement that spans one would be of no picture at all.  This waits
+       until two reads running give the same picture, which is what a screen that is up and
+       waiting looks like. */
+    async function settle(limitMs = 8000) {
+        let last = null;
+        for (let waited = 0; waited < limitMs; waited += 300) {
+            await sleep(300);
+            const now = await evaluate(PICTURE);
+            if (last && now.hash === last.hash) {
+                return now;
+            }
+            last = now;
+        }
+        return last;
     }
-    report.playScreen = report.pages[5];
 
-    /* Back to the first page, so that the rest of the run sees what it saw before. */
-    await press(sessionId, 'right');
-    await sleep(300);
-    report.wrapped = await evaluate(PICTURE);
+
+    /* The front end polls the button once a pass, and a keyDown immediately followed by a
+       keyUp is one VBlank wide: it can fall between two polls.  A player holds a key for a
+       tenth of a second, so the fire presses here do too. */
+    async function fire() {
+        await cdp.hold(sessionId, 'space');
+        await sleep(250);
+        await cdp.release(sessionId, 'space');
+    }
+
+    report.front = { scroller: await evaluate(PICTURE) };
+
+    await fire();                                    /* end the scroller */
+    /* The logo comes up in a palette of its own and only then fades to the picture's own
+       colours, so it is looked at once it has (re/notes/frontend.md's timetable). */
+    await sleep(3400);
+    report.front.logo = await settle();
+    await sleep(3200);
+    report.front.title = await settle();
+
+    await fire();                                    /* skip to the rank selection */
+    await sleep(1500);
+    report.front.ranks = await settle();
+    report.picture = report.front.ranks;
+
+    /* The rank selection gives up after 1800 rounds, which is 36 seconds on PAL, and the
+       measurements below take longer than that.  A cursor move and a move back leave the
+       picture exactly as it was and start menu_input's count again. */
+    async function keepRanks() {
+        await press(sessionId, 'down');
+        await sleep(400);
+        await press(sessionId, 'up');
+        await sleep(400);
+    }
 
     report.overlay = await evaluate("document.getElementById('overlay').textContent");
     report.overlayVisible = await evaluate(
@@ -124,6 +165,7 @@ try {
        Nothing may lie over the picture while the two are compared, and the diagnostics
        overlay and the hint bar go away on the same key that brought them. */
     async function look(label, withScreenshot) {
+        await settle();
         const seen = { label, geometry: await evaluate(GEOMETRY), display: await evaluate(DISPLAY) };
         if (withScreenshot) {
             await press(sessionId, 'backquote');
@@ -141,12 +183,9 @@ try {
     report.hintVisibleWithOverlay = await evaluate(
         "!document.getElementById('hint').classList.contains('off')");
 
-    /* The title picture, which has colours all over it, is what the picture on the page is
-       compared against; the publisher logo the viewer starts on is almost entirely black and
-       would let a canvas that drew nothing but black pass. */
-    await press(sessionId, 'right');
-    await sleep(400);
-
+    /* The rank selection, which has colours all over it, is what the picture on the page is
+       compared against; the story scroller the page opens on is nearly all black and would
+       let a canvas that drew nothing but black pass. */
     report.box = { default: await look('default', true) };
 
     /* Key 6 selects NTSC as a whole - the 800 : 642 box and 60 Hz - and key 5 PAL again.
@@ -168,6 +207,7 @@ try {
     report.box.palAgain.display = await evaluate(DISPLAY);
 
     /* A wide, a tall and a small viewport, each set through the driver. */
+    await keepRanks();
     await viewport(1400, 600, 1);
     report.box.wide = await look('wide', true);
     await viewport(600, 900, 1);
@@ -193,13 +233,10 @@ try {
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
     await sleep(600);
 
-    /* The play screen as well as the title picture: three viewports of different depths,
-       stacked, with two blank lines between them. */
-    for (let i = 0; i < 4; i++) {
-        await press(sessionId, 'right');
-        await sleep(250);
-    }
-    report.box.playScreen = await look('play screen', true);
+    /* The same picture at the window's own size, after everything the run has done to the
+       viewport: the box has to come back to where it started. */
+    await keepRanks();
+    report.box.ranks = await look('ranks', true);
 
     /* A stall must not be made up frame for frame: SPEC 6.2 replays at most 24 VBlanks,
        which is the original's queue of six ticks.  The counters come out of the overlay,

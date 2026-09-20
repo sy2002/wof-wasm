@@ -187,19 +187,60 @@ try {
     await sleep(2500);
 
     report.audioAfterKey = await evaluate('window.__wofAudio');
-    report.picture = await evaluate(PICTURE);
+    /* The front end runs in real time here, so the page is walked the way a player walks
+       it (re/notes/frontend.md): the story scroller is up when the page opens, fire ends it,
+       the publisher logo comes up, the title follows, and a second fire skips the rest of
+       the sequence to the rank selection. */
 
-    report.pages = [report.picture];
-    for (let i = 0; i < 5; i++) {
-        await press(context, KEY_RIGHT);
-        await sleep(300);
-        report.pages.push(await evaluate(PICTURE));
+    /* The front end moves on its own: a fade changes the picture between one read and the
+       next, and a measurement that spans one would be of no picture at all.  This waits
+       until two reads running give the same picture, which is what a screen that is up and
+       waiting looks like. */
+    async function settle(limitMs = 8000) {
+        let last = null;
+        for (let waited = 0; waited < limitMs; waited += 300) {
+            await sleep(300);
+            const now = await evaluate(PICTURE);
+            if (last && now.hash === last.hash) {
+                return now;
+            }
+            last = now;
+        }
+        return last;
     }
-    report.playScreen = report.pages[5];
 
-    await press(context, KEY_RIGHT);
-    await sleep(300);
-    report.wrapped = await evaluate(PICTURE);
+
+    /* One VBlank of fire can fall between two of the front end's polls; a player holds a
+       key for a tenth of a second, and so does this. */
+    async function fire() {
+        await keyAction(context, 'keyDown', KEY_SPACE);
+        await sleep(250);
+        await keyAction(context, 'keyUp', KEY_SPACE);
+    }
+
+    report.front = { scroller: await evaluate(PICTURE) };
+
+    await fire();
+    /* The logo comes up in a palette of its own and only then fades to the picture's own
+       colours, so it is looked at once it has (re/notes/frontend.md's timetable). */
+    await sleep(3400);
+    report.front.logo = await settle();
+    await sleep(3200);
+    report.front.title = await settle();
+
+    await fire();
+    await sleep(1500);
+    report.front.ranks = await settle();
+    report.picture = report.front.ranks;
+
+    /* The rank selection gives up after 1800 rounds, which is 36 seconds on PAL.  A cursor
+       move and a move back leave the picture as it was and start the count again. */
+    async function keepRanks() {
+        await press(context, KEY_DOWN);
+        await sleep(400);
+        await press(context, KEY_UP);
+        await sleep(400);
+    }
 
     report.overlay = await evaluate("document.getElementById('overlay').textContent");
     report.overlayVisible = await evaluate(
@@ -225,6 +266,7 @@ try {
     }
 
     async function look(label, withScreenshot) {
+        await settle();
         const seen = { label, geometry: await evaluate(GEOMETRY), display: await evaluate(DISPLAY) };
         if (withScreenshot) {
             /* Nothing may lie over the picture: the overlay and the hint bar go away on the
@@ -247,11 +289,8 @@ try {
     report.hintVisibleWithOverlay = await evaluate(
         "!document.getElementById('hint').classList.contains('off')");
 
-    /* The title picture rather than the publisher logo the viewer starts on, which is almost
-       entirely black and would let a canvas that drew nothing but black pass. */
-    await press(context, KEY_RIGHT);
-    await sleep(400);
-
+    /* The rank selection rather than the story scroller the page opens on, which is nearly
+       all black and would let a canvas that drew nothing but black pass. */
     report.box = { default: await look('default', true) };
     report.box.default.present = await evaluate(PRESENT_COST);
     const windowSize = report.box.default.geometry.window;
@@ -291,13 +330,10 @@ try {
        window and hangs the run. */
     await viewport(windowSize.width, windowSize.height);
 
-    /* The play screen as well as the title picture: three viewports of different depths,
-       stacked, with two blank lines between them. */
-    for (let i = 0; i < 4; i++) {
-        await press(context, KEY_RIGHT);
-        await sleep(250);
-    }
-    report.box.playScreen = await look('play screen', true);
+    /* The same picture at the window's own size, after everything the run has done to the
+       viewport: the box has to come back to where it started. */
+    await keepRanks();
+    report.box.ranks = await look('ranks', true);
 
     /* A modifier on its own is the case that cost a session of silence: Command, pressed to
        open the console, is a keydown that activates nothing.  The page must build no

@@ -49,6 +49,12 @@ INPUT_HANDLER   = 0x02075A
 KEY_AVAILABLE   = 0x0207D8
 KEY_GET         = 0x0207E4
 
+# M3: the fades (re/notes/display.md, re/notes/frontend.md)
+FADE_TO         = 0x017084
+FADE_TO_PAIR    = 0x0171F2
+FADE_OUT        = 0x0173B0
+FADE_OUT_PAIR   = 0x0173E6
+
 # Patched
 MEM_ALLOC_ASM     = 0x0158EC
 VPORT_CLEAR       = 0x01A74C
@@ -56,6 +62,8 @@ FONT_LOAD_LOADCALL = 0x012798      # pea name / jsr load_file_public / addq.w #4
 OS_DISABLE        = 0x022D48       # exec.Disable and exec.Enable thunks; key_get brackets
 OS_ENABLE         = 0x022D66       #   its shift with them and there is no SysBase here
 GFX_WAITTOF       = 0x022EEE       # key_get spins on it when the buffer is empty
+VIEW_BUILD_COPPER = 0x01A0D4       # the copper builder and the install the fades call per
+VIEW_SHOW         = 0x016F20       #   step; SPEC 6.6 marks both `replace`
 
 # Globals (A4-relative addresses resolved to the load layout of SPEC 3.2)
 DRAW_RASTPORT   = 0x026F1A
@@ -64,6 +72,11 @@ MASKBUFFER      = 0x027436
 MASKBUFFER_SIZE = 0x02743A
 
 VPORT_SIZE = 0xAC
+
+# The display globals the fades read (re/notes/display.md)
+FRONT_VPORT     = 0x026E28
+FRONT_VIEW      = 0x026E30
+COP_SPARE       = 0x027C64
 
 # The key buffer and the three words keyboard_open sets (re/notes/keys.md)
 KEY_BUFFER      = 0x026C98         # 10 raw codes
@@ -173,6 +186,63 @@ class Original:
         width, height = struct.unpack('>HH', self.get(start, 4))
         masks = [b for b in self.get(start + 14, 6) if b]
         return self.get(start, 20 + len(masks) * width * height)
+
+    # ----------------------------------------------------------------- the fades, M3
+
+    def stub_copper(self):
+        """A fade rebuilds and installs the front view's copper list once per step.  Both
+        routines are display plumbing that the port replaces (SPEC 6.6) and neither is the
+        routine under test, so both become an immediate return; what the fade computes into
+        the colour tables is untouched by that."""
+        for address in (VIEW_BUILD_COPPER, VIEW_SHOW):
+            self.patch(address, b'\x4e\x75')
+
+    def fade_setup(self, depth, depth2=0, colours2=False):
+        """front_vport, its colour tables and, for the pair, a second viewport behind it."""
+        self.stub_copper()
+        view = self.o.alloc(14, fill=0)
+        first = self.o.alloc(VPORT_SIZE, fill=0)
+        self.tables = {}
+
+        def table(name):
+            address = self.o.alloc(64, fill=0)
+            self.tables[name] = address
+            return address
+
+        self.o.write(first + 9, bytes([depth]))
+        self.o.w32(first + 0x98, table('a1'))
+        if colours2:
+            self.o.w32(first + 0x9C, table('a2'))
+        if depth2:
+            second = self.o.alloc(VPORT_SIZE, fill=0)
+            self.o.write(second + 9, bytes([depth2]))
+            self.o.w32(second + 0x98, table('b1'))
+            self.o.w32(first, second)
+        self.o.w32(FRONT_VPORT, first)
+        self.o.w32(FRONT_VIEW, view)
+        self.o.w32(COP_SPARE, self.o.alloc(8, fill=0))
+        return first
+
+    def set_table(self, name, colours):
+        self.o.write(self.tables[name], struct.pack('>32H', *colours))
+
+    def get_table(self, name):
+        return list(struct.unpack('>32H', self.o.read(self.tables[name], 64)))
+
+    def fade_to(self, target):
+        pointer = self.o.alloc_bytes(struct.pack('>32H', *target))
+        self.o.call(FADE_TO, self.o.L(pointer), self.o.W(0))
+
+    def fade_out(self):
+        self.o.call(FADE_OUT, self.o.W(0))
+
+    def fade_to_pair(self, target1, target2):
+        a = self.o.alloc_bytes(struct.pack('>32H', *target1))
+        b = self.o.alloc_bytes(struct.pack('>32H', *target2))
+        self.o.call(FADE_TO_PAIR, self.o.L(a), self.o.L(b), self.o.W(0))
+
+    def fade_out_pair(self):
+        self.o.call(FADE_OUT_PAIR, self.o.W(0))
 
     # ------------------------------------------------------------ the key buffer, M3
 

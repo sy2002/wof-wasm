@@ -153,6 +153,38 @@ def emit_strptrs(image, entry, header, source):
     emit_string_array(name, addr, raws, addrs, header, source)
 
 
+def emit_words(image, entry, header, source):
+    """`count` big-endian 16-bit values, as they stand in the executable."""
+    name, addr, count = entry['name'], entry['addr'], entry['count']
+    values = [struct.unpack('>H', image.bytes(addr + 2 * i, 2))[0] for i in range(count)]
+
+    header.append('extern const uint16_t %s%s[%d];   /* orig 0x%06X */'
+                  % (PREFIX, name, count, addr))
+    header.append('#define %s%s_COUNT %d' % (PREFIX.upper(), name.upper(), count))
+    source.append('const uint16_t %s%s[%d] = {' % (PREFIX, name, count))
+    for i in range(0, count, 8):
+        source.append('    ' + ' '.join('0x%04X,' % v for v in values[i:i + 8]))
+    source.append('};')
+    source.append('')
+
+
+def emit_blob(image, entry, header, source):
+    """`count` raw bytes.  This is how a block of text reaches the port: the long printable
+    blocks of the executable are summarised in the listing on purpose, so they are read from
+    the binary by address and never written down anywhere (CLAUDE.md)."""
+    name, addr, count = entry['name'], entry['addr'], entry['count']
+    raw = image.bytes(addr, count)
+
+    header.append('extern const uint8_t %s%s[%d];   /* orig 0x%06X */'
+                  % (PREFIX, name, count, addr))
+    header.append('#define %s%s_COUNT %d' % (PREFIX.upper(), name.upper(), count))
+    source.append('const uint8_t %s%s[%d] = {' % (PREFIX, name, count))
+    for i in range(0, count, 16):
+        source.append('    ' + ' '.join('0x%02X,' % b for b in raw[i:i + 16]))
+    source.append('};')
+    source.append('')
+
+
 # ------------------------------------------------------------- the key conversion table
 
 # The qualifier bits the table covers.  The shell sends the two Shift keys and Caps Lock and
@@ -375,6 +407,8 @@ KINDS = {
     'cstr': emit_cstr,
     'cstrs': emit_cstrs,
     'strptrs': emit_strptrs,
+    'words': emit_words,
+    'blob': emit_blob,
 }
 
 
