@@ -260,6 +260,14 @@ def test_the_blocks_have_hard_edges(scaled):
                                           seen['geometry'], name)
 
 
+def test_the_hint_names_the_diagnostics_key_by_its_place(loaded):
+    """The shell tests event.code Backquote, which is where the key is, not what is printed
+    on it; that key is a caret on a German keyboard.  So the hint says where to press, and
+    naming the character would send some players to a key they do not have there."""
+    assert '`' not in loaded['hint'], loaded['hint']
+    assert 'left of 1' in loaded['hint'], loaded['hint']
+
+
 def test_the_hint_bar_shares_the_diagnostics_key(loaded):
     """It would lie over the ticker rows in every window wider than the box, so it goes with
     the gesture prompt and comes back only with the diagnostics overlay."""

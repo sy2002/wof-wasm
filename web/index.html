@@ -11,7 +11,10 @@
 <div id="stage"><canvas id="screen"></canvas></div>
 <div id="gesture">press any key for sound</div>
 <div id="overlay" class="off"></div>
-<div id="hint">` diagnostics &middot; 5 PAL / 6 NTSC &middot; left / right page &middot; up / down shapes</div>
+<!-- The diagnostics key is named by where it is, not by the character on it: the shell
+     tests event.code Backquote, which is positional, and that key carries a caret on a
+     German keyboard and other characters elsewhere. -->
+<div id="hint">key left of 1: diagnostics &middot; 5 PAL / 6 NTSC &middot; left / right page &middot; up / down shapes</div>
 
 <!-- The core and the game's files, inlined by tools/build.py.  These are not scripts: the
      type keeps the browser from running them, the shell reads them as text and decodes. -->
