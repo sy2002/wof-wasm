@@ -28,9 +28,9 @@ SLOW = pytest.mark.skipif(not os.environ.get('WOF_SLOW_HEADLESS'),
 # Fire taps carry the title sequence, the rank selection and the briefing along.
 FRONT = [[30, ''], [3, 'F']] * 5
 # On the deck: fire brings the aircraft up on the lift, stick right rolls it along the deck,
-# stick right with bit 0 of the raw state lifts it off before the deck ends.
-TAKE_OFF = [[40, ''], [3, 'F'], [60, ''], [460, 'R'], [3000, 'RD']]
-# The same without bit 0: the aircraft rolls over the bow.
+# stick right and forward lifts it off before the deck ends.
+TAKE_OFF = [[40, ''], [3, 'F'], [60, ''], [460, 'R'], [3000, 'RU']]
+# The same without pushing forward: the aircraft rolls over the bow.
 ROLL_OFF = [[40, ''], [3, 'F'], [60, ''], [3460, 'R']]
 FLIGHT_TICKS = 260
 
@@ -191,7 +191,7 @@ def test_the_pass_counter_runs_from_0_to_99(first, dumps):
 
 
 def test_the_tick_input_is_the_originals_own_input_byte(first):
-    """Stick right is bit 2, the letter D is bit 0, and a short press of fire is bit 5 for exactly one
+    """Stick right is bit 2, stick forward bit 0, and a short press of fire is bit 5 for exactly one
     tick.  Three presses fall into the mission: the one that ended the briefing, whose release
     the server samples after the mission has begun, the last of FRONT, and the one of TAKE_OFF."""
     inputs = [event[1] for event in first.schedule[first.schedule.index(('S', 1)):] if event[0] == 'T']
@@ -214,10 +214,10 @@ def test_bit_0_of_the_input_byte_is_the_forward_switch():
     assert answers == {'forward': (1, 1), 'back': (2, 5), 'right': (8, 3), 'left': (4, 7)}
 
 
-def test_bit_0_climbs_and_bit_1_does_not(first):
-    other = run(flight(tail=TAKE_OFF[:4] + [[3000, 'RU']]))
+def test_pushing_forward_climbs_and_pulling_back_does_not(first):
+    other = run(flight(tail=TAKE_OFF[:4] + [[3000, 'RD']]))
     assert first.o.r16(0x026E60, True) > 200
-    assert other.o.r16(0x026E60, True) < 40, 'with bit 1 the aircraft is at height %d' % other.o.r16(0x026E60, True)
+    assert other.o.r16(0x026E60, True) < 40, 'pulled back, the aircraft is at height %d' % other.o.r16(0x026E60, True)
 
 
 def test_the_run_stops_where_the_description_says():

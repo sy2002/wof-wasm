@@ -71,9 +71,9 @@ The title sequence, the rank selection and the briefing are not stubbed. They wa
 
 ## Input
 
-**Raw mode** is the normal one. Per VBlank the script gives the five bits `wof_vblank` takes (down, up, right, left, fire). The harness turns them into hardware state: `JOY1DAT` through a table it builds at start by calling the original's own decoder `read_joy_bits` (`0x01520E`) on all 16 combinations of bits 9, 8, 1 and 0, and bit 7 of CIA-A PRA, active low, for the button of port 2. Opposing directions cancel, as a real stick cannot produce them. The input byte, the tap and hold latches and the queue are then the work of `vblank_every_frame`, `read_joystick` and `vblank_server`.
+**Raw mode** is the normal one. Per VBlank the script gives the five bits `wof_vblank` takes (forward, back, right, left, fire), written with the letters `U`, `D`, `R`, `L` and `F`: `U` is the stick pushed forward, bit 0, and `D` the stick pulled back, bit 1. The harness turns them into hardware state: `JOY1DAT` through a table it builds at start by calling the original's own decoder `read_joy_bits` (`0x01520E`) on all 16 combinations of bits 9, 8, 1 and 0, and bit 7 of CIA-A PRA, active low, for the button of port 2. Opposing directions cancel, as a real stick cannot produce them. The input byte, the tap and hold latches and the queue are then the work of `vblank_every_frame`, `read_joystick` and `vblank_server`.
 
-**Bit 0 is the stick pushed forward, not pulled back.** `SPEC.md` section 3.3 and `re/notes/input.md` call bit 0 of the input byte "stick down" and bit 1 "stick up". At the register the names are the other way round. The hardware reports the forward switch as bit 9 exclusive-or bit 8 of `JOY1DAT` and the back switch as bit 1 exclusive-or bit 0. Asked with `JOY1DAT` = `0x0100`, forward alone, `read_joy_bits` returns 1, which is bit 0; with `0x0001`, back alone, it returns 2. The game's own menus agree about which way is up: for the forward switch `read_joy_dir8` (`0x020488`) returns 1, and `menu_input` answers 1 with −1, exactly as it answers the cursor-up key `0x4C`; the back switch gives 5 and +1, like cursor-down `0x4D`. In flight bit 0 climbs: the take-off below needs it, and with bit 1 instead the aircraft goes over the bow. So by default pushing the stick away climbs, arcade fashion, and `opt_invert_vertical` turns that into pulling back. The letters `U` and `D` of the run description follow the present wording of `SPEC.md` section 6.1, `D` is bit 0 and `U` is bit 1; if the specification renames the bits, `RAW_BITS` in `tools/headless.py` follows with one line.
+**Bit 0 is the stick pushed forward.** The hardware reports the forward switch as bit 9 exclusive-or bit 8 of `JOY1DAT` and the back switch as bit 1 exclusive-or bit 0. With `JOY1DAT` = `0x0100`, forward alone, `read_joy_bits` returns 1, which is bit 0; with `0x0001`, back alone, it returns 2. The menus treat forward as up: for the forward switch `read_joy_dir8` (`0x020488`) returns 1, and `menu_input` answers 1 with −1, exactly as it answers the cursor-up key `0x4C`; the back switch gives 5 and +1, like cursor-down `0x4D`. In flight forward climbs: the take-off below needs it, and pulled back instead the aircraft goes over the bow. Pushing the stick away climbs, arcade fashion, and `opt_invert_vertical` turns that into pulling back. Two tests pin these facts.
 
 **Keys** are raw Amiga key codes attached to a script segment. Each goes as an `IECLASS_RAWKEY` event through the handler the game put on input.device (`input_handler` `0x02075A`), before the servers of that VBlank.
 
@@ -166,7 +166,7 @@ JSON; every key is optional.
   "entropy":          {"seed": 1}  or  {"values": [15381, 24129, ...]}
   "video_hz":         50           only Delay depends on it
   "vblanks_per_pass": 2
-  "raw":              [[30, ""], [3, "F"], [460, "R"], [100, "RD"], [1, "", [68]]]
+  "raw":              [[30, ""], [3, "F"], [460, "R"], [100, "RU"], [1, "", [68]]]
                       segments of [VBlanks, letters of U D L R F, optional raw key codes
                       delivered at the segment's first VBlank]; neutral after the last
   "bytes":            [4, 4, 5]    byte mode, see Input
@@ -201,7 +201,7 @@ Names: an address with an entry in `re/names.txt` gets it; any other gets the li
 
 From Python: `headless.Headless(description, track_writes=False)`, then `run(until=...)` with `'inner'`, `'pass'`, `'tick'`, `'step'` or nothing for the description's stop; `o` is the oracle for reading memory, `regions()` the state, `schedule`, `entropy_log`, `step_hashes`, `player_calls`, `files_log`, `plane_reads`, `os_calls` the records.
 
-The scripts the tests use: five presses of fire, three VBlanks each and thirty apart, carry the front end along and the mission begins at VBlank 132. On the deck a press of fire brings the aircraft up on the lift, stick right rolls it along the deck, and stick right together with bit 0 (`RD`) after 460 VBlanks of rolling lifts it off; without it, or with bit 1 instead, the aircraft rolls over the bow and the player is reset.
+The scripts the tests use: five presses of fire, three VBlanks each and thirty apart, carry the front end along and the mission begins at VBlank 132. On the deck a press of fire brings the aircraft up on the lift, stick right rolls it along the deck, and stick right and forward (`RU`) after 460 VBlanks of rolling lifts it off; without the push forward, or pulled back instead, the aircraft rolls over the bow and the player is reset.
 
 For the open points of `SPEC.md` section 10:
 

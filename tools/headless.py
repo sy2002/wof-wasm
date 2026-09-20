@@ -94,7 +94,8 @@ DOSBASE_VAR  = 0x026F1E
 SYSBASE_VAR  = 0x026F74
 INPUT_BYTE   = 0x027366
 
-RAW_BITS = {'D': 1, 'U': 2, 'R': 4, 'L': 8, 'F': 16}      # the bits wof_vblank takes
+# The bits wof_vblank takes: U is the stick pushed forward, which is up in the menus and climbs.
+RAW_BITS = {'U': 1, 'D': 2, 'R': 4, 'L': 8, 'F': 16}
 
 DEFAULT_RUN = {
     'format': 'wof-headless-run', 'version': 1,
