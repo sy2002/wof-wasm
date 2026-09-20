@@ -673,6 +673,22 @@ def test_the_game_hands_its_formatter_no_floating_point_conversion(listing):
     assert conversions == {'d', 's'}, 'a format string carries %s' % sorted(conversions)
 
 
+def test_only_the_dead_formatter_branches_on_the_condition_codes(listing):
+    """Five of the 28 sites branch on what the routine left in the flags, and all five are
+    inside `format_float`.  None of the fifteen the game reaches does, which is why M4 can
+    use the value-only form of src/ffp.h everywhere."""
+    lines = listing.split('\n')
+    branching = []
+    for index, line in enumerate(lines):
+        if '; ffp_' not in line or 'jsr' not in line:
+            continue
+        parts = lines[index + 1].split()
+        mnemonic = parts[2] if len(parts) > 2 else ''
+        if mnemonic[:1] == 'b' and not mnemonic.startswith('bra'):
+            branching.append(int(line.split()[0], 16))
+    assert branching == [0x021A64, 0x021A82, 0x021A90, 0x021AB0, 0x021B2E]
+
+
 def test_no_run_entered_the_formatter(observations):
     assert observations['entries']['format_float'] == []
     assert observations['sites'].get('sub', {}) == {}
