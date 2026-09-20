@@ -33,6 +33,7 @@ Work one milestone, or one clearly bounded part of one, per session. The reposit
 
 - `original/` is read-only ground truth. Never modify, move or delete anything in it.
 - `original/` and `dist/` contain the game data. Never publish them or push them to a public remote.
+- `original/manual.txt` is the game's manual. Read it for intended behaviour and the key commands, and cite it by page; do not paste its text into sources, notes or documents.
 - Hand-written sources contain code only. Tables, texts and tuning values come from the original executable at build time (`re/tables.toml`, see `SPEC.md` section 5).
 - Port from the disassembly, not from assumptions. `int` in the original is 16 bits; follow `SPEC.md` section 7.1 exactly.
 - Addresses always use the fixed load layout: CODE `0x010000`, DATA `0x023000`, A4 `0x02AFFE`.

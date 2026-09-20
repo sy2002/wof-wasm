@@ -13,6 +13,8 @@ The controller changes over time: when its context fills, it hands over to a fre
 - **Session names.** The user keeps an overview by names. Controllers are called `Controller Instance N`, counting up with each handover. Workers are named after what they do, for example `Worker M2 headless original`. A rename changes the name under which a session is reached, so list the peer sessions again after one, and use the new name in every task and report. If a session has no means to rename itself, give the user the exact `/rename` line to type in that terminal.
 - **Model and effort.** Whenever a new session is needed, tell the user beforehand which model and which effort to set for it, from the table below, together with the name it should get. The user sets them; you cannot.
 - The user's Amiga is a PAL machine, and PAL is the port's default video standard.
+- The user is often away for hours and cannot read a long chat afterwards. When they return, lead with where things stand in a few lines, then what is needed from them.
+- The game's manual is `original/manual.txt`; the user put it there as a reference.
 
 ## Driving workers
 
@@ -59,19 +61,31 @@ Ask for the minimum that settles the question, in the fewest steps, and say what
 
 | Work | Model | Effort |
 |---|---|---|
+| The controller | Fable 5.1 | xhigh |
 | Build, shell, porting milestones (M3 to M9) | Opus 5 | xhigh |
-| Reading assembly, open points, M2 | Fable 5.1 | xhigh |
-| One-off design decisions that no test can catch | Fable 5.1 | max |
+| Reading assembly and open points, where every finding can be backed by an observation | Opus 5 | xhigh |
+| Reading that no observation can check, and one-off design decisions that no test can catch | Fable 5.1 | xhigh, max for a one-off decision |
 
-One milestone, or one bounded task, per worker session. A fresh session per milestone: the repository is the handover.
+**The user's Fable budget is limited and the controller needs it.** Workers therefore run on Opus 5 unless a task truly cannot be checked by observation. What makes Opus reliable at reading is the task, not the model: require that every finding is backed by the oracle, the headless original or a test, and say in the task which instrument answers which question. A reading mistake made earlier in this project (the stick's up and down bits) was found by observation, not by a better reader. The controller's own context costs budget on every turn, so hand over early, at a quiet point, rather than late.
+
+One milestone, or one bounded task, per worker session. A fresh session per milestone: the repository is the handover. Give the user the start line with the name in quotes, for example `claude --model opus --effort xhigh --name "Worker M3 front end"`.
 
 ## The plan ahead
 
 M0, M1 and M2 are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
 
-1. **Open points 2, 3 and 5** (Fable), with the headless original as the instrument: per-tick versus per-pass state, the object system, map semantics. The note says how to ask each.
-2. **Point 13, the floating point** (Fable): what the three routines that use mathffp compute, and a bit-exact integer implementation of the nine operations with oracle tests against the ROM. Due before M4.
-3. **M3 onward** (Opus). Before M3: the raw key codes the front end tests beyond those of `menu_input`, the front-end screens beyond their geometry, and the high-score file layout (`SPEC.md` section 10, points 1, 6 and 12). M3 can use the headless original for the front end; it then needs `ExNext` and a directory `Lock` stubbed for the load and save dialog.
+The user chose the order on 2026-09-20: the front end first, because it shows progress in the browser early, depends little on the object system, and the user's own look at the running shell has found what tests could not. The reading for the flight milestone follows. `SPEC.md` needs no change for this; its milestones were in this order already.
+
+1. **M3 prerequisites** (Opus, reading backed by observation): `SPEC.md` section 10, points 1, 6 and 12 as far as M3 needs them.
+   - The key commands. The manual's last page lists them. Establish from the code which routine reads which raw key code and qualifier in which state (the key-buffer readers from `0x0207DA` upward, `key_qualifier_mask`, `menu_input`), and check each under the headless original by delivering the key and watching the state.
+   - The front-end screens beyond their geometry: which files each screen loads, pens and draw modes, the texts drawn, transitions and timings in VBlanks, observed through the harness's file log and schedule. The real duration of the fades is CPU-bound in the original and stays open.
+   - The high-score file layout, by running the original's own reader and writer under the oracle on the disk's `highscore` file.
+   - The harness gains `ExNext` and a directory `Lock` for the load and save dialog.
+   - Deliverables: notes, names, the harness extensions with tests, and a proposal for the browser's keys.
+2. **The keys decision** (controller with the user, before M3 starts): which keys replace the Control commands, which a browser keeps for itself. The user flies with the vertical flip on, so that option comes early and is remembered.
+3. **M3, the front end** (Opus).
+4. **Open points 2, 3 and 5, and point 13** (Opus where the change report, the oracle or the ROM decide; Fable only for a part that turns out to be pure reading). Before M4.
+5. **M4 onward** (Opus).
 
 ## Open items
 
@@ -81,7 +95,7 @@ M0, M1 and M2 are done and merged, and so are the display aspect and auto-zoom t
 - The publisher's logo is not on this disk; the crack replaced it. It would have to come from an uncracked dump, which the user has not asked for.
 - Under the headless original the audio interrupt never comes and the music player is not run, so the sound engine never sees a channel end. The sound event log of `SPEC.md` section 8 needs a channel-end model, in M8.
 - The headless original's bump allocator has 8 MB and never reuses memory; a mission takes about 370 KB. A whole campaign in one run would exhaust it.
-- By default the stick pushed forward climbs. The user can confirm it on the real Amiga in seconds (push the stick away during the deck roll); it is established from the hardware decode and from the original's behaviour under the harness, so this is a confirmation, not an open question.
+- By default the stick pushed forward climbs: established from the hardware decode and the harness, stated in the manual's take-off instructions, and confirmed by the user on the real Amiga. The user prefers the flipped, pilot's sense (Control-F in the original) and will play with it.
 
 ## Pitfalls that cost time
 
