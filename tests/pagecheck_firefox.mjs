@@ -55,10 +55,31 @@ const pending = new Map();
 const logs = [];
 const requests = [];
 
+/* A BiDi command that is never answered would otherwise hang the whole run with nothing to
+   say about which one it was, and a visible window does not accept everything a headless one
+   does.  Every command is traced and given a deadline; the trace goes to stderr, which is
+   what the pytest side prints when the run fails. */
+const CALL_TIMEOUT_MS = 30000;
+const started = Date.now();
+
+function trace(text) {
+    process.stderr.write('[' + ((Date.now() - started) / 1000).toFixed(1) + 's] ' + text + '\n');
+}
+
 function send(socket, method, params) {
     const id = ++nextId;
+    trace(method);
     socket.send(JSON.stringify({ id, method, params }));
-    return new Promise((ok, fail) => pending.set(id, { ok, fail }));
+    return new Promise((ok, fail) => {
+        const deadline = setTimeout(() => {
+            pending.delete(id);
+            fail(new Error(method + ' was not answered within ' + CALL_TIMEOUT_MS + ' ms'));
+        }, CALL_TIMEOUT_MS);
+        pending.set(id, {
+            ok: (value) => { clearTimeout(deadline); ok(value); },
+            fail: (error) => { clearTimeout(deadline); fail(error); },
+        });
+    });
 }
 
 async function connect() {
@@ -220,6 +241,7 @@ try {
 
     report.box = { default: await look('default', true) };
     report.box.default.present = await evaluate(PRESENT_COST);
+    const windowSize = report.box.default.geometry.window;
 
     await press(context, KEY_SIX);
     await sleep(1800);
@@ -243,8 +265,10 @@ try {
     await viewport(420, 320);
     report.box.small = await look('small', false);
 
-    await send(socket, 'browsingContext.setViewport', { context, viewport: null });
-    await sleep(500);
+    /* Back to the size the window opened at, by asking for it: a null viewport, which is the
+       documented way to give the window its own size back, is never answered in a visible
+       window and hangs the run. */
+    await viewport(windowSize.width, windowSize.height);
 
     /* The play screen as well as the title picture: three viewports of different depths,
        stacked, with two blank lines between them. */
