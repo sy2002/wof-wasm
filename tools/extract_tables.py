@@ -168,6 +168,22 @@ def emit_words(image, entry, header, source):
     source.append('')
 
 
+def emit_longs(image, entry, header, source):
+    """`count` big-endian 32-bit values.  The tables of floating-point constants the game
+    computes with are of this kind (re/notes/ffp.md)."""
+    name, addr, count = entry['name'], entry['addr'], entry['count']
+    values = [struct.unpack('>L', image.bytes(addr + 4 * i, 4))[0] for i in range(count)]
+
+    header.append('extern const uint32_t %s%s[%d];   /* orig 0x%06X */'
+                  % (PREFIX, name, count, addr))
+    header.append('#define %s%s_COUNT %d' % (PREFIX.upper(), name.upper(), count))
+    source.append('const uint32_t %s%s[%d] = {' % (PREFIX, name, count))
+    for i in range(0, count, 6):
+        source.append('    ' + ' '.join('0x%08Xu,' % v for v in values[i:i + 6]))
+    source.append('};')
+    source.append('')
+
+
 def emit_blob(image, entry, header, source):
     """`count` raw bytes.  This is how a block of text reaches the port: the long printable
     blocks of the executable are summarised in the listing on purpose, so they are read from
@@ -408,6 +424,7 @@ KINDS = {
     'cstrs': emit_cstrs,
     'strptrs': emit_strptrs,
     'words': emit_words,
+    'longs': emit_longs,
     'blob': emit_blob,
 }
 

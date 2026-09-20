@@ -340,6 +340,7 @@ class Ported:
             'wt_ffp': ([i, ctypes.c_uint32, ctypes.c_uint32, u32p], i),
             'wt_ffp_traps': ([], ctypes.c_uint32),
             'wt_ffp_traps_reset': ([], None),
+            'wt_ffp_table': ([i, i], ctypes.c_uint32),
             'wof_dev_set_score': ([ctypes.c_uint32], None),
             'wof_dev_open_dialog': ([i], None),
             'wof_pass': ([], None),
@@ -441,6 +442,10 @@ class Ported:
 
     def ffp_traps_reset(self):
         self.lib.wt_ffp_traps_reset()
+
+    def ffp_table(self, which):
+        count = self.lib.wt_ffp_table(which, -1)
+        return [self.lib.wt_ffp_table(which, i) for i in range(count)]
 
     # ------------------------------------------------------------------ loaders
 

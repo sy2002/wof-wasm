@@ -11,6 +11,9 @@
 #   cstr      one NUL-terminated string                         -> char[]
 #   cstrs     `count` NUL-terminated strings, back to back       -> const char *const[count]
 #   strptrs   `count` big-endian pointers to strings             -> const char *const[count]
+#   words     `count` big-endian 16-bit values                -> uint16_t[count]
+#   longs     `count` big-endian 32-bit values                -> uint32_t[count]
+#   blob      `count` raw bytes                               -> uint8_t[count]
 #   sysfont   topaz 8, located by contents in original/kick.rom (re/notes/system-font.md)
 
 # ---------------------------------------------------------------- shape name lists 3.5
@@ -376,3 +379,24 @@ name = "dialog_box_palette"
 kind = "words"
 addr = 0x025A10
 count = 16
+
+# The two tables of Motorola fast floating point constants the game's own logic computes
+# with (re/notes/ffp.md, SPEC 10 point 13).  Both hold 32-bit FFP numbers: a 24-bit
+# mantissa, then the sign and a 7-bit excess-64 exponent.  Every entry is normalised.
+#
+# attitude_factor is indexed by the aircraft attitude word, 0 to 25, and ends where the
+# sine table begins; 0x01BDFA indexes it with 0x02540E and 0x01D796 with the record's
+# +0x16.  sine_degrees is sin of its index in degrees, 0 to 90, except that entries 1 to 3
+# repeat sin 4 degrees, which puts a floor under the smallest drift the game can have.
+
+[[table]]
+name = "attitude_factor"
+kind = "longs"
+addr = 0x025B0C
+count = 26
+
+[[table]]
+name = "sine_degrees"
+kind = "longs"
+addr = 0x025B74
+count = 91

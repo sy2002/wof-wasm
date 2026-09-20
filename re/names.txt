@@ -528,3 +528,20 @@
 022eb4 os_gfx_set_bpen
 022ec4 os_gfx_set_drmd
 022ed4 os_gfx_text
+
+# ---- the game's floating point (re/notes/ffp.md, SPEC 10 point 13)
+01bdfa player_motion         ; C. per tick: pitch eases towards its target, then the player aircraft's
+                             ;   two speed components, its position and 0x027DEA, with mathffp
+01d796 aircraft_motion       ; C. per tick per enemy aircraft: its height, with mathffp
+021a40 format_float          ; C. the C library's %e/%f/%g conversion. The game never reaches it:
+                             ;   no format string it gives sprintf carries such a conversion
+025b0c attitude_factor       ; 26 FFP constants, indexed by attitude_index and by an aircraft's +0x16:
+                             ;   how much of the throttle becomes horizontal speed at that attitude
+025b74 sine_degrees          ; 91 FFP constants, sin of 0 to 90 degrees; entries 1 to 3 repeat sin 4
+025aa2 pitch_angle           ; word, hundredths of a degree; eases a quarter of the way to pitch_target
+025402 pitch_target          ; word, hundredths of a degree, clamped at -4500 in player_motion
+025408 pitch_delta           ; word, the tick's own pitch offset, added to pitch_angle before the sine
+02540e attitude_index        ; word 0 to 25, the index into attitude_factor
+025414 throttle              ; word 0 to 1000
+02522a aircraft_records      ; four enemy-aircraft records of 0x34 bytes; word 0 is the state, 0 is free
+027dec player_record         ; long: the player aircraft's record, which player_motion writes

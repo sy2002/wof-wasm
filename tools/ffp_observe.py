@@ -30,7 +30,7 @@ OUT = os.path.join(ROOT, 'tests', 'ffp_observed.json')
 
 GLUE = ['ffp_add', 'ffp_cmp', 'ffp_neg', 'ffp_tst', 'ffp_fix',
         'ffp_sub', 'ffp_div', 'ffp_flt', 'ffp_mul']
-ROUTINES = ['sub_01bdfa', 'sub_01d796', 'sub_021a40']
+ROUTINES = ['player_motion', 'aircraft_motion', 'format_float']
 # The whole formatter tree above 0x021A40: it is entered only for a conversion letter of
 # 'e' or above (0x02187A, `sub.w #$65,d0`), so what reaches sprintf decides whether the
 # game ever computes with floating point outside the two tick routines.

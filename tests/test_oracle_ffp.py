@@ -590,6 +590,13 @@ def test_the_tables_of_constants_are_normalised(observations):
     assert ffp_model.SINE[0] == 0 and ffp_model.SINE[90] == 0x80000041
 
 
+def test_the_core_holds_the_tables_the_executable_holds(ported):
+    """SPEC 5 step 1: the constants reach the port through re/tables.toml and nowhere else,
+    so what the core computes with has to be what the executable holds."""
+    assert ported.ffp_table(0) == ffp_model.ATTITUDE
+    assert ported.ffp_table(1) == ffp_model.SINE
+
+
 def test_the_indices_the_game_uses_stay_inside_the_tables(observations):
     """The extent of the table at 0x025B0C is 26 entries because the sine table begins
     there; this is the observed half of that claim."""
@@ -667,7 +674,7 @@ def test_the_game_hands_its_formatter_no_floating_point_conversion(listing):
 
 
 def test_no_run_entered_the_formatter(observations):
-    assert observations['entries']['sub_021a40'] == []
+    assert observations['entries']['format_float'] == []
     assert observations['sites'].get('sub', {}) == {}
     assert observations['sites'].get('cmp', {}) == {}
     assert observations['sites'].get('tst', {}) == {}

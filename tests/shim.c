@@ -7,6 +7,7 @@
  *
  * Nothing in src/ may call any of this. */
 #include "wof.h"
+#include "gen/tables.h"
 
 enum {
     F_WBYTES, F_HEIGHT, F_HOT_X, F_HOT_Y, F_MARKER, F_SRC_Y, F_CLEAR, F_SET,
@@ -742,4 +743,16 @@ uint32_t wt_ffp_traps(void)
 void wt_ffp_traps_reset(void)
 {
     wof_ffp_traps = 0;
+}
+
+/* The two tables of floating-point constants, as tools/extract_tables.py put them into the
+ * core (re/tables.toml).  `index` of -1 gives the entry count. */
+uint32_t wt_ffp_table(int which, int index)
+{
+    const uint32_t *table = which ? wof_tbl_sine_degrees : wof_tbl_attitude_factor;
+    int count = which ? WOF_TBL_SINE_DEGREES_COUNT : WOF_TBL_ATTITUDE_FACTOR_COUNT;
+
+    if (index < 0)
+        return (uint32_t)count;
+    return index < count ? table[index] : 0u;
 }

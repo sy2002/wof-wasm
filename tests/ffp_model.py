@@ -269,8 +269,8 @@ def observed_01d796(entry):
             'r24': memory.w('aircraft', at + 0x24)}
 
 
-MODELS = {'sub_01bdfa': (model_01bdfa, observed_01bdfa),
-          'sub_01d796': (model_01d796, observed_01d796)}
+MODELS = {'player_motion': (model_01bdfa, observed_01bdfa),
+          'aircraft_motion': (model_01d796, observed_01d796)}
 
 # SPFix, SPFlt and SPNeg read D0 only, so what the caller happens to have left in D1 is not
 # part of the call and is not compared.

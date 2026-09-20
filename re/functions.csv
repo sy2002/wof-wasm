@@ -329,12 +329,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01bc02,sub_01bc02,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,todo
 01bcce,sub_01bcce,C,236,0,,,1,sub_01b4de,,9,,todo
 01bdba,sub_01bdba,C,64,0,,,1,,,2,,todo
-01bdfa,sub_01bdfa,C,506,10,,,1,ffp_add ffp_neg ffp_fix ffp_div ffp_flt ffp_mul,,12,,todo
+01bdfa,player_motion,C,506,10,,,1,ffp_add ffp_neg ffp_fix ffp_div ffp_flt ffp_mul,,12,,todo
 01bff4,sub_01bff4,C,900,0,,,1,sub_01ab80,,14,,todo
 01c378,sub_01c378,C,368,6,,,1,sub_01abde sub_01cb30 sub_0204e4 sub_0204ec,,13,,todo
 01c4e8,sub_01c4e8,C,268,2,,,1,,,11,,todo
 01c5f4,sub_01c5f4,C,108,0,,,1,sub_015710 sub_01aaea sub_01c982,,7,,todo
-01c660,sub_01c660,C,802,14,,-32256,1,sub_015710 sub_01aaea sub_01aed8 sub_01af7c sub_01afba sub_01b45a sub_01b5b0 sub_01b92e sub_01b9f0 sub_01ba80 sub_01bc02 sub_01bcce sub_01bdba sub_01bdfa sub_01bff4 sub_01c378 sub_01c4e8 sub_01c5f4 sub_01c982 sub_01cae0 sub_01cb34,,21,,todo
+01c660,sub_01c660,C,802,14,,-32256,1,sub_015710 sub_01aaea sub_01aed8 sub_01af7c sub_01afba sub_01b45a sub_01b5b0 sub_01b92e sub_01b9f0 sub_01ba80 sub_01bc02 sub_01bcce sub_01bdba player_motion sub_01bff4 sub_01c378 sub_01c4e8 sub_01c5f4 sub_01c982 sub_01cae0 sub_01cb34,,21,,todo
 01c982,sub_01c982,C,72,4,8,,9,,,2,,todo
 01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,ported
 01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,ported
@@ -359,7 +359,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01d476,sub_01d476,C,186,6,,,1,,,4,,todo
 01d530,sub_01d530,C,50,0,8,,1,,,0,,todo
 01d562,sub_01d562,C,564,6,8,,1,sub_01d530,,3,,todo
-01d796,sub_01d796,C,560,0,8,,1,sub_01cac8 sub_01d562 ffp_fix ffp_flt ffp_mul,,3,,todo
+01d796,aircraft_motion,C,560,0,8,,1,sub_01cac8 sub_01d562 ffp_fix ffp_flt ffp_mul,,3,,todo
 01d9c6,sub_01d9c6,C,774,0,8,,1,sub_01cac8,,5,,todo
 01dccc,sub_01dccc,C,472,8,8,,1,sub_01cac8,,5,,todo
 01dea4,sub_01dea4,C,726,10,8,,1,sub_01cac8,,6,,todo
@@ -371,7 +371,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01e608,sub_01e608,C,70,12,,-32214,1,,,1,,todo
 01e64e,sub_01e64e,C,218,0,8,,1,,,2,,todo
 01e728,sub_01e728,C,174,0,8,,1,sub_01cae0 sub_01d9c6 sub_01dccc sub_01dea4 sub_01e17a rand_beam,,0,,todo
-01e7d6,sub_01e7d6,C,226,4,,-32208,1,sub_01d35a sub_01d3b4 sub_01d476 sub_01d796 sub_01e244 sub_01e3e8 sub_01e4c8 sub_01e64e sub_01e728,,2,,todo
+01e7d6,sub_01e7d6,C,226,4,,-32208,1,sub_01d35a sub_01d3b4 sub_01d476 aircraft_motion sub_01e244 sub_01e3e8 sub_01e4c8 sub_01e64e sub_01e728,,2,,todo
 01e8b8,sound_init,asm,148,,,-32202,1,,exec.AddIntServer,6,"""SoundFX_IntHandler""",todo
 01e94c,sub_01e94c,asm,70,,,-32196,1,sub_01eab4,dos.Delay exec.RemIntServer,4,,todo
 01e992,sub_01e992,asm,76,,,,0,sub_01ea28,,0,,todo
@@ -480,8 +480,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0215d8,sprintf,C,48,0,8 12 16,-31872,3,sub_0216b2,,1,,todo
 021608,sub_021608,C,28,0,9,,0,,,1,,todo
 021624,sub_021624,C,142,0,8 12 14 18,,1,sub_02240e sub_02241a,,1,,todo
-0216b2,sub_0216b2,C,910,222,8 12 16,,1,sub_021624 sub_021a40,,1,,todo
-021a40,sub_021a40,C,604,8,8 16 20 22,,1,ffp_add ffp_cmp ffp_neg ffp_tst ffp_fix ffp_sub ffp_div ffp_flt ffp_mul,,1,,todo
+0216b2,sub_0216b2,C,910,222,8 12 16,,1,sub_021624 format_float,,1,,todo
+021a40,format_float,C,604,8,8 16 20 22,,1,ffp_add ffp_cmp ffp_neg ffp_tst ffp_fix ffp_sub ffp_div ffp_flt ffp_mul,,1,,todo
 021c9c,ffp_add,asm,10,,,,2,,,0,,replace
 021ca6,ffp_cmp,asm,10,,,,1,,,0,,replace
 021cb0,ffp_neg,asm,10,,,,2,,,0,,replace
