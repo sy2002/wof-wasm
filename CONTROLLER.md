@@ -24,6 +24,7 @@ The controller changes over time: when its context fills, it hands over to a fre
 - Do not poll. The report arrives as a message. Idle notices often arrive late and describe a turn you have already dealt with; check the time in the notice against what you have merged before acting on one.
 - **All sessions share one working directory.** While a worker has its branch checked out, make no edits in the repository: a file you create can be swept into its commits. Reading, building and running tests is safe once the worker is idle.
 - If a worker runs in a different permission mode than you, your message waits there for the user's approval. Say so to the user once.
+- `dist/wof-look.html` is the user's copy of the last verified build. Refresh it from `dist/wof.html` after each merge that changes the page, point the user at it and never at `dist/wof.html`, which a worker's rebuilds and negative controls overwrite, and tell workers not to write to it.
 - Never ask a worker to do something that was denied to you.
 
 ## What a task contains
@@ -108,3 +109,4 @@ The user chose the order on 2026-09-20: the front end first, because it shows pr
 - A scripted key event is never a user gesture, and a modifier key alone is not one either. Browser tests press keys through the driver.
 - An unquoted shell heredoc executes the backticks of any JavaScript inside it. Quote the delimiter.
 - `cut` on `re/functions.csv` miscounts, because string columns contain commas. Use a CSV reader.
+- A comment-only edit in `src/core.c` that added a line made `core.wasm` one byte larger; the cause is not established. When a review relies on the binary being the same size as before, rebuild and look, even after touching only comments.
