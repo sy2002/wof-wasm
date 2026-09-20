@@ -89,6 +89,8 @@ The user chose the order on 2026-09-20: the front end first, because it shows pr
 
 ## Open items
 
+- **For when the user has the Amiga at hand** (they said on 2026-09-20 that they will, later; ask then, in one go): the fade speed, where the port's 2 VBlanks per step "feels OK" to them without a machine to compare; the VBlanks per pass below; and the order of a directory listing further down. The user looked at the M3 page on 2026-09-20 and confirmed that everything works as expected.
+- **The cheat sequence** cannot be typed since L became the load key (`SPEC.md` section 6.2). The controller recommended accepting that; the user has not answered. Ask again with the M4 task, where a development key behind the overlay would be built if they want the debug keys.
 - **VBlanks per pass** is a core setting, provisionally 2. Due before M4. The user has a real Amiga; the agreed method is to film the screen in slow motion and count how many video frames each game picture stays up, in a quiet and in a busy scene. Parked until M4 approaches.
 - **The order of a directory** as `ExNext` gives it, chain 0 upward and a new entry at the head of its chain, is documented behaviour that nothing here has confirmed; the disk image does not settle it. The user's Amiga could: `list` on a scratch disk with a few files whose names share a hash chain shows the order. It matters only when two saved games share a chain. Parked; ask together with the VBlank filming.
 - **The duration of a fade step** is CPU-bound in the original and takes no time under the harness. The port gives it 2 VBlanks, one constant, `WOF_FADE_VBLANKS` in `src/fade.c`. The user's impression of the logo, title and credits decides it for now; filming the real machine would settle it.
