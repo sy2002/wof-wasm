@@ -23,7 +23,6 @@
  *     X of the game's own call site; nothing in the original branches on it.  Here it is
  *     zero at the entry, which is what the differential test sets up on the other side.
  */
-#include "wof.h"
 #include "ffp.h"
 
 uint32_t wof_ffp_traps;
@@ -237,16 +236,18 @@ static uint32_t ins_mulu_w(uint32_t dst, uint32_t src, uint8_t *cc)
 }
 
 /* divu.w.  A quotient that does not fit in 16 bits sets V and leaves the destination
- * alone; a zero divisor is the zero divide exception, which the caller has already
- * excluded here.  The 68000 leaves N and Z undefined on an overflow, and this keeps them
- * as they were; a test holds the port to never reaching that case with the operands the
- * original's routines produce. */
-static uint32_t ins_divu_w(uint32_t dst, uint32_t src, uint8_t *cc)
+ * alone; the 68000 leaves N and Z undefined there, and this keeps them as they were.  A
+ * zero divisor is the zero divide exception again, which SPDiv reaches for a divisor whose
+ * mantissa is below 0x100: after the swap its high word, which is what it divides by, is
+ * zero.  An unnormalised operand is the only way to get there. */
+static uint32_t ins_divu_w(uint32_t dst, uint32_t src, uint8_t *cc, uint8_t *trap)
 {
     uint32_t divisor = src & M16, quotient, remainder;
 
-    if (divisor == 0)
+    if (divisor == 0) {
+        *trap = WOF_FFP_TRAP_DIVIDE_BY_ZERO;
         return dst;
+    }
     quotient = dst / divisor;
     if (quotient > M16) {
         *cc = (uint8_t)((*cc & (FX | FN | FZ)) | FV);
@@ -664,15 +665,11 @@ exponent_overflow:
 wof_ffp_t wof_ffp_div_cc(uint32_t d0, uint32_t d1)
 {
     uint32_t d3 = 0, d4 = 0, d5 = 0;
-    uint8_t cc = 0;
+    uint8_t cc = 0, trap = 0;
 
     d5 = ins_move(d5, d1, M8, B8, &cc);                     /* fe41b0 move.b d1,d5 */
-    if (cc & FZ) {                                          /* fe41b2 beq -> fe4180 */
-        /* fe4180 divu.w #0,d0: the zero divide, exception vector 5.  SPEC 7.1 has the port
-         * assert in a test build; a release build returns a zero the caller cannot use. */
-        wof_ffp_traps++;
-        return out(0, d1, 0, WOF_FFP_TRAP_DIVIDE_BY_ZERO);
-    }
+    if (cc & FZ)                                            /* fe41b2 beq -> fe4180 */
+        goto divide_by_zero;                                /* fe4180 divu.w #0,d0 */
     d4 = ins_move(d4, d0, M32, B32, &cc);                   /* fe41b4 move.l d0,d4 */
     if (cc & FZ) return out(d0, d1, cc, 0);                 /* fe41b6 beq -> fe4194 rts */
     d3 = ins_moveq(-0x80, &cc);                             /* fe41b8 moveq #$80,d3 */
@@ -696,7 +693,8 @@ wof_ffp_t wof_ffp_div_cc(uint32_t d0, uint32_t d1)
     d4 = ins_eor(d4, d5, M16, B16, &cc);                    /* fe41da eor.w d5,d4 */
     d4 = ins_lsr_w(d4, &cc);                                /* fe41dc lsr.w #1,d4 */
     d3 = ins_move(d3, d0, M32, B32, &cc);                   /* fe41de move.l d0,d3 */
-    d3 = ins_divu_w(d3, d1, &cc);                           /* fe41e0 divu.w d1,d3 */
+    d3 = ins_divu_w(d3, d1, &cc, &trap);                    /* fe41e0 divu.w d1,d3 */
+    if (trap) goto divide_by_zero;
     d5 = ins_move(d5, d3, M16, B16, &cc);                   /* fe41e2 move.w d3,d5 */
     d3 = ins_mulu_w(d3, d1, &cc);                           /* fe41e4 mulu.w d1,d3 */
     d0 = ins_sub(d0, d3, M32, B32, &cc);                    /* fe41e6 sub.l d3,d0 */
@@ -715,7 +713,8 @@ wof_ffp_t wof_ffp_div_cc(uint32_t d0, uint32_t d1)
     d3 = ins_move(d3, d1, M32, B32, &cc);                   /* fe41fe move.l d1,d3 */
     d3 = ins_swap(d3, &cc);                                 /* fe4200 swap d3 */
     d0 = ins_clr(d0, M16, &cc);                             /* fe4202 clr.w d0 */
-    d0 = ins_divu_w(d0, d3, &cc);                           /* fe4204 divu.w d3,d0 */
+    d0 = ins_divu_w(d0, d3, &cc, &trap);                    /* fe4204 divu.w d3,d0 */
+    if (trap) goto divide_by_zero;
     d5 = ins_swap(d5, &cc);                                 /* fe4206 swap d5 */
     if (!(cc & FN)) {                                       /* fe4208 bmi */
         d5 = ins_move(d5, d0, M16, B16, &cc);               /* fe420a move.w d0,d5 */
@@ -733,6 +732,13 @@ wof_ffp_t wof_ffp_div_cc(uint32_t d0, uint32_t d1)
 zero:
     d0 = ins_moveq(0, &cc);                                 /* fe41a4 moveq #0,d0 */
     return out(d0, d1, cc, 0);                              /* fe41aa rts */
+
+divide_by_zero:
+    /* The 68000 takes exception vector 5 and never comes back here.  SPEC 7.1 has the port
+     * assert in a test build; the counter is what the tests read, and the caller gets a
+     * zero it cannot mistake for an answer. */
+    wof_ffp_traps++;
+    return out(0, d1, 0, WOF_FFP_TRAP_DIVIDE_BY_ZERO);
 
 exponent_overflow:
     if (cc & FN) goto sign_byte;                            /* fe41a2 bmi -> fe419e */

@@ -93,3 +93,410 @@ def test_the_reference_needs_no_hard_coded_rom_address():
     source = open(os.path.join(HERE, 'ffp.py'), encoding='utf-8').read()
     for literal in ('0xFE3ED4', '0xFC117C', '0xFE40E4'):
         assert literal not in source, 'a ROM address is hard-coded: %s' % literal
+
+
+@needs_rom
+def test_nothing_the_original_returns_depends_on_the_scratch_registers():
+    """SPAdd, SPSub, SPMul and SPDiv save D3 to D5 and leave parts of them uninitialised.
+    The port starts them at zero, which is only allowed because no result and no flag ever
+    depends on what was in them: here the original runs each case twice, once with zero
+    and once with a random value in all three."""
+    reference = ffp.Reference()
+    rng = random.Random(11)
+    for _ in range(1200):
+        operation = rng.choice(ffp.OPERATIONS)
+        pairs = [(normalised(rng), normalised(rng)),
+                 (rng.getrandbits(32), rng.getrandbits(32))]
+        for d0, d1 in pairs:
+            garbage = rng.getrandbits(32)
+            try:
+                quiet = reference.call(operation, d0, d1, scratch=0)
+                loud = reference.call(operation, d0, d1, scratch=garbage)
+            except ffp.Trap:
+                continue
+            assert quiet == loud, '%s %08X %08X with D3-D5 = %08X' % (
+                operation, d0, d1, garbage)
+
+
+# --------------------------------------------------------------------------- the operands
+
+def number(mantissa, sign, exponent):
+    """One FFP value: a 24-bit mantissa, then the sign and the excess-64 exponent."""
+    return ((mantissa & 0xFFFFFF) << 8) | ((sign & 1) << 7) | ((exponent + 64) & 0x7F)
+
+
+def normalised(rng):
+    """A number as the original's own code makes them: the top mantissa bit set and an
+    exponent byte that is not the zero."""
+    return (rng.randrange(1 << 23, 1 << 24) << 8) | rng.randrange(1, 256)
+
+
+ONE      = number(0x800000, 0, 1)
+MINUS_ONE = number(0x800000, 1, 1)
+HALF     = number(0x800000, 0, 0)
+BIGGEST  = number(0xFFFFFF, 0, 63)          # exponent byte 0x7F, the largest exponent
+SMALLEST = number(0x800000, 0, -63)         # exponent byte 0x01, the smallest that is not zero
+NEG_BIGGEST  = number(0xFFFFFF, 1, 63)
+NEG_SMALLEST = number(0x800000, 1, -63)
+SIGNED_ZERO  = number(0, 1, -64)            # 0x00000080: zero mantissa, sign bit set
+EXPONENT_ZERO = 0x12345600                  # a mantissa with the zero exponent byte
+UNNORMALISED  = number(0x000001, 0, 1)      # top mantissa bit clear
+
+# Every edge SPEC 10 point 13 names, by name.  The reference and the port must agree on all
+# of them; the ones whose answer is the behaviour of the format are pinned below as well.
+EDGES = [
+    ('zero',                              'add', 0, ONE),
+    ('zero as the second operand',        'add', ONE, 0),
+    ('zero',                              'sub', 0, ONE),
+    ('zero',                              'mul', 0, ONE),
+    ('zero as the dividend',              'div', 0, ONE),
+    ('zero',                              'cmp', 0, 0),
+    ('zero',                              'tst', 0, 0),
+    ('zero',                              'neg', 0, 0),
+    ('zero',                              'fix', 0, 0),
+    ('zero',                              'flt', 0, 0),
+    ('a zero mantissa with the sign set', 'add', SIGNED_ZERO, ONE),
+    ('a zero mantissa with the sign set', 'sub', SIGNED_ZERO, ONE),
+    ('a zero mantissa with the sign set', 'mul', SIGNED_ZERO, ONE),
+    ('a zero mantissa with the sign set', 'div', ONE, SIGNED_ZERO),
+    ('a zero mantissa with the sign set', 'cmp', SIGNED_ZERO, ONE),
+    ('a zero mantissa with the sign set', 'tst', 0, SIGNED_ZERO),
+    ('a zero mantissa with the sign set', 'neg', SIGNED_ZERO, 0),
+    ('a zero mantissa with the sign set', 'fix', SIGNED_ZERO, 0),
+    ('a mantissa with the zero exponent', 'add', EXPONENT_ZERO, ONE),
+    ('a mantissa with the zero exponent', 'mul', EXPONENT_ZERO, ONE),
+    ('a mantissa with the zero exponent', 'fix', EXPONENT_ZERO, 0),
+    ('the largest exponent',              'add', BIGGEST, ONE),
+    ('the largest exponent',              'mul', BIGGEST, ONE),
+    ('the smallest exponent',             'add', SMALLEST, SMALLEST),
+    ('the smallest exponent',             'mul', SMALLEST, ONE),
+    ('overflow',                          'add', BIGGEST, BIGGEST),
+    ('overflow',                          'sub', BIGGEST, NEG_BIGGEST),
+    ('overflow',                          'mul', BIGGEST, BIGGEST),
+    ('overflow',                          'div', BIGGEST, SMALLEST),
+    ('overflow, negative',                'add', NEG_BIGGEST, NEG_BIGGEST),
+    ('overflow, negative',                'mul', NEG_BIGGEST, BIGGEST),
+    ('overflow',                          'fix', BIGGEST, 0),
+    ('overflow, negative',                'fix', NEG_BIGGEST, 0),
+    ('underflow',                         'mul', SMALLEST, SMALLEST),
+    ('underflow',                         'div', SMALLEST, BIGGEST),
+    ('underflow',                         'mul', NEG_SMALLEST, SMALLEST),
+    ('equal magnitude, opposite sign',    'add', ONE, MINUS_ONE),
+    ('equal magnitude, opposite sign',    'sub', ONE, ONE),
+    ('equal magnitude, opposite sign',    'add', BIGGEST, NEG_BIGGEST),
+    ('equal magnitude, opposite sign',    'cmp', ONE, MINUS_ONE),
+    ('exponents 23 apart',                'add', number(0x800000, 0, 24), ONE),
+    ('exponents 24 apart',                'add', number(0x800000, 0, 25), ONE),
+    ('exponents 25 apart',                'add', number(0x800000, 0, 26), ONE),
+    ('exponents 24 apart, opposite signs', 'add', number(0x800000, 0, 25), MINUS_ONE),
+    ('exponents 24 apart, the other way', 'add', ONE, number(0x800000, 0, 25)),
+    ('exponents 24 apart',                'sub', ONE, number(0x800000, 0, 25)),
+    ('an unnormalised operand',           'add', UNNORMALISED, ONE),
+    ('an unnormalised operand',           'sub', UNNORMALISED, ONE),
+    ('an unnormalised operand',           'mul', UNNORMALISED, ONE),
+    ('an unnormalised operand',           'cmp', UNNORMALISED, ONE),
+    ('an unnormalised operand',           'fix', number(0x000001, 0, 40), 0),
+    ('an unnormalised dividend',          'div', UNNORMALISED, ONE),
+    ('division by zero',                  'div', ONE, 0),
+    ('division by an unnormalised divisor', 'div', ONE, UNNORMALISED),
+    ('SPFix between -1 and 1',            'fix', HALF, 0),
+    ('SPFix between -1 and 1',            'fix', number(0x800000, 1, 0), 0),
+    ('SPFix between -1 and 1',            'fix', number(0xFFFFFF, 0, 0), 0),
+    ('SPFix of 2^31',                     'fix', number(0x800000, 0, 32), 0),
+    ('SPFix of -2^31',                    'fix', number(0x800000, 1, 32), 0),
+    ('SPFix of 2^31 - 128',               'fix', number(0xFFFFFF, 0, 31), 0),
+    ('SPFix beyond 32 bits',              'fix', number(0x800000, 0, 33), 0),
+    ('SPFix beyond 32 bits, negative',    'fix', number(0x800001, 1, 32), 0),
+    ('SPFix of the smallest',             'fix', SMALLEST, 0),
+    ('SPFlt of 0',                        'flt', 0, 0),
+    ('SPFlt of 1',                        'flt', 1, 0),
+    ('SPFlt of -1',                       'flt', 0xFFFFFFFF, 0),
+    ('SPFlt of 0x7FFFFFFF',               'flt', 0x7FFFFFFF, 0),
+    ('SPFlt of 0x80000000',               'flt', 0x80000000, 0),
+    ('SPFlt of 24 bits',                  'flt', 0x00FFFFFF, 0),
+    ('SPFlt of 25 bits',                  'flt', 0x01000001, 0),
+    ('SPFlt of 25 bits, rounding up',     'flt', 0x01000003, 0),
+    ('SPFlt of 32 bits, negative',        'flt', 0xFE000001, 0),
+    ('SPFlt of 0xFFFFFF80',               'flt', 0xFFFFFF80, 0),
+]
+
+# What the ROM answers where the answer is the behaviour of the format rather than a number
+# that follows from it.  These are observed (tests/ffp.py on original/kick.rom) and they are
+# what re/notes/ffp.md states.
+ROM_ANSWERS = [
+    ('overflow is the largest magnitude with V',      'add', BIGGEST, BIGGEST,
+     0xFFFFFF7F, V),
+    ('overflow keeps the sign',                       'add', NEG_BIGGEST, NEG_BIGGEST,
+     0xFFFFFFFF, X | N | V),
+    ('SPMul overflows the same way',                  'mul', BIGGEST, BIGGEST,
+     0xFFFFFF7F, V),
+    ('underflow is a clean zero',                     'mul', SMALLEST, SMALLEST,
+     0x00000000, X | Z),
+    ('a quotient that underflows is zero',            'div', SMALLEST, BIGGEST,
+     0x00000000, Z),
+    ('equal magnitudes cancel to zero',               'add', ONE, MINUS_ONE,
+     0x00000000, Z),
+    ('an operand 24 exponents smaller is lost',       'add', number(0x800000, 0, 25), ONE,
+     number(0x800000, 0, 25), 0),
+    ('an operand 23 exponents smaller still counts',  'add', number(0x800000, 0, 24), ONE,
+     0x80000158, 0),
+    ('SPFix of 2^31 overflows to 0x7FFFFFFF',         'fix', number(0x800000, 0, 32), 0,
+     0x7FFFFFFF, X | V | C),
+    ('SPFix of -2^31 is exact',                       'fix', number(0x800000, 1, 32), 0,
+     0x80000000, X | N),
+    ('SPFix truncates towards zero',                  'fix', number(0xFFFFFF, 0, 0), 0,
+     0x00000000, X | Z),
+    ('SPFlt rounds to nearest, half away from zero',  'flt', 0x01000001, 0,
+     0x80000159, 0),
+    ('SPFlt of 0x7FFFFFFF rounds up to 2^31',         'flt', 0x7FFFFFFF, 0,
+     0x80000060, 0),
+    ('a zero exponent byte is zero whatever the mantissa', 'fix', EXPONENT_ZERO, 0,
+     EXPONENT_ZERO, Z),
+    ('negating a zero mantissa with the sign set gives the true zero', 'neg', SIGNED_ZERO, 0,
+     0x00000000, Z),
+]
+
+
+@needs_rom
+@pytest.mark.parametrize('name,operation,d0,d1,result,ccr', ROM_ANSWERS,
+                         ids=['%s: %s' % (entry[1], entry[0]) for entry in ROM_ANSWERS])
+def test_what_the_rom_answers_at_its_edges(name, operation, d0, d1, result, ccr):
+    got = ffp.Reference().call(operation, d0, d1)
+    assert (got.d0, got.ccr) == (result, ccr), '%s %s: %s' % (operation, name, got)
+
+
+@needs_rom
+def test_a_divisor_whose_exponent_byte_is_zero_traps():
+    """SPDiv reaches `divu.w #0,d0` there, which is the 68000's zero divide.  A real
+    machine would take exception vector 5; SPEC 7.1 has the port assert instead."""
+    reference = ffp.Reference()
+    with pytest.raises(ffp.Trap) as raised:
+        reference.call('div', ONE, 0)
+    assert raised.value.vector == 5
+
+
+@needs_rom
+def test_a_divisor_with_a_tiny_mantissa_traps_at_the_other_divide():
+    """The second zero divide: after the swap SPDiv divides by the divisor's high word,
+    which is zero when the mantissa is below 0x100.  Only an unnormalised operand gets
+    there, and the port reports the same trap."""
+    reference = ffp.Reference()
+    with pytest.raises(ffp.Trap) as raised:
+        reference.call('div', ONE, UNNORMALISED)
+    assert raised.value.vector == 5
+
+
+# ------------------------------------------------------------------------- the corpus
+# One list of cases for all three ways the port is run: the native library, a stand-alone
+# WebAssembly build and the same code under the undefined-behaviour sanitizer.  The
+# random part is shaped so that the interesting cases are frequent - exponents close
+# together, mantissas that differ in the last bits, the ends of the exponent range - and
+# comes from a fixed seed, so a failure names an operand pair that can be looked at again.
+
+RANDOM_PER_OPERATION = 2500
+SEED = 0x1BDFA
+
+
+def with_exponent(rng, mantissa, exponent_byte):
+    return ((mantissa & 0xFFFFFF) << 8) | (exponent_byte & 0xFF)
+
+
+def shaped(rng, shape, near=None):
+    """One operand.  `near`, where it is given, is the operand this one should be close
+    to, so that the exponent difference lands in the range where the arithmetic works."""
+    if shape == 'raw':
+        return rng.getrandbits(32)
+    if shape == 'extreme':
+        byte = rng.choice([0x01, 0x02, 0x03, 0x7D, 0x7E, 0x7F, 0x81, 0x82, 0xFD, 0xFE, 0xFF])
+        return with_exponent(rng, rng.randrange(1 << 23, 1 << 24), byte)
+    if shape == 'boundary':
+        mantissa = rng.choice([0x800000, 0x800001, 0xFFFFFE, 0xFFFFFF,
+                               0xFFFFFF - rng.randrange(4), 0x800000 + rng.randrange(4)])
+        return with_exponent(rng, mantissa, rng.randrange(1, 256))
+    if shape == 'close' and near is not None:
+        sign = near & 0x80
+        exponent = (near & 0x7F) + rng.randint(-26, 26)
+        mantissa = ((near >> 8) ^ rng.getrandbits(rng.randrange(1, 9))) & 0xFFFFFF
+        mantissa |= 1 << 23
+        return with_exponent(rng, mantissa, sign | max(1, min(0x7F, exponent)))
+    return normalised(rng)
+
+
+SHAPES = ('norm', 'close', 'boundary', 'extreme', 'raw')
+
+# SPFlt takes a plain 32-bit integer, so its corpus is integers of every width and both
+# signs, plus the raw patterns.
+def integer_of_every_width(rng):
+    width = rng.randrange(1, 33)
+    value = rng.getrandbits(width)
+    return (-value if rng.getrandbits(1) else value) & 0xFFFFFFFF
+
+
+def random_cases(rng, operation, count):
+    out = []
+    for i in range(count):
+        shape = SHAPES[i % len(SHAPES)]
+        if operation == 'flt':
+            out.append((integer_of_every_width(rng), 0))
+            continue
+        d0 = shaped(rng, shape)
+        if operation == 'div' and i % 7 == 6:
+            # Both ways into the zero divide, often enough that all three targets meet them:
+            # an exponent byte of zero, and a mantissa below 0x100, which leaves the high
+            # word SPDiv divides by empty.
+            divisor = (rng.randrange(0, 0x100) << 8) | rng.randrange(1, 256) \
+                if rng.getrandbits(1) else (rng.randrange(1 << 23, 1 << 24) << 8)
+            out.append((d0, divisor))
+            continue
+        if operation in ('fix', 'neg'):
+            out.append((d0, 0))
+        elif operation == 'tst':
+            out.append((0, d0))
+        else:
+            out.append((d0, shaped(rng, shape, near=d0)))
+    return out
+
+
+OBSERVED = os.path.join(HERE, 'ffp_observed.json')
+
+
+def observed_cases():
+    """Every operand pair the headless original was seen to hand mathffp (deliverable 4 of
+    SPEC 10 point 13; tools/ffp_observe.py writes the file)."""
+    if not os.path.isfile(OBSERVED):
+        return {}
+    import json
+    with open(OBSERVED, encoding='utf-8') as handle:
+        return json.load(handle)['operands']
+
+
+def build_corpus():
+    """(operation index, D0, D1) for every case, in one list."""
+    rng = random.Random(SEED)
+    observed = observed_cases()
+    cases = []
+    for _, operation, d0, d1 in EDGES:
+        cases.append((ffp.OPERATIONS.index(operation), d0, d1))
+    for operation in ffp.OPERATIONS:
+        index = ffp.OPERATIONS.index(operation)
+        for d0, d1 in random_cases(rng, operation, RANDOM_PER_OPERATION):
+            cases.append((index, d0, d1))
+        for d0, d1 in observed.get(operation, []):
+            cases.append((index, d0, d1))
+    return cases
+
+
+@pytest.fixture(scope='module')
+def corpus():
+    return build_corpus()
+
+
+@pytest.fixture(scope='module')
+def expected(corpus):
+    """What the ROM answers for every case, through the game's glue.  A trap is kept as
+    such: the original takes exception 5 and never returns a value."""
+    if not ffp.rom_available():
+        pytest.skip('original/kick.rom is absent')
+    reference = ffp.Reference()
+    out = []
+    for index, d0, d1 in corpus:
+        operation = ffp.OPERATIONS[index]
+        try:
+            got = reference.call(operation, d0, d1)
+        except ffp.Trap as trap:
+            out.append((None, None, None, trap.vector))
+        else:
+            out.append((got.d0, got.d1, got.ccr, 0))
+    return out
+
+
+def compare(corpus, expected, results, target):
+    """One line per disagreement, the first few shown."""
+    wrong = []
+    for (index, d0, d1), want, got in zip(corpus, expected, results):
+        operation = ffp.OPERATIONS[index]
+        if want[3]:
+            if got[3] != want[3]:
+                wrong.append('%s %08X %08X: the original traps (%d), %s answers %s'
+                             % (operation, d0, d1, want[3], target, got))
+            continue
+        if got[3] or (got[0], got[1], got[2]) != (want[0], want[1], want[2]):
+            wrong.append('%s %08X %08X: rom d0=%08X d1=%08X %s, %s d0=%08X d1=%08X %s trap=%d'
+                         % (operation, d0, d1, want[0], want[1], ccr_text(want[2]),
+                            target, got[0], got[1], ccr_text(got[2]), got[3]))
+    assert not wrong, '%d of %d cases differ on %s:\n%s' % (
+        len(wrong), len(corpus), target, '\n'.join(wrong[:12]))
+
+
+@needs_rom
+def test_the_native_port_answers_what_the_rom_answers(ported, corpus, expected):
+    ported.ffp_traps_reset()
+    results = [ported.ffp(ffp.OPERATIONS[index], d0, d1) for index, d0, d1 in corpus]
+    compare(corpus, expected, results, 'the native port')
+    assert ported.ffp_traps() == sum(1 for want in expected if want[3]), \
+        'the port counted a different number of zero divides than the original took'
+
+
+# ------------------------------------------------- the other target, and the sanitizer
+# SPEC 6.1: the same sources compile for wasm32-freestanding and natively, and the port
+# relies on no undefined behaviour.  Both are claims about src/ffp.c specifically, so both
+# are made here with src/ffp.c alone: one WebAssembly module built by this test and run in
+# Node, and one native program built with -fsanitize=undefined.  Neither is part of
+# dist/core.wasm; tests/ffp_export.c is the batch entry both of them use.
+
+import subprocess                                          # noqa: E402
+
+SRC = os.path.join(ROOT, 'src')
+EXPORT = os.path.join(HERE, 'ffp_export.c')
+WASM_RUNNER = os.path.join(HERE, 'ffp_wasm.mjs')
+FFP_SOURCE = os.path.join(SRC, 'ffp.c')
+
+
+def pack(corpus):
+    return b''.join(struct.pack('<3I', index, d0, d1) for index, d0, d1 in corpus)
+
+
+def unpack(raw, count):
+    return [struct.unpack_from('<4I', raw, i * 16) for i in range(count)]
+
+
+@needs_rom
+def test_the_webassembly_build_answers_the_same(tmp_path, corpus, expected):
+    module = tmp_path / 'ffp.wasm'
+    built = subprocess.run(
+        [sys.executable, '-m', 'ziglang', 'cc', '-target', 'wasm32-freestanding',
+         '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', '-nostdlib', '-Wl,--no-entry',
+         '-I', SRC, '-o', str(module), FFP_SOURCE, EXPORT],
+        cwd=ROOT, capture_output=True, text=True)
+    assert built.returncode == 0, built.stderr
+    assert built.stderr == '', built.stderr
+
+    cases, results = tmp_path / 'cases.bin', tmp_path / 'results.bin'
+    cases.write_bytes(pack(corpus))
+    run = subprocess.run(['node', WASM_RUNNER, str(module), str(cases), str(results)],
+                         cwd=ROOT, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    compare(corpus, expected, unpack(results.read_bytes(), len(corpus)), 'the wasm build')
+
+
+@needs_rom
+def test_the_same_code_under_the_undefined_behaviour_sanitizer(tmp_path, corpus, expected):
+    """SPEC 6.1 forbids relying on undefined behaviour, and this code shifts, negates and
+    overflows on purpose all over, so the claim is worth a machine's opinion.  The
+    sanitizer stops on the first finding, so a clean run and matching answers together say
+    that the whole corpus went through without one."""
+    program = tmp_path / 'ffp_ubsan'
+    built = subprocess.run(
+        ['clang', '-std=c11', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
+         '-fsanitize=undefined', '-fno-sanitize-recover=all', '-I', SRC,
+         '-o', str(program), FFP_SOURCE, EXPORT],
+        cwd=ROOT, capture_output=True, text=True)
+    assert built.returncode == 0, built.stderr
+
+    cases, results = tmp_path / 'cases.bin', tmp_path / 'results.bin'
+    cases.write_bytes(pack(corpus))
+    run = subprocess.run([str(program), str(cases), str(results)],
+                         cwd=ROOT, capture_output=True, text=True)
+    assert run.returncode == 0, run.stdout + run.stderr
+    assert 'runtime error' not in (run.stdout + run.stderr), run.stdout + run.stderr
+    compare(corpus, expected, unpack(results.read_bytes(), len(corpus)), 'the sanitizer build')
