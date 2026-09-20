@@ -147,13 +147,19 @@ class Reference:
         """Where in the ROM the operation's routine begins."""
         return self.vectors[-GLUE[operation][2] // 6 - 1]
 
-    def call(self, operation, d0, d1=0):
+    def call(self, operation, d0, d1=0, scratch=0):
         """One operation through the game's glue entry, with D0 and D1 as the caller left
-        them.  Returns the registers and the condition codes at the return to the caller."""
+        them.  Returns the registers and the condition codes at the return to the caller.
+
+        `scratch` is what D3, D4 and D5 hold at the call.  The routines that use them save
+        and restore them, and the bits they leave uninitialised are meant never to reach a
+        result; the port takes them as zero, so that is the default here, and a test runs
+        the original with random values in them to show that it makes no difference."""
         entry = GLUE[operation][0]
         self.trap = None
         try:
-            self.o.call(entry, regs={'d0': d0, 'd1': d1}, ccr=True)
+            self.o.call(entry, regs={'d0': d0, 'd1': d1, 'd3': scratch,
+                                     'd4': scratch, 'd5': scratch}, ccr=True)
         except RuntimeError:
             if self.trap is None:
                 raise

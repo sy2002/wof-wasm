@@ -593,6 +593,10 @@ uint16_t wof_input_queue_pop(void);                 /* orig 0x011714 */
 void     wof_invert_vertical_follow(void);          /* the flip command changed the byte */
 void     wof_invert_vertical_restore(void);         /* M7: after a loaded game */
 
+/* ------------------------------ the arithmetic game logic computes with (7.1, point 13) */
+
+#include "ffp.h"
+
 /* ------------------------------------------- views, screens and the picture (6.4, 6.3) */
 
 #include "coro.h"

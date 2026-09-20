@@ -705,3 +705,41 @@ const char *wt_dialog_name(int slot)
 }
 
 int wt_dialog_count(void) { return wof_f.dialog_count; }
+
+/* ------------------------------------------------ SPEC 10 point 13: the floating point
+ *
+ * One entry for all nine operations of src/ffp.c, so that the differential test can loop
+ * over them by name.  `out` takes D0, D1, the condition codes and the trap the original
+ * would have taken; the return value says whether the operation exists. */
+int wt_ffp(int op, uint32_t d0, uint32_t d1, uint32_t *out)
+{
+    wof_ffp_t r;
+
+    switch (op) {
+    case 0:  r = wof_ffp_add_cc(d0, d1); break;
+    case 1:  r = wof_ffp_sub_cc(d0, d1); break;
+    case 2:  r = wof_ffp_mul_cc(d0, d1); break;
+    case 3:  r = wof_ffp_div_cc(d0, d1); break;
+    case 4:  r = wof_ffp_cmp_cc(d0, d1); break;
+    case 5:  r = wof_ffp_tst_cc(d1);     break;
+    case 6:  r = wof_ffp_neg_cc(d0);     break;
+    case 7:  r = wof_ffp_fix_cc(d0);     break;
+    case 8:  r = wof_ffp_flt_cc(d0);     break;
+    default: return 0;
+    }
+    out[0] = r.d0;
+    out[1] = r.d1;
+    out[2] = r.ccr;
+    out[3] = r.trap;
+    return 1;
+}
+
+uint32_t wt_ffp_traps(void)
+{
+    return wof_ffp_traps;
+}
+
+void wt_ffp_traps_reset(void)
+{
+    wof_ffp_traps = 0;
+}

@@ -252,6 +252,7 @@ class Ported:
         self.lib = ctypes.CDLL(str(DYLIB))
         p, i, u8p, u16p, c = (ctypes.c_void_p, ctypes.c_int,
                               ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p)
+        u32p = ctypes.c_void_p
         signatures = {
             'wof_init': ([ctypes.c_uint32, p, ctypes.c_uint32], None),
             'wof_alloc': ([ctypes.c_uint32], p),
@@ -335,6 +336,10 @@ class Ported:
             'wt_dialog_run': ([i, u8p, u16p, i, ctypes.POINTER(ctypes.c_int)], i),
             'wt_dialog_name': ([i], ctypes.c_char_p),
             'wt_dialog_count': ([], i),
+            # SPEC 10 point 13: the nine mathffp operations of src/ffp.c
+            'wt_ffp': ([i, ctypes.c_uint32, ctypes.c_uint32, u32p], i),
+            'wt_ffp_traps': ([], ctypes.c_uint32),
+            'wt_ffp_traps_reset': ([], None),
             'wof_dev_set_score': ([ctypes.c_uint32], None),
             'wof_dev_open_dialog': ([i], None),
             'wof_pass': ([], None),
@@ -420,6 +425,22 @@ class Ported:
 
     def file_log(self):
         return [(r['vblank'], r['text'], bool(r['a'])) for r in self.traces('load_file')]
+
+    # ------------------------------------------------------- the floating point, point 13
+
+    FFP_OPERATIONS = ('add', 'sub', 'mul', 'div', 'cmp', 'tst', 'neg', 'fix', 'flt')
+
+    def ffp(self, operation, d0, d1=0):
+        """One mathffp operation through src/ffp.c: (D0, D1, condition codes, trap)."""
+        out = (ctypes.c_uint32 * 4)()
+        assert self.lib.wt_ffp(self.FFP_OPERATIONS.index(operation), d0, d1, out), operation
+        return out[0], out[1], out[2], out[3]
+
+    def ffp_traps(self):
+        return self.lib.wt_ffp_traps()
+
+    def ffp_traps_reset(self):
+        self.lib.wt_ffp_traps_reset()
 
     # ------------------------------------------------------------------ loaders
 
