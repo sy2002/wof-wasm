@@ -241,6 +241,19 @@ def test_the_flip_is_read_by_the_joystick_decoder_and_by_nothing_else(flight):
     assert 'not.b' in touching[1] and touching[1].startswith('01cd6e')
 
 
+def test_a_restart_keeps_the_flip_and_a_loaded_game_undoes_it(saved):
+    """What M3 has to know for the owner's sake: Control-R leaves opt_invert_vertical alone,
+    but loading a game saved with the flip off turns the flip off, because the flip is inside
+    the range the save covers."""
+    restarted = run('flight-flip-then-restart')
+    assert byte(restarted, OPT_INVERT_VERTICAL) == 0xFF
+    assert byte(restarted, OPT_MUSIC_OFF) == 0, 'the outer loop clears the music flag'
+    loaded = run('flight-flip-then-load',
+                 description={'files': {'wof.amission 3': saved.overlay['wof.amission 3'].hex()}})
+    assert ('Open', 'wof.amission 3', True) in loaded.files_log
+    assert byte(loaded, OPT_INVERT_VERTICAL) == 0, 'the loaded game did not carry its own flip in'
+
+
 def test_control_s_toggles_the_music_flag(flight):
     assert byte(flight, OPT_MUSIC_OFF) == 0
     assert byte(run('flight-control-s'), OPT_MUSIC_OFF) == 0xFF

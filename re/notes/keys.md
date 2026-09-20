@@ -216,6 +216,29 @@ drawn with `graphics.Text` in the system font (`re/notes/system-font.md`).
 The save dialog runs the name through `path_sanitise` (`0x016592`), which replaces `:` and `/`
 with a space, and prefixes `wof.` before opening the file.
 
+## The vertical flip, and how long it lasts
+
+The owner flies with the flip on, so M3 has to know exactly when the original turns it off.
+`opt_invert_vertical` is the **byte** at `0x0254F6`; the byte after it, `0x0254F7`, is the music
+flag, which is why a word read of the address shows `0xFF00`.
+
+| | |
+|---|---|
+| Written by | `ingame_keys` at `0x01CD6E`, `not.b`, and nothing else |
+| Read by | `read_joy_bits` at `0x015238`, `tst.b`, and nothing else |
+| At program start | 0: it lies in the initialised part of the DATA hunk and the executable has a 0 there |
+| A restart, Control-R | **unchanged**. The outer loop clears `opt_music_off` beside it but not the flip |
+| A loaded game | **set to whatever the saved game holds**: loading a game that was saved with the flip off turns the flip off |
+| A new mission, a lost aircraft, game over | unchanged |
+
+Both the restart and the load were run
+(`test_a_restart_keeps_the_flip_and_a_loaded_game_undoes_it`); the two `grep` results are held by
+`test_the_flip_is_read_by_the_joystick_decoder_and_by_nothing_else`. The original therefore never
+remembers the flip past the end of the program, and a loaded game can take it away under the
+player. **For the port** that is worth diverging from: the flip is a preference, not game state,
+so it belongs in the shell's stored settings and should survive both a reload and a load, with the
+core's word set from the setting after every load. That is a decision for the owner.
+
 ## The right mouse button
 
 `rmb_down` (`0x027F6E`) is written by `input_handler` from raw codes `0x69` and `0xE9` and is
