@@ -50,13 +50,15 @@ A report is a claim. Before merging:
 2. A clean rebuild and the full suite, run by you. Compare the numbers with the report.
 3. The project rule that hand-written files hold no game content.
 4. Read the code that carries the weight, and read how the tests compare: a differential test must really run the original and the port.
-5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing; comparing every framebuffer pixel with a driver screenshot, and fitting the picture's real position from its colour edges, where the tests sampled flat areas.
+5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing; comparing every framebuffer pixel with a driver screenshot, and fitting the picture's real position from its colour edges, where the tests sampled flat areas; running a claimed absence (a command the manual lists and the code lacks) in every state against its control, and running the claim a proposal to the user rests on (the commands work while paused) before recommending it.
 6. If something is wrong, send the worker a follow-up on the same branch with the diagnosis, and review again.
 7. Merge by fast-forward, regenerate the listing, fold the findings into `SPEC.md`, run `tools/mdcheck.py`, commit. The user has authorised merges and commits at the controller's discretion once verified. Never push and never add a remote unless asked.
 
 ## Asking the user
 
-Ask for the minimum that settles the question, in the fewest steps, and say what each answer would mean. Relay a worker's requests yourself and drop those you can answer. Tell the user beforehand when something will open a window on their desktop.
+Ask for the minimum that settles the question, in the fewest steps, and say what each answer would mean. Give a recommendation with every decision, so that "all as recommended" is a complete answer. Relay a worker's requests yourself and drop those you can answer.
+
+The user does not mind a test browser opening a visible window when a check needs it; headless is equally fine. Do not forbid visible runs in a task. Require the visible Firefox run where a task changes the page, because only it can see a GPU canvas fault, and leave it out where the page is untouched. A line to the user before a window opens is a courtesy, not a gate. Browsers stay muted.
 
 ## Models and effort
 
@@ -69,28 +71,28 @@ Ask for the minimum that settles the question, in the fewest steps, and say what
 
 **The user's Fable budget is limited and the controller needs it.** Workers therefore run on Opus 5 unless a task truly cannot be checked by observation. What makes Opus reliable at reading is the task, not the model: require that every finding is backed by the oracle, the headless original or a test, and say in the task which instrument answers which question. A reading mistake made earlier in this project (the stick's up and down bits) was found by observation, not by a better reader. The controller's own context costs budget on every turn, so hand over early, at a quiet point, rather than late.
 
+**Multi-agent workers.** The user asked on 2026-09-20 whether workers should fan out into many agents. The assessment given: not for now. The original executable is a stronger adversary than a reviewing agent, wall-clock time is not what is scarce, every sub-agent pays for reading the rules and notes again, and the work is a chain through shared files. Two places to reconsider: M5 and M6, if the object handlers turn out wide and independent with an oracle test each as the gate (a small fan-out inside one Opus worker, in worktrees); and reading that no observation can check, where three independent Opus readers, with the controller looking only where they disagree, may cost less than one Fable reading. Untried; test it on one routine first. Bring the user an estimate once point 3 shows how wide the object system is.
+
 One milestone, or one bounded task, per worker session. A fresh session per milestone: the repository is the handover. Give the user the start line with the name in quotes, for example `claude --model opus --effort xhigh --name "Worker M3 front end"`.
 
 ## The plan ahead
 
-M0, M1 and M2 are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
+M0, M1, M2 and the M3 prerequisites are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
 
 The user chose the order on 2026-09-20: the front end first, because it shows progress in the browser early, depends little on the object system, and the user's own look at the running shell has found what tests could not. The reading for the flight milestone follows. `SPEC.md` needs no change for this; its milestones were in this order already.
 
-1. **M3 prerequisites** (Opus, reading backed by observation): `SPEC.md` section 10, points 1, 6 and 12 as far as M3 needs them.
-   - The key commands. The manual's last page lists them. Establish from the code which routine reads which raw key code and qualifier in which state (the key-buffer readers from `0x0207DA` upward, `key_qualifier_mask`, `menu_input`), and check each under the headless original by delivering the key and watching the state.
-   - The front-end screens beyond their geometry: which files each screen loads, pens and draw modes, the texts drawn, transitions and timings in VBlanks, observed through the harness's file log and schedule. The real duration of the fades is CPU-bound in the original and stays open.
-   - The high-score file layout, by running the original's own reader and writer under the oracle on the disk's `highscore` file.
-   - The harness gains `ExNext` and a directory `Lock` for the load and save dialog.
-   - Deliverables: notes, names, the harness extensions with tests, and a proposal for the browser's keys.
-2. **The keys decision** (controller with the user, before M3 starts): which keys replace the Control commands, which a browser keeps for itself. The user flies with the vertical flip on, so that option comes early and is remembered.
-3. **M3, the front end** (Opus).
+1. **M3 prerequisites**: done and merged on 2026-09-20 (`re/notes/keys.md`, `re/notes/frontend.md`, `re/notes/highscore.md`; the harness takes key qualifiers, runs the ROM's `RawKeyConvert`, lists directories and observes routines by name).
+2. **The keys decision**: made with the user on 2026-09-20 and written into `SPEC.md` sections 6.1 and 6.2: the port's keys, restart and clearing the high scores only while paused, Escape as a second pause key with a pause whenever fullscreen is left, the remembered flip winning over a loaded game, and no Control-D.
+3. **M3, the front end** (Opus), in a fresh worker session. It changes the page, so the task requires the visible Firefox run. The in-flight commands belong to `ingame_keys` and come with the inner loop in M4; M3 builds the key path, the port's key layer, the line editor and the key conversion table, and consumes the commands of the menus, the briefing and the dialogs.
 4. **Open points 2, 3 and 5, and point 13** (Opus where the change report, the oracle or the ROM decide; Fable only for a part that turns out to be pure reading). Before M4.
 5. **M4 onward** (Opus).
 
 ## Open items
 
 - **VBlanks per pass** is a core setting, provisionally 2. Due before M4. The user has a real Amiga; the agreed method is to film the screen in slow motion and count how many video frames each game picture stays up, in a quiet and in a busy scene. Parked until M4 approaches.
+- **The order of a directory** as `ExNext` gives it, chain 0 upward and a new entry at the head of its chain, is documented behaviour that nothing here has confirmed; the disk image does not settle it. The user's Amiga could: `list` on a scratch disk with a few files whose names share a hash chain shows the order. It matters only when two saved games share a chain. Parked; ask together with the VBlank filming.
+- **The duration of a fade step** is CPU-bound in the original and takes no time under the harness. M3 gives it a fixed number of VBlanks as a provisional setting; the same filming of the real machine would settle it.
+- The sky flash: its writers are named in `re/notes/frontend.md`, no short mission script provoked it. Due before M5.
 - The blitter's area-mode model in `tests/blitter.py` is documented behaviour, not derived from the original. Compare with a cycle-exact emulator when `line_draw` is ported.
 - The facing markers and mirrored pixels of `hellcat.shp` and `Torpedo.shp` must enter the save state in M4.
 - The publisher's logo is not on this disk; the crack replaced it. It would have to come from an uncracked dump, which the user has not asked for.
@@ -109,4 +111,6 @@ The user chose the order on 2026-09-20: the front end first, because it shows pr
 - A scripted key event is never a user gesture, and a modifier key alone is not one either. Browser tests press keys through the driver.
 - An unquoted shell heredoc executes the backticks of any JavaScript inside it. Quote the delimiter.
 - `cut` on `re/functions.csv` miscounts, because string columns contain commas. Use a CSV reader.
+- A suite run as `pytest ... | tail` exits with the code of `tail`. Read the line with the pass count before merging; an exit code of 0 proves nothing there.
+- A run description is JSON and takes decimal numbers only; raw key codes written in hexadecimal do not load.
 - A comment-only edit in `src/core.c` that added a line made `core.wasm` one byte larger; the cause is not established. When a review relies on the binary being the same size as before, rebuild and look, even after touching only comments.
