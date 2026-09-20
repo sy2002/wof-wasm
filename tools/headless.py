@@ -25,6 +25,7 @@ The run description, the dump format and the change report are described in
 re/notes/headless.md.
 """
 import argparse
+import bisect
 import collections
 import functools
 import json
@@ -45,6 +46,7 @@ from capstone import Cs, CS_ARCH_M68K, CS_MODE_M68K_000                         
 
 import disasm                                                                          # noqa: E402
 import headless_dump as dump                                                           # noqa: E402
+import headless_writes as trace                                                      # noqa: E402
 from headless_os import AmigaOS, HarnessError                                          # noqa: E402
 from oracle import Oracle                                                              # noqa: E402
 
@@ -256,7 +258,8 @@ def load_run(source):
 
 class Headless(AmigaOS):
     def __init__(self, run=None, track_writes=False, verbose=False, observe=(),
-                 observe_returns=False, watch=None, watch_for=None):
+                 observe_returns=False, watch=None, watch_for=None, summary=False,
+                 read_owners=(), read_ranges=(), read_detail=False, keep_report=True):
         self.run_spec = run = load_run(run or {})
         self.verbose = verbose
         self.names = dump.Names(ROOT)
@@ -296,12 +299,29 @@ class Headless(AmigaOS):
         # memory
         self.heap, self.plane_heap = HEAP_BASE, PLANE_BASE
         self.allocs = {}                  # address -> size, live allocations outside display memory
+        self.alloc_sizes = {}             # address -> size, every allocation ever made
         self.display_allocs = {}          # address -> size, what display_alloc_chip asked for
         self.alloc_labels = {}
         self.alloc_refused = []
         self._display_alloc = False
         self.plane_reads = collections.Counter()      # (routine, block of display memory) -> count
         uc.hook_add(UC_HOOK_MEM_READ, self._plane_read, begin=PLANE_BASE, end=PLANE_END - 1)
+
+        # Reads of chosen memory, the way _plane_read covers display memory: per step, which
+        # routine read which offsets, and in which phase.  A range given by address gets a hook
+        # of its own; an allocation is watched by its owner, whose address is not known until
+        # it is made, so those share one hook over the whole heap.  Every hook exists before
+        # the first instruction runs, because Unicorn does not re-translate for a new one.
+        self.reads = trace.Reads()
+        self.read_detail = read_detail
+        self.read_owners = list(read_owners)
+        self.read_watch = []                          # sorted [(start, end, label)]
+        self.read_starts = []
+        for start, length in read_ranges:
+            self._watch_range(start, length, self.names.datum(start))
+            uc.hook_add(UC_HOOK_MEM_READ, self._watch_read, begin=start, end=start + length - 1)
+        if self.read_owners:
+            uc.hook_add(UC_HOOK_MEM_READ, self._watch_read, begin=HEAP_BASE, end=HEAP_END - 1)
 
         # time
         self.vblanks = self.passes = self.ticks = self.missions = 0
@@ -310,7 +330,9 @@ class Headless(AmigaOS):
         self.since_pass = 0
         self.schedule = []                # the run as it happened: V raw, P, T byte, S
         self.key_log = []                 # (vblank, code, qualifier), for the port's replay
-        self.in_tick = False
+        self.in_tick = False                  # inside logic_tick's tree
+        self.in_pass = False                  # inside frame_update's tree
+        self.in_vblank = 0                    # inside a VBlank's key handlers and servers
         self.tick_return = None
         self.inner_reached = False
         self.loop_heads = 0               # times the head of the inner loop, 0x01010E, was executed
@@ -334,11 +356,13 @@ class Headless(AmigaOS):
         # dumps and reports
         self.writer = None
         self.step_hashes = []             # (kind, tick, pass, hash)
-        self.track_writes = track_writes
+        self.track_writes = track_writes or bool(summary)
+        self.keep_report = keep_report
+        self.summary = trace.Summary() if summary else None
         self.writes = {}                  # address -> set of routine start addresses, this step
         self.change_report = []
         self.last_state = None
-        if track_writes:
+        if self.track_writes:
             uc.hook_add(UC_HOOK_MEM_WRITE, self._data_write, begin=DATA_START, end=DATA_END - 1)
             uc.hook_add(UC_HOOK_MEM_WRITE, self._data_write, begin=HEAP_BASE, end=HEAP_END - 1)
 
@@ -460,11 +484,13 @@ class Headless(AmigaOS):
         address, self.heap = self.heap, self.heap + size
         if self.heap > HEAP_END:
             raise HarnessError('heap exhausted: %d bytes asked by %s' % (size, owner))
-        self.allocs[address] = size
+        self.allocs[address] = self.alloc_sizes[address] = size
         label = 'alloc %d (%s' % (len(self.alloc_labels), owner)
         if owner.startswith('load_file') and self.files_log:
             label += ' ' + self.files_log[-1][1]
-        self.alloc_labels[address] = label + ')'
+        self.alloc_labels[address] = label = label + ')'
+        if any(want == owner or want in label for want in self.read_owners):
+            self._watch_range(address, size, label)
         return address
 
     def free(self, address):
@@ -638,10 +664,42 @@ class Headless(AmigaOS):
         where = '%d bytes' % self.display_allocs[block] if block is not None else 'outside any block'
         self.plane_reads[(self.names.routine(uc.reg_read(UC_M68K_REG_PC)), where)] += 1
 
+    def _watch_range(self, start, length, label):
+        self.read_watch.append((start, start + length, label))
+        self.read_watch.sort()
+        self.read_starts = [a for a, _, _ in self.read_watch]
+
+    def phase(self):
+        """Where the program is, for a write or a read: inside a VBlank's handlers and
+        servers, inside logic_tick's tree, inside frame_update's tree, or in the main
+        program outside all three.  A VBlank delivered inside a pass, which happens at the
+        pass's own start and in the restart loop, counts as V and not as F; the one tick the
+        game runs from inside a VBlank, the key handler's, counts as T."""
+        if self.in_tick:
+            return 'T'
+        if self.in_vblank:
+            return 'V'
+        return 'F' if self.in_pass else 'M'
+
+    def _watch_read(self, uc, access, address, size, value, user):
+        """A read of watched memory: which routine, which offset, in which phase."""
+        i = bisect.bisect_right(self.read_starts, address) - 1
+        if i < 0 or address >= self.read_watch[i][1]:
+            return
+        start, _, label = self.read_watch[i]
+        routine = self.names.routine(uc.reg_read(UC_M68K_REG_PC))
+        phase = self.phase()
+        self.reads.read(phase, routine, label, address - start, size)
+        if self.read_detail:
+            self.reads.events.append((len(self.step_hashes), phase, routine, label,
+                                      address - start, size))
+
     def _data_write(self, uc, access, address, size, value, user):
         start = self.names.routine_start(uc.reg_read(UC_M68K_REG_PC))
         for a in range(address, address + size):
             self.writes.setdefault(a, set()).add(start)
+        if self.summary is not None:
+            self.summary.write(address, size, self.phase(), self.names.routine(start))
 
     # ------------------------------------------------------------------ the driver
 
@@ -799,6 +857,7 @@ class Headless(AmigaOS):
         if self.joy_words is None:
             self.joy_words = self._joy_words()
         raw, keys = self._next_raw()
+        self.in_vblank += 1
         down, up, right, left, fire = [(raw >> i) & 1 for i in range(5)]
         if down and up:
             down = up = 0
@@ -815,8 +874,11 @@ class Headless(AmigaOS):
         self.since_pass += 1
         self.progress += 1
         self.schedule.append(('V', raw))
-        for _, _, data, code in sorted(self.servers, key=lambda s: (-s[0], s[1])):
-            self.nested(code, {'a0': CUSTOM, 'a1': data, 'a5': code, 'a6': self.lib_base['exec']})
+        try:
+            for _, _, data, code in sorted(self.servers, key=lambda s: (-s[0], s[1])):
+                self.nested(code, {'a0': CUSTOM, 'a1': data, 'a5': code, 'a6': self.lib_base['exec']})
+        finally:
+            self.in_vblank -= 1
         stop = self.run_spec['stop']
         if self._until is None and 'vblanks' in stop and self.vblanks >= stop['vblanks']:
             self._pause = 'vblanks'
@@ -852,9 +914,11 @@ class Headless(AmigaOS):
         self.deliver_vblanks(owed)
         self.since_pass = 0
         self.passes += 1
+        self.in_pass = True
         self.schedule.append(('P', self.passes))
 
     def _pass_end(self):
+        self.in_pass = False
         self._step('P')
         stop = self.run_spec['stop']
         if self._until in ('pass', 'step') or self._until is None and self.passes >= stop.get('passes', 1 << 60):
@@ -890,6 +954,28 @@ class Headless(AmigaOS):
         labels.update({a: self.alloc_labels[a] for a in self.allocs})
         return labels
 
+    def region_of(self):
+        """A function from an address to the base of the region it lies in: the DATA hunk or
+        an allocation."""
+        bases = sorted([DATA_START] + list(self.alloc_sizes))
+        sizes = dict(self.alloc_sizes)
+        sizes[DATA_START] = DATA_END - DATA_START
+
+        def region(address):
+            i = bisect.bisect_right(bases, address) - 1
+            base = bases[i] if i >= 0 else address
+            return base if address < base + sizes[base] else address
+        return region
+
+    def places(self):
+        """A function from an address to a readable place: a name in the executable's data,
+        or an offset into a labelled allocation, freed ones included."""
+        regions = {DATA_START: DATA_END - DATA_START}
+        regions.update(self.alloc_sizes)
+        labels = dict(self.alloc_labels)
+        labels[DATA_START] = 'data'
+        return lambda address: dump.describe(address, self.names, regions, labels)
+
     def open_dump(self, path):
         self.writer = dump.DumpWriter(path, self.run_spec)
 
@@ -899,6 +985,8 @@ class Headless(AmigaOS):
         state = self.regions()
         digest = self.writer.step(info, state, self.labels()) if self.writer else dump.state_hash(state)
         self.step_hashes.append((kind, self.ticks, self.passes, digest))
+        if self.summary is not None:
+            self.summary.step(kind)
         if self.track_writes:
             self._report(info, state)
         self.last_state = state
@@ -915,6 +1003,10 @@ class Headless(AmigaOS):
                 continue                          # a new allocation: its loader filled it
             changed += [(address + s, n) for s, n in dump.changed_ranges(before, state[address], gap=0)]
         for address, length in changed:
+            if self.summary is not None:
+                self.summary.change(address, length, info['kind'])
+            if not self.keep_report:
+                continue
             writers = set()
             for a in range(address, address + length):
                 writers |= self.writes.get(a, set())
@@ -927,6 +1019,8 @@ class Headless(AmigaOS):
                 old_bytes[:8].hex(), new_bytes[:8].hex(), who))
         touched = len(self.writes)
         self.writes = {}
+        if not self.keep_report:
+            return
         head = '%s  tick %d  pass %d  vblank %d  input %02x  entropy %d   (%d bytes written, %d ranges changed)' % (
             info['kind'], info['tick'], info['pass'], info['vblank'], info['input'] & 0xFF,
             info['entropy'], touched, len(changed))
@@ -941,8 +1035,23 @@ class Headless(AmigaOS):
 
 # ------------------------------------------------------------------------------ command line
 
+def read_watch(given):
+    """--reads takes the owner of an allocation, or an explicit ADDRESS:LENGTH in hex."""
+    owners, ranges = [], []
+    for item in given or ():
+        if ':' in item:
+            start, _, length = item.partition(':')
+            ranges.append((int(start, 16), int(length, 16)))
+        else:
+            owners.append(item)
+    return owners, ranges
+
+
 def command_run(args):
-    machine = Headless(args.run, track_writes=bool(args.changes), verbose=args.verbose)
+    owners, ranges = read_watch(args.reads)
+    machine = Headless(args.run, track_writes=bool(args.changes), verbose=args.verbose,
+                       summary=bool(args.summary), keep_report=bool(args.changes),
+                       read_owners=owners, read_ranges=ranges)
     if args.out:
         machine.open_dump(args.out)
     started = time.time()
@@ -967,6 +1076,28 @@ def command_run(args):
     if args.schedule:
         with open(args.schedule, 'w') as f:
             json.dump(machine.schedule, f, separators=(',', ':'))
+    if args.summary:
+        place = machine.places()
+        with open(args.summary, 'w') as f:
+            f.write('# ranges written, by phase: V a VBlank server, T logic_tick\'s tree,\n'
+                    '# F frame_update\'s tree, M the main program.  Then the step kinds the\n'
+                    '# change showed up in, then the writers with their counts.\n')
+            f.write('\n'.join(trace.format_summary(machine.summary, place)) + '\n')
+            rows = trace.tables(machine.summary, machine.region_of())
+            f.write('\n# tables: the regular stride the ranges one routine wrote fall into\n')
+            f.write('\n'.join(trace.format_tables(rows, place)) + '\n')
+        print('summary: %d ranges written, %d tables' % (len(machine.summary.ranges()), len(rows)))
+    if machine.read_watch:
+        lines = ['%-2s %-26s %-34s %8s  %s' % ('ph', 'routine', 'watched', 'reads', 'offsets')]
+        for (phase, routine, label), (count, low, high) in sorted(
+                machine.reads.by_routine().items(), key=lambda kv: -kv[1][0]):
+            lines.append('%-2s %-26s %-34s %8d  0x%x..0x%x' % (phase, routine, label, count, low, high))
+        text = '\n'.join(lines)
+        if args.reads_out:
+            with open(args.reads_out, 'w') as f:
+                f.write(text + '\n')
+        else:
+            print(text)
     if machine.plane_reads:
         print('CPU reads of display memory, by routine:')
         for (routine, block), count in machine.plane_reads.most_common():
@@ -1027,6 +1158,10 @@ def main():
     run.add_argument('--changes', help='write the change report here (slow: hooks every write)')
     run.add_argument('--entropy-log', help='write the log of beam position reads here')
     run.add_argument('--schedule', help='write the schedule as it happened here, as JSON')
+    run.add_argument('--summary', help='write the summary of the writes here (implies the write hook)')
+    run.add_argument('--reads', action='append', metavar='OWNER|ADDR:LEN',
+                     help='watch reads of an allocation by its owner, or of an address range')
+    run.add_argument('--reads-out', help='write the read summary here instead of printing it')
     run.add_argument('-v', '--verbose', action='store_true')
     run.set_defaults(function=command_run)
     show = commands.add_parser('show', help='list the steps of a dump, or one step with names')

@@ -193,6 +193,8 @@
 024f32 view_y                ; word, screen row of world height 0 for this pass
 024f34 view_shift            ; word, 0 at full scale, 3 in the eighth-scale view
 024f36 view_step             ; word, 8 at full scale, 1 in the eighth-scale view
+0253c8 pass_counter          ; word, 0 to 99: draw_world counts the passes of a mission, the tick reads it
+026e3c frame_drawn           ; byte, set at the end of every pass and cleared in the tick that sees it
 010f88 snapshot_for_draw     ; asm. first stage of frame_update: copies logic state into the fields the drawing reads
 013772 draw_world            ; asm. sky fill, map records through MasterList or AthList, then every object layer
 0135d8 player_lost_restart   ; asm. in frame_update when g_024f24 is set: game over or next life, clears the playfield, waits

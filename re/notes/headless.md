@@ -223,6 +223,49 @@ the capture to the named routines. A twin of the test above holds a run with bot
 same steps. This is how `re/notes/ffp.md` knows what the two floating point routines of the
 tick take and leave (`tools/ffp_observe.py`).
 
+### Write summary, read hook
+
+Two instruments answer the questions the change report is too large for.  Both only read,
+which `tests/test_headless.py::test_an_instrument_does_not_change_a_run` holds them to.
+
+**The phase.** Every write and every read is tagged with where the program was:
+
+| Phase | Where |
+|---|---|
+| `V` | inside a VBlank: the key handlers and the interrupt servers |
+| `T` | inside `logic_tick`'s tree, the one the key handler runs included |
+| `F` | inside `frame_update`'s tree, that is, a pass proper |
+| `M` | the main program outside all three: initialisation, the front end, the mission setup |
+
+A VBlank delivered inside a pass, which happens at the pass's own start and in the restart
+loop, is `V` and not `F`, so `F` is exactly what the pass itself does.
+
+**`summary=True`** (`--summary FILE`) accumulates, per address, every write with its phase
+and its routine, and every change with the kind of step it showed up in.
+`headless_writes.Summary.ranges()` joins neighbouring addresses that were written and
+changed in the same way and gives one entry per range; `format_summary` prints them.  This
+is the whole run in a few hundred lines instead of tens of megabytes, and `keep_report=False`
+switches the text of the change report off while keeping the comparison it rests on.
+
+**Tables.** `headless_writes.strides` takes the ranges one routine wrote inside one region
+and reports the record size they fall into: the smallest candidate under which every range
+lies inside one record, the records form a nearly unbroken run, and the record is not filled
+so densely that it is really a plain array.  `tables()` does that for every routine and
+region of a run and is how a pool's record size and count are read off a run rather than
+guessed.
+
+**`read_owners` and `read_ranges`** (`--reads OWNER` or `--reads ADDR:LEN`) put a read hook
+over chosen memory in the way `_plane_read` covers display memory: per read the routine, the
+phase and the offset, counted in `machine.reads`, and with `read_detail=True` also the step.
+An allocation is named by its owner, the routine `alloc` attributes it to, so a run can watch
+"the map" or "the pools" without knowing an address; a range given by address gets a hook of
+its own and costs nothing outside it.
+
+```text
+.venv/bin/python tools/headless.py run RUN.json --summary A.sum --reads sub_012d5a
+.venv/bin/python tools/headless.py run RUN.json --reads 0253c8:2 --reads-out A.reads
+```
+
 ### Change report, entropy log, schedule
 
 `--changes FILE` hooks every write to the dumped memory and lists per step the ranges whose content changed, with the old and new bytes, a name and the routines that wrote them. A window runs from the previous step to this one, so a `P` step includes the VBlank servers that ran at its start. `--entropy-log FILE` and `--schedule FILE` write the two logs described above.

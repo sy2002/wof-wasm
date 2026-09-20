@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 
 import headless                    # noqa: E402
 import headless_dump               # noqa: E402
+import headless_writes             # noqa: E402
 
 SLOW = pytest.mark.skipif(not os.environ.get('WOF_SLOW_HEADLESS'),
                           reason='set WOF_SLOW_HEADLESS=1 for the long headless runs')
@@ -33,6 +34,11 @@ TAKE_OFF = [[40, ''], [3, 'F'], [60, ''], [460, 'R'], [3000, 'RU']]
 # The same without pushing forward: the aircraft rolls over the bow.
 ROLL_OFF = [[40, ''], [3, 'F'], [60, ''], [3460, 'R']]
 FLIGHT_TICKS = 260
+
+# What the instrument tests below watch, from re/names.txt.
+VIEW_X            = 0x024F30
+PASS_COUNTER      = 0x0253C8
+INPUT_QUEUE_COUNT = 0x027354
 
 
 def run(description, dump_path=None, **options):
@@ -296,6 +302,81 @@ def test_the_change_report_names_who_wrote_what(dumps):
     heads = [line for line in machine.change_report if not line.startswith(' ')]
     assert len(heads) == len(machine.step_hashes)
     assert heads[0].startswith('T ') and any(line.startswith('P ') for line in heads)
+
+
+@pytest.fixture(scope='module')
+def instrumented():
+    """One short flight with every instrument switched on: the phase-aware write summary,
+    the read hook over the pools and over one named global, and the detail log."""
+    return run(flight(ticks=40), summary=True, keep_report=False, read_detail=True,
+               read_owners=['alloc_pools'], read_ranges=[(PASS_COUNTER, 2), (VIEW_X, 2)])
+
+
+def test_the_summary_says_in_which_phase_a_range_was_written(instrumented):
+    """The phases: V inside a VBlank server, T inside logic_tick's tree, F inside
+    frame_update's tree, M in the main program.  Four ranges whose writer is known from
+    re/notes/drawing.md and re/notes/input.md are checked against it."""
+    summary = instrumented.summary
+    written = {address: (summary.phases_of(writes), {routine for _, routine in writes})
+               for address, length, writes, _ in summary.ranges()}
+    assert written[VIEW_X] == ('F', {'frame_update'})
+    assert written[PASS_COUNTER] == ('F', {'draw_world'})
+    assert 'V' in written[INPUT_QUEUE_COUNT][0]
+    assert any(phases == 'T' for phases, _ in written.values())
+    assert summary.steps['T'] == 40 and summary.steps['P'] == instrumented.passes
+
+
+def test_the_summary_counts_the_windows_a_range_changed_in(instrumented):
+    """A range is written in a phase and changes in a window: the pass counter is written by
+    draw_world inside a pass and therefore changes in P windows only.  It counts to 99, so
+    only its low byte ever changes, which is what the two byte counters below show."""
+    changes = instrumented.summary.changes
+    assert PASS_COUNTER not in changes
+    assert set(changes[PASS_COUNTER + 1]) == {'P'}
+    assert changes[PASS_COUNTER + 1]['P'] >= instrumented.passes - 2
+
+
+def test_the_stride_detection_finds_a_table_of_records():
+    """Two fields of a 0x34-byte record, over ten records, are a table; a plain array of
+    words is not, and a gap of one record is still one."""
+    items = [(0x100 + 0x34 * i + offset, 2) for i in range(10) for offset in (0, 0x16)]
+    assert headless_writes.strides(items) == (0x100, 0x34, 10, [0, 0x16])
+    assert headless_writes.strides([(0x100 + 2 * i, 2) for i in range(10)]) is None
+    assert headless_writes.strides([(a, 2) for a, _ in items if a < 0x100 + 0x34 * 3
+                                    or a >= 0x100 + 0x34 * 4])[1] == 0x34
+
+
+def test_the_stride_detection_finds_a_real_pool(instrumented):
+    """The pool of 0x14-byte records that player_lost_restart clears at the mission's start."""
+    rows = headless_writes.tables(instrumented.summary, instrumented.region_of())
+    place = instrumented.places()
+    found = [(place(base), stride, records)
+             for phase, routine, _, (base, stride, records, offsets) in rows
+             if routine == 'player_lost_restart']
+    assert found and found[0][1] == 0x14 and found[0][2] >= 8
+    assert 'alloc_pools' in found[0][0]
+
+
+def test_the_read_hook_says_who_read_a_watched_range(instrumented):
+    """The read hook of a chosen allocation, the way _plane_read covers display memory: the
+    routine, the phase and the offset of every read."""
+    by_routine = instrumented.reads.by_routine()
+    pools = {(phase, routine) for (phase, routine, label) in by_routine if 'alloc_pools' in label}
+    assert ('F', 'draw_world') in pools, sorted(pools)
+    counter = {(key[0], key[1]) for key in by_routine if key[2] == 'pass_counter'}
+    assert ('F', 'draw_world') in counter and any(phase == 'T' for phase, _ in counter), counter
+    assert instrumented.reads.offsets(label='view_x') == [0, 1]
+    steps = {step for step, _, _, label, _, _ in instrumented.reads.events if label == 'pass_counter'}
+    assert len(steps) > 4, 'the detail log holds no step of its own'
+
+
+def test_an_instrument_does_not_change_a_run(instrumented):
+    """The twin of test_an_observer_does_not_change_a_run for the write summary and the read
+    hook: both only read, so the steps and the schedule are the ones of a plain run."""
+    plain = run(flight(ticks=40))
+    assert plain.step_hashes == instrumented.step_hashes
+    assert plain.schedule == instrumented.schedule
+    assert instrumented.summary.ranges() and not plain.summary
 
 
 def test_no_logic_reads_what_was_drawn(first, other_input):
