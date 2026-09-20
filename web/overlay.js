@@ -2,7 +2,7 @@
    emulated 60 Hz, the tick rate, the input bits, sound actually flowing - can be read off
    the page instead of guessed at.  The backtick key toggles it. */
 
-const BIT_NAMES = ['down', 'up', 'right', 'left', 'fire'];
+const BIT_NAMES = ['up', 'down', 'right', 'left', 'fire'];      /* bit 0 first, SPEC 6.1 */
 
 export function createOverlay(element, core, clock, audio, input, video) {
     let visible = false;

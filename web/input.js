@@ -1,6 +1,9 @@
 /* Input: keyboard and Gamepad API merged into the raw controller state of SPEC 6.1.
  *
- *   bit 0 down, bit 1 up, bit 2 right, bit 3 left, bit 4 fire currently down
+ *   bit 0 stick forward (up), bit 1 stick back (down), bit 2 right, bit 3 left,
+ *   bit 4 fire button currently down
+ *
+ * Forward is the stick pushed away from the player: up in the menus, and climbing in flight.
  *
  * The core, not the shell, decides what that becomes: cancelling opposing directions, the
  * reversed-vertical option and the ten-VBlank tap/hold discrimination are all part of the
@@ -18,14 +21,14 @@
    Ctrl+W, which closes the tab in every mainstream browser and which a page cannot prevent.
    Do not add them back. */
 const KEYS = {
-    ArrowDown: 0x01, KeyS: 0x01,
-    ArrowUp: 0x02, KeyW: 0x02,
+    ArrowUp: 0x01, KeyW: 0x01,
+    ArrowDown: 0x02, KeyS: 0x02,
     ArrowRight: 0x04, KeyD: 0x04,
     ArrowLeft: 0x08, KeyA: 0x08,
     Space: 0x10, KeyZ: 0x10,
 };
 
-const PAD_BUTTONS = { 12: 0x02, 13: 0x01, 14: 0x08, 15: 0x04 };  /* d-pad up down left right */
+const PAD_BUTTONS = { 12: 0x01, 13: 0x02, 14: 0x08, 15: 0x04 };  /* d-pad up down left right */
 const PAD_FIRE = [0, 1, 2, 3, 6, 7];
 const PAD_DEADZONE = 0.4;
 
@@ -77,8 +80,8 @@ export function createInput(target) {
             if (pad.axes.length >= 2) {
                 if (pad.axes[0] < -PAD_DEADZONE) bits |= 0x08;
                 if (pad.axes[0] > PAD_DEADZONE) bits |= 0x04;
-                if (pad.axes[1] < -PAD_DEADZONE) bits |= 0x02;
-                if (pad.axes[1] > PAD_DEADZONE) bits |= 0x01;
+                if (pad.axes[1] < -PAD_DEADZONE) bits |= 0x01;     /* pushed forward */
+                if (pad.axes[1] > PAD_DEADZONE) bits |= 0x02;      /* pulled back */
             }
         }
         return bits;
