@@ -50,7 +50,7 @@ A report is a claim. Before merging:
 2. A clean rebuild and the full suite, run by you. Compare the numbers with the report.
 3. The project rule that hand-written files hold no game content.
 4. Read the code that carries the weight, and read how the tests compare: a differential test must really run the original and the port.
-5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing; comparing every framebuffer pixel with a driver screenshot, and fitting the picture's real position from its colour edges, where the tests sampled flat areas; running a claimed absence (a command the manual lists and the code lacks) in every state against its control, and running the claim a proposal to the user rests on (the commands work while paused) before recommending it.
+5. **One check of your own that the worker's tests could not make.** Examples that found real defects or gave real assurance: a visible-browser probe where headless passed; pressing a modifier key before a real key; comparing the port's blit with an independent decoder; checking a claim of dead code against the callers in the listing; comparing every framebuffer pixel with a driver screenshot, and fitting the picture's real position from its colour edges, where the tests sampled flat areas; running a claimed absence (a command the manual lists and the code lacks) in every state against its control, and running the claim a proposal to the user rests on (the commands work while paused) before recommending it; saving the core's state in the middle of a screen and checking that a reload resumes identically across asset loads; running the idle attract loop for 160,000 VBlanks while watching the arena; rendering every screen to a picture through the native library and looking at it before the user does.
 6. If something is wrong, send the worker a follow-up on the same branch with the diagnosis, and review again.
 7. Merge by fast-forward, regenerate the listing, fold the findings into `SPEC.md`, run `tools/mdcheck.py`, commit. The user has authorised merges and commits at the controller's discretion once verified. Never push and never add a remote unless asked.
 
@@ -77,13 +77,13 @@ One milestone, or one bounded task, per worker session. A fresh session per mile
 
 ## The plan ahead
 
-M0, M1, M2 and the M3 prerequisites are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
+M0, M1, M2, the M3 prerequisites and M3 are done and merged, and so are the display aspect and auto-zoom the user asked for after M1. The headless original (`tools/headless.py`, `re/notes/headless.md`) runs the original from `main` through the front end into a mission, reproducibly, and is the instrument for what follows.
 
 The user chose the order on 2026-09-20: the front end first, because it shows progress in the browser early, depends little on the object system, and the user's own look at the running shell has found what tests could not. The reading for the flight milestone follows. `SPEC.md` needs no change for this; its milestones were in this order already.
 
 1. **M3 prerequisites**: done and merged on 2026-09-20 (`re/notes/keys.md`, `re/notes/frontend.md`, `re/notes/highscore.md`; the harness takes key qualifiers, runs the ROM's `RawKeyConvert`, lists directories and observes routines by name).
 2. **The keys decision**: made with the user on 2026-09-20 and written into `SPEC.md` sections 6.1 and 6.2: the port's keys, restart and clearing the high scores only while paused, Escape as a second pause key with a pause whenever fullscreen is left, the remembered flip winning over a loaded game, and no Control-D.
-3. **M3, the front end** (Opus), in a fresh worker session. It changes the page, so the task requires the visible Firefox run. The in-flight commands belong to `ingame_keys` and come with the inner loop in M4; M3 builds the key path, the port's key layer, the line editor and the key conversion table, and consumes the commands of the menus, the briefing and the dialogs.
+3. **M3, the front end**: done and merged on 2026-09-20 (`re/notes/porting-m3.md`). The page runs from the story scroller to the high scores and both dialogs, with two marked stand-ins: the mission (M4) and the content and loading of a saved game (M7). The port's key layer is complete in `src/portkeys.c`; M4 only has to port the reader `ingame_keys`. The user has been asked to look at `dist/wof-look.html` and to say whether the fades are too fast, too slow or right, and whether losing the cheat sequence is acceptable.
 4. **Open points 2, 3 and 5, and point 13** (Opus where the change report, the oracle or the ROM decide; Fable only for a part that turns out to be pure reading). Before M4.
 5. **M4 onward** (Opus).
 
@@ -91,7 +91,10 @@ The user chose the order on 2026-09-20: the front end first, because it shows pr
 
 - **VBlanks per pass** is a core setting, provisionally 2. Due before M4. The user has a real Amiga; the agreed method is to film the screen in slow motion and count how many video frames each game picture stays up, in a quiet and in a busy scene. Parked until M4 approaches.
 - **The order of a directory** as `ExNext` gives it, chain 0 upward and a new entry at the head of its chain, is documented behaviour that nothing here has confirmed; the disk image does not settle it. The user's Amiga could: `list` on a scratch disk with a few files whose names share a hash chain shows the order. It matters only when two saved games share a chain. Parked; ask together with the VBlank filming.
-- **The duration of a fade step** is CPU-bound in the original and takes no time under the harness. M3 gives it a fixed number of VBlanks as a provisional setting; the same filming of the real machine would settle it.
+- **The duration of a fade step** is CPU-bound in the original and takes no time under the harness. The port gives it 2 VBlanks, one constant, `WOF_FADE_VBLANKS` in `src/fade.c`. The user's impression of the logo, title and credits decides it for now; filming the real machine would settle it.
+- Things M3 left for later, each marked in the source: the pause request when fullscreen is left (needs M4's pause and M9's fullscreen); "Exit Game" in the dialog, which is treated as a cancel; the briefing's two lower numbers, which show 0 until M4 sets a mission up; demo playback and recording (M7).
+- The harness's `InitRastPort` stub leaves `TxBaseline` at 0 where a machine fills it from the font; the port's line editor adds 6, which is right for topaz 8. Fill the stub in before a compared run goes through `text_input`.
+- The suite takes about 310 seconds since M3, most of it headless runs of the original. If it grows much further, split the slow differential tests off with a marker.
 - The sky flash: its writers are named in `re/notes/frontend.md`, no short mission script provoked it. Due before M5.
 - The blitter's area-mode model in `tests/blitter.py` is documented behaviour, not derived from the original. Compare with a cycle-exact emulator when `line_draw` is ported.
 - The facing markers and mirrored pixels of `hellcat.shp` and `Torpedo.shp` must enter the save state in M4.
@@ -111,6 +114,10 @@ The user chose the order on 2026-09-20: the front end first, because it shows pr
 - A scripted key event is never a user gesture, and a modifier key alone is not one either. Browser tests press keys through the driver.
 - An unquoted shell heredoc executes the backticks of any JavaScript inside it. Quote the delimiter.
 - `cut` on `re/functions.csv` miscounts, because string columns contain commas. Use a CSV reader.
+- The machine sleeps when left alone, and a sleep stops every session: on 2026-09-20 it cost an hour in the middle of M3. Before an unattended run start `caffeinate -ims -t 43200` in the background, and tell the worker that any test that ran across a sleep is void.
+- An idle notice fires at every pause between a worker's turns, also while it waits for a long command of its own. Subscribe once with the task and do not subscribe again; the report arrives as a message. If a worker looks stopped, look at the session list and the process list, read-only.
+- The permission classifier refuses a compound command that ends by overwriting `dist/wof-look.html`. Merge, build and copy in separate commands, and check that a backup of the old copy exists before the copy.
+- A key or button press sent by a test driver is one VBlank wide, and the front end polls the button once per pass, as the machine does. Page tests hold fire for a tenth of a second.
 - A suite run as `pytest ... | tail` exits with the code of `tail`. Read the line with the pass count before merging; an exit code of 0 proves nothing there.
 - A run description is JSON and takes decimal numbers only; raw key codes written in hexadecimal do not load.
 - A comment-only edit in `src/core.c` that added a line made `core.wasm` one byte larger; the cause is not established. When a review relies on the binary being the same size as before, rebuild and look, even after touching only comments.
