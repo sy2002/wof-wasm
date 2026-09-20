@@ -100,9 +100,16 @@ Entirely separate from the input byte, so it does not reach game logic through t
 
 The buffer is drained by the routines at `0x0207DA`–`0x020828`. Because the codes are raw and positional, the port's key mapping has to be positional too.
 
+## Answered elsewhere
+
+- **Which raw key codes the game tests, and in which states**: `re/notes/keys.md`, with the five
+  readers of the buffer, the table of commands and a run of the headless original behind each row.
+  Control is the qualifier bit `0x0008`; raw codes become characters through console.device
+  `RawKeyConvert` and the system keymap.
+- **Whether `rmb_down` is read anywhere that matters**: it is not. `input_handler` writes it from
+  raw codes `0x69` and `0xE9` and nothing in the executable reads it (`re/notes/keys.md`).
+
 ## Open
 
-- Which raw key codes the game actually tests, and in which states. Follow the readers at `0x0207DA` upward.
 - `read_joy_dispatch` (`0x01CB20`) takes an alternative path to `sub_021DCE` when `g_026EB0` is set. Establish what that is; a second controller type is a plausible guess but it is only a guess.
-- Whether `rmb_down` is read anywhere that matters.
 - What the meaning of tap versus hold is in each game state, which is a question for the consumers of `tick_input`, not for this note.

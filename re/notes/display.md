@@ -186,12 +186,18 @@ Pictures appear like this: `load_picture_black` (`0x017422`) decodes the file in
 
 The ILBM reader in use is `iff_to_vport` (`0x01A548`) with `iff_parse_ilbm` (`0x01A452`); it knows `BMHD`, `CMAP`, `CMP2` and `BODY` and ignores everything else. `iff_body_to_vport` (`0x01A362`) clears the viewport's planes, then decodes min(picture rows, viewport height) rows of min(picture planes, viewport depth) planes with `byterun1_row` (`0x0203E8`), (width + 7) / 8 bytes per row, written back to back. It assumes ByteRun1 without looking at the compression byte and does not skip a mask plane or surplus planes; no file that is loaded needs either. Pictures taller than their viewport are cut off at the bottom: `broderbund`, `wingstitle` and `selectrank` are 256 rows high and show their first 200, `Rank.iff` its first 147, `hiscoreslab` its first 145.
 
+## Answered elsewhere
+
+`story_screen`, the briefing at `0x018590`, the two dialogs and the high-score screen were read
+here only as far as their geometry. What they draw, in what order and with what timing is in
+`re/notes/frontend.md`, observed under the headless original. They draw text with
+graphics.library `Text` on these RastPorts and never open or set a font, so they use the system
+default font, which is not on the game disk (`re/notes/system-font.md`).
+
 ## Open
 
 - **Duration of the fades.** Reading cannot settle it. Experiment: count the instructions one step of `fade_to` executes under the oracle for an estimate, or count VBlanks across a fade in a cycle-exact Amiga emulator for the real figure, and give the port a fixed number of VBlanks per step.
 - `cop_vport_planes` was read for the case x 0 only. Its clipping branches are unreachable with the positions the game uses and need not be ported.
 - The meaning of the words at `0x026E60` and `0x024F36` that drive the split line belongs to the scrolling code of M4.
-- What sets `flash_count` and `flash_colour`.
 - The layout of a `view_caches` entry (20 bytes per view), which belongs to the dashboard drawing.
-- `story_screen`, `0x018590` and the dialogs were read only as far as their screen geometry. Their drawing, text and timing are due before M3.
-- The load and save dialog and the name entry draw text with graphics.library `Text` on these RastPorts. No font is ever opened or set, so they use the system default font, which is not on the game disk.
+- What sets `flash_count` and `flash_colour`: the writers are named in `re/notes/frontend.md`. They are all in the weapon and explosion code, and no short mission script reached one, so the observation belongs to M5.

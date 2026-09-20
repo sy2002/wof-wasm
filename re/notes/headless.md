@@ -43,6 +43,18 @@ The harness does not model this arithmetic. The routines are pure register code,
 
 The port needs these nine operations bit-exact, in integer code (`SPEC.md` section 7.1), and the ROM's routines under the oracle are the reference to test them against.
 
+## The keyboard needs the ROM too
+
+`key_to_char` (`0x020700`) turns a raw key code into a character with **console.device
+`RawKeyConvert`** and the system's default keymap, which is not on the game disk. That routine is
+pure — it reads the event, the keymap and nothing of the device — so the real one runs from the
+ROM as well. Both it and the keymap are found in the ROM by their contents
+(`headless._find_rom_console`): the resident module by its name, its function table through the
+`lea d16(pc),a0` its init code begins with, `RawKeyConvert` as LVO −48, and the keymap by a
+pointer to the `LoKeyMap`, which is recognised by the QWERTY row. In a 256 KB Kickstart 1.3 image
+they sit at `0xFE6D18` and `0xFE7F8A`. Without the ROM a run stops at the first key the game
+converts. `re/notes/keys.md` has the table and what it means for the port.
+
 ## Scheduling
 
 The main program blocks and the VBlank interrupt is asynchronous; an emulator that delivered interrupts after some count of instructions would make every result depend on the emulator. The rule here is:
@@ -67,7 +79,7 @@ Consequences:
 
 ### The front end runs for real
 
-The title sequence, the rank selection and the briefing are not stubbed. They wait through `WaitTOF`, `wait_vblank` and `Delay`, poll the button and the key buffer, and the scripted controller carries them along. A run without any input also works: the title sequence runs out, `rank_select` (`0x018262`) gives up after 1800 VBlanks in `menu_input` (`0x018194`) and asks for demo playback, `wofdemo` is not on the disk, `demo_mode` falls back to 0 and a mission begins, after 6925 VBlanks. M3 can therefore use the same harness for the front end: what it needs on top is `ExNext` and a directory `Lock` for the file list of the load and save dialog, which are not stubbed yet.
+The title sequence, the rank selection and the briefing are not stubbed. They wait through `WaitTOF`, `wait_vblank` and `Delay`, poll the button and the key buffer, and the scripted controller carries them along. A run without any input also works: the title sequence runs out, `rank_select` (`0x018262`) gives up after 1800 VBlanks in `menu_input` (`0x018194`) and asks for demo playback, `wofdemo` is not on the disk, `demo_mode` falls back to 0 and a mission begins, after 6925 VBlanks. The load and save dialog runs too, with the directory `Lock` and `ExNext` below. What the whole front end does, screen by screen and VBlank by VBlank, is in `re/notes/frontend.md`.
 
 ## Input
 
@@ -75,7 +87,7 @@ The title sequence, the rank selection and the briefing are not stubbed. They wa
 
 **Bit 0 is the stick pushed forward.** The hardware reports the forward switch as bit 9 exclusive-or bit 8 of `JOY1DAT` and the back switch as bit 1 exclusive-or bit 0. With `JOY1DAT` = `0x0100`, forward alone, `read_joy_bits` returns 1, which is bit 0; with `0x0001`, back alone, it returns 2. The menus treat forward as up: for the forward switch `read_joy_dir8` (`0x020488`) returns 1, and `menu_input` answers 1 with −1, exactly as it answers the cursor-up key `0x4C`; the back switch gives 5 and +1, like cursor-down `0x4D`. In flight forward climbs: the take-off below needs it, and pulled back instead the aircraft goes over the bow. Pushing the stick away climbs, arcade fashion, and `opt_invert_vertical` turns that into pulling back. Two tests pin these facts.
 
-**Keys** are raw Amiga key codes attached to a script segment. Each goes as an `IECLASS_RAWKEY` event through the handler the game put on input.device (`input_handler` `0x02075A`), before the servers of that VBlank.
+**Keys** are raw Amiga key codes attached to a script segment. Each goes as an `IECLASS_RAWKEY` event through the handler the game put on input.device (`input_handler` `0x02075A`), before the servers of that VBlank. A key may carry a qualifier: an entry of the list is a bare code, which means qualifier 0, or `[code, qualifier]`, where the qualifier is a number or names of `IEQUALIFIER` bits joined with `+` (`headless.QUALIFIERS`). What the game does with each key is in `re/notes/keys.md`.
 
 **Byte mode** replaces the byte the server has just sampled: a hook at `0x0117D8`, behind the call of `read_joystick`, overwrites `input_byte` (`0x027366`) with the next value of the list `bytes`, from the first sample after the first mission has begun, and only while `demo_mode` is 0. Queue, divider and drop rule stay the original's. After the list: 0.
 
@@ -135,9 +147,11 @@ A call for which `headless_os.py` has no method ends the run with the library, t
 | `graphics.WaitTOF` | one VBlank | |
 | `graphics.OwnBlitter`, `DisownBlitter`, `BltClear`, `BltTemplate`, `RectFill` | nothing | |
 | `graphics.BltBitMap` | nothing | 0 |
-| `dos.Lock`, `Open` | files from `original/disk/Wings_of_Fury`, case ignored; `MODE_NEWFILE` creates a file in the overlay | a handle, or 0 with `IoErr` 205 |
-| `dos.Examine` | a FileInfoBlock with a file's type, name and size | −1 |
-| `dos.Read`, `Write`, `Seek`, `Close`, `UnLock`, `IoErr`, `DeleteFile` | as dos does; nothing is ever written to `original/` | |
+| `dos.Lock`, `Open` | files from `original/disk/Wings_of_Fury`, case ignored; `MODE_NEWFILE` creates a file in the overlay. `Lock` also takes a directory, and a name of 0 is the game's own directory, which is what the load and save dialog asks for | a handle, or 0 with `IoErr` 205 |
+| `dos.Examine` | a FileInfoBlock with the type, the name and the size. `fib_FileName` is a plain string, which is what the dialog reads | −1 |
+| `dos.ExNext` | the next entry of a directory lock, in the order the file system hands them out | −1, or 0 with `IoErr` 232 at the end |
+| `dos.Read`, `Write`, `Seek`, `Close`, `UnLock`, `IoErr`, `DeleteFile` | as dos does; nothing is ever written to `original/`, and a deleted file is remembered so that it stays gone for the rest of the run | |
+| `device.RawKeyConvert` | the ROM's own, see above | the number of characters |
 | `dos.Delay` | VBlanks, see above | |
 | `dos.LoadSeg`, `UnLoadSeg` | a fake segment, see above | a BPTR; −1 |
 
@@ -182,6 +196,24 @@ The counters of `stop` are totals since the program's start; `vblanks` is checke
 Described at the top of `tools/headless_dump.py`. A sequence of records, each a JSON head and a binary payload. After the header every record is one step: `S` when a mission's inner loop is reached, `T` after a logic tick, `P` after a pass, with the totals of missions, ticks, passes, VBlanks and entropy reads, the word `tick_input`, a SHA-256 of the state and the state itself as byte ranges that changed since the previous step. The state is the executable's DATA and BSS range `0x023000`–`0x028004` and every live allocation outside display memory; a reader rebuilds it and can check it against the hash. The tick that `main` runs itself at a mission's start comes before that mission's `S`.
 
 A flight of 1260 ticks is 3778 steps and 1.8 MB.
+
+### Directories
+
+`ExNext` walks a directory in the file system's own order, not the alphabet: chain 0 upward and
+inside a chain from its head. The harness reads that order out of `original/wof.adf`
+(`headless_os.adf_order`) and puts what a run has saved at the head of its own chain, where a real
+file system would put it. The name hash that decides the chain is in `re/notes/frontend.md`, and a
+test checks it against every entry of five directory blocks of the image. Entries the image has but
+the extracted directory has not are left out, so that what a run lists is what it can also open.
+
+### Observers
+
+`Headless(run, observe=[...])` takes routine names or addresses and records every entry of them:
+the routine, the VBlank, pass and tick, all sixteen registers, and the longs and words above the
+return address, which are a C routine's arguments. An observer only reads, so a run with observers
+gives the same step hashes and the same schedule as one without, which
+`tests/test_frontend.py::test_an_observer_does_not_change_a_run` holds it to. This is how
+`re/notes/frontend.md` knows what the front-end screens draw and where.
 
 ### Change report, entropy log, schedule
 
@@ -236,7 +268,7 @@ On the development machine: the front end with fire presses 0.4 s, without any i
 ## Not covered
 
 - **Sound.** The audio interrupt never comes, so the effects engine never sees a channel end, and the player is not run. No dumped state outside the sound engine's own variables was seen to depend on it, but that was not examined. The event log of `SPEC.md` section 8, row Sound, needs a channel-end model and belongs to M8.
-- **The load and save dialog**: `ExNext`, a directory `Lock`, and `Text` metrics beyond the pen advance. Saved files work through the overlay and were not exercised.
+- **`Text` metrics** beyond the pen advance of 8 per character. `graphics.Text` draws nothing here, so what a dialog's text looks like is not observable; its pen positions are.
 - **Demo playback and recording.** A `wofdemo` file can be supplied through `files`; recording needs `argc` above 1, which the run description does not offer yet.
 - **Long campaigns.** The bump allocator has 8 MB and never reuses memory; start-up and the first mission take about 370 KB of it.
 - What `0x01CAC8` and `0x014D50` do with their random values, and what the three floating point routines compute, belong to the notes of the subsystems that own them.
