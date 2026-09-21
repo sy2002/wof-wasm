@@ -14,6 +14,7 @@ campaign (re/notes/porting-m4.md, "Night").
 import collections
 import os
 import sys
+import types
 
 import pytest
 
@@ -24,6 +25,8 @@ sys.path.insert(0, HERE)
 
 import map_decode                  # noqa: E402
 import m4compare                   # noqa: E402
+import m4complete                  # noqa: E402
+import m4state                     # noqa: E402
 import pass_observe                # noqa: E402
 
 SCRIPTS = ['deck', 'flight', 'climb', 'lost', 'gameover']
@@ -80,6 +83,9 @@ def compare_passes(replay, chart):
         oe, pe = r.original_entropy(k), r.port_entropy()
         if oe != pe:
             found.add('entropy', k, ('original', oe[:4], 'port', pe[:4]))
+        view = r.view_difference(memory)
+        if view:
+            found.add('view', k, view)
         rows = r.row_differences(memory)
         if rows:
             found.add('rows', k, rows[:2])
@@ -91,9 +97,26 @@ def compare_passes(replay, chart):
     return passes, found
 
 
+# What the recordings of this module wrote during their missions, for the completeness test,
+# so that it does not have to run the scripts again: (name, rate, pokes, more) -> writes.
+RECORDED = {}
+
+
+def recording_key(name, rate=2, pokes=None, more=None):
+    return (name, rate, tuple(sorted((pokes or {}).items())), repr(more))
+
+
+def keep_writes(key, machine):
+    RECORDED[key] = types.SimpleNamespace(
+        names=machine.names, alloc_labels=dict(machine.alloc_labels),
+        alloc_sizes=dict(machine.alloc_sizes), display_allocs=dict(machine.display_allocs),
+        at_s=list(machine.at_s), mission_writes=machine.mission_writes)
+
+
 def run_both_loops(ported, tmp_path, name, rate=2, pokes=None, more=None, loops=('open', 'closed')):
     dump_path = str(tmp_path / ('%s-%d.dump' % (name, rate)))
     machine = m4compare.record(name, dump_path, rate=rate, pokes=pokes, more=more)
+    keep_writes(recording_key(name, rate, pokes, more), machine)
     chart = map_decode.load('a')
     results = {}
     for mode in loops:
@@ -164,3 +187,28 @@ def test_the_setup_agrees_at_step_s(ported, tmp_path):
     differences = layout.differences(layout.port_globals(at_s=True), layout.port_mission(at_s=True),
                                      wg, wm, skip=SETUP_TICK_WRITES)
     assert differences == [], differences[:10]
+
+
+# The runs the completeness test covers: the five scripts, the night mission, and the two of
+# re/notes/passes.md that fire the guns and bomb an island, which reach the ricochets, the
+# soldiers and the targets' damage.
+COVERAGE_RUNS = [(name, None) for name in SCRIPTS] + [('flight', NIGHT), ('guns', None),
+                                                     ('bomb', None)]
+
+
+def test_every_address_a_mission_writes_is_compared_or_excluded(ported):
+    """V3: every address the original writes during a mission outside its tick - setup, pass,
+    VBlank, main program - is a registered field, compared by another check, or on the
+    exclusion list with its reason and milestone (tests/m4complete.py)."""
+    coverage = m4complete.Coverage(m4state.Layout(ported))
+    for name, pokes in COVERAGE_RUNS:
+        machine = RECORDED.get(recording_key(name, 2, pokes))
+        if machine is None:
+            machine = m4compare.Recorder(pass_observe.script(name), observe=(), pokes=pokes)
+            machine.run()
+        coverage.add(machine)
+    uncovered = coverage.ranges()
+    assert not uncovered, 'written during a mission and neither compared nor excluded:\n' + \
+        m4complete.describe(uncovered)
+    assert coverage.unused_rows() == [], 'rows no run needs any more: %s' % coverage.unused_rows()
+    assert coverage.pool_writes > 0

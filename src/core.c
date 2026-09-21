@@ -136,6 +136,34 @@ void wof_globals_from_image(void)
 #undef WOF_GLOBAL_ARRAY
 }
 
+/* The byte at an original address as the original's memory would hold it, big-endian,
+ * when a registered global covers the address.  Returns 0 when none does. */
+static int byte_of(const void *p, uint32_t size, uint32_t count, uint32_t base,
+                   uint32_t addr, uint8_t *out)
+{
+    uint32_t at;
+
+    if (addr < base || addr - base >= size * count)
+        return 0;
+    at = addr - base;
+    *out = ((const uint8_t *)p)[(at / size) * size + (size - 1u - at % size)];
+    return 1;
+}
+
+int wof_global_byte(uint32_t addr, uint8_t *out)
+{
+#define WOF_GLOBAL(n, t, a)                                                            \
+    if (byte_of(&wof_g.n, (uint32_t)sizeof(t), 1u, (uint32_t)(a), addr, out))         \
+        return 1;
+#define WOF_GLOBAL_ARRAY(n, t, c, a)                                                   \
+    if (byte_of(wof_g.n, (uint32_t)sizeof(t), (uint32_t)(c), (uint32_t)(a), addr, out)) \
+        return 1;
+#include "globals.def"
+#undef WOF_GLOBAL
+#undef WOF_GLOBAL_ARRAY
+    return 0;
+}
+
 /* ------------------------------------------------------------------ marked stand-ins */
 
 uint32_t wof_standin_hits(void)

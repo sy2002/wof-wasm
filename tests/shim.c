@@ -978,3 +978,79 @@ void wt_set_vblanks_per_pass(int n)          { wof_set_vblanks_per_pass(n); }
 void wt_set_step_s_hook(void (*hook)(uint32_t)) { wof_test_set_step_s_hook(hook); }
 void wt_set_pass_hook(void (*hook)(uint32_t, uint32_t)) { wof_test_set_pass_hook(hook); }
 void wt_present(void) { wof_screen_from_front_view(); }
+
+/* The surface of viewport `index` as indexed pixels, 8 * bytes_per_row wide and `rows`
+ * high (M4's picture check).  Returns the number of bytes copied, 0 if it does not fit;
+ * geometry[] gets bytes_per_row, rows and depth. */
+int wt_vport_surface(int index, uint8_t *out, int max, uint32_t *geometry)
+{
+    const wof_vport_t *v;
+    uint32_t n;
+
+    if (index < 0 || index >= WOF_VP_MAX)
+        return 0;
+    v = &wof_f.vport[index];
+    n = (uint32_t)v->bytes_per_row * 8u * v->rows;
+    geometry[0] = v->bytes_per_row;
+    geometry[1] = v->rows;
+    geometry[2] = v->depth;
+    if (n == 0 || n > (uint32_t)max)
+        return 0;
+    wof_mem_copy(out, wof_vport_pixels(v), n);
+    return (int)n;
+}
+
+/* M4's blits against the blitter model (V5): one drawing operation on a scratch viewport
+ * over `background`, with the clip rectangle given.  op 1: shape_blit without a mask of
+ * shape `index` of container `slot` at (a, b); op 2: rect_fill from (a, b) to (c, d)
+ * inclusive in colour e; op 3: the dashboard digit e at (a, b), with slot 11 choosing the
+ * night dashboard.  Returns the number of pixels written to out, or -1. */
+int wt_draw_op(int op, int slot, int index, int bytes_per_row, int rows, int depth,
+               int top, int bottom, int left, int right, int a, int b, int c, int d, int e,
+               const uint8_t *background, uint8_t *out)
+{
+    const wof_container_t *con = container(slot);
+    wof_vport_t v;
+    uint32_t    n = (uint32_t)bytes_per_row * 8u * rows;
+
+    if (n > WOF_VRAM_BYTES || !scratch_vport(&v, bytes_per_row * 8, rows, depth))
+        return -1;
+    v.hires = 1;
+    wof_mem_copy(wof_vport_pixels(&v), background, n);
+    wof_draw_set_target(&v);
+    wof_clip_set((int16_t)top, (int16_t)bottom, (int16_t)left, (int16_t)right);
+    if (op == 1) {
+        if (!con || index < 0 || index >= (int)con->count)
+            return -1;
+        wof_shape_blit(&con->shapes[index], 0, (int16_t)a, (int16_t)b);
+    } else if (op == 2) {
+        wof_rect_fill((int16_t)a, (int16_t)b, (int16_t)c, (int16_t)d, (uint8_t)e);
+    } else if (op == 3) {
+        wof_f.dash_night = (uint8_t)(slot == WOF_C_NIGHTDASH);
+        wof_dash_digit((int16_t)a, (int16_t)b, (uint16_t)e);
+    } else {
+        return -1;
+    }
+    wof_draw_set_target(0);
+    wof_mem_copy(out, wof_vport_pixels(&v), n);
+    return (int)n;
+}
+
+/* The container index a dashboard frame entry resolves to (dash_frames, dash_shape_names). */
+int wt_dash_index(int entry, int night)
+{
+    uint16_t h = wof_table_handle(night ? WOF_C_NIGHTDASH : WOF_C_DASH, (uint16_t)entry);
+
+    return h == WOF_SHAPE_NONE ? -1 : (int)(h & 0x7FFu);
+}
+
+/* vblank_server's mission half once, with the ticker plane (672 x 13 pixels) given and
+ * returned. */
+void wt_ticker_run(const uint8_t *in, uint8_t *out)
+{
+    uint8_t *plane = wof_f.vram + wof_f.ticker_base;
+
+    wof_mem_copy(plane, in, WOF_TICKER_BYTES);
+    wof_vblank_ticker();
+    wof_mem_copy(out, plane, WOF_TICKER_BYTES);
+}

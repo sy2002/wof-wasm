@@ -53,7 +53,7 @@ static void window_background(void)
 
 /* orig 0x0141B4 - the aircraft's height marker at the window's right edge: row 0x0D above
  * height 0x51, lower by a quarter of what the height falls short of it. */
-static void window_height(void)
+void wof_window_height(void)
 {
     wof_g.g_0253ba = 0x18;
     if (wof_g.draw_player_y >= 0x51)
@@ -213,7 +213,7 @@ void wof_map_window(void)
     window_background();
     if (wof_g.view_step != 1) {
         window_strip();
-        window_height();
+        wof_window_height();
     }
 }
 
@@ -221,7 +221,7 @@ void wof_map_window(void)
 
 /* orig 0x01F2B0 - one digit: a slice of dash shape 7, blitted without a mask at the row
  * digit_rows gives the digit, sign-extended from a byte as the original does. */
-static void digit(int16_t x, int16_t y, uint16_t d)
+void wof_dash_digit(int16_t x, int16_t y, uint16_t d)
 {
     const wof_shape_t *s = wof_shape_of(dash(7));
     int16_t            row = (int16_t)(int8_t)(uint8_t)((uint16_t)y + (d < 10 ? wof_tbl_digit_rows[d] : 0));
@@ -250,7 +250,7 @@ static void score(void)
     for (int i = 0; i < 8; i++)
         wof_g.score_text[i] = (uint8_t)text[i];
     for (int i = 0; text[i]; i++, x = (int16_t)(x + 0x0E))
-        digit(x, 0x0B, (uint16_t)(text[i] - '0'));
+        wof_dash_digit(x, 0x0B, (uint16_t)(text[i] - '0'));
 }
 
 /* orig 0x01F21A - the arrows that point to an enemy aircraft (M6). */
@@ -279,7 +279,7 @@ void wof_draw_dashboard(void)
 
     /* The oil gauge. */
     d5 = (int16_t)(p->oil - 0x60);
-    if (d5 < 0)
+    if ((int32_t)p->oil - 0x60 < 0)                               /* sub.w, bge: exact */
         d5 = 0;
     d5 = (int16_t)(d5 + d5);
     d5 = (int16_t)(d5 & (int16_t)0xFFFC);
@@ -413,8 +413,8 @@ void wof_draw_dashboard(void)
             c->w0e = (int16_t)d3;
             wof_g.clip_top = 0x14;
             wof_g.clip_bottom = 0x1C;
-            digit(0x1FC, 0x15, (uint16_t)(d3 / 10u));
-            digit(0x20A, 0x15, (uint16_t)(d3 % 10u));
+            wof_dash_digit(0x1FC, 0x15, (uint16_t)(d3 / 10u));
+            wof_dash_digit(0x20A, 0x15, (uint16_t)(d3 % 10u));
             wof_g.clip_top = 0x13;
             wof_g.clip_bottom = 0x1F;
             n1 = c->w0e;

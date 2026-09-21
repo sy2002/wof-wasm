@@ -178,8 +178,8 @@ void wof_input_queue_clear(void)
  * VBlank while 0x0255C8 says a message is running, taking the next character of the
  * message into the hidden column at byte 80 whenever the last one has scrolled its width
  * (re/notes/display.md).  No script of M4 runs a message; the scroll and the glyph copy are
- * ported from reading and held to the original under the oracle (tests/test_world.py). */
-static void ticker(void)
+ * ported from reading and held to the original under the oracle (tests/test_oracle_m4.py). */
+void wof_vblank_ticker(void)
 {
     uint8_t *plane = wof_f.vram + wof_f.ticker_base;
 
@@ -270,7 +270,7 @@ void wof_vblank(uint8_t raw)
     vblank_every_frame();
 
     if ((int16_t)--wof_g.vblank_divider > 0) {
-        ticker();
+        wof_vblank_ticker();
         return;
     }
     wof_g.vblank_divider = VBLANKS_PER_TICK;
@@ -290,16 +290,21 @@ void wof_vblank(uint8_t raw)
     /* The count of samples taken, which is the rate one logic tick per queued byte runs
      * at: wof_tick_count.  The ticks the inner loop runs are counted in wof_f.ticks_run. */
     wof_s.ticks++;
-    ticker();
+    wof_vblank_ticker();
 }
 
-/* A byte of a ticker message.  The original keeps the message pointer at 0x0257B6 and the
- * messages in its own data; the port names a message by that address and reads it from the
- * executable's initialised DATA hunk (re/tables.toml, data_image). */
+/* A byte of a ticker message.  The original keeps the message pointer at 0x0257B6; the
+ * port keeps the same address and reads the byte from the registered global that holds it
+ * (the tick writes its messages with sprintf into ticker_text and ticker_text_2), or from
+ * the executable's initialised DATA hunk for a constant text (re/tables.toml, data_image). */
 uint8_t wof_ticker_char(uint32_t addr)
 {
+    uint8_t b;
+
+    if (wof_global_byte(addr, &b))
+        return b;
     if (addr >= 0x023000u && addr - 0x023000u < sizeof wof_tbl_data_image)
         return wof_tbl_data_image[addr - 0x023000u];
-    WOF_STANDIN("M7 STAND-IN: a ticker message outside the DATA hunk");
+    WOF_STANDIN("M4 PART 2 STAND-IN: a ticker message outside the registered state");
     return 0;
 }

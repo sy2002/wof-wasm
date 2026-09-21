@@ -437,6 +437,7 @@ extern wof_state_t wof_s;
  * and every entry of src/globals.def and src/mission.def that has an address inside it is
  * loaded from there, with the byte order converted.  wof_init calls it after zeroing. */
 void wof_globals_from_image(void);
+int  wof_global_byte(uint32_t orig_address, uint8_t *out);   /* a registered global's byte */
 
 /* ------------------------------------------------------------- the marked stand-ins (M4)
  *
@@ -637,7 +638,8 @@ uint16_t wof_text_width(const char *s, uint16_t len);
 uint8_t  wof_font_first(void);
 uint8_t  wof_font_width_byte(uint8_t index);
 uint16_t wof_font_glyph_word(uint8_t index, uint32_t byte_offset);
-uint8_t  wof_ticker_char(uint32_t orig_address);     /* a byte of the executable's text */
+uint8_t  wof_ticker_char(uint32_t orig_address);     /* a byte of a ticker message */
+void     wof_vblank_ticker(void);                    /* orig 0x011842, vblank_server's mission half */
 uint16_t wof_text_render(const char *s, uint16_t len, uint8_t *buffer, int16_t x, int16_t row,
                          int16_t justify, int16_t buf_w, int16_t buf_h);
 void     wof_text_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_t pen);
@@ -874,6 +876,14 @@ void     wof_draw_player(void);             /* orig 0x0103A6 */
 void     wof_draw_enemy_aircraft(void);     /* orig 0x010DA6 */
 void     wof_map_window(void);              /* orig 0x01417E */
 void     wof_draw_dashboard(void);          /* orig 0x01EE16 */
+void     wof_draw_game_over(void);          /* orig 0x0110C2 */
+void     wof_window_height(void);           /* orig 0x0141B4 */
+void     wof_clip_to_waterline(void);       /* orig 0x01526E */
+int      wof_ship_at_offset(int16_t x);     /* orig 0x014A4E: the ship's index, or -1 */
+void     wof_deck_span(void);               /* orig 0x01B7BC */
+void     wof_weapon_gauge_reset(void);      /* orig 0x01EDBC */
+void     wof_lives_gauge_reset(void);       /* orig 0x01EDEA */
+void     wof_dash_digit(int16_t x, int16_t y, uint16_t d); /* orig 0x01F2B0 */
 void     wof_clip_playfield(void);          /* orig 0x01524A */
 void     wof_draw_at(uint16_t handle, int16_t x, int16_t y);
 void     wof_draw_world_shape(int table, int16_t slot, int16_t x, int16_t y);  /* orig 0x015174 */

@@ -79,7 +79,7 @@ void wof_clip_playfield(void)
 
 /* orig 0x01526E - the playfield's clip with its bottom at the carrier's waterline, or 161
  * while 0x025394 is clear (re/notes/drawing.md). */
-static void clip_to_waterline(void)
+void wof_clip_to_waterline(void)
 {
     int16_t d1 = (int16_t)(0xA2 - carrier.w0e + carrier.row + wof_g.g_026e56 + 3);
 
@@ -143,7 +143,7 @@ static void snapshot_for_draw(void)
  * world x in D0, tested in the order destroyer, battleship, cruise ship, japanese carrier
  * and the player's carrier, each but the last only when the map carries it.  Returns the
  * ship's index, or -1 (the original's moveq #-1,d0). */
-static int ship_at_offset(int16_t x)
+int wof_ship_at_offset(int16_t x)
 {
     static const uint8_t order[4] = { 0, 1, 2, 3 };
     const uint8_t *flag[4] = { &wof_g.has_destroyer, &wof_g.has_battleship,
@@ -171,7 +171,7 @@ static int16_t ride_on_ship(int16_t d4, int16_t d1)
     if (wof_g.view_shift)
         d0 = (int16_t)(uint16_t)((uint16_t)d0 << 3);
     d0 = (int16_t)(d0 + wof_g.draw_player_x);
-    ship = ship_at_offset(d0);
+    ship = wof_ship_at_offset(d0);
     if (ship < 0)
         return d1;
     {
@@ -284,9 +284,10 @@ static void deck_aircraft(void)
     if (carrier.present == 0)
         return;
     d3 = wof_g.lives;
-    if (d3 > 9)
+    if (d3 > 9)                                                   /* cmp.b, bls: unsigned */
         d3 = 9;
-    if ((int8_t)--d3 <= 0)
+    d3--;                                                         /* subq.b, ble: 1 or less */
+    if (d3 == 0 || d3 == 0xFF)
         return;
     d0 = (int16_t)(wof_g.player_start_x - 0xC8);
     d1 = (int16_t)(0x0B - wof_g.g_026e56);
@@ -307,7 +308,7 @@ static void lift_aircraft(void)
     if (wof_g.g_025394 != 1) {
         int16_t d1 = (int16_t)(carrier.w0e - carrier.row + 0x0B - wof_g.g_025396 - wof_g.g_026e56);
 
-        clip_to_waterline();
+        wof_clip_to_waterline();
         wof_draw_world_shape(T_MASTER, 0x25, wof_g.player_start_x, d1);
     }
     wof_clip_playfield();
@@ -375,9 +376,11 @@ static void islands(int16_t d1_in)
 
 /* orig 0x014D50 - whether a target of the map shows its firing frame this pass: never while
  * the aircraft is on the deck; in the eighth-scale view on a coin of rand_beam's top bit;
- * at full scale by 0x014DB8's range test, of which the five scripts only met targets more
- * than 0x200 pixels behind the aircraft.  D0 is the target's world x.  Returns the frame,
- * or -1. */
+ * at full scale by 0x014DB8's range test, which gives none for a target more than 0x200
+ * pixels behind or ahead of the aircraft.  The five scripts met only such targets; one in
+ * range goes on to a frame by height and distance (M5).  D0 is the target's world x.
+ * Returns the frame, or -1.  `sub.w d0,d1` and `bgt` decide on the exact difference, the
+ * two compares with 0x200 on the 16-bit one. */
 static int16_t target_frame(int16_t x)
 {
     if (wof_m.player[0].on_deck != 0)
@@ -387,13 +390,18 @@ static int16_t target_frame(int16_t x)
 
         return (r & 0x8000u) ? 0x5A : -1;
     }
+    if (wof_g.view_step == 1) {                                   /* orig 0x014DB8 */
+        WOF_STANDIN("M5 STAND-IN: 0x014DCA, the range test in the eighth-scale view");
+        return -1;
+    }
     {
-        int16_t d1 = (int16_t)(wof_g.draw_player_x - x);           /* orig 0x014DB8 */
+        int32_t r  = (int32_t)wof_g.draw_player_x - x;
+        int16_t d1 = (int16_t)r;
 
-        if (d1 > 0 && d1 > 0x200)
+        if (r > 0 ? d1 > 0x200 : d1 < -0x200)
             return -1;
     }
-    WOF_STANDIN("M5 STAND-IN: 0x014DD6, a target within range at full scale");
+    WOF_STANDIN("M5 STAND-IN: 0x014DE8, a target within range at full scale");
     return -1;
 }
 
@@ -586,7 +594,7 @@ void wof_draw_player(void)
     }
     d6 = 0xA0;
     d7 = (int16_t)((int16_t)(wof_g.view_y - wof_g.draw_player_y) >> wof_g.view_shift);
-    clip_to_waterline();
+    wof_clip_to_waterline();
     if (wof_g.draw_attitude == 0 && wof_g.weapon_type == 2 && wof_g.weapon_count &&
         !wof_g.view_shift)
         WOF_STANDIN("M5 STAND-IN: 0x01052A, the torpedo under a level aircraft");
@@ -851,9 +859,11 @@ static void balloons(void)
 
 /* orig 0x0110C2 draw_game_over - `gmov` from world.shp, centred on the playfield, while the
  * game is over; then the countdown in game_over_count, which sets quit_flag when it runs
- * out.  In the five scripts the game ended with the count at zero, so the countdown is
- * ported from reading and held to the original under the oracle (tests/test_world.py). */
-static void draw_game_over(void)
+ * out: `subq.b #1` and `bgt`, so the flag is set when the count was 1 or below as a signed
+ * byte before the step, 0x80 included.  In the five scripts the game ended with the count
+ * at zero, so the countdown is held to the original under the oracle for every count
+ * (tests/test_oracle_m4.py). */
+void wof_draw_game_over(void)
 {
     if (!wof_g.game_over)
         return;
@@ -869,8 +879,10 @@ static void draw_game_over(void)
         }
     }
     if (wof_g.game_over_count) {
+        int8_t before = (int8_t)wof_g.game_over_count;
+
         wof_g.game_over_count--;
-        if ((int8_t)wof_g.game_over_count <= 0)
+        if (before <= 1)
             wof_g.quit_flag = 0xFF;
     }
 }
@@ -928,7 +940,7 @@ wof_co_t wof_frame_update(void)
         if (wof_g.view_step == 1) {
             wof_g.view_y = 0x4B8;
         } else {
-            int16_t d = (int16_t)(wof_g.draw_player_y - 0x83);
+            int32_t d = (int32_t)wof_g.draw_player_y - 0x83;     /* sub.w, ble: exact */
 
             if (d > 0)
                 d0 = (int16_t)(d0 + d);
@@ -951,7 +963,7 @@ wof_co_t wof_frame_update(void)
     objects();
     weapon_marker();
     balloons();
-    draw_game_over();
+    wof_draw_game_over();
     wof_clip_set(0, 0x25, 0, 0x280);                         /* clip_dashboard 0x01F2DC */
     {
         wof_vport_t *play = wof_back_vport();

@@ -240,3 +240,5 @@ WOF_GLOBAL(frame_drawn,        uint8_t,  0x026E3C)
 WOF_GLOBAL(g_027458,           uint8_t,  0x027458)
 WOF_GLOBAL(g_0276fc,           uint8_t,  0x0276FC)
 WOF_GLOBAL_ARRAY(score_text,   uint8_t, 8, 0x027F22)  /* sprintf("%ld") of the score, for the digits */
+WOF_GLOBAL_ARRAY(ticker_text,  uint8_t, 300, 0x02716A)  /* the tick's sprintf targets of the ticker */
+WOF_GLOBAL_ARRAY(ticker_text_2, uint8_t, 102, 0x027E00) /* messages (0x011D52, 0x01CE72, 0x01D02E) */

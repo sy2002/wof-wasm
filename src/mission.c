@@ -137,7 +137,7 @@ void wof_demo_end(void)
 /* ------------------------------------------------------- the outer loop's reset, 0x013562 */
 
 /* orig 0x01EDEA - the lives drum: its target row, and both buffers told to redraw it. */
-static void lives_gauge_reset(void)
+void wof_lives_gauge_reset(void)
 {
     uint8_t d0 = wof_g.lives;
 
@@ -151,7 +151,7 @@ static void lives_gauge_reset(void)
 }
 
 /* orig 0x01EDBC - the two drums of the weapon counter, from weapon_count by divu #10. */
-static void weapon_gauge_reset(void)
+void wof_weapon_gauge_reset(void)
 {
     uint16_t n = wof_g.weapon_count;
     uint16_t q = (uint16_t)(n / 10u), r = (uint16_t)(n % 10u);
@@ -209,7 +209,7 @@ uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame)
 }
 
 /* orig 0x01B7BC - the carrier's deck as world x, sixteen pixels in from both ends. */
-static void deck_span(void)
+void wof_deck_span(void)
 {
     wof_g.g_0253fc = (int16_t)((uint16_t)carrier.span0 << 2);
     wof_g.g_0253fe = (int16_t)((uint16_t)carrier.span1 << 2);
@@ -222,7 +222,7 @@ static void player_reset(void)
 {
     wof_player_t *p = &wof_m.player[0];
 
-    deck_span();
+    wof_deck_span();
     p->y = 0;
     p->speed_x = 0;
     p->speed_y = 0;
@@ -270,7 +270,7 @@ void wof_player_restart_state(void)
     wof_g.g_02536c = 0;
     if (wof_g.weapon_count != 0xFF)
         wof_g.weapon_count = wof_tbl_weapons_per_type[wof_g.weapon_type];
-    weapon_gauge_reset();
+    wof_weapon_gauge_reset();
     wof_g.g_0253a8 = 2;
     wof_g.g_0253ac = -1;
     wof_g.g_0253b0 = 8;
@@ -338,7 +338,7 @@ void wof_campaign_reset(void)
     wof_g.g_025354 = 0x400;
     wof_g.g_025358 = 0x55;
     wof_g.g_02535a = 0xA0;
-    lives_gauge_reset();
+    wof_lives_gauge_reset();
     aircraft_clear();
     wof_mission_reset_tables();
 }

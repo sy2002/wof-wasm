@@ -64,9 +64,15 @@ class Reference:
 
     def draw(self, index, x, y, clip, background):
         """The original's shape_draw, as indexed pixels over `background`."""
+        return self.replay(clip, background,
+                           lambda: self.original.shape_draw(self.container['records'][index], x, y))
+
+    def replay(self, clip, background, call):
+        """Any drawing call of the original, as indexed pixels over `background`: `call`
+        runs it under the oracle, and the blits it started are replayed by the model."""
         self.blits.clear()
         self.original.clip_set(*clip)
-        self.original.shape_draw(self.container['records'][index], x, y)
+        call()
 
         # MaskBuffer is what the CPU part of shape_draw produced this time round.
         off = self.mask_buffer - self.mem.base

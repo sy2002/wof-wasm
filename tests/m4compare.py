@@ -32,8 +32,8 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 sys.path.insert(0, HERE)
 
-from unicorn import UC_HOOK_MEM_WRITE                 # noqa: E402
-from unicorn.m68k_const import UC_M68K_REG_A7         # noqa: E402
+from unicorn import UC_HOOK_CODE, UC_HOOK_MEM_WRITE   # noqa: E402
+from unicorn.m68k_const import UC_M68K_REG_A7, UC_M68K_REG_PC   # noqa: E402
 
 import headless                                       # noqa: E402
 import headless_dump as dump                          # noqa: E402
@@ -56,7 +56,6 @@ RASTPORTS = {0x027748 + 0x2C: 0, 0x0277F4 + 0x2C: 1, 0x0278A0 + 0x2C: 2, 0x02794
 VIEW_A, VIEW_B = 0x0279F8, 0x027A06
 FRONT_VIEW = 0x026E30
 
-
 def signed(v, bits=16):
     v &= (1 << bits) - 1
     return v - (1 << bits) if v >> (bits - 1) else v
@@ -70,8 +69,16 @@ def entropy_state(seed, n):
     return state
 
 
+# Where main is when a mission's setup begins (the briefing has returned, for the first
+# mission of a campaign and for the next ones), where its inner loop begins (step S), and
+# where a mission is over (tools/reach_observe.py, WINDOW_MARKS).
+MISSION_WINDOW = {0x0100B2: 'setup', 0x010170: 'setup', 0x01010A: 'mission',
+                  0x010132: None, 0x0101C6: None}
+
+
 class Recorder(headless.Headless):
-    """The headless original with, per step, the addresses its tick wrote."""
+    """The headless original with, per step, the addresses its tick wrote, and every write
+    made during a mission outside the tick (the completeness check, V3)."""
 
     def __init__(self, run, observe=DRAW_OBSERVERS, pokes=None, **options):
         super().__init__(run, observe=observe, **options)
@@ -79,12 +86,24 @@ class Recorder(headless.Headless):
         self._t = set()
         self.entropy_phase = []                   # the phase of every entropy read
         self.pokes = pokes or {}
-        self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=headless.DATA_START,
-                         end=headless.DATA_END - 1)
-        self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=headless.HEAP_BASE,
-                         end=headless.HEAP_END - 1)
+        self.window = None
+        self.mission_writes = {}                  # address -> {(window, phase, routine start)}
+        self.at_s = []                            # the DATA hunk at every step S
+        self._starts = {}
+        for begin, end in ((headless.DATA_START, headless.DATA_END),
+                           (headless.HEAP_BASE, headless.HEAP_END),
+                           (headless.PLANE_BASE, headless.PLANE_END)):
+            self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=begin, end=end - 1)
+        for address in MISSION_WINDOW:
+            self.uc.hook_add(UC_HOOK_CODE, self._window, begin=address, end=address)
         if self.pokes:
             self.stop_at(0x01009E, self._poke)
+
+    def _window(self, uc, address, size, user):
+        self.window = MISSION_WINDOW[address]
+        if self.window == 'mission':
+            self.at_s.append(bytes(self.o.read(headless.DATA_START,
+                                               headless.DATA_END - headless.DATA_START)))
 
     def _beam_read(self, uc, access, address, size, value, user):
         before = len(self.entropy_log)
@@ -94,7 +113,22 @@ class Recorder(headless.Headless):
 
     def _write_t(self, uc, access, address, size, value, user):
         if self.in_tick:
-            self._t.update(range(address, address + size))
+            if address < headless.PLANE_BASE:
+                self._t.update(range(address, address + size))
+            return
+        if self.window is None:
+            return
+        pc = uc.reg_read(UC_M68K_REG_PC)
+        start = self._starts.get(pc)
+        if start is None:
+            start = self._starts[pc] = self.names.routine_start(pc)
+        key = (self.window, self.phase(), start)
+        for a in range(address, address + size):
+            slot = self.mission_writes.get(a)
+            if slot is None:
+                self.mission_writes[a] = {key}
+            else:
+                slot.add(key)
 
     def _poke(self):
         """The run's pokes at the rank selection's end (the night mission's instrument)."""
@@ -628,6 +662,13 @@ class Replay:
                 row.append(((r // 17) << 8) | ((g // 17) << 4) | (b // 17))
             rows.append(row)
         return rows
+
+    def view_difference(self, memory):
+        """Which of the two views is in front: the original keeps the pointer front_view,
+        the port the view's index.  None when they agree."""
+        want = 1 if memory.u(FRONT_VIEW, 4) == VIEW_B else 0
+        got = self.lib.wt_front_view()
+        return None if got == want else ('port', got, 'original', want)
 
     def row_differences(self, memory):
         want = self.expected_rows(memory)
