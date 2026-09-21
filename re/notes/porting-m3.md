@@ -103,7 +103,8 @@ outside the line editor, so a plain press of them never reaches a reader as a pl
 is affected, because a plain letter does nothing in the original either. Two things that are
 not in the manual are: the cheat sequence `c o l i n` (`re/notes/keys.md`) cannot be typed,
 because its `l` is the load command; and of the debug keys the cheat unlocks, `f` and `m`
-would be taken as well. Both belong to `ingame_keys`, which M4 ports.
+would be taken as well. Both belong to `ingame_keys`, which M4 ports as it is
+(`re/notes/porting-m4.md`, "`ingame_keys` and the pause").
 
 ### The vertical flip
 
@@ -132,7 +133,7 @@ Left out of the map on purpose:
 
 - **The function keys and Help.** A page that swallowed F5 or F12 would take reload and the
   developer tools away from the player. Their only readers in the whole executable are two
-  of the debug keys the cheat unlocks (raw `0x59` and `0x5F`), which belong to M4.
+  of the debug keys the cheat unlocks (raw `0x59` and `0x5F`), which M4 ports.
 - **The key left of 1** (`Backquote`), which is the diagnostics toggle. It is the one
   printable key the game never sees; a name typed in the high-score entry cannot contain it.
 - **Right Amiga**, so `text_input`'s "clear the whole line" (raw `0x32` with right Amiga)
@@ -311,10 +312,11 @@ page has nothing to end into, so the port treats it as a cancel and says so wher
 
 ## The development keys
 
-The save dialog and the high-score entry have no way in before M4 ports `ingame_keys`, and
-the owner has to be able to look at them. The shell offers three keys **while the
-diagnostics overlay is up**, and they are outside the port's key layer on purpose
-(`wof_dev_set_score`, `wof_dev_open_dialog`):
+In a mission the save dialog opens on the carrier with G, and the high-score entry follows
+a game over with a score that beats the tenth entry. So that both can be looked at without
+flying for them, the shell offers three keys **while the diagnostics overlay is up**, and
+they are outside the port's key layer on purpose (`wof_dev_set_score`,
+`wof_dev_open_dialog`):
 
 | Key | What it does |
 |---|---|

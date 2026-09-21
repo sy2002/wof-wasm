@@ -58,7 +58,7 @@ EXCLUDED = [
     (0x026F8A, 0x026F8B, {'object_draw_first'},
      'a count object_draw_first leaves for the debug view behind 0x02536D',
      'reached from the weapon drop, M5\'s stand-in at 0x01B5E2', 'M5'),
-    (0x027368, 0x027427, {'sub_011f76', 'sub_011f4e', 'sub_012066', 'sub_012132', 'sub_012324',
+    (0x027368, 0x027427, {'sub_011f76', 'sound_slots_clear', 'sound_channels', 'engine_sound', 'sub_012324',
                           'sub_01233e', 'sub_012354', 'sub_012380', 'sub_0123ac'},
      'the eight sound slots of 0x18 bytes: what sounds_load builds, and the sounds the tick '
      'starts, stops and moves (the engine, the lift, a splash, a touch-down)',
@@ -84,7 +84,7 @@ EXCLUDED = [
     (0x027DEC, 0x027DEF, {'player_reset'},
      'player_record: a pointer, always to player_y (0x025078)',
      'the port reaches the player\'s record directly', 'M4'),
-    (0x027DF0, 0x027DF3, {'sub_01aa6e', 'sub_01b682'},
+    (0x027DF0, 0x027DF3, {'turn_allowed', 'guns'},
      'g_027df0: the enemy aircraft record the walks of 0x01AA6E and 0x01B682 are on, set '
      'before every read',
      'the port walks the records by index', 'M4'),

@@ -678,3 +678,51 @@
 025384 island_count          ; byte: the islands map_scan counted
 0255c2 game_over_count       ; byte: draw_game_over's countdown to quit_flag
 027f22 score_text            ; 8 bytes: sprintf("%07ld") of the score
+
+# ---- the player and the tick, M4  (see re/notes/porting-m4.md, re/notes/objects.md)
+0112b0 weapon_menu           ; asm. the weapon menu in the hold: stick or cursor keys step it, the button sends the lift up
+011460 lift_step             ; asm. the lift, once per pass: up (0x025394 2) or down to the hold (3)
+011274 shot_origin           ; asm. the player's speeds and position as 16.16 longs from 0x026E62, the pitch as a bearing
+011bfc engine_smoke          ; asm. smoke from a damaged engine, by the oil (M6)
+010a72 objects_step          ; asm. the object records in the tick
+010aa6 object_step           ; asm. one object record: kind 8 lies still, the others fly (M5)
+0119bc gun_splashes          ; asm. the guns' bullets in the water (M5)
+011622 airfields_step        ; asm. the enemy's airfields launching aircraft (M6)
+011510 ship_launches         ; asm. the ships' aircraft (M6)
+011cae ships_sinking         ; asm. every ship afloat whose +0x0C has run out (M6)
+011cd8 ship_sinking          ; asm. one ship going down (M6)
+011de4 target_timers         ; asm. the fire timers of the slot-3 and slot-4 targets (M5)
+011c5e balloons_step         ; asm. the balloons (M5)
+012132 engine_sound          ; asm. the engine's volume 0x02542C and pitch 0x02542E eased, then the sound slots (M8)
+012066 sound_channels        ; asm. the sound slots onto the audio channels (M8)
+011f4e sound_slots_clear     ; asm. the eight sound slots cleared (M8)
+01e7d6 enemy_aircraft_step   ; C. the four enemy aircraft records (M6)
+0152b0 splash_spawn          ; asm. D0 = world x: a splash in the Splashes pool
+0135ce next_aircraft         ; asm. 0x027452 = 20, a life less, and on into player_lost_restart
+01c660 player_update         ; C. the player once per tick, by player_on_deck
+01bff4 flight_controls       ; C. the stick in the air: throttle, turns, pitch
+01c4e8 deck_controls         ; C. the stick on the deck: the roll, the turn on the spot
+01c378 frame_select          ; C. the player's frame and shape, the torpedo's, 0x02541A
+01afba crash                 ; C. the aircraft down: the sea, land or a ship
+01af7c lost_wait             ; C. after a crash: 150 ticks, or 30 with the button, then next_aircraft
+01aed8 wreck_smoke           ; C. smoke now and then from a wreck at rest
+01aa6e turn_allowed          ; C. no turn while an enemy aircraft is at a certain point of its pass (M6)
+01aaea wheel_height          ; C. the wheels below the aircraft's reference point
+01ab80 turn_step             ; C. a turn's step every second call; the facing changes at attitude 14
+01b45a hook_state            ; C. the hook out (0x02540A) on the deck and over the carrier's lift
+01b4de on_the_lift           ; C. whether the aircraft stands on the lift; 0x02535F why not
+01b5b0 button                ; C. the button: the other weapon, the guns, the lift down
+01b682 guns                  ; C. the guns against an enemy aircraft (M6)
+01b8c4 touches_ground        ; C. the wheels at or below the ground ahead
+01b92e cable_hook            ; C. the hook catches one of four cables: state 7
+01b9cc engine_idle           ; C. the engine's sound at rest
+01ba80 ground_contact        ; C. the touch-down, a bounce, or a crash
+01bc02 enemy_countdown_step  ; C. the countdown to the enemy aircraft; the button holds it at 750
+01bcce deck_state            ; C. 0x02535F on the deck: the lift, the deck's end ahead
+01bdba deck_roll             ; C. on the deck the airspeed moves the aircraft
+01c5f4 deck_edge             ; C. off an end of the deck into the air, else on the deck's height
+01c982 record_at             ; C. the map record under a world x, clamped to the list
+01cb74 on_water              ; C. whether a record is open sea
+01cae0 burn_smoke            ; C. a puff from the burning wreck
+0145a6 window_shape          ; asm. the shape of a record's class on a row of the 3-D view
+025aaa landing_stall         ; the stick forward alone flying left: the manual's stall; the touch-down needs it

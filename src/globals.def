@@ -160,7 +160,7 @@ WOF_GLOBAL(pitch_angle,        int16_t,  0x025AA2)  /* player_motion eases it to
 WOF_GLOBAL(g_025aa4,           int16_t,  0x025AA4)  /* the sinking wreck's tick counter */
 WOF_GLOBAL(g_025aa6,           int16_t,  0x025AA6)  /* ticks since the aircraft came to rest */
 WOF_GLOBAL(g_025aa8,           int16_t,  0x025AA8)  /* when the wreck's next puff of smoke is due */
-WOF_GLOBAL(g_025aaa,           int16_t,  0x025AAA)  /* the stick forward alone while flying left */
+WOF_GLOBAL(landing_stall,           int16_t,  0x025AAA)  /* the stick forward alone while flying left */
 WOF_GLOBAL(g_025e4c,           int16_t,  0x025E4C)  /* 0x01BCCE: the airspeed / 4 */
 WOF_GLOBAL(g_025e4e,           int16_t,  0x025E4E)  /* the distance that airspeed needs to stop */
 WOF_GLOBAL(g_025e50,           int16_t,  0x025E50)  /* the distance to the lift */

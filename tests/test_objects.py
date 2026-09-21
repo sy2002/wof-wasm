@@ -40,8 +40,8 @@ TAPS = [[3, 'F'], [13, '']] * 20 + [[100, '']]
 def firing():
     """A take-off and then twenty bombs: object records are claimed and freed all the time."""
     return run(TAPS, 330, summary=True, keep_report=False,
-               observe=['sub_010a72', 'sub_01e7d6', 'sub_0119bc', 'sub_011c5e',
-                        'sub_011e82', 'sub_01c660', 'sub_01b682'])
+               observe=['objects_step', 'enemy_aircraft_step', 'gun_splashes', 'balloons_step',
+                        'sub_011e82', 'player_update', 'guns'])
 
 
 def test_the_tables_are_where_the_note_says(firing):
@@ -87,9 +87,9 @@ def test_the_tick_walks_the_tables_in_one_order(firing):
         if record['routine'] not in seen:
             seen.add(record['routine'])
             order.append(record['routine'])
-    assert order.index('sub_01c660') < order.index('sub_010a72'), order
-    assert 'sub_0119bc' in order and 'sub_011c5e' in order, order
-    assert order.index('sub_010a72') < order.index('sub_0119bc'), order
+    assert order.index('player_update') < order.index('objects_step'), order
+    assert 'gun_splashes' in order and 'balloons_step' in order, order
+    assert order.index('objects_step') < order.index('gun_splashes'), order
 
 
 def test_firing_differs_from_not_firing_only_in_the_tables_the_note_names():

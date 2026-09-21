@@ -70,8 +70,8 @@ def test_the_tick_reads_the_pass_counter_and_the_sound_distance(summarised):
     """Two of the couplings of re/notes/passes.md, over a script short enough for the suite.
     The others need an object in the air or the restart and are shown by tools/pass_observe.py."""
     first, _, readers = summarised
-    assert 'sub_011460' in readers_of(first, readers, PASS_COUNTER)
-    assert readers_of(first, readers, SOUND_DISTANCE) == {'sub_012132'}
+    assert 'lift_step' in readers_of(first, readers, PASS_COUNTER)
+    assert readers_of(first, readers, SOUND_DISTANCE) == {'engine_sound'}
 
 
 def test_a_pass_writes_the_drawing_fields_of_every_object_record(summarised):

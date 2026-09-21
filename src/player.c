@@ -511,7 +511,7 @@ static void ground(void)
     if (wof_wheel_height() >= 0x37 || P.on_deck != 0 || !touches())
         return;
     if (deck) {
-        if (P.facing == -1 && wof_g.g_025aaa) {
+        if (P.facing == -1 && wof_g.landing_stall) {
             P.on_deck = 1;
             wof_g.g_025a9e = -1;
             /* 0x012380: the touch-down's sound (M8) */
@@ -605,7 +605,7 @@ void wof_player_motion(void)
     int16_t  angle;
     uint32_t across, along, v;
 
-    if (wof_g.g_025aaa && wof_g.pitch_target == 0x258)
+    if (wof_g.landing_stall && wof_g.pitch_target == 0x258)
         wof_g.pitch_angle = (int16_t)(wof_g.pitch_angle +
                                       (int16_t)((int32_t)(int16_t)(0xFCE0 - (uint16_t)wof_g.pitch_angle) / 4));
     else
@@ -669,7 +669,7 @@ static void flight_controls(void)
     int16_t with = 0;
     int16_t dir = (INPUT & 0x08u) ? -1 : 1;
 
-    wof_g.g_025aaa = 0;
+    wof_g.landing_stall = 0;
     (void)with;
     wof_g.pitch_delta = 0;
     if ((wof_g.tick_input & 0x0Fu) == 0) {
@@ -778,14 +778,14 @@ static void flight_controls(void)
                 if (wof_g.pitch_target < 0x258)
                     wof_g.pitch_target = 0x258;
             }
-            wof_g.g_025aaa = 1;
+            wof_g.landing_stall = 1;
         } else {
             wof_g.pitch_target = (int16_t)(wof_g.pitch_target - wof_g.pitch_step);
             if (wof_g.pitch_target < (int16_t)0xFDA8)
                 wof_g.pitch_target = (int16_t)(wof_g.pitch_target -
                                                (int16_t)((int32_t)(int16_t)(wof_g.pitch_target + 0x258) / 2));
             wof_g.pitch_delta = 0;
-            wof_g.g_025aaa = 0;
+            wof_g.landing_stall = 0;
         }
     }
     if (wof_g.attitude_index != 0) {                              /* 0x01C350 */

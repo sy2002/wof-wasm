@@ -51,18 +51,12 @@ def setup_differences(ported, tmp_path, description, files=None, tag='run'):
     assert machine.missions == 1, 'the run never reached a mission'
     replay = m4compare.Replay(ported, machine, dump_path, mode='plain')
     memory, _ = replay.s_states()[0]
-    replay.build_index(memory)
-    kinds = [e[0] for e in machine.schedule if e[0] != 'V']
-    tick = max(i for i, k in enumerate(kinds) if k == 'T')
-    by_port = {(w, o): n for n, w, o, _, _ in replay.layout.fields()}
-    setup_tick = sorted({by_port[(w[0], w[1])] for a in machine.t_writes[tick]
-                         for w in [replay.index.get(a)] if w})
     replay.run(files=files)
     layout = replay.layout
     wg, wm, problems = layout.expected(memory)
     assert not problems, problems[:5]
     diffs = layout.differences(layout.port_globals(at_s=True), layout.port_mission(at_s=True),
-                               wg, wm, skip=setup_tick)
+                               wg, wm)
     assert replay.standins() == [], replay.standins()
     return diffs, machine
 
@@ -176,18 +170,12 @@ def test_the_setup_agrees_on_every_map_under_its_own_number(ported, tmp_path, le
     assert opened == ['maps/%s.map' % letter], opened
     replay = m4compare.Replay(ported, machine, dump_path, mode='plain', pokes=pokes)
     memory, _ = replay.s_states()[0]
-    replay.build_index(memory)
-    kinds = [e[0] for e in machine.schedule if e[0] != 'V']
-    tick = max(i for i, k in enumerate(kinds) if k == 'T')
-    by_port = {(w, o): n for n, w, o, _, _ in replay.layout.fields()}
-    setup_tick = sorted({by_port[(w[0], w[1])] for a in machine.t_writes[tick]
-                         for w in [replay.index.get(a)] if w})
     replay.run()
     layout = replay.layout
     wg, wm, problems = layout.expected(memory)
     assert not problems, problems[:5]
     diffs = layout.differences(layout.port_globals(at_s=True), layout.port_mission(at_s=True),
-                               wg, wm, skip=setup_tick)
+                               wg, wm)
     assert diffs == [], diffs[:10]
     assert replay.standins() == [], replay.standins()
 

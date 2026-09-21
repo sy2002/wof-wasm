@@ -420,7 +420,7 @@ static void target_fire(int16_t x)
         d0 = (int16_t)-d0;
     if (d0 > 0x1C0)
         return;
-    WOF_STANDIN("M5 STAND-IN: 0x014F72, a target near the aircraft");
+    WOF_STANDIN("M5 STAND-IN: 0x014F72-0x014FE7, a target near the aircraft");
 }
 
 /* orig 0x013D78 - the slot-3 targets of the map: while one stands (+8 set) and its count at
@@ -454,7 +454,7 @@ static void targets_f(int table)
 {
     (void)table;
     if (wof_g.target_count_f)
-        WOF_STANDIN("M5 STAND-IN: 0x013DFA, the slot-0x0F targets");
+        WOF_STANDIN("M5 STAND-IN: 0x013DFA-0x013E5D, the slot-0x0F targets");
 }
 
 /* orig 0x014C3E - the enemy ships' guns, while the aircraft is off the deck: the ship list
@@ -783,7 +783,7 @@ static void soldiers(void)
 {
     for (uint16_t i = 0; i < wof_g.soldier_count && i < 160; i++)
         if (wof_m.soldier_records[i].state != 0)
-            WOF_STANDIN("M5 STAND-IN: 0x013F0A, a soldier");
+            WOF_STANDIN("M5 STAND-IN: 0x013F0A-0x01408B, a soldier");
 }
 
 /* orig 0x0152F8 - the Splashes pool: twenty records of four bytes, each in use while its

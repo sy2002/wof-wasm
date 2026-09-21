@@ -1,8 +1,8 @@
 addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,strings,status
 010000,entry,asm,6,,,-32766,0,c_startup,,0,,todo
-010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sub_011f4e open_libraries install_vblank_server map_load load_ship_shapes sounds_load init_assets campaign_reset mission_reset_tables player_restart_state build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select demo_end mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys dashboard_invalidate crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",partial
+010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sound_slots_clear open_libraries install_vblank_server map_load load_ship_shapes sounds_load init_assets campaign_reset mission_reset_tables player_restart_state build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select demo_end mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys dashboard_invalidate crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",partial
 01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets sub_012470 sub_0134d8,,1,,todo
-010228,frame_update,asm,228,,,,1,weapon_marker draw_objects smoke_draw snapshot_for_draw draw_game_over player_lost_restart draw_world soldiers_draw map_window clip_playfield splashes_draw balloons_draw cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,partial
+010228,frame_update,asm,228,,,,1,weapon_marker draw_objects smoke_draw snapshot_for_draw draw_game_over player_lost_restart draw_world soldiers_draw map_window clip_playfield splashes_draw balloons_draw cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,ported
 01030c,flip_buffers,asm,56,,,,1,flip_view,,4,,ported
 010344,weapon_marker,asm,98,,,,1,shape_blit blit_begin blit_end,,5,,ported
 0103a6,draw_player,asm,792,,,-32742,1,clip_playfield clip_to_waterline ship_of_record shape_draw shape_draw_xor line_draw,,35,,partial
@@ -10,10 +10,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 010702,sub_010702,asm,210,,,,1,draw_world_shape,,4,,partial
 0107d4,object_free_unused,asm,30,,,,0,,,1,,todo
 0107f2,object_draw_first,asm,46,,,,1,,,3,,todo
-010820,object_spawn,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,todo
+010820,object_spawn,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,partial
 01099a,sub_01099a,asm,216,,,,1,sub_01115c sub_0111a6 sub_011a46 sub_015104 sub_015108 sub_015ca6,,0,,todo
-010a72,sub_010a72,asm,52,,,-32730,1,sub_010aa6,,3,,todo
-010aa6,sub_010aa6,asm,768,,,,1,sub_01099a sub_011126 sub_011a8c sub_012324 sub_01233e sub_0146dc map_slot_at sub_0152b0 ground_height,,7,,todo
+010a72,objects_step,asm,52,,,-32730,1,object_step,,3,,ported
+010aa6,object_step,asm,768,,,,1,sub_01099a sub_011126 sub_011a8c sub_012324 sub_01233e sub_0146dc map_slot_at splash_spawn ground_height,,7,,partial
 010da6,draw_enemy_aircraft,asm,314,,,-32724,1,shape_draw shape_draw_xor,,10,,partial
 010ee0,smoke_draw,asm,166,,,,1,draw_world_shape blit_begin blit_end,,8,,partial
 010f86,sub_010f86,asm,2,,,,0,,,0,,todo
@@ -27,18 +27,18 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,ported
 011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sub_01346c sub_0134ae,exec.AllocMem,2,,ported
 011256,sub_011256,asm,30,,,-32706,1,mem_free_var sub_01346c sub_0134ae,exec.AllocMem,2,,todo
-011274,sub_011274,asm,60,,,,1,,,14,,todo
-0112b0,sub_0112b0,asm,214,,,,1,weapon_gauge_reset,,10,,todo
-011386,logic_tick,asm,218,,,-32700,3,sub_010a72 sub_011274 sub_0112b0 sub_011460 sub_011510 sub_011622 input_queue_pop sub_0119bc sub_011bfc sub_011c5e sub_011cae sub_011de4 sub_012066 sub_012132 sub_01b682 sub_01c660 sub_01e7d6,,16,,todo
-011460,sub_011460,asm,120,,,,1,sub_011f4e sub_012354 player_restart_state sub_01b9cc,,4,,todo
+011274,shot_origin,asm,60,,,,1,,,14,,ported
+0112b0,weapon_menu,asm,214,,,,1,weapon_gauge_reset,,10,,ported
+011386,logic_tick,asm,218,,,-32700,3,objects_step shot_origin weapon_menu lift_step ship_launches airfields_step input_queue_pop gun_splashes engine_smoke balloons_step ships_sinking target_timers sound_channels engine_sound guns player_update enemy_aircraft_step,,16,,partial
+011460,lift_step,asm,120,,,,1,sound_slots_clear sub_012354 player_restart_state engine_idle,,4,,ported
 0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,partial
-011510,sub_011510,asm,274,,,,1,sub_01e4d0,,8,,todo
-011622,sub_011622,asm,242,,,,1,sub_01e4d0,,4,,todo
+011510,ship_launches,asm,274,,,,1,sub_01e4d0,,8,,partial
+011622,airfields_step,asm,242,,,,1,sub_01e4d0,,4,,partial
 011714,input_queue_pop,asm,54,,,,2,os_disable os_enable,,2,,ported
 01174a,input_queue_clear,asm,10,,,-32694,2,,,2,,ported
 011754,vblank_server,asm,530,,,-32688,0,input_queue_pop vblank_every_frame read_joystick,,25,,ported
 011966,sub_011966,asm,86,,,,0,,,5,,todo
-0119bc,sub_0119bc,asm,88,,,,1,sub_011a46 sub_011a8c map_slot_at sub_0152b0,,6,,todo
+0119bc,gun_splashes,asm,88,,,,1,sub_011a46 sub_011a8c map_slot_at splash_spawn,,6,,partial
 011a14,sub_011a14,asm,46,,,-32682,0,map_slot_at,,1,,todo
 011a42,sub_011a42,asm,4,,,,0,,,0,,todo
 011a46,sub_011a46,asm,62,,,,2,sub_01514c,,3,,todo
@@ -48,17 +48,17 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011ae2,sub_011ae2,asm,112,,,,2,,,2,,todo
 011b52,sub_011b52,asm,2,,,,0,,,0,,todo
 011b54,sub_011b54,asm,168,,,,0,smoke_claim rand_beam,,1,,todo
-011bfc,sub_011bfc,asm,98,,,,1,smoke_at_player rand_beam,,4,,todo
-011c5e,sub_011c5e,asm,80,,,,1,,,2,,todo
-011cae,sub_011cae,asm,42,,,,1,sub_011cd8,,1,,todo
-011cd8,sub_011cd8,asm,268,,,,1,sub_01555a sub_015640 sub_015694,,14,,todo
-011de4,sub_011de4,asm,158,,,,1,sub_011e82,,5,,todo
+011bfc,engine_smoke,asm,98,,,,1,smoke_at_player rand_beam,,4,,partial
+011c5e,balloons_step,asm,80,,,,1,,,2,,partial
+011cae,ships_sinking,asm,42,,,,1,ship_sinking,,1,,partial
+011cd8,ship_sinking,asm,268,,,,1,sub_01555a sub_015640 sub_015694,,14,,todo
+011de4,target_timers,asm,158,,,,1,sub_011e82,,5,,partial
 011e82,sub_011e82,asm,204,,,,2,rand_beam,,4,,todo
-011f4e,sub_011f4e,asm,22,,,-32670,4,sub_012066,,1,,todo
+011f4e,sound_slots_clear,asm,22,,,-32670,4,sound_channels,,1,,todo
 011f64,sub_011f64,asm,18,,,,0,,,1,,todo
 011f76,sub_011f76,asm,240,,,,1,,,50,,todo
-012066,sub_012066,asm,204,,,,2,sub_01ea28 sub_01eac0 sub_01eb4c,,3,,todo
-012132,sub_012132,asm,412,,,,1,sub_0122ce,,39,,todo
+012066,sound_channels,asm,204,,,,2,sub_01ea28 sub_01eac0 sub_01eb4c,,3,,todo
+012132,engine_sound,asm,412,,,,1,sub_0122ce,,39,,partial
 0122ce,sub_0122ce,asm,40,,,,1,,,0,,todo
 0122f6,sub_0122f6,asm,16,,,,1,,,0,,todo
 012306,sub_012306,asm,30,,,,3,sub_0122f6,,2,,todo
@@ -108,8 +108,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 013554,airfields_clear,asm,14,,,,1,,,1,,ported
 013562,campaign_reset,asm,70,,,,1,mission_reset_tables aircraft_clear lives_gauge_reset,,10,,ported
 0135a8,mission_reset_tables,asm,38,,,,2,player_lost_restart,,8,,ported
-0135ce,sub_0135ce,asm,10,,,-32592,1,,,2,,todo
-0135d8,player_lost_restart,asm,172,,,,2,flip_buffers player_restart_state clip_playfield rect_fill draw_set_target blit_begin blit_end gfx_WaitTOF,,14,,partial
+0135ce,next_aircraft,asm,10,,,-32592,1,,,2,,ported
+0135d8,player_lost_restart,asm,172,,,,2,flip_buffers player_restart_state clip_playfield rect_fill draw_set_target blit_begin blit_end gfx_WaitTOF,,14,,ported
 013684,player_restart_state,asm,210,,,,3,sub_013756 player_reset sub_01b9bc weapon_gauge_reset,,32,,ported
 013756,sub_013756,asm,28,,,-32586,2,,,2,,ported
 013772,draw_world,asm,428,,,-32580,1,draw_player draw_enemy_aircraft ship_planes airfields_draw deck_aircraft record_extras targets_3_draw targets_f_draw ocean lift_aircraft islands_draw ship_guns_draw ride_on_ship shape_draw rect_fill blit_begin blit_end,,19,,ported
@@ -125,10 +125,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0140e8,islands_draw,asm,150,,,,1,draw_world_shape rect_fill,,10,,partial
 01417e,map_window,asm,54,,,-32568,1,window_height window_strip window_background clip_dash_window blit_begin blit_end,,4,,ported
 0141b4,window_height,asm,82,,,,1,shape_draw,,4,,verified
-014206,window_strip,asm,554,,,,1,window_ship sub_0145a6 ship_at_span shape_draw rect_fill,,16,,partial
+014206,window_strip,asm,554,,,,1,window_ship window_shape ship_at_span shape_draw rect_fill,,16,,partial
 014430,window_ship,asm,308,,,,1,shape_draw,,14,,ported
 014564,window_background,asm,66,,,,1,rect_fill draw_set_target,,3,,ported
-0145a6,sub_0145a6,asm,288,,,,1,ship_at_span,,6,,todo
+0145a6,window_shape,asm,288,,,,1,ship_at_span,,6,,ported
 0146c6,sub_0146c6,asm,22,,,-32562,3,,,2,,todo
 0146dc,sub_0146dc,asm,882,,,-32550,1,ship_at_offset sub_014ae4 sub_014b40 sub_014b54 sub_015078 map_slot_at sub_015624 sub_015694 sub_015ae8,,9,,todo
 014a4e,ship_at_offset,asm,4,,,,2,,,0,,verified
@@ -141,7 +141,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 014db8,target_range_frame,asm,244,,,,2,smoke_claim,,4,,partial
 014eac,ride_on_ship,asm,60,,,,1,ship_at_offset,,3,,ported
 014ee8,sub_014ee8,asm,20,,,,0,,,2,,todo
-014efc,sub_014efc,asm,96,,,,1,sub_011ae2 sub_0152b0 rand_beam,,4,,todo
+014efc,sub_014efc,asm,96,,,,1,sub_011ae2 splash_spawn rand_beam,,4,,todo
 014f5c,target_fire,asm,146,,,,3,smoke_at_player rand_beam,,8,,partial
 014fee,sub_014fee,asm,70,,,,1,sub_011e82 sub_015034,,2,,todo
 015034,sub_015034,asm,66,,,,1,,,0,,todo
@@ -151,7 +151,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015094,sub_015094,asm,24,,,-32532,0,,exec.RawDoFmt,1,,todo
 0150ac,sub_0150ac,asm,4,,,,0,,,0,,todo
 0150b0,flip_view,asm,24,,,-32526,1,sub_01520c view_show,,1,,todo
-0150c8,map_slot_at,asm,58,,,-32520,7,,,2,,todo
+0150c8,map_slot_at,asm,58,,,-32520,7,,,2,,verified
 015102,sub_015102,asm,2,,,-32514,0,,,0,,todo
 015104,sub_015104,asm,4,,,-32508,2,,,0,,todo
 015108,sub_015108,asm,68,,,-32502,2,,,1,,todo
@@ -163,11 +163,11 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01524a,clip_playfield,asm,18,,,-32472,5,clip_set,,0,,ported
 01525c,clip_dash_window,asm,18,,,-32466,1,clip_set,,0,,todo
 01526e,clip_to_waterline,asm,62,,,-32460,2,clip_set,,6,,verified
-0152ac,sub_0152ac,asm,4,,,-32454,2,,,0,,todo
-0152b0,sub_0152b0,asm,72,,,-32448,3,map_slot_at,,1,,todo
+0152ac,sub_0152ac,asm,4,,,-32454,2,,,0,,partial
+0152b0,splash_spawn,asm,72,,,-32448,3,map_slot_at,,1,,partial
 0152f8,splashes_draw,asm,98,,,-32442,1,draw_world_shape blit_begin blit_end,,4,,partial
 01535a,build_master_lists,asm,262,,,-32436,2,shape_find,,14,,ported
-015460,smoke_claim,asm,108,,,-32430,6,rand_beam,,1,,todo
+015460,smoke_claim,asm,108,,,-32430,6,rand_beam,,1,,partial
 0154cc,sub_0154cc,asm,20,,,,1,smoke_claim,,0,,todo
 0154e0,smoke_at_player,asm,122,,,,2,smoke_claim,,5,,todo
 01555a,sub_01555a,asm,20,,,-32424,3,,,1,,todo
@@ -176,8 +176,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015624,sub_015624,asm,28,,,-32406,2,sub_015078 sub_01555a,,1,,todo
 015640,sub_015640,asm,84,,,,1,sub_015078,,3,,todo
 015694,sub_015694,asm,124,,,-32400,3,sub_015078,,9,,todo
-015710,sub_015710,asm,4,,,,7,,,0,,todo
-015714,ground_height,asm,388,,,,1,,,8,,todo
+015710,sub_015710,asm,4,,,,7,,,0,,verified
+015714,ground_height,asm,388,,,,1,,,8,,verified
 015898,sub_015898,asm,84,,,,0,,,2,,todo
 0158ec,mem_alloc_asm,asm,18,,,,6,mem_alloc,,0,,replace
 0158fe,sub_0158fe,asm,18,,,,1,display_alloc_chip,,0,,replace
@@ -234,7 +234,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 016bd8,ticker_vport_init,C,96,0,,,1,gfx_InitBitMap gfx_InitRastPort,,12,,todo
 016c38,view_set_game,C,142,8,8,,2,view_layout,,1,,todo
 016cc6,screen_game,C,108,0,,,1,ticker_vport_init view_set_game view_build_copper gfx_BltClear,,8,,todo
-016d32,screen_game_restore,C,72,0,,,1,view_set_game cop_add_ticker_ramp view_build_copper view_copy,,6,,todo
+016d32,screen_game_restore,C,72,0,,,1,view_set_game cop_add_ticker_ramp view_build_copper view_copy,,6,,ported
 016d7a,screen_hiscore,C,92,0,,,1,view_layout view_build_copper cop_show_wait,,11,,ported
 016dd6,cmap_file_to_table,C,156,12,8 12,,1,,,0,,verified
 016e72,sub_016e72,C,36,0,,,1,exit_game,,0,"""Not enough memory.\n""",todo
@@ -302,56 +302,56 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01a9ca,view_copy,C,50,0,8 12,,3,view_copy_bitmaps view_copy_colours,,0,,ported
 01a9fc,cop_show_wait,C,18,0,8,,9,cop_install wait_vblank,,0,,ported
 01aa0e,cop_install,asm,36,,,,2,,,2,,replace
-01aa32,wait_next_vblank,asm,12,,,-32298,2,,,1,,todo
+01aa32,wait_next_vblank,asm,12,,,-32298,2,,,1,,ported
 01aa3e,wait_vblank,asm,18,,,-32292,3,,,1,,ported
 01aa50,sub_01aa50,C,18,0,,-32286,1,,,2,,todo
 01aa62,sub_01aa62,C,12,0,,,0,,,1,,todo
-01aa6e,sub_01aa6e,C,124,4,,,1,,,3,,todo
-01aaea,sub_01aaea,C,150,2,,,7,,,7,,todo
-01ab80,sub_01ab80,C,94,0,8,,1,sub_01aa6e,,3,,todo
-01abde,aircraft_frame,C,762,12,8 10 12,,3,shape_mirror_x sub_01cb30,,13,,partial
-01aed8,sub_01aed8,C,164,10,,,1,object_spawn sub_01aaea sub_01c982 sub_021e24,,4,,todo
-01af7c,sub_01af7c,C,62,0,,,1,sub_0135ce,,4,,todo
-01afba,sub_01afba,C,1184,16,,,2,object_spawn sub_011a84 sub_0146c6 sub_0152ac sub_015710 sub_01aaea aircraft_frame sub_01c982 flash_set record_on_ship sub_01cb74,,12,,todo
-01b45a,sub_01b45a,C,132,2,,,1,,,6,,todo
-01b4de,sub_01b4de,C,210,6,,,2,,,6,,todo
-01b5b0,sub_01b5b0,C,210,0,,,1,sub_01107c sub_015710 sub_01aaea sub_01b4de sub_01c982,,11,,todo
-01b682,sub_01b682,C,314,12,,-32280,1,rand_mod sub_01cae0 sub_01d35a,,6,,todo
+01aa6e,turn_allowed,C,124,4,,,1,,,3,,verified
+01aaea,wheel_height,C,150,2,,,7,,,7,,verified
+01ab80,turn_step,C,94,0,8,,1,turn_allowed,,3,,verified
+01abde,aircraft_frame,C,762,12,8 10 12,,3,shape_mirror_x sub_01cb30,,13,,ported
+01aed8,wreck_smoke,C,164,10,,,1,object_spawn wheel_height record_at sub_021e24,,4,,ported
+01af7c,lost_wait,C,62,0,,,1,next_aircraft,,4,,ported
+01afba,crash,C,1184,16,,,2,object_spawn sub_011a84 sub_0146c6 sub_0152ac sub_015710 wheel_height aircraft_frame record_at flash_set record_on_ship on_water,,12,,partial
+01b45a,hook_state,C,132,2,,,1,,,6,,verified
+01b4de,on_the_lift,C,210,6,,,2,,,6,,verified
+01b5b0,button,C,210,0,,,1,sub_01107c sub_015710 wheel_height on_the_lift record_at,,11,,partial
+01b682,guns,C,314,12,,-32280,1,rand_mod burn_smoke sub_01d35a,,6,,partial
 01b7bc,deck_span,C,48,0,,,1,,,6,,verified
 01b7ec,player_reset,C,216,0,,-32274,1,aircraft_frame deck_span rand_mod sub_01cb30,,13,,ported
-01b8c4,sub_01b8c4,C,106,2,,,1,sub_015710 sub_01aaea sub_01c982,,1,,todo
-01b92e,sub_01b92e,C,142,2,,,1,,,8,,todo
+01b8c4,touches_ground,C,106,2,,,1,sub_015710 wheel_height record_at,,1,,verified
+01b92e,cable_hook,C,142,2,,,1,,,8,,verified
 01b9bc,sub_01b9bc,C,16,0,,-32268,1,,,2,,ported
-01b9cc,sub_01b9cc,C,36,0,,-32262,1,,,5,,todo
+01b9cc,engine_idle,C,36,0,,-32262,1,,,5,,ported
 01b9f0,sub_01b9f0,C,16,4,,,1,,,0,,todo
-01ba00,sub_01ba00,asm,128,,,,0,sub_015710 sub_01c982,,6,,todo
-01ba80,sub_01ba80,C,386,10,,,1,object_spawn sub_012380 sub_0146c6 sub_015710 sub_01aaea sub_01afba sub_01b8c4 sub_01c982 record_on_ship sub_01cb74,,9,,todo
-01bc02,sub_01bc02,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,todo
-01bcce,sub_01bcce,C,236,0,,,1,sub_01b4de,,9,,todo
-01bdba,sub_01bdba,C,64,0,,,1,,,2,,todo
-01bdfa,player_motion,C,506,10,,,1,ffp_add ffp_neg ffp_fix ffp_div ffp_flt ffp_mul,,12,,todo
-01bff4,sub_01bff4,C,900,0,,,1,sub_01ab80,,14,,todo
-01c378,sub_01c378,C,368,6,,,1,aircraft_frame sub_01cb30 sub_0204e4 sub_0204ec,,13,,todo
-01c4e8,sub_01c4e8,C,268,2,,,1,,,11,,todo
-01c5f4,sub_01c5f4,C,108,0,,,1,sub_015710 sub_01aaea sub_01c982,,7,,todo
-01c660,sub_01c660,C,802,14,,-32256,1,sub_015710 sub_01aaea sub_01aed8 sub_01af7c sub_01afba sub_01b45a sub_01b5b0 sub_01b92e sub_01b9f0 sub_01ba80 sub_01bc02 sub_01bcce sub_01bdba player_motion sub_01bff4 sub_01c378 sub_01c4e8 sub_01c5f4 sub_01c982 sub_01cae0 record_on_ship,,21,,todo
-01c982,sub_01c982,C,72,4,8,,9,,,2,,todo
+01ba00,sub_01ba00,asm,128,,,,0,sub_015710 record_at,,6,,todo
+01ba80,ground_contact,C,386,10,,,1,object_spawn sub_012380 sub_0146c6 sub_015710 wheel_height crash touches_ground record_at record_on_ship on_water,,9,,partial
+01bc02,enemy_countdown_step,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,partial
+01bcce,deck_state,C,236,0,,,1,on_the_lift,,9,,verified
+01bdba,deck_roll,C,64,0,,,1,,,2,,verified
+01bdfa,player_motion,C,506,10,,,1,ffp_add ffp_neg ffp_fix ffp_div ffp_flt ffp_mul,,12,,verified
+01bff4,flight_controls,C,900,0,,,1,turn_step,,14,,verified
+01c378,frame_select,C,368,6,,,1,aircraft_frame sub_01cb30 sub_0204e4 sub_0204ec,,13,,ported
+01c4e8,deck_controls,C,268,2,,,1,,,11,,verified
+01c5f4,deck_edge,C,108,0,,,1,sub_015710 wheel_height record_at,,7,,verified
+01c660,player_update,C,802,14,,-32256,1,sub_015710 wheel_height wreck_smoke lost_wait crash hook_state button cable_hook sub_01b9f0 ground_contact enemy_countdown_step deck_state deck_roll player_motion flight_controls frame_select deck_controls deck_edge record_at burn_smoke record_on_ship,,21,,ported
+01c982,record_at,C,72,4,8,,9,,,2,,verified
 01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,ported
 01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,ported
 01caa2,sub_01caa2,C,18,0,,,0,,,1,,todo
-01cab4,flash_set,C,20,0,8 10,,1,,,2,,todo
+01cab4,flash_set,C,20,0,8 10,,1,,,2,,ported
 01cac8,rand_mod,C,24,0,8,,8,rand_beam,,0,,ported
-01cae0,sub_01cae0,C,60,0,10 12 14,,5,sub_0154cc rand_beam,,0,,todo
+01cae0,burn_smoke,C,60,0,10 12 14,,5,sub_0154cc rand_beam,,0,,ported
 01cb1c,sub_01cb1c,asm,4,,,,0,sub_021dce,,0,,todo
 01cb20,read_joy_dispatch,asm,16,,,,1,read_joy_bits sub_021dce,,1,,todo
 01cb30,sub_01cb30,asm,4,,,,4,shape_find_c,,0,,todo
-01cb34,record_on_ship,C,64,2,8,,4,,,2,,ported
-01cb74,sub_01cb74,C,62,2,8,,3,,,2,,todo
+01cb34,record_on_ship,C,64,2,8,,4,,,2,,verified
+01cb74,on_water,C,62,2,8,,3,,,2,,verified
 01cbb2,sub_01cbb2,C,64,2,8,,1,,,2,,todo
 01cbf2,ship_of_record,C,196,4,8,-32238,1,record_on_ship sub_021dce,,2,"""Not over a ship in ShipNum.\n"" | ""COULDN'T FIND A SHIP in ShipNum.\n""",partial
 01ccb6,sub_01ccb6,C,64,0,8,-32232,1,os_avail_mem os_close_window os_close_workbench,,2,,drop
-01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sub_011f4e load_ship_shapes sounds_load sub_01346c sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,partial
-01ce28,sub_01ce28,asm,868,,,,0,sub_011f4e sub_013756 sub_015078 sub_01555a weapon_gauge_reset,dos.DeleteFile exec.AvailMem,28,"""highscore""",todo
+01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sound_slots_clear load_ship_shapes sounds_load sub_01346c sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,partial
+01ce28,sub_01ce28,asm,868,,,,0,sound_slots_clear sub_013756 sub_015078 sub_01555a weapon_gauge_reset,dos.DeleteFile exec.AvailMem,28,"""highscore""",todo
 01d18c,sub_01d18c,C,94,6,8,,1,,,1,,todo
 01d1ea,enemy_frames,C,368,4,,,1,sub_01cb30,,12,,ported
 01d35a,sub_01d35a,C,90,2,8,,2,,,0,,todo
@@ -364,14 +364,14 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01dccc,sub_01dccc,C,472,8,8,,1,rand_mod,,5,,todo
 01dea4,sub_01dea4,C,726,10,8,,1,rand_mod,,6,,todo
 01e17a,sub_01e17a,C,202,0,8,,1,rand_mod sub_01d18c,,0,,todo
-01e244,sub_01e244,C,420,4,8,,1,sub_011a84 sub_0146c6 sub_0152ac sub_01c982 sub_01cae0 sub_01cb74 sub_01cbb2 rand_beam,,5,,todo
-01e3e8,sub_01e3e8,C,224,0,8,,1,sub_01cae0,,3,,todo
+01e244,sub_01e244,C,420,4,8,,1,sub_011a84 sub_0146c6 sub_0152ac record_at burn_smoke on_water sub_01cbb2 rand_beam,,5,,todo
+01e3e8,sub_01e3e8,C,224,0,8,,1,burn_smoke,,3,,todo
 01e4c8,sub_01e4c8,C,8,0,,,1,,,0,,todo
 01e4d0,sub_01e4d0,C,312,4,8 10 12 14,-32220,3,rand_mod,,4,,todo
 01e608,aircraft_clear,C,70,12,,-32214,1,,,1,,ported
 01e64e,sub_01e64e,C,218,0,8,,1,,,2,,todo
-01e728,sub_01e728,C,174,0,8,,1,sub_01cae0 sub_01d9c6 sub_01dccc sub_01dea4 sub_01e17a rand_beam,,0,,todo
-01e7d6,sub_01e7d6,C,226,4,,-32208,1,sub_01d35a sub_01d3b4 sub_01d476 aircraft_motion sub_01e244 sub_01e3e8 sub_01e4c8 sub_01e64e sub_01e728,,2,,todo
+01e728,sub_01e728,C,174,0,8,,1,burn_smoke sub_01d9c6 sub_01dccc sub_01dea4 sub_01e17a rand_beam,,0,,todo
+01e7d6,enemy_aircraft_step,C,226,4,,-32208,1,sub_01d35a sub_01d3b4 sub_01d476 aircraft_motion sub_01e244 sub_01e3e8 sub_01e4c8 sub_01e64e sub_01e728,,2,,partial
 01e8b8,sound_init,asm,148,,,-32202,1,,exec.AddIntServer,6,"""SoundFX_IntHandler""",todo
 01e94c,sub_01e94c,asm,70,,,-32196,1,sub_01eab4,dos.Delay exec.RemIntServer,4,,todo
 01e992,sub_01e992,asm,76,,,,0,sub_01ea28,,0,,todo
@@ -476,7 +476,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0212ce,blit_begin,asm,6,,,-31890,19,sub_022e8a,,0,,todo
 0212d4,blit_end,asm,38,,,-31884,19,sub_022e40,,0,,todo
 0212fa,line_draw_c,asm,30,,,,0,blit_begin blit_end line_draw,,1,,todo
-021318,line_draw,asm,704,,,-31878,2,,,11,,todo
+021318,line_draw,asm,704,,,-31878,2,,,11,,ported
 0215d8,sprintf,C,48,0,8 12 16,-31872,3,sub_0216b2,,1,,todo
 021608,sub_021608,C,28,0,9,,0,,,1,,todo
 021624,sub_021624,C,142,0,8 12 14 18,,1,sub_02240e sub_02241a,,1,,todo
@@ -504,7 +504,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 021df0,sub_021df0,asm,18,,,,0,sub_021de2,,0,,todo
 021e02,strcpy,asm,16,,,-31860,1,,,0,,todo
 021e12,strlen,asm,18,,,-31854,6,,,0,,todo
-021e24,sub_021e24,C,52,0,,,1,sub_0222f4,,1,,todo
+021e24,sub_021e24,C,52,0,,,1,sub_0222f4,,1,,ported
 021e58,sub_021e58,C,18,0,8,,0,,,1,,todo
 021e6a,sub_021e6a,asm,24,,,,0,,,0,,todo
 021e82,tolower,asm,24,,,-31848,1,,,0,,todo

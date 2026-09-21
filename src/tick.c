@@ -325,7 +325,7 @@ static void object_step(wof_object_t *o)
 {
     if (o->kind == 8)
         return;
-    WOF_STANDIN("M5 STAND-IN: 0x010AB6, a weapon or a shot in flight");
+    WOF_STANDIN("M5 STAND-IN: 0x010AB6-0x010DA5, a weapon or a shot in flight");
 }
 
 /* orig 0x010A72 - the object records: 0x010AA6 for every one in use, then the extra one. */
@@ -370,21 +370,38 @@ static void airfields(void)
     }
 }
 
-/* orig 0x011510 - the Japanese carrier's aircraft and the ships' launches (M6). */
+/* orig 0x011510 - the Japanese carrier's aircraft and the ships' launches (M6).  The
+ * carrier's block (0x025196) holds a count and entries of eight bytes; the last entry's
+ * first word above 0 is an aircraft to launch. */
 static void ship_launches(void)
 {
-    if (wof_m.ship_blocks[0x80].v != 0) {
-        WOF_STANDIN("M6 STAND-IN: 0x01151A, the Japanese carrier's aircraft");
-        return;
+    uint16_t count = wof_m.ship_blocks[0x80].v;
+
+    if (count != 0) {
+        uint32_t last = 0x80u + 4u * (uint32_t)count;     /* 8 bytes in, (count - 1) * 8 on */
+
+        if (last < 160u && (int16_t)wof_m.ship_blocks[last].v > 0)
+            WOF_STANDIN("M6 STAND-IN: 0x01152A, the Japanese carrier's aircraft");
     }
     if (wof_g.g_027348)
         return;
+    /* 0x011574: each ship in ship_order beside the block of the same place from 0x025096:
+     * a ship afloat that has aircraft (+0x12) and is not sunk (+0x0C), the player within its
+     * block's span, 0x0251D6 below its limit and an aircraft left launches one. */
     for (int i = 0; i < 5; i++) {
         const wof_ship_t *s = ship_in_order(i);
+        const wof_word_t *blk = &wof_m.ship_blocks[0x20 * i];
 
-        if (s->present == 0 || s->w12 == 0)
+        if (s->present == 0 || s->w12 == 0 || s->w0c <= 0)
             continue;
-        WOF_STANDIN("M6 STAND-IN: 0x011590-0x011621, a ship launching an aircraft");
+        if (wof_g.g_026e6a < (int16_t)blk[2].v || wof_g.g_026e6a > (int16_t)blk[3].v)
+            continue;
+        if (wof_g.g_0251d6 >= (int16_t)blk[1].v || blk[0].v == 0)
+            continue;
+        if (i == 4)
+            WOF_STANDIN("M6 STAND-IN: 0x0115F4-0x011621, the last ship's aircraft readied");
+        else
+            WOF_STANDIN("M6 STAND-IN: 0x0115C4-0x0115E9, a ship launching an aircraft");
         return;
     }
 }

@@ -329,7 +329,6 @@ class Replay:
                 on_setup(self, memory, head)
             if self.mode == 'open':
                 self.inject(memory, head)
-            self.lib.wt_trace_reset()
             self.vblank_mark = self.lib.wof_vblank_count()
 
         def at_pass(number, end):
@@ -361,7 +360,8 @@ class Replay:
                 on_tick(self, memory, head, tick + 1, waited)
             if self.mode == 'open':
                 self.inject(memory, head)
-            self.lib.wt_trace_reset()
+            if not self.setup_tick:
+                self.lib.wt_trace_reset()         # the setup's own trace is read at step S
             self.vblank_mark = self.lib.wof_vblank_count()
 
         self._hooks = [one(guarded(at_s)), two(guarded(at_pass)), one(guarded(at_tick))]
