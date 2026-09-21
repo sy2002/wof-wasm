@@ -268,7 +268,7 @@ def test_thirty_mission_setups_do_not_grow_the_arena(ported):
             used.append(lib.wof_arena_used())
             in_mission_since = vblank
         if in_mission_since is not None and vblank - in_mission_since == 40:
-            ported.key(0x12, 0)                       # KeyE: the stand-in's end of a mission
+            ported.key(0x13, 0x0008)                  # Control-R: the mission ends
             in_mission_since = None
     assert missions >= 31, 'only %d missions in %d VBlanks' % (missions, vblank)
     assert len(set(used)) == 1, 'the arena grew: %s' % used

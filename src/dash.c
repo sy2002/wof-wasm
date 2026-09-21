@@ -113,6 +113,65 @@ static void window_ship(void)
     draw_hot(facing >= 0 ? 0x51 : 0x59, 0x13F, (int16_t)d5);
 }
 
+/* orig 0x0145A6 - the shape of a map record's class in the 3-D view, on window row `row`
+ * (0 at the bottom): an entry of dash_shapes, or of MasterList for an enemy ship that has
+ * its own (+0x1C), as the byte offset the caller indexes with; negative for none.  The rows
+ * scale the shapes through two byte tables, 0x0246B8 for the ground and 0x0246C4 for the
+ * ships.  `off` is the map offset the row's walk ended at, which is where the ship is
+ * looked for. */
+static int16_t window_shape(uint16_t cls, uint8_t low, int16_t row, int16_t off, int *master)
+{
+    int16_t d1;
+
+    *master = 0;
+    if ((int16_t)cls >= 6 && (int16_t)cls <= 8) {
+        d1 = 0x0E;
+    } else if (cls == 4 || cls == 5) {
+        d1 = cls == 4 ? 0x1B : 0x22;
+    } else if (cls == 3) {
+        d1 = 0x14;
+    } else if (low == 1) {                                    /* 0x014610: a ship */
+        d1 = wof_m.player[0].facing < 0 ? 0x0A : 0;
+        if (cls == 0x22 || cls == 0xF6) {
+            d1 = (int16_t)(d1 + 0x4D);
+        } else {
+            int ship = wof_ship_at_span(off);
+
+            if (ship < 0)
+                return (int16_t)ship;
+            if (wof_m.ship_records[ship].slot_base) {
+                d1 = (int16_t)(d1 + wof_m.ship_records[ship].slot_base);
+                wof_g.g_0276fc = 0xFF;
+                *master = 1;
+            } else {
+                wof_g.g_0276fc = 0;
+                d1 = (int16_t)(d1 + 0x3C);
+            }
+        }
+        return (int16_t)((d1 + (int16_t)wof_tbl_data_image[0x0246C4u - 0x023000u + (uint16_t)row]) * 4);
+    } else if ((int16_t)cls >= 0x0F && (int16_t)cls <= 0x1E) {
+        d1 = cls == 0x0F ? 0x29 : 0x30;
+    } else {
+        return -1;
+    }
+    return (int16_t)((d1 + (int16_t)wof_tbl_data_image[0x0246B8u - 0x023000u + (uint16_t)row]) * 4);
+}
+
+/* 0x0143A6 and 0x0143DE: the record a row found, at the window's right edge on the row. */
+static void window_record(int16_t cls, int16_t row, int16_t off)
+{
+    int     master;
+    int16_t at;
+
+    if (cls < 0)
+        return;
+    at = window_shape((uint16_t)(cls & 0x1FF), wof_g.g_02568d, row, off, &master);
+    if (at < 0)
+        return;
+    wof_draw_at(master ? wof_m.master_list[(uint16_t)at >> 2].s : dash((uint16_t)(at >> 2)),
+                0x13F, wof_g.g_0253e2);
+}
+
 /* orig 0x014206 - the strip of the map around the aircraft, eleven rows of the window from
  * the horizon down, each row the records at a spacing from window_steps.  The five scripts
  * saw it only over the carrier, whose records the strip leaves out (their low bits equal
@@ -140,14 +199,13 @@ static void window_strip(void)
                     ship = order[i];
             if (ship >= 0)
                 s = &wof_m.ship_records[ship];
-            if (s->w12 == 0)
+            if (s->w12 == 0 || s->w12 == 0x1770)
                 wof_g.g_02745a = 1;
-            else
-                WOF_STANDIN("M6 STAND-IN: 0x014244, the 3-D view over an enemy ship");
         }
     }
 
     for (int16_t k = 11; k >= 1; k--) {
+        int16_t land;
         int16_t d0 = (int16_t)wof_tbl_window_steps[k];
         int16_t d1 = (int16_t)wof_tbl_window_steps[k - 1];
         int16_t d5 = (int16_t)(d0 - d1);
@@ -181,6 +239,7 @@ static void window_strip(void)
                 WOF_STANDIN("M6 STAND-IN: 0x0142BC, an enemy aircraft in the 3-D view");
         }
 
+        land = 0;
         for (int16_t n = d5; n >= 0; n--) {
             if (d6 >= 0 && (uint32_t)(uint16_t)d6 <= wof_m.map_records_end[0].off) {
                 uint16_t rec = wof_m.map_records[(uint16_t)d6 >> 1].v;
@@ -190,13 +249,22 @@ static void window_strip(void)
                 wof_g.g_02568d = (uint8_t)low;
                 if (low == (uint16_t)wof_g.g_02745a)
                     slot = 0;
-                if (slot >> 2)
-                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01434C, a map record in the 3-D view");
-                else if ((uint8_t)(low - 2) == 0)
-                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x014382, land in the 3-D view");
+                slot >>= 2;
+                if (slot) {                                   /* 0x01434C */
+                    if (slot >= 6 && slot <= 8)
+                        wof_g.g_0253da = (int16_t)slot;
+                    else if (wof_g.g_0253d8 != 0x22 && wof_g.g_0253d8 != 0xF6)
+                        wof_g.g_0253d8 = (int16_t)slot;
+                }
+                if ((uint8_t)(low - 2) == 0)
+                    land = -1;
             }
             d6 = (int16_t)(d6 + dir);
         }
+        if (land)                                             /* 0x01438A: the shore */
+            wof_rect_fill(0x102, wof_g.g_0253e2, 0x17C, wof_g.g_0253e2, 5);
+        window_record(wof_g.g_0253da, (int16_t)(k - 1), d6);
+        window_record(wof_g.g_0253d8, (int16_t)(k - 1), d6);
         wof_g.g_0253e2++;
     }
     if (!wof_g.g_0276fc) {
@@ -290,8 +358,14 @@ void wof_draw_dashboard(void)
         wof_g.gauge_oil = (int16_t)(wof_g.gauge_oil + (d5 > wof_g.gauge_oil ? 4 : -4));
     d5 = wof_g.gauge_oil;
     d4 = 0x0C;
-    if (wof_g.gauge_flying != 0 && (uint16_t)p->oil < 0x74)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01EEB8, the oil warning");
+    if (wof_g.gauge_flying != 0 && (uint16_t)p->oil < 0x74) {   /* 0x01EEB8: the warning blinks */
+        d4 = 0x10;
+        if (--wof_g.gauge_oil_blink <= 0) {
+            d4 = 0x0C;
+            if (wof_g.gauge_oil_blink != 0)
+                wof_g.gauge_oil_blink = 0x0A;
+        }
+    }
     if (d4 != c->oil_warn || d5 != c->oil) {
         c->oil_warn = d4;
         c->oil = d5;
@@ -302,26 +376,35 @@ void wof_draw_dashboard(void)
 
     /* The fuel gauge. */
     d5 = p->fuel;
-    if (d5 < 0) {
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01EF32, fuel below zero");
-        d5 = 0;
-    }
+    if (d5 < 0)
+        d5 = 0;                                               /* 0x01EF32 */
     d5 = (int16_t)((uint16_t)d5 >> 1);
     if ((uint16_t)d5 > 0x58)
         d5 = 0x58;
     d5 = (int16_t)(d5 & (int16_t)0xFFFC);
-    if (d5 == 0 && wof_g.gauge_flying)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01EF48, the empty tank's needle");
+    if (d5 == 0 && wof_g.gauge_flying) {
+        /* 0x01EF48: the empty tank's needle trembles by chance, bit 15 of a draw */
+        uint16_t r = (uint16_t)wof_rand_beam(0x01EE16);
+
+        r = (uint16_t)((uint16_t)(r << 3) | (uint16_t)(r >> 13));
+        d5 = (int16_t)(r & 4u);
+    }
     if (d5 != wof_g.gauge_fuel) {
         if (d5 > wof_g.gauge_fuel)
             wof_g.gauge_fuel = (int16_t)(wof_g.gauge_fuel + 4);
         else
-            wof_g.gauge_fuel = (int16_t)(wof_g.gauge_fuel - 4);   /* read: the five only rose */
+            wof_g.gauge_fuel = (int16_t)(wof_g.gauge_fuel - 4);
     }
     d5 = wof_g.gauge_fuel;
     d4 = 0x0C;
-    if (wof_g.gauge_flying != 0 && p->fuel <= 0x40)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01EF8C, the fuel warning");
+    if (wof_g.gauge_flying != 0 && p->fuel <= 0x40) {         /* 0x01EF8C: the warning blinks */
+        d4 = 0x10;
+        if (--wof_g.gauge_fuel_blink <= 0) {
+            d4 = 0x0C;
+            if (wof_g.gauge_fuel_blink != 0)
+                wof_g.gauge_fuel_blink = 8;
+        }
+    }
     if (d4 != c->fuel_warn || d5 != c->fuel) {
         c->fuel_warn = d4;
         c->fuel = d5;
@@ -367,14 +450,10 @@ void wof_draw_dashboard(void)
     {
         uint8_t d3 = wof_g.lives;
 
-        if ((int8_t)d3 < 0) {
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01F102, negative lives");
-            d3 = 0;
-        }
-        if (d3 > 9) {
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01F10C, more than nine lives");
-            d3 = 9;
-        }
+        if ((int8_t)d3 < 0)
+            d3 = 0;                                           /* 0x01F102 */
+        if (d3 > 9)
+            d3 = 9;                                           /* 0x01F10C */
         if ((int16_t)d3 != c->lives) {
             int16_t d0 = (int16_t)(0x59 - (int16_t)(d3 << 3));
             int16_t d2 = wof_g.gauge_lives;
@@ -385,7 +464,7 @@ void wof_draw_dashboard(void)
                 if (d0 > d2)
                     d2 = (int16_t)(d2 + 1);
                 else
-                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01F12E, the lives drum turning down");
+                    d2 = (int16_t)(d2 - 1);                   /* 0x01F12E: a life more */
                 wof_g.gauge_lives = d2;
             }
             wof_g.clip_top = 0x13;

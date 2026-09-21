@@ -8,8 +8,17 @@ library and on the WebAssembly core - and the two targets must agree with each o
 import ctypes
 import hashlib
 import json
+import os
+import sys
+
+import pytest
 
 from conftest import ROOT, WASM, run
+
+sys.path.insert(0, os.path.join(str(ROOT), 'tools'))
+import headless                  # noqa: E402
+import m4_scripts                # noqa: E402
+import pass_observe              # noqa: E402
 
 AFTER = 400                      # VBlanks run on from the save
 INTO = 160                       # VBlanks into the mission when the state is saved
@@ -58,7 +67,6 @@ def test_a_state_saved_in_a_mission_continues_identically(ported, blob_file):
     # the WebAssembly core runs with: the fades, the pass rate, no tick waits, no pokes.
     lib.wof_set_fade_vblanks(2)
     lib.wt_set_vblanks_per_pass(2)
-    lib.wt_tick_waits_clear()
     lib.wt_pokes_clear()
     ported.reset_core(seed=1)
     vblank = 0
@@ -95,6 +103,115 @@ def test_a_state_saved_in_a_mission_continues_identically(ported, blob_file):
     assert wasm['straight'] == wasm['replayed'] == wasm['foreign'], wasm
     assert wasm['saved'] == digest(saved), 'the two targets saved different states'
     assert wasm['savedFrame'] == saved_frame
+    assert (wasm['straight']['state'], wasm['straight']['frame']) == straight
+
+
+# ------------------------------------------------------------------ T5: the cases of part 2
+
+def expand(raw_entries):
+    """A script's raw schedule as one controller byte per VBlank, and its keys as
+    (vblank, code, qualifier), each delivered before its VBlank as the harness does."""
+    raw, keys = [], []
+    for entry in raw_entries:
+        state = headless.raw_state(entry[1])
+        if len(entry) > 2:
+            keys += [(len(raw), code, qualifier) for code, qualifier in headless.key_events(entry[2])]
+        raw += [state] * entry[0]
+    return raw, keys
+
+
+def drive_schedule(ported, raw, keys, start, count):
+    by = {}
+    for v, code, qualifier in keys:
+        by.setdefault(v, []).append((code, qualifier))
+    for v in range(start, start + count):
+        for code, qualifier in by.get(v, ()):
+            ported.key(code, qualifier)
+        ported.vblank(raw[v] if v < len(raw) else 0)
+        ported.pass_()
+
+
+ESCAPE = 0x45
+
+
+def case_schedule(name):
+    """(raw, keys, a function that says whether a VBlank is the one to save at)."""
+    if name == 'left':
+        # Flying left after the first turn of the turns script: hellcat.shp's frames are
+        # mirrored then, which is state the containers hold (SPEC 7.2).
+        raw, keys = expand(m4_scripts.TURNS)
+        at = m4_scripts.length(m4_scripts.PILOT) + 190 + 124 + 79 + 40
+        return raw, keys, lambda ported, v: v == at
+    if name == 'restart':
+        # Inside the WaitTOF loop of the restart after the lost script's crash: the tick is
+        # waiting, halfway through its twenty VBlanks.
+        raw, keys = expand(pass_observe.script('lost')['raw'])
+        return raw, keys, lambda ported, v: ported.g('g_027452') == 10
+    if name == 'paused':
+        # The flight script with Escape in the climb, saved while paused, and Escape again
+        # 150 VBlanks after the save.
+        raw, keys = expand(pass_observe.script('flight')['raw'])
+        at = m4_scripts.length(pass_observe.FRONT) + 900
+        keys = keys + [(at - 60, ESCAPE, 0), (at + 150, ESCAPE, 0)]
+        return raw, keys, lambda ported, v: v == at
+    raise KeyError(name)
+
+
+@pytest.mark.parametrize('name', ['left', 'restart', 'paused'])
+def test_a_state_saved_in_a_flight_continues_identically(ported, blob_file, tmp_path, name):
+    """T5: a state saved flying left with the shapes mirrored, inside the restart's waits in a
+    tick, and while paused; loaded into the same core and into a fresh core with another
+    seed, the state, the picture and the next 400 VBlanks are the same, on the native
+    library and on the WebAssembly core, and the two targets agree."""
+    lib = ported.lib
+    lib.wof_state_size.restype = ctypes.c_uint32
+    lib.wt_set_vblanks_per_pass(2)
+    lib.wt_pokes_clear()
+    raw, keys, here = case_schedule(name)
+    lib.wof_set_fade_vblanks(0)            # the schedules are the headless original's
+    ported.reset_core(seed=1)
+    before = None
+    for v in range(len(raw)):
+        drive_schedule(ported, raw, keys, v, 1)
+        if ported.mission_count() and here(ported, v + 1):
+            before = v + 1
+            break
+    assert before, 'the save point of %s was never reached' % name
+    if name == 'left':
+        hell = (ctypes.c_uint8 * 128)()
+        torp = (ctypes.c_uint8 * 128)()
+        lib.wt_markers_get(hell, torp)
+        assert 0 in bytes(hell), 'no hellcat.shp frame is mirrored at the save'
+    if name == 'paused':
+        assert ported.g('pause_flag'), 'the game is not paused at the save'
+
+    saved = native_state(ported)
+    saved_frame = frame(ported)
+    drive_schedule(ported, raw, keys, before, AFTER)
+    straight = (digest(native_state(ported)), frame(ported))
+
+    native_load(ported, saved)
+    assert frame(ported) == saved_frame, 'the picture after a load is not the saved one'
+    drive_schedule(ported, raw, keys, before, AFTER)
+    assert (digest(native_state(ported)), frame(ported)) == straight, 'native: replay differs'
+
+    ported.reset_core(seed=4711)
+    drive_schedule(ported, raw, keys, 0, 50)
+    native_load(ported, saved)
+    assert frame(ported) == saved_frame
+    drive_schedule(ported, raw, keys, before, AFTER)
+    assert (digest(native_state(ported)), frame(ported)) == straight, 'native: foreign core differs'
+    lib.wof_set_fade_vblanks(2)
+    ported.reset_core()
+
+    schedule = tmp_path / 'schedule.json'
+    schedule.write_text(json.dumps({'raw': raw + [0] * AFTER, 'keys': keys, 'fades': 0}))
+    out = run(['node', str(ROOT / 'tests' / 'state_wasm.mjs'), str(WASM), str(blob_file),
+               str(before), str(AFTER), str(schedule)])
+    wasm = json.loads(out.stdout)
+    assert wasm['loadedFrame'] == wasm['savedFrame'] == wasm['foreignFrame']
+    assert wasm['straight'] == wasm['replayed'] == wasm['foreign'], wasm
+    assert wasm['saved'] == digest(saved), 'the two targets saved different states'
     assert (wasm['straight']['state'], wasm['straight']['frame']) == straight
 
 
@@ -138,12 +255,12 @@ def wasm_function_names(path):
 
 def test_the_release_core_has_no_test_hooks(ported):
     """The hooks the comparison drives the port with - the pass, tick and step S hooks, the
-    tick stand-in's waits, the pokes, the trace - exist in the native test build only
+    pokes, the trace - exist in the native test build only
     (WOF_TRACE); dist/core.wasm is built without them."""
     names = wasm_function_names(WASM)
     assert len(names) > 100, 'the release core has no name section to check'
     hooks = [n for n in names if n.startswith(('wof_test_', 'wof_trace'))]
     assert hooks == [], hooks
     lib = ported.lib
-    for name in ('wof_test_set_tick_waits', 'wof_test_set_pass_hook', 'wof_trace_add'):
+    for name in ('wof_test_set_tick_hook', 'wof_test_set_pass_hook', 'wof_trace_add'):
         assert hasattr(lib, name), 'the test build lacks %s' % name

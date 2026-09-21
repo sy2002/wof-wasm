@@ -34,6 +34,10 @@ WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next charact
                                                      * address in its text: a message is named by
                                                      * where the original keeps it */
 
+/* the tick (M4 part 2) */
+WOF_GLOBAL(crand_seed,         uint32_t, 0x026A16)  /* the C library's rand() (0x021E24), not the entropy */
+WOF_GLOBAL(g_025422,           uint32_t, 0x025422)  /* the name of the shape 0x02541A, 0x01C378 */
+
 /* ------------------------------------------------------------------------------ words */
 
 /* timing and the input queue (re/notes/input.md) */
@@ -140,7 +144,43 @@ WOF_GLOBAL(g_02734e,           int16_t,  0x02734E)
 WOF_GLOBAL(g_027de6,           int16_t,  0x027DE6)
 WOF_GLOBAL(g_027de8,           int16_t,  0x027DE8)
 WOF_GLOBAL(airspeed_step,      int16_t,  0x027DEA)
-WOF_GLOBAL(g_027350,           int16_t,  0x027350)  /* the tick's oil timer (part 2) */
+WOF_GLOBAL(g_027350,           int16_t,  0x027350)  /* the tick's oil timer */
+
+/* the mission (M4): the tick and the player (re/notes/porting-m4.md, part 2) */
+WOF_GLOBAL(g_02476a,           int16_t,  0x02476A)  /* logic_tick: 0..7, the index into 0x024C44 */
+WOF_GLOBAL(g_025404,           int16_t,  0x025404)  /* 0x011274: the pitch as a bearing for a shot */
+WOF_GLOBAL(pitch_delta,        int16_t,  0x025408)  /* added to pitch_angle for the two speeds */
+WOF_GLOBAL(g_02540c,           int16_t,  0x02540C)  /* 0x01B92E: the last cable it looked at */
+WOF_GLOBAL(g_025426,           int16_t,  0x025426)
+WOF_GLOBAL(g_02542a,           int16_t,  0x02542A)  /* the engine's pitch the sound engine eases to */
+WOF_GLOBAL(g_02542e,           int16_t,  0x02542E)  /* where 0x012132 has eased it to */
+WOF_GLOBAL(g_025a9e,           int16_t,  0x025A9E)
+WOF_GLOBAL(g_025aa0,           int16_t,  0x025AA0)  /* 0x01AB80: a turn steps every second call */
+WOF_GLOBAL(pitch_angle,        int16_t,  0x025AA2)  /* player_motion eases it towards pitch_target */
+WOF_GLOBAL(g_025aa4,           int16_t,  0x025AA4)  /* the sinking wreck's tick counter */
+WOF_GLOBAL(g_025aa6,           int16_t,  0x025AA6)  /* ticks since the aircraft came to rest */
+WOF_GLOBAL(g_025aa8,           int16_t,  0x025AA8)  /* when the wreck's next puff of smoke is due */
+WOF_GLOBAL(g_025aaa,           int16_t,  0x025AAA)  /* the stick forward alone while flying left */
+WOF_GLOBAL(g_025e4c,           int16_t,  0x025E4C)  /* 0x01BCCE: the airspeed / 4 */
+WOF_GLOBAL(g_025e4e,           int16_t,  0x025E4E)  /* the distance that airspeed needs to stop */
+WOF_GLOBAL(g_025e50,           int16_t,  0x025E50)  /* the distance to the lift */
+WOF_GLOBAL(pitch_step,         int16_t,  0x025F16)  /* how far pitch_target moves a tick; the cheat keys i, k */
+WOF_GLOBAL(cheat_state,        int16_t,  0x025F18)  /* ingame_keys: 0..5, the debug keys at 5 */
+WOF_GLOBAL(g_026c84,           int16_t,  0x026C84)  /* the burning wreck's tick counter */
+WOF_GLOBAL(g_026c8a,           int16_t,  0x026C8A)
+WOF_GLOBAL(g_026e64,           int16_t,  0x026E64)  /* 0x011274: the player's speeds and position as */
+WOF_GLOBAL(g_026e66,           int16_t,  0x026E66)  /* four 16.16 longs from 0x026E62, for the shots */
+WOF_GLOBAL(g_026e68,           int16_t,  0x026E68)
+WOF_GLOBAL(g_026e6a,           int16_t,  0x026E6A)
+WOF_GLOBAL(g_026e6c,           int16_t,  0x026E6C)
+WOF_GLOBAL(g_026e6e,           int16_t,  0x026E6E)
+WOF_GLOBAL(g_026e70,           int16_t,  0x026E70)
+WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
+WOF_GLOBAL(g_027348,           int16_t,  0x027348)  /* logic_tick counts it down to 0 */
+WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */
+WOF_GLOBAL(g_026f80,           uint16_t, 0x026F80)  /* the cheat's q: main then ends the program (st.b) */
+WOF_GLOBAL(g_027de2,           int16_t,  0x027DE2)  /* the version Control-V shows: 1 and 0 (0x01AA50) */
+WOF_GLOBAL(g_027de4,           int16_t,  0x027DE4)
 
 /* the mission (M4): the pass's own counters and the carrier's deck animation */
 WOF_GLOBAL(g_025654,           int16_t,  0x025654)
@@ -206,7 +246,8 @@ WOF_GLOBAL(g_02535e,           uint8_t,  0x02535E)
 WOF_GLOBAL(g_02535f,           uint8_t,  0x02535F)
 WOF_GLOBAL(g_025360,           uint8_t,  0x025360)
 WOF_GLOBAL(game_over,          uint8_t,  0x025362)  /* draw_game_over draws `gmov` while set */
-WOF_GLOBAL(g_025364,           uint8_t,  0x025364)
+WOF_GLOBAL(g_025364,           uint8_t,  0x025364)  /* the weapon menu is up, in the hold */
+WOF_GLOBAL(g_025365,           uint8_t,  0x025365)  /* never written; the player update's tst.w reads it */
 WOF_GLOBAL(g_025366,           uint8_t,  0x025366)
 WOF_GLOBAL(g_025367,           uint8_t,  0x025367)
 WOF_GLOBAL(g_025368,           uint8_t,  0x025368)

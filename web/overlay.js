@@ -24,6 +24,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
         lastPaint = now;
 
         const c = core.counters();
+        const pl = core.devPlayer();
         const s = clock.stats();
         const a = audio.stats();
         const g = video.geometry();
@@ -54,8 +55,9 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'arena        ' + (c.arenaUsed / 1024).toFixed(0) + ' of ' +
                 (c.arenaSize / 1024).toFixed(0) + ' KiB\n' +
             'files stored ' + c.filesWritten + '\n' +
-            'stand-ins    ' + c.standinHits + ' reached; E ends a mission while the game\n' +
-            '             logic is a stand-in (M4 part 2)\n' +
+            'stand-ins    ' + c.standinHits + ' reached\n' +
+            'player       x ' + pl.x + '  y ' + pl.y + '  deck state ' + pl.deck +
+                (core.paused() ? ', paused' : '') + (core.invertVertical() ? ', flip on' : '') + '\n' +
             'while this is up: 5 PAL, 6 NTSC, 1 a high score, 2 the save dialog,\n' +
             '                  3 the load dialog (development keys, not the game\'s)';
     }

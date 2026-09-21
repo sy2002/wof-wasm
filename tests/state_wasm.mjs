@@ -2,16 +2,29 @@
  * JSON object of digests; tests/test_state_m4.py compares them with each other and with the
  * native core's.
  *
- *     node tests/state_wasm.mjs <core.wasm> <fs-blob> <vblanks before the save> <vblanks after>
+ *     node tests/state_wasm.mjs <core.wasm> <fs-blob> <vblanks before the save> <vblanks after> [schedule]
  *
- * The input is the one the Python side uses: the fire button for three VBlanks in every
- * thirty, which takes the front end into the first mission and goes on inside it. */
+ * The input is the one the Python side uses: without a schedule, the fire button for three
+ * VBlanks in every thirty, which takes the front end into the first mission and goes on
+ * inside it; with one, a mission script's controller bytes and keys. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
-const [wasmPath, blobPath, beforeArg, afterArg] = process.argv.slice(2);
+const [wasmPath, blobPath, beforeArg, afterArg, schedulePath] = process.argv.slice(2);
 const before = Number(beforeArg);
 const after = Number(afterArg);
+/* A schedule file, when one is given: {"raw": [one controller byte per VBlank],
+ * "keys": [[vblank, code, qualifier], ...]}, the keys delivered before their VBlank. */
+const schedule = schedulePath ? JSON.parse(readFileSync(schedulePath, 'utf8')) : null;
+const keysAt = new Map();
+if (schedule) {
+    for (const [v, code, qualifier] of schedule.keys) {
+        if (!keysAt.has(v)) {
+            keysAt.set(v, []);
+        }
+        keysAt.get(v).push([code, qualifier]);
+    }
+}
 const module = new WebAssembly.Module(readFileSync(wasmPath));
 const blob = readFileSync(blobPath);
 
@@ -20,12 +33,18 @@ function boot(seed) {
     const ptr = x.wof_alloc(blob.length);
     new Uint8Array(x.memory.buffer, ptr, blob.length).set(blob);
     x.wof_init(seed >>> 0, ptr, blob.length);
+    if (schedule && schedule.fades !== undefined) {
+        x.wof_set_fade_vblanks(schedule.fades);
+    }
     return x;
 }
 
-const raw = (v) => (v % 30 < 3 ? 0x10 : 0);
+const raw = (v) => (schedule ? (schedule.raw[v] || 0) : (v % 30 < 3 ? 0x10 : 0));
 function run(x, from, count) {
     for (let v = from; v < from + count; v++) {
+        for (const [code, qualifier] of keysAt.get(v) || []) {
+            x.wof_key(code, qualifier);
+        }
         x.wof_vblank(raw(v));
         x.wof_pass();
     }

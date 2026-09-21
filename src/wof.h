@@ -89,6 +89,12 @@ WOF_API(wof_vblanks_per_pass)  int             wof_vblanks_per_pass(void);
  * only while the diagnostics overlay is up (SPEC 6.2, and M3's deliverable 7). */
 WOF_API(wof_dev_set_score)     void            wof_dev_set_score(uint32_t score);
 WOF_API(wof_dev_open_dialog)   void            wof_dev_open_dialog(int mode);
+WOF_API(wof_dev_player)        const int16_t  *wof_dev_player(void);   /* x, y, player_on_deck; read-only */
+
+/* The pause as a request (M4): the shell asks for it when the page is hidden, and the next
+ * pass of a mission pauses the game as Escape does.  Outside a mission it is dropped. */
+WOF_API(wof_request_pause)     void            wof_request_pause(void);
+WOF_API(wof_paused)            int             wof_paused(void);
 WOF_API(wof_pass)              void            wof_pass(void);
 WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);
@@ -230,7 +236,12 @@ typedef struct {
     wof_ctx_t co_mission;     /* the mission: main's setup after the briefing, the inner loop */
     wof_ctx_t co_pass;        /* frame_update */
     wof_ctx_t co_ticks;       /* run_queued_ticks */
-    wof_ctx_t co_tick;        /* the tick (M4 PART 2 STAND-IN) */
+    wof_ctx_t co_tick;        /* logic_tick (orig 0x011386) */
+    wof_ctx_t co_player;      /* the player update (orig 0x01C660) */
+    wof_ctx_t co_lost;        /* the wait after a crash (orig 0x01AF7C) */
+    wof_ctx_t co_restart;     /* the next aircraft (orig 0x0135CE) */
+    wof_ctx_t co_lost_restart; /* player_lost_restart (orig 0x0135D8) */
+    wof_ctx_t co_keys;        /* ingame_keys (orig 0x01CCF6) */
 
     /* Locals that live across a wait.  The original keeps them on its stack; a stackless
      * coroutine cannot, so they carry the name they have in the routine that owns them. */
@@ -308,9 +319,10 @@ typedef struct {
     uint16_t hs_pass;
     uint16_t hs_row;
 
+    uint8_t  keys_char;       /* ingame_keys: the character of the key it is on */
+    uint8_t  pause_request;   /* wof_request_pause: the next ingame_keys pauses */
     uint16_t mission_count;   /* how often a mission has been reached (step S) */
     uint16_t mission_end;     /* how the inner loop was left: 1 quit_flag, 2 end_of_mission */
-    uint16_t tick_waits;      /* VBlanks the tick stand-in still owes (test builds only) */
     uint32_t ticks_run;       /* logic ticks run, the stand-in's and main's own */
     uint32_t passes_run;      /* passes of the inner loop */
     uint8_t  draw_vport;      /* the viewport draw_set_target was last given, or WOF_VP_NONE */
@@ -423,7 +435,7 @@ typedef struct {
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 4u
+#define WOF_STATE_VERSION 5u
 
 extern wof_state_t wof_s;
 
@@ -624,6 +636,7 @@ void wof_clip_set_full(void);                                          /* orig 0
 void wof_shape_draw(const wof_shape_t *s, int16_t x, int16_t y);       /* orig 0x020CE2 */
 void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y); /* orig 0x020B0C */
 void wof_rect_fill(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour); /* orig 0x021010 */
+void wof_line_draw(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour); /* orig 0x021318 */
 void wof_draw_restore(void);                             /* the target again after a state load */
 void wof_draw_context(uint16_t layer, uint16_t owner);   /* what the display list records */
 const wof_target_t *wof_draw_target(void);
@@ -714,6 +727,7 @@ void         wof_view_layout(uint8_t view);           /* orig 0x01692C */
 void         wof_view_copy(uint8_t from, uint8_t to); /* orig 0x01A9CA */
 void         wof_view_show(uint8_t view);             /* orig 0x016F20 */
 wof_co_t     wof_wait_vblank(void);                   /* orig 0x01AA3E */
+wof_co_t     wof_wait_next_vblank(void);              /* orig 0x01AA32 */
 wof_co_t     wof_view_show_wait(uint8_t view);        /* orig 0x016FC4 */
 wof_co_t     wof_cop_show_blank(void);                /* orig 0x01A9FC with cop_blank */
 wof_co_t     wof_screen_picture(void);                /* orig 0x016AD8 */
@@ -723,6 +737,7 @@ wof_co_t     wof_screen_dialog(void);                 /* orig 0x0169A4 */
 wof_co_t     wof_screen_hiscore(void);                /* orig 0x016D7A */
 void         wof_screen_from_front_view(void);
 void         wof_screen_game(void);                   /* orig 0x016CC6 */
+void         wof_screen_game_restore(void);           /* orig 0x016D32 */
 void         wof_cop_set_split_line(int16_t row);     /* orig 0x01876E */
 void         wof_cop_add_ticker_ramp(uint8_t view);   /* orig 0x0187BA */
 void         wof_cop_poke_colour1(uint8_t view, uint16_t colour);
@@ -825,6 +840,7 @@ wof_co_t wof_high_score_screen(void);                        /* orig 0x019856 */
 void     wof_load_picture_black(const char *name, uint16_t *palette_out);  /* orig 0x017422 */
 void     wof_load_picture_black_into(uint8_t vport, const char *name, uint16_t *palette_out);
 uint16_t wof_format(char *dst, const char *format, int32_t number, const char *text);
+uint16_t wof_raw_do_fmt(char *dst, const char *format, const uint16_t *data);   /* exec RawDoFmt */
 
 /* The line editor of the name entry and the file names (orig 0x016086, re/notes/keys.md).
  * `buffer` is the line it edits; it returns 0 when the line was accepted, -1 when the
@@ -850,12 +866,17 @@ void wof_audio_init(void);
 
 void     wof_mission_init(void);            /* the dashboard picture's buffer, at start-up */
 void     wof_free_mission_assets(void);     /* orig 0x011234 */
+void     wof_free_dash_shapes(void);        /* orig 0x0134AE */
+void     wof_free_sounds(void);             /* orig 0x01346C */
+void     wof_free_for_load(void);           /* orig 0x011256 */
 void     wof_campaign_reset(void);          /* orig 0x013562 */
 void     wof_mission_reset_tables(void);    /* orig 0x0135A8 */
-void     wof_player_lost_restart(void);     /* orig 0x0135D8, as the setup reaches it */
+wof_co_t wof_player_lost_restart(void);     /* orig 0x0135D8: it waits in a tick */
+void     wof_player_lost_restart_now(void); /* the same, where 0x027452 is 0 and it cannot */
+wof_co_t wof_next_aircraft(void);           /* orig 0x0135CE */
 void     wof_player_restart_state(void);    /* orig 0x013684 */
 void     wof_objects_clear(void);           /* orig 0x013756 */
-uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame);  /* orig 0x01ABDE */
+void     wof_mark_facing(int slot, uint16_t handle, uint16_t want);   /* a +8 marker, mirrored */
 uint16_t wof_rand_mod(uint16_t n);          /* orig 0x01CAC8 */
 void     wof_choose_night(void);            /* orig 0x0111FC */
 void     wof_load_dash_assets(void);        /* orig 0x01653C */
@@ -869,6 +890,29 @@ void     wof_ticker_clear(void);            /* orig 0x016BBC */
 void     wof_demo_end(void);                /* orig 0x01852A */
 wof_co_t wof_mission_display_setup(void);   /* orig 0x018806 */
 
+/* ------------------------------------------- the tick (M4 part 2, src/tick.c, src/player.c) */
+
+wof_co_t wof_logic_tick(void);              /* orig 0x011386 */
+wof_co_t wof_player_update(void);           /* orig 0x01C660 */
+void     wof_player_motion(void);           /* orig 0x01BDFA */
+void     wof_guns(void);                    /* orig 0x01B682 */
+void     wof_engine_idle(void);             /* orig 0x01B9CC */
+void     wof_crash(void);                   /* orig 0x01AFBA */
+uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame);  /* orig 0x01ABDE */
+int16_t  wof_wheel_height(void);            /* orig 0x01AAEA */
+uint32_t wof_record_at(int16_t x);          /* orig 0x01C982 */
+int      wof_on_water(uint32_t at);         /* orig 0x01CB74 */
+int      wof_record_on_ship(uint32_t at);   /* orig 0x01CB34 */
+uint16_t wof_crand(void);                   /* orig 0x021E24, the C library's rand() */
+void     wof_flash_set(int16_t count, int16_t colour);   /* orig 0x01CAB4 */
+uint16_t wof_map_slot_at(int16_t x, uint16_t *slot);     /* orig 0x0150C8 */
+int16_t  wof_ground_height(uint32_t at);    /* orig 0x015714 */
+void     wof_object_spawn(uint32_t at, int16_t y, int16_t flag);   /* orig 0x010820 */
+void     wof_splash_spawn(int16_t x);       /* orig 0x0152B0 */
+void     wof_smoke_claim(int32_t x, int32_t y, int16_t kind);      /* orig 0x015460 */
+uint16_t wof_image16(uint32_t addr);        /* a constant word of the DATA hunk, by address */
+uint32_t wof_image32(uint32_t addr);
+
 /* ------------------------------------------- the pass (M4, src/world.c and src/dash.c) */
 
 wof_co_t wof_frame_update(void);            /* orig 0x010228 */
@@ -877,9 +921,11 @@ void     wof_draw_enemy_aircraft(void);     /* orig 0x010DA6 */
 void     wof_map_window(void);              /* orig 0x01417E */
 void     wof_draw_dashboard(void);          /* orig 0x01EE16 */
 void     wof_draw_game_over(void);          /* orig 0x0110C2 */
+void     wof_flip_buffers(void);            /* orig 0x01030C */
 void     wof_window_height(void);           /* orig 0x0141B4 */
 void     wof_clip_to_waterline(void);       /* orig 0x01526E */
 int      wof_ship_at_offset(int16_t x);     /* orig 0x014A4E: the ship's index, or -1 */
+int      wof_ship_at_span(int16_t offset);  /* orig 0x014A52, from a map offset */
 void     wof_deck_span(void);               /* orig 0x01B7BC */
 void     wof_weapon_gauge_reset(void);      /* orig 0x01EDBC */
 void     wof_lives_gauge_reset(void);       /* orig 0x01EDEA */
@@ -892,13 +938,11 @@ uint16_t wof_table_entry(int table, int16_t index);
 /* Test-build hooks of the M4 comparisons (tests/shim.c); in the release build they are
  * constants, so dist/core.wasm has neither the table nor the pokes. */
 #ifdef WOF_TRACE
-uint16_t wof_test_tick_waits(uint32_t tick);      /* VBlanks the original's tick waited */
-void     wof_test_set_tick_waits(uint32_t tick, uint16_t n);
-void     wof_test_clear_tick_waits(void);
 void     wof_test_poke(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_pokes_clear(void);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
+int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);
@@ -913,7 +957,6 @@ void     wof_test_step_s(uint32_t mission);
 #define wof_test_pass_start(pass) ((void)0)
 #define wof_trace_pass_end() ((void)0)
 #define wof_test_tick_end(tick) ((void)0)
-#define wof_test_tick_waits(tick) ((uint16_t)0)
 #define wof_test_poke_after_rank() ((void)0)
 #define wof_trace_mission() ((void)0)
 #endif

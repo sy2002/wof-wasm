@@ -305,6 +305,6 @@ uint8_t wof_ticker_char(uint32_t addr)
         return b;
     if (addr >= 0x023000u && addr - 0x023000u < sizeof wof_tbl_data_image)
         return wof_tbl_data_image[addr - 0x023000u];
-    WOF_STANDIN("M4 PART 2 STAND-IN: a ticker message outside the registered state");
+    WOF_STANDIN("M7 STAND-IN: a ticker message outside the registered state");
     return 0;
 }

@@ -25,6 +25,48 @@ static uint16_t str_len(const char *s)
 
 /* The `%d`, `%-6ld` and `%-12s` of the front end, which is all of RawDoFmt the original
  * really asks for (SPEC 3.4).  Returns the length. */
+/* exec RawDoFmt as the debug keys call it: %d takes a word of the data stream and %ld a
+ * long, both signed, and `data` is the stream as the stack holds it, word by word.  Returns
+ * the length without the NUL it writes. */
+uint16_t wof_raw_do_fmt(char *dst, const char *format, const uint16_t *data)
+{
+    uint16_t out = 0;
+
+    for (const char *p = format; *p; p++) {
+        int32_t v;
+        char    digits[12];
+        int     n = 0;
+
+        if (*p != '%') {
+            dst[out++] = *p;
+            continue;
+        }
+        p++;
+        if (*p == 'l') {
+            p++;
+            v = (int32_t)(((uint32_t)data[0] << 16) | data[1]);
+            data += 2;
+        } else {
+            v = (int16_t)data[0];
+            data += 1;
+        }
+        if (*p != 'd')
+            break;
+        if (v < 0) {
+            dst[out++] = '-';
+            v = -v;
+        }
+        do {
+            digits[n++] = (char)('0' + (uint32_t)v % 10u);
+            v = (int32_t)((uint32_t)v / 10u);
+        } while (v);
+        while (n)
+            dst[out++] = digits[--n];
+    }
+    dst[out] = 0;
+    return out;
+}
+
 uint16_t wof_format(char *dst, const char *format, int32_t number, const char *text)
 {
     uint16_t out = 0;
@@ -420,6 +462,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
             /* M7 STAND-IN: the loader.  What the original does when the load fails is what
              * re/notes/frontend.md observed, and what the port does until M7 ports it: the
              * dialog comes back as a cancel and the rank selection rebuilds its picture. */
+            WOF_STANDIN("M7 STAND-IN: 0x019152, save_game_read: a saved game loaded");
             CO_CALL(c, &wof_f.co_fade, wof_fade_out());
             CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
             wof_f.dialog_result = 0xFFFF;

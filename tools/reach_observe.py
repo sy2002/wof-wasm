@@ -38,6 +38,7 @@ import argparse
 import bisect
 import collections
 import csv
+import glob
 import json
 import os
 import re
@@ -174,9 +175,31 @@ class Reach(headless.Headless):
         super()._mission_start()
 
 
+# Part 2's scripts beside part 1's (tools/m4_scripts.py), the night mission, and the key
+# runs M3 recorded for the mission (tests/runs/, named `run:` and the file's name).
+PART2_SCRIPTS = (['deck', 'flight', 'climb', 'lost', 'gameover', 'night', 'select', 'turns',
+                  'landing', 'island', 'fuel'] +
+                 ['run:' + os.path.basename(f)[:-5] for f in sorted(
+                     glob.glob(os.path.join(ROOT, 'tests', 'runs', 'flight-*.json')) +
+                     glob.glob(os.path.join(ROOT, 'tests', 'runs', 'paused-*.json')))])
+NIGHT_POKE = (0x025390, 1)                     # night_flag, at the rank selection's end
+
+
+def description_of(name, **more):
+    import m4_scripts
+    if name.startswith('run:'):
+        with open(os.path.join(ROOT, 'tests', 'runs', name[4:] + '.json')) as handle:
+            description = json.load(handle)
+        description.update(more)
+        return description
+    return m4_scripts.script('flight' if name == 'night' else name, **more)
+
+
 def observe(name, verbose=True, blocks=False, **more):
     started = time.time()
-    machine = Reach(pass_observe.script(name, **more), blocks=blocks)
+    machine = Reach(description_of(name, **more), blocks=blocks)
+    if name == 'night':
+        machine.stop_at(0x01009E, lambda: machine.o.w16(NIGHT_POKE[0], NIGHT_POKE[1]))
     machine.run()
     if verbose:
         print('%-9s %5d VBlanks, %5d passes, %4d ticks, %d missions, %d entropy reads  (%.0f s)'
@@ -351,6 +374,8 @@ def report(data, names):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--runs', nargs='*', default=M4_SCRIPTS)
+    parser.add_argument('--part2', action='store_true',
+                        help="part 2's scripts, the night mission and the key runs")
     parser.add_argument('--markdown')
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
@@ -358,6 +383,8 @@ def main():
     parser.add_argument('--setups', action='store_true',
                         help='also the setups of all fifteen maps under their own numbers, to S')
     args = parser.parse_args()
+    if args.part2:
+        args.runs = PART2_SCRIPTS
     data = collect(args.runs, blocks=args.blocks, setups=args.setups)
     report(data, args.runs)
     if args.markdown:
@@ -416,9 +443,10 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
 
 # M4's routines: every one a port file names with an `orig 0x......` comment, and of the
 # files that hold M3's too, the routines M4 changed.
-PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c']
-M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server']
-MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c']
+PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c']
+M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
+                     'wait_next_vblank', 'screen_game_restore']
+MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']
 STANDIN = re.compile(r'WOF_STANDIN\("((M\d+(?: PART \d)?) STAND-IN: '
                      r'(?:(0x[0-9A-Fa-f]{6})(?:-(0x[0-9A-Fa-f]{6}))?, )?([^"]*))"\)')
 ORIG = re.compile(r'orig (0x[0-9A-Fa-f]{6})')

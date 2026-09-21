@@ -147,6 +147,21 @@ class Core {
         this.x.wof_dev_open_dialog(mode ? 1 : 0);
     }
 
+    /* The player's x, y and deck state, for the overlay and the page test (read-only). */
+    devPlayer() {
+        const p = new Int16Array(this.x.memory.buffer, this.x.wof_dev_player(), 3);
+        return { x: p[0], y: p[1], deck: p[2] };
+    }
+
+    /* The pause as a request: the next pass of a mission pauses as Escape does. */
+    requestPause() {
+        this.x.wof_request_pause();
+    }
+
+    paused() {
+        return this.x.wof_paused() !== 0;
+    }
+
     /* Interleaved stereo int16, as many frames as asked for, at the given sample rate. */
     renderAudio(frames, rate) {
         const n = Math.min(frames, this.audioFrames);

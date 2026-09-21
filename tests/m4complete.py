@@ -1,7 +1,7 @@
-"""Completeness of the comparison (M4, V3).
+"""Completeness of the comparison (M4, V3 and T3).
 
-Every address the original writes during a mission outside its logic tick - in the setup
-after the briefing, in frame_update's tree, in a VBlank server, in the main program between
+Every address the original writes during a mission - in the setup after the briefing, in
+its logic tick, in frame_update's tree, in a VBlank server, in the main program between
 them - has to be one of three things:
 
   * a field of the port's registries (src/globals.def, src/mission.def), which both loops
@@ -52,9 +52,18 @@ EXCLUDED = [
      'vport_ticker: the ticker\'s ViewPort, RasInfo, BitMap and RastPort',
      'the port\'s screen model (src/screen.c) keeps a viewport as position, size and depth; '
      'its picture is compared as the palette of every row (V1 rows)', 'M4, SPEC 6.6'),
-    (0x027368, 0x027407, {'sub_011f76'},
-     'the sound slots sounds_load builds for the sound engine',
-     'part of the M8 stand-in sounds_load', 'M8'),
+    (0x026E3D, 0x026E3D, {'sub_01107c'},
+     'a flag the weapon drop (0x01107C) clears',
+     'the weapon drop is M5\'s stand-in at 0x01B5E2', 'M5'),
+    (0x026F8A, 0x026F8B, {'object_draw_first'},
+     'a count object_draw_first leaves for the debug view behind 0x02536D',
+     'reached from the weapon drop, M5\'s stand-in at 0x01B5E2', 'M5'),
+    (0x027368, 0x027427, {'sub_011f76', 'sub_011f4e', 'sub_012066', 'sub_012132', 'sub_012324',
+                          'sub_01233e', 'sub_012354', 'sub_012380', 'sub_0123ac'},
+     'the eight sound slots of 0x18 bytes: what sounds_load builds, and the sounds the tick '
+     'starts, stops and moves (the engine, the lift, a splash, a touch-down)',
+     'the sound engine is M8\'s; the two values 0x012132 eases that the rest of the game keeps '
+     '(0x02542C, 0x02542E) are registered', 'M8'),
     (0x02772A, 0x02772D, {'load_file'},
      'load_file_len', 'wof_load_file returns the length', 'M1'),
     (0x027748, 0x027A13, {'screen_game', 'view_set_game', 'vport_init_bitmap',
@@ -75,12 +84,22 @@ EXCLUDED = [
     (0x027DEC, 0x027DEF, {'player_reset'},
      'player_record: a pointer, always to player_y (0x025078)',
      'the port reaches the player\'s record directly', 'M4'),
+    (0x027DF0, 0x027DF3, {'sub_01aa6e', 'sub_01b682'},
+     'g_027df0: the enemy aircraft record the walks of 0x01AA6E and 0x01B682 are on, set '
+     'before every read',
+     'the port walks the records by index', 'M4'),
     (0x027DF4, 0x027DF7, {'deck_span'},
      'g_027df4: a pointer deck_span sets, always to player_start_x',
      'the port reads player_start_x directly', 'M4'),
-    (0x027E6A, 0x027F21, {'soundfx_vblank'},
-     'the sound engine\'s channel state',
-     'soundfx_vblank is the M8 stand-in', 'M8'),
+    (0x027E6A, 0x027F21, {'soundfx_vblank', 'sub_01ea28', 'sub_01eac0', 'sub_01eb4c'},
+     'the sound engine\'s channel state, and the audio channels the tick starts and stops',
+     'soundfx_vblank and the channel routines are the M8 stand-in', 'M8'),
+    (0x027FAC, 0x027FAD, {'line_draw'},
+     'line_draw\'s copy of the RastPort\'s plane mask, shifted a plane at a time',
+     'the port draws a line in every plane of the target\'s mask at once', 'M4, SPEC 6.6'),
+    (0x027FAE, 0x027FB1, {'ffp_mul'},
+     'MathBase: mathffp.library\'s base, opened at the first floating-point call',
+     'the port\'s floating point is src/ffp.c (SPEC 7.1, point 13)', 'M4'),
     (0x027F62, 0x027F65, {'load_file'},
      'load_file_error: IoErr of the last failed load', 'the port\'s loader returns 0', 'M1'),
     (0x027F86, 0x027FA3, {'blit_clip_setup'},
@@ -108,6 +127,11 @@ HEAP = [
      'the planes of both views: the dashboard picture, unpacked in the setup',
      'the port unpacks it into its surfaces with M3\'s decoder (src/iff.c); the headless '
      'original runs no blits, so its planes are not a picture to compare', 'M3'),
+    ('load_file', {'shape_mirror_x', 'aircraft_frame'},
+     'hellcat.shp and Torpedo.shp: the planes shape_mirror_x mirrors in place when the '
+     'aircraft turns, and the marker at +8 of each record aircraft_frame keeps',
+     'the port mirrors its converted pixels the same way and keeps the markers in the state; '
+     'the markers are compared after every tick (T1)', 'M4'),
     ('sub_0158fe', {'shape_draw'},
      'MaskBuffer: the mask shape_draw builds by CPU for one blit',
      'the port blits with the mask kept at load (re/notes/drawing.md)', 'M1'),

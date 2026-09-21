@@ -1,24 +1,24 @@
-"""The port's passes against the headless original's, pass by pass (M4, V1 and V2).
+"""The port against the headless original, pass by pass and tick by tick (M4).
 
-A script of tools/pass_observe.py runs once under the headless original with a dump of the
+A script of tools/m4_scripts.py runs once under the headless original with a dump of the
 state after every step, observers on the drawing routines, and a record of which addresses
 each tick wrote.  The port then replays the same schedule - the keys, the raw controller
-state of every VBlank, one wof_pass after each - with the fades at 0, and after every pass
-its state, its drawing calls, its entropy draws and its picture's palette rows are held
-against the original's.
+state of every VBlank, one wof_pass after each - with the fades at 0.  After every pass its
+state, its drawing calls, its entropy draws and its picture's palette rows are held against
+the original's, and after every tick its state, the entropy the tick drew, the drawing calls
+it made and the VBlanks it waited.
 
-Two ways of starting a pass:
+Two ways of running:
 
-  open     before every pass the port's registered state is set to the original's state
-           before that pass (the dump's previous step), with the views, the entropy stream's
-           position and the mirror markers; each pass is then compared alone (V1).
-  closed   the port runs on its own, and after each of its ticks - the tick is part 2's
-           stand-in - it is handed exactly the bytes the original's tick wrote in that step,
-           taken by address from the harness's own record of the tick's writes (V2).
+  open     at the end of every step the port's registered state is set to the original's
+           state after that step, with the views, the entropy stream's position and the
+           mirror markers, so that every pass and every tick starts from the original's
+           state before it and is compared alone (T1).
+  closed   the port runs on its own from the program's start, with nothing handed over
+           (T2).
 
-The tick stand-in waits, in test builds only, as many VBlanks as the original's tick waited;
-the count is taken from the schedule itself: the V entries between the previous step and
-each T.
+A tick that waits - a lost aircraft's restart spins on WaitTOF inside the tick - waits in the
+port because the port's tick waits: the schedule's VBlanks fall where they fall.
 """
 import collections
 import ctypes
@@ -39,16 +39,18 @@ import headless                                       # noqa: E402
 import headless_dump as dump                          # noqa: E402
 import map_decode                                     # noqa: E402
 import pass_observe                                   # noqa: E402
+import m4_scripts                                     # noqa: E402
 import m4state                                        # noqa: E402
 
 DRAW_OBSERVERS = ['shape_draw', 'shape_blit', 'rect_fill', 'shape_draw_xor', 'clip_set',
-                  'draw_set_target']
+                  'draw_set_target', 'line_draw']
 
 # The far-call slots the scene routines reach the blitter library through: a return address
 # behind `jsr d16(a4)` with one of these displacements is a direct call.  shape_draw enters
 # shape_blit with a bra, which the observer on shape_blit also sees; this tells them apart.
 DIRECT_CALLS = {'shape_blit': 0x4EAC8320, 'shape_draw': 0x4EAC832C, 'rect_fill': 0x4EAC8344,
-                'shape_draw_xor': 0x4EAC8338, 'draw_set_target': 0x4EAC835C}
+                'shape_draw_xor': 0x4EAC8338, 'draw_set_target': 0x4EAC835C,
+                'line_draw': 0x4EAC837A}
 
 # The viewports' RastPorts in the original (vport + 0x2C) and the port's viewport indices.
 RASTPORTS = {0x027748 + 0x2C: 0, 0x0277F4 + 0x2C: 1, 0x0278A0 + 0x2C: 2, 0x02794C + 0x2C: 3,
@@ -83,6 +85,7 @@ class Recorder(headless.Headless):
     def __init__(self, run, observe=DRAW_OBSERVERS, pokes=None, **options):
         super().__init__(run, observe=observe, **options)
         self.t_writes = []                        # per step: the addresses written in phase T
+        self.t_windows = []                       # per tick: 'setup' for main's own, else 'mission'
         self._t = set()
         self.entropy_phase = []                   # the phase of every entropy read
         self.pokes = pokes or {}
@@ -112,10 +115,8 @@ class Recorder(headless.Headless):
             self.entropy_phase.append(self.phase())
 
     def _write_t(self, uc, access, address, size, value, user):
-        if self.in_tick:
-            if address < headless.PLANE_BASE:
-                self._t.update(range(address, address + size))
-            return
+        if self.in_tick and address < headless.PLANE_BASE:
+            self._t.update(range(address, address + size))
         if self.window is None:
             return
         pc = uc.reg_read(UC_M68K_REG_PC)
@@ -139,11 +140,13 @@ class Recorder(headless.Headless):
         super()._step(kind)
         self.t_writes.append(self._t)
         self._t = set()
+        if kind == 'T':
+            self.t_windows.append(self.window)
 
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
     """One script under the headless original, dumped to `dump_path`."""
-    description = pass_observe.script(name, vblanks_per_pass=rate, **(more or {}))
+    description = m4_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
     machine = Recorder(description, pokes=pokes)
     machine.open_dump(dump_path)
     try:
@@ -184,8 +187,7 @@ class Replay:
                 ('wt_set_step_s_hook', [ctypes.c_void_p], None),
                 ('wt_set_pass_hook', [ctypes.c_void_p], None),
                 ('wt_set_vblanks_per_pass', [ctypes.c_int], None),
-                ('wt_tick_waits_clear', [], None),
-                ('wt_tick_waits_set', [ctypes.c_uint, ctypes.c_int], None),
+                ('wof_vblank_count', [], ctypes.c_uint32),
                 ('wt_pokes_clear', [], None),
                 ('wt_poke', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
@@ -196,7 +198,6 @@ class Replay:
             f = getattr(lib, name)
             f.argtypes = args
             f.restype = res
-        self.handovers = []
         self._hook = None
 
     # ------------------------------------------------------------------ the schedule
@@ -211,117 +212,19 @@ class Replay:
                 yield pending, entry
                 pending = []
 
-    def tick_waits(self):
-        """VBlanks inside each tick, by tick number: the V entries right before each T."""
-        waits = []
-        for vs, step in self.groups():
-            if step[0] == 'T':
-                waits.append(len(vs))
-        # Before the first tick of a pass the V entries are the pass's own owed VBlanks when
-        # the tick follows a P directly; only V entries after a P or T and before a T are
-        # inside the tick.
-        return waits
-
-    def _inside_tick_waits(self):
-        out = []
+    def inside_tick_waits(self):
+        """VBlanks inside each tick of the original, by tick number from 1: the V entries
+        between the step before a T and the T.  A tick starts right after the pass or the
+        tick before it, with nothing that could wait in between."""
+        out = {}
         previous = None
+        tick = 0
         for vs, step in self.groups():
             if step[0] == 'T':
-                out.append(len(vs) if previous in ('P', 'T', 'S') else 0)
+                tick += 1
+                out[tick] = len(vs) if previous in ('P', 'T', 'S') else 0
             previous = step[0]
         return out
-
-    # ------------------------------------------------------------------ the handover
-
-    def build_handovers(self):
-        """Per tick of the run, what its tick wrote, as the port's bytes: a plain field byte
-        by byte where the tick wrote it, a pointer field whole and converted by its kind.
-        The addresses are the harness's own record of the tick's writes, the values the
-        dump's state after the step."""
-        # The places of the tables are those of the first mission's step S; the setup's own
-        # tick comes before S and the tables were allocated before it, so they hold for it too.
-        shapes = None
-        self.marker_places = []
-        for memory, head in self.s_states()[:1]:
-            self.build_index(memory)
-            shapes = m4state.Shapes(memory)
-            for pointer in (0x02463E, 0x024642):             # hellcat.shp, Torpedo.shp
-                base = memory.u(pointer, 4)
-                count = memory.u(base + 4, 2)
-                table = base + 6 + 4 * count
-                first = base + 6 + 8 * count
-                self.marker_places.append((pointer, [first + memory.u(table + 4 * i, 4) + 8
-                                                     for i in range(min(count, 128))]))
-        reader = dump.DumpReader(self.dump_path)
-        step = 0
-        out = []
-        for head in reader:
-            if head['kind'] == 'T' and getattr(self, 'index', None):
-                memory = m4state.Memory(reader.regions)
-                writes = []
-                whole = {}
-                map_base = memory.u(0x024628, 4) or 0
-                for address in sorted(self.machine.t_writes[step]):
-                    where = self.index.get(address)
-                    if where is None:
-                        continue
-                    which, port_at, size, pos, kind, field_at = where
-                    if kind == m4state.K_PLAIN:
-                        writes.append((which, port_at + (size - 1 - pos), memory.read(address, 1)[0]))
-                    else:
-                        whole[(which, port_at)] = (size, kind, field_at)
-                for (which, port_at), (size, kind, field_at) in whole.items():
-                    v = memory.u(field_at, 4)
-                    if kind == m4state.K_SHAPE:
-                        v = shapes.handle_of(v) if shapes else 0
-                        v = 0xFFFF if v is None else v
-                    elif kind == m4state.K_MAP:
-                        v = (v - map_base) & 0xFFFFFFFF if v else 0
-                    else:
-                        v = 1 if v else 0
-                    for b, byte in enumerate(v.to_bytes(size, 'little')):
-                        writes.append((which, port_at + b, byte))
-                # Which view is shown, when the tick flipped them: the restart after a lost
-                # aircraft calls flip_buffers from inside the tick (re/notes/passes.md).  The
-                # original keeps it as the pointer front_view; the port as the view's index.
-                if any(a in self.machine.t_writes[step] for a in range(FRONT_VIEW, FRONT_VIEW + 4)):
-                    writes.append(('view', 0, 1 if memory.u(FRONT_VIEW, 4) == VIEW_B else 0))
-                # The mirror markers (+8) of hellcat.shp and Torpedo.shp the tick wrote: game
-                # state that lives in the containers (re/notes/shapes.md, SPEC 7.2).
-                for slot, (pointer, marks) in enumerate(self.marker_places):
-                    for i, at in enumerate(marks):
-                        if at in self.machine.t_writes[step] or at + 1 in self.machine.t_writes[step]:
-                            writes.append(('marker', slot * 128 + i, memory.u(at, 2) & 0xFF))
-                out.append(writes)
-            elif head['kind'] == 'T':
-                out.append([])
-            step += 1
-        self.handovers = out
-        return out
-
-    def apply_handover(self, index):
-        """The original's tick writes into the port (the closed loop)."""
-        if index >= len(self.handovers) or not self.handovers[index]:
-            return
-        g = self.layout.port_globals()
-        m = self.layout.port_mission()
-        markers = None
-        for which, at, value in self.handovers[index]:
-            if which == 'view':
-                self.lib.wt_views_set(value)
-                continue
-            if which == 'marker':
-                if markers is None:
-                    hell = (ctypes.c_uint8 * 128)()
-                    torp = (ctypes.c_uint8 * 128)()
-                    self.lib.wt_markers_get(hell, torp)
-                    markers = (hell, torp)
-                markers[at // 128][at % 128] = value
-            else:
-                (g if which == 'g' else m)[at] = value
-        self.layout.put(g, m)
-        if markers is not None:
-            self.lib.wt_markers_put(*markers)
 
     def build_index(self, memory):
         """address -> (struct, port offset of the field, field size, byte in the field, kind)
@@ -371,29 +274,27 @@ class Replay:
 
     # ------------------------------------------------------------------ the replay
 
-    def run(self, on_pass=None, on_setup=None, files=None):
+    def run(self, on_pass=None, on_setup=None, files=None, on_tick=None, raw=None,
+            on_reset=None):
         """Replay the schedule's VBlanks through the port.  Everything else happens in the
         port's own hooks, at the points where the original's steps end: step S, the end of
         a pass (where both loops compare) and the end of a tick.  The open loop sets the
-        port to the original's state at the end of every step, so that every pass starts
-        from the original's state before it, owed VBlanks included; the closed loop hands
-        over only what the tick wrote.  A pass may begin without a VBlank before it - after
-        the restart's waits in the tick - so none of this can be tied to the VBlank
-        entries."""
+        port to the original's state at the end of every step, so that every pass and every
+        tick starts from the original's state before it, owed VBlanks included; the closed
+        loop hands over nothing.  A pass may begin without a VBlank before it - after the
+        restart's waits in the tick - so none of this can be tied to the VBlank entries."""
         ported = self.ported
         keys = collections.defaultdict(list)
         for vblank, code, qualifier in self.machine.key_log:
             keys[vblank].append((code, qualifier))
 
         ported.reset_core(fade_vblanks=0)
+        if on_reset:
+            on_reset(self)
         for fname, data in (files or {}).items():
             assert ported.fs_write(fname, data), fname      # laid over the disk, as the run's
         self.lib.wt_set_vblanks_per_pass(self.rate)
         self.lib.wt_standins_reset()
-        self.lib.wt_tick_waits_clear()
-        for i, n in enumerate(self._inside_tick_waits()):
-            if n:
-                self.lib.wt_tick_waits_set(i, n)
         self.lib.wt_pokes_clear()
         for address, (size, value) in self.pokes.items():
             entry = next(e for e in self.layout.globals if e[1] == address)
@@ -403,9 +304,11 @@ class Replay:
         self.current = None              # (memory, head) of the last step consumed
         self.upcoming = None             # the head read ahead, not yet applied
         self.passes = 0
+        self.ticks = 0
         self.errors = []
-        if self.mode == 'closed':
-            self.build_handovers()
+        self.missions = 0
+        self.waits = self.inside_tick_waits()
+        self.vblank_mark = None
 
         one = ctypes.CFUNCTYPE(None, ctypes.c_uint32)
         two = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint32)
@@ -421,10 +324,13 @@ class Replay:
         def at_s(mission):
             memory, head = self.advance_to(lambda h: h['kind'] == 'S' and h['mission'] == mission)
             self.shapes = m4state.Shapes(memory)
+            self.missions = mission
             if on_setup:
                 on_setup(self, memory, head)
             if self.mode == 'open':
                 self.inject(memory, head)
+            self.lib.wt_trace_reset()
+            self.vblank_mark = self.lib.wof_vblank_count()
 
         def at_pass(number, end):
             if not end:
@@ -436,13 +342,27 @@ class Replay:
                 on_pass(self, memory, head, number)
             if self.mode == 'open':
                 self.inject(memory, head)
+            self.lib.wt_trace_reset()
+            self.vblank_mark = self.lib.wof_vblank_count()
 
         def at_tick(tick):
             memory, head = self.advance_to(lambda h: h['kind'] == 'T' and h['tick'] == tick + 1)
+            self.ticks = tick + 1
+            if tick < len(self.machine.t_windows) and self.machine.t_windows[tick] == 'setup':
+                # main's own tick in a mission's setup: the shapes of the new mission's
+                # containers, and the setup's drawing and entropy are the setup's, which step
+                # S compares; this tick's own state is compared as any other's.
+                self.shapes = m4state.Shapes(memory)
+                self.setup_tick = True
+            else:
+                self.setup_tick = False
+            if on_tick and self.missions:
+                waited = self.lib.wof_vblank_count() - self.vblank_mark
+                on_tick(self, memory, head, tick + 1, waited)
             if self.mode == 'open':
                 self.inject(memory, head)
-            elif self.mode == 'closed':
-                self.apply_handover(tick)
+            self.lib.wt_trace_reset()
+            self.vblank_mark = self.lib.wof_vblank_count()
 
         self._hooks = [one(guarded(at_s)), two(guarded(at_pass)), one(guarded(at_tick))]
         self.lib.wt_set_step_s_hook(ctypes.cast(self._hooks[0], ctypes.c_void_p))
@@ -459,7 +379,7 @@ class Replay:
                 vblank += 1
                 for code, qualifier in keys.get(vblank, ()):
                     ported.key(code, qualifier)
-                ported.vblank(entry[1])
+                ported.vblank(raw(entry[1]) if raw else entry[1])
                 ported.pass_()
                 if self.errors:
                     raise self.errors[0]
@@ -521,8 +441,11 @@ class Replay:
         assert self.lib.wt_pass_mission_get(mb, self.layout.mission_bytes) > 0
         return bytearray(gb.raw), bytearray(mb.raw)
 
-    def state_differences(self, memory, skip=()):
-        pg, pm = self.port_pass_state()
+    def state_differences(self, memory, skip=(), live=False):
+        if live:
+            pg, pm = self.layout.port_globals(), self.layout.port_mission()
+        else:
+            pg, pm = self.port_pass_state()
         wg, wm, problems = self.layout.expected(memory, getattr(self, 'shapes', None))
         return problems + ['%s: port %x original %x' % d
                            for d in self.layout.differences(pg, pm, wg, wm, skip)]
@@ -551,10 +474,54 @@ class Replay:
             self._entropy_by_pass = ent
         return self._observed_by_pass
 
-    def original_calls(self, memory, pass_number):
+    def _by_tick(self):
+        """The original's drawing calls and entropy reads inside each tick, by tick number
+        from 1 (the harness counts a tick when it returns)."""
+        if getattr(self, '_observed_by_tick', None) is None:
+            by = collections.defaultdict(list)
+            for o in self.machine.observed:
+                if o['phase'] == 'T':
+                    by[o['tick'] + 1].append(o)
+            self._observed_by_tick = by
+            ent = collections.defaultdict(list)
+            for (i, value, routine, v, p, t), phase in zip(self.machine.entropy_log,
+                                                           self.machine.entropy_phase):
+                if phase == 'T':
+                    ent[t + 1].append((value, routine))
+            self._entropy_by_tick = ent
+        return self._observed_by_tick
+
+    def original_tick_calls(self, memory, tick):
+        return self.original_calls(memory, None, self._by_tick().get(tick, ()))
+
+    def original_tick_entropy(self, tick):
+        self._by_tick()
+        return self._entropy_by_tick.get(tick, [])
+
+    def marker_differences(self, memory):
+        """The mirror markers (+8) of hellcat.shp and Torpedo.shp, the port's against the
+        original's: game state that lives in the containers (re/notes/shapes.md)."""
+        hell = (ctypes.c_uint8 * 128)()
+        torp = (ctypes.c_uint8 * 128)()
+        self.lib.wt_markers_get(hell, torp)
+        out = []
+        for slot, arr, pointer in ((1, hell, 0x02463E), (2, torp, 0x024642)):
+            base = memory.u(pointer, 4)
+            count = memory.u(base + 4, 2)
+            table = base + 6 + 4 * count
+            first = base + 6 + 8 * count
+            for i in range(min(count, 128)):
+                want = memory.u(first + memory.u(table + 4 * i, 4) + 8, 2) & 0xFF
+                if arr[i] != want:
+                    out.append((slot, i, 'port', arr[i], 'original', want))
+        return out
+
+    def original_calls(self, memory, pass_number, observations=None):
         shapes = getattr(self, 'shapes', None) or m4state.Shapes(memory)
         out = []
-        for o in self._by_pass().get(pass_number, ()):
+        if observations is None:
+            observations = self._by_pass().get(pass_number, ())
+        for o in observations:
             r = o['routine']
             want = DIRECT_CALLS.get(r)
             if want is not None:
@@ -572,6 +539,8 @@ class Replay:
                 out.append((r, signed(d[0]), signed(d[1]), signed(d[2]), signed(d[3]), d[4] & 0xFF))
             elif r == 'clip_set':
                 out.append((r, signed(d[0]), signed(d[1]), signed(d[2]), signed(d[3])))
+            elif r == 'line_draw':
+                out.append((r, signed(d[0]), signed(d[1]), signed(d[2]), signed(d[3]), d[4] & 0xFF))
             elif r == 'draw_set_target':
                 out.append((r, RASTPORTS.get(a[0], -1)))
         return out
@@ -591,6 +560,8 @@ class Replay:
                 out.append(('rect_fill', t['a'], t['b'], signed(t['c']), t['d'], (t['c'] >> 16) & 0xFF))
             elif w == 'clip_set':
                 out.append(('clip_set', t['a'], t['b'], t['c'], t['d']))
+            elif w == 'line_draw':
+                out.append(('line_draw', t['a'], t['b'], signed(t['c']), t['d'], (t['c'] >> 16) & 0xFF))
             elif w == 'draw_set_target':
                 out.append(('draw_set_target', t['a']))
         return out

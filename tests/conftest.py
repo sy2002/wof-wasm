@@ -28,6 +28,29 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import build as buildtool  # noqa: E402
 
 
+# The slowest differential tests - a script of many thousand VBlanks in both loops - carry
+# the marker `slow` and run only when asked for, with --slow or WOF_SLOW=1:
+#
+#     .venv/bin/python -m pytest tests/                 the fast suite
+#     .venv/bin/python -m pytest tests/ --slow          everything
+def pytest_addoption(parser):
+    parser.addoption('--slow', action='store_true', help='also run the tests marked slow')
+
+
+def pytest_configure(config):
+    config.addinivalue_line('markers', 'slow: a long differential run, only with --slow')
+
+
+def pytest_collection_modifyitems(config, items):
+    import os
+    if config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1':
+        return
+    skip = pytest.mark.skip(reason='slow; run with --slow or WOF_SLOW=1')
+    for item in items:
+        if 'slow' in item.keywords:
+            item.add_marker(skip)
+
+
 def run(command, **kwargs):
     return subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True, **kwargs)
 
@@ -211,6 +234,24 @@ def assert_the_stick_keys_give_the_bits_of_the_spec(report):
         assert raw['calls'] > 5, 'only %d VBlanks went by while %s was read' % (raw['calls'], key)
         assert raw['last'] == bit and raw['seen'] == bit, (
             'with %s the core was handed %s' % (key, raw))
+
+
+def assert_the_mission_is_flown_from_the_keyboard(flight):
+    """M4 on the page, with the keys held in real time and the state read off the overlay:
+    the lift brings the aircraft up to the deck, the roll takes it off the deck and the stick
+    forward makes it climb; the pause stops the ticks and a second press lets them run on;
+    the flip shows on the overlay."""
+    assert flight['deck']['deck'] == 1 and flight['deck']['y'] > 30, flight['deck']
+    assert flight['air']['deck'] == 0, 'the aircraft never left the deck: %s' % flight['air']
+    one, two = flight['climb1'], flight['climb2']
+    assert one['deck'] == 0 and two['y'] > one['y'] > 40, 'no climb: %s %s' % (one, two)
+    first, second = flight['paused1'], flight['paused2']
+    assert first['paused'] and second['paused'], (first, second)
+    assert first['ticks'] == second['ticks'], 'ticks went on while paused: %s %s' % (first, second)
+    assert second['vblanks'] > first['vblanks'], 'the clock stopped too: %s %s' % (first, second)
+    first, second = flight['running1'], flight['running2']
+    assert not first['paused'] and second['ticks'] > first['ticks'], (first, second)
+    assert flight['flipped']['flip'], flight['flipped']
 
 
 def assert_the_next_real_key_starts_the_sound(report):

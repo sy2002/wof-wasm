@@ -196,29 +196,6 @@ void wof_test_step_s(uint32_t mission)
         step_s_hook(mission);
 }
 
-/* How many VBlanks the original's tick waited, by the port's tick number: the comparison
- * of a replayed schedule counts the V entries that fall inside each T and hands them over,
- * so that the tick stand-in waits where the original's tick waited (src/front.c). */
-#define TICK_WAITS_MAX 8192
-
-static uint16_t tick_waits[TICK_WAITS_MAX];
-
-uint16_t wof_test_tick_waits(uint32_t tick)
-{
-    return tick < TICK_WAITS_MAX ? tick_waits[tick] : 0;
-}
-
-void wof_test_set_tick_waits(uint32_t tick, uint16_t n)
-{
-    if (tick < TICK_WAITS_MAX)
-        tick_waits[tick] = n;
-}
-
-void wof_test_clear_tick_waits(void)
-{
-    wof_mem_set(tick_waits, 0, sizeof tick_waits);
-}
-
 /* Pokes a run applies to the registered globals at the rank selection's end, which is how
  * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night").  The
  * headless original's run gets the same pokes at the same point (0x01009E). */

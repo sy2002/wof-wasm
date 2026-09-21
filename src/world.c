@@ -145,10 +145,15 @@ static void snapshot_for_draw(void)
  * ship's index, or -1 (the original's moveq #-1,d0). */
 int wof_ship_at_offset(int16_t x)
 {
+    return wof_ship_at_span((int16_t)(uint16_t)(((uint16_t)x >> 3) * 2u));
+}
+
+/* orig 0x014A52 ship_at_span - the same, from a map offset. */
+int wof_ship_at_span(int16_t d0)
+{
     static const uint8_t order[4] = { 0, 1, 2, 3 };
     const uint8_t *flag[4] = { &wof_g.has_destroyer, &wof_g.has_battleship,
                                &wof_g.has_cruiseship, &wof_g.has_japcarrier };
-    int16_t d0 = (int16_t)(uint16_t)(((uint16_t)x >> 3) * 2u);
 
     for (int i = 0; i < 4; i++) {
         const wof_ship_t *s = &wof_m.ship_records[order[i]];
@@ -509,7 +514,7 @@ static void ship_planes(void)
 
 /* orig 0x01CB34 - whether a map record rides on a ship: 1 for low bits 1, 0 for any other
  * record and for one outside the list (at or before its start, or at its last record). */
-static int record_on_ship(uint32_t at)
+int wof_record_on_ship(uint32_t at)
 {
     uint32_t end = wof_m.map_records_end[0].off;
 
@@ -519,16 +524,14 @@ static int record_on_ship(uint32_t at)
 }
 
 /* orig 0x01CBF2 - the ship a record of low bits 1 belongs to, as its place in ship_order
- * (0x02555A).  Where the record is on no ship the original prints a debugging line and
- * returns 1; the five scripts never met that case. */
+ * (0x02555A).  Where the record is on no ship, or on none of the five, the original prints
+ * a debugging line to its console (0x021DCE) and returns 1; the port returns 1. */
 static int16_t ship_of_record(uint32_t at)
 {
     int16_t off = (int16_t)(uint16_t)at;
 
-    if (!record_on_ship(at)) {
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01CC04, a record on no ship");
+    if (!wof_record_on_ship(at))
         return 1;
-    }
     for (int16_t i = 0; i < 5; i++) {
         int ship = (int)((wof_tbl_ship_order[i] - 0x025460u) / 0x1Eu);
         const wof_ship_t *sh = &wof_m.ship_records[ship];
@@ -536,7 +539,6 @@ static int16_t ship_of_record(uint32_t at)
         if (off >= sh->span0 && off <= sh->span1)
             return i;
     }
-    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01CC68, a ship record not found");
     return 1;
 }
 
@@ -578,16 +580,29 @@ void wof_draw_player(void)
     if (wof_g.view_step == 1) {
         int16_t d1 = wof_g.draw_facing, d2 = wof_g.draw_attitude;
 
-        if (d2 != 0) {
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01047E, the aircraft at an attitude, eighth scale");
-            goto done;
+        if (d2 != 0) {                                /* 0x01047E: in a turn */
+            if ((uint16_t)d2 > 8 && (uint16_t)d2 < 0x12) {
+                if ((uint16_t)d2 > 0x0D)
+                    d1 = (int16_t)-d1;
+                d2 = (int16_t)(d2 + 0x2F);
+                if (d1 >= 0)
+                    d2 = (int16_t)(d2 + 9);
+            } else {
+                if ((uint16_t)d2 >= 0x12)
+                    d2 = (int16_t)(0x1A - d2);
+                d2 = (int16_t)((int16_t)(d2 - 1) >> 2);
+                d2 = (int16_t)(d2 + 0x34);
+                if (d1 >= 0)
+                    d2 = (int16_t)(d2 + 2);
+            }
+        } else {
+            d2 = (int16_t)((int16_t)-wof_g.draw_g_026f7c >> 2);
+            if (d2 < -2)
+                d2 = -2;                              /* read: the five scripts never clamp */
+            if (d1 >= 0)
+                d2 = (int16_t)(d2 + 6);
+            d2 = (int16_t)(d2 + 0x2A);
         }
-        d2 = (int16_t)((int16_t)-wof_g.draw_g_026f7c >> 2);
-        if (d2 < -2)
-            d2 = -2;                                  /* read: the five scripts never clamp */
-        if (d1 >= 0)
-            d2 = (int16_t)(d2 + 6);
-        d2 = (int16_t)(d2 + 0x2A);
         shape = wof_table_entry(T_EIGHTH, d2);
     } else {
         shape = p->shape;
@@ -597,7 +612,7 @@ void wof_draw_player(void)
     wof_clip_to_waterline();
     if (wof_g.draw_attitude == 0 && wof_g.weapon_type == 2 && wof_g.weapon_count &&
         !wof_g.view_shift)
-        WOF_STANDIN("M5 STAND-IN: 0x01052A, the torpedo under a level aircraft");
+        wof_draw_at(wof_m.torpedo_shape[0].s, d6, d7);         /* 0x01052A: the torpedo under it */
 
     if (wof_g.draw_attitude == 0 && !wof_g.view_shift &&
         (p->on_deck == 0 || p->on_deck == 7 || wof_g.g_025a9c != 0)) {
@@ -613,14 +628,22 @@ void wof_draw_player(void)
         wof_draw_at(wof_m.g_02541a[0].s, d6, (int16_t)(d1 - 5 + d7));
     }
     wof_draw_at(shape, d6, d7);
-    if (p->on_deck == 7)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x0105CA, the hook's line on the lift");
-    if (wof_g.draw_attitude != 0 && wof_g.weapon_type == 2)
-        WOF_STANDIN("M5 STAND-IN: 0x010610, the torpedo under a banked aircraft");
+    if (p->on_deck == 7) {
+        /* 0x0105CA: the arresting cable, from where the hook caught it (0x026D3A) to the
+         * hook, 16 pixels behind the aircraft and 5 below its reference point. */
+        int16_t d5 = p->facing >= 0 ? 0x10 : -0x10;
+
+        wof_line_draw((int16_t)(wof_g.g_026d3a - wof_g.draw_player_x + 0xA0), (int16_t)(d7 + 6),
+                      (int16_t)(d6 - d5), (int16_t)(d7 + 5), 3);
+    }
+    if (wof_g.draw_attitude != 0 && wof_g.weapon_type == 2 && wof_g.weapon_count &&
+        !wof_g.view_shift)
+        wof_draw_at(wof_m.torpedo_shape[0].s, d6, d7);         /* 0x010610: banked */
     wof_clip_playfield();
     if (wof_g.g_02536a != 0 && wof_g.draw_attitude == 0 && wof_g.view_step != 1)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x010642, the exclusive-or frame of 0x02536A");
+        WOF_STANDIN("M5 STAND-IN: 0x010642, the guns' muzzle flash");
 done:
+
     wof_g.clip_bottom = saved;
 }
 
@@ -890,7 +913,7 @@ void wof_draw_game_over(void)
 /* orig 0x01030C flip_buffers - COLOR01 of the back list poked with the sky colour, or with
  * flash_colour on odd counts while flash_count runs, then the back view shown.  No script
  * provokes the flash; its branch is ported from reading. */
-static void flip_buffers(void)
+void wof_flip_buffers(void)
 {
     wof_vport_t *v  = wof_back_vport();
     uint16_t     d1 = v ? v->colours[1] : 0;
@@ -952,8 +975,9 @@ wof_co_t wof_frame_update(void)
         wof_cop_set_split_line(d0);
     }
     if (wof_g.g_024f24) {
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x0102BC, frame_update's call of player_lost_restart");
+        /* No instruction of the executable sets 0x024F24; the call is kept as it is. */
         carrier.present = -1;
+        CO_CALL(c, &wof_f.co_lost_restart, wof_player_lost_restart());
         wof_g.g_024f24 = 0;
     }
     draw_world();
@@ -973,7 +997,7 @@ wof_co_t wof_frame_update(void)
     wof_map_window();
     wof_draw_dashboard();
     wof_g.frame_drawn = 0xFF;
-    flip_buffers();
+    wof_flip_buffers();
     wof_trace_pass_end();
     CO_END(c);
 }

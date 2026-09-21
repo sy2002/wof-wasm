@@ -256,6 +256,137 @@ void wof_rect_fill(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colou
     }
 }
 
+/* ------------------------------------------------------------------------ line_draw */
+
+/* The outcode line_draw gives a point: 8 left of clip_left, 4 right of clip_right - 1,
+ * 2 above clip_top, 1 below clip_bottom - 1.  A point left or right starts with "above" and
+ * loses it when it is not, as the original's moveq and bclr have it. */
+static int16_t line_outcode(int16_t x, int16_t y)
+{
+    int16_t c;
+
+    if (x < clip_left)
+        c = 0x0A;
+    else if (x <= wof_g.clip_right_incl)
+        c = 2;
+    else
+        c = 6;
+    if (y >= clip_top) {
+        c = (int16_t)(c & ~2);
+        if (y > wof_g.clip_bottom_incl)
+            c = (int16_t)(c | 1);
+    }
+    return c;
+}
+
+/* muls.w then divs.w: a 16 by 16 product divided by a word, truncating toward zero.  A
+ * quotient that does not fit a word leaves the product's low word, as divs does. */
+static int16_t line_cut(int16_t num, int16_t mul, int16_t div)
+{
+    int32_t p = (int32_t)num * mul;
+    int32_t q;
+
+    if (div == 0)
+        return (int16_t)p;
+    q = p / div;
+    return (q < -32768 || q > 32767) ? (int16_t)p : (int16_t)q;
+}
+
+/* One end of the line clipped against the first edge its outcode names, in the order
+ * left, right, above, below. */
+static void line_clip(int16_t *x, int16_t *y, int16_t code, int16_t dx, int16_t dy)
+{
+    if (code & 8) {
+        if (dy)
+            *y = (int16_t)(*y + line_cut((int16_t)(clip_left - *x), dy, dx));
+        *x = clip_left;
+    } else if (code & 4) {
+        if (dy)
+            *y = (int16_t)(*y + line_cut((int16_t)(wof_g.clip_right_incl - *x), dy, dx));
+        *x = wof_g.clip_right_incl;
+    } else if (code & 2) {
+        if (dx)
+            *x = (int16_t)(*x + line_cut((int16_t)(clip_top - *y), dx, dy));
+        *y = clip_top;
+    } else if (code & 1) {
+        if (dx)
+            *x = (int16_t)(*x + line_cut((int16_t)(wof_g.clip_bottom_incl - *y), dx, dy));
+        *y = wof_g.clip_bottom_incl;
+    }
+}
+
+/* orig 0x021318 line_draw - a line from (x0, y0) to (x1, y1) in `colour`: Cohen-Sutherland
+ * clipping against the inclusive clip rectangle, then the blitter's line mode in every
+ * plane of the target's mask (re/notes/drawing.md).  The line mode is programmed with the
+ * accumulator 2*dmin - dmax, the steps 2*dmin and 2*(dmin - dmax) and dmax + 1 pixels from
+ * the first end; the port draws the same Bresenham walk: a pixel, then the major axis, and
+ * the minor one too while the accumulator is not negative.
+ *
+ * PROVISIONAL (SPEC 10, point 7): the pixel pattern of the blitter's line mode is
+ * documented hardware behaviour and is modelled the same way by tests/blitter.py; it has
+ * not been held against a cycle-exact emulator. */
+void wof_line_draw(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour)
+{
+    int16_t c0, c1;
+
+    wof_trace_add("line_draw", x0, y0, (int32_t)(((uint32_t)colour << 16) | (uint16_t)x1), y1, 0, 0);
+    wof_g.clip_bottom_incl = (int16_t)(clip_bottom - 1);
+    wof_g.clip_right_incl = (int16_t)(clip_right - 1);
+    c1 = line_outcode(x1, y1);
+    c0 = line_outcode(x0, y0);
+    for (;;) {
+        int16_t dx, dy;
+
+        if (!(c0 | c1))
+            break;
+        if (c0 & c1)
+            return;
+        dx = (int16_t)(x1 - x0);
+        dy = (int16_t)(y1 - y0);
+        if (c0) {
+            line_clip(&x0, &y0, c0, dx, dy);
+            c0 = line_outcode(x0, y0);
+        } else {
+            line_clip(&x1, &y1, c1, dx, dy);
+            c1 = line_outcode(x1, y1);
+        }
+    }
+    if (!target.pixels)
+        return;
+    {
+        int32_t dx = x1 - x0, dy = y1 - y0;
+        int32_t sx = dx < 0 ? -1 : 1, sy = dy < 0 ? -1 : 1;
+        int32_t ax = dx < 0 ? -dx : dx, ay = dy < 0 ? -dy : dy;
+        int     ymajor = ay >= ax;                  /* |dy| - |dx| >= 0: no exchange */
+        int32_t dmin = ymajor ? ax : ay, dmax = ymajor ? ay : ax;
+        int32_t acc = 2 * dmin - dmax;
+        int32_t x = x0, y = y0;
+        uint8_t M = target.mask;
+        uint8_t c = (uint8_t)(colour & M);
+
+        for (int32_t i = 0; i <= dmax; i++) {
+            if (x >= 0 && y >= 0 && x < target.width && y < target.height) {
+                uint8_t *px = target.pixels + y * target.stride + x;
+
+                *px = (uint8_t)((*px & ~M) | c);
+            }
+            if (acc >= 0) {
+                if (ymajor)
+                    x += sx;
+                else
+                    y += sy;
+                acc += 2 * dmin - 2 * dmax;
+            } else {
+                acc += 2 * dmin;
+            }
+            if (ymajor)
+                y += sy;
+            else
+                x += sx;
+        }
+    }
+}
+
 /* orig 0x020CE2 - chooses the mask, then blits.  A plane larger than MaskBuffer_size does
  * not get one, whatever it stores; neither does a shape that stores no plane at all.  With
  * one stored plane the plane itself is the mask, with two or more the CPU ORs them into

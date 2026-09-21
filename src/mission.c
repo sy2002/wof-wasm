@@ -44,7 +44,7 @@ static uint16_t find_handle(int slot, uint32_t name)
 
 /* The mirror marker of a hellcat.shp or Torpedo.shp record (+8), which the state keeps
  * (SPEC 7.2), set to `want` with the pixel data mirrored when it changes. */
-static void mark_facing(int slot, uint16_t handle, uint16_t want)
+void wof_mark_facing(int slot, uint16_t handle, uint16_t want)
 {
     wof_shape_t *s = (wof_shape_t *)wof_shape_of(handle);
     uint8_t     *m;
@@ -69,15 +69,24 @@ static void mark_facing(int slot, uint16_t handle, uint16_t want)
 
 /* orig 0x0134AE - the dash container and its table.  The port keeps both dashboards loaded
  * from start-up (M1); what the original frees is the pointer, which is not state here. */
-static void free_dash_shapes(void)
+void wof_free_dash_shapes(void)
 {
 }
 
 /* orig 0x01346C - seven of the eight sounds; the first stays until 0x0134A4 frees it from
  * the load dialog.  The port keeps only whether each one is loaded (M8 plays them). */
-static void free_sounds(void)
+void wof_free_sounds(void)
 {
     wof_f.sound_loaded &= 0x01u;
+}
+
+/* orig 0x011256 - what the load dialog frees first: AllocMem of all memory, which makes the
+ * system flush what it can and has no effect here, the dash container, the sounds, and the
+ * demo buffer (M7). */
+void wof_free_for_load(void)
+{
+    wof_free_dash_shapes();
+    wof_free_sounds();
 }
 
 /* orig 0x012BBE - the map, the target tables, and the gun list and container of every
@@ -115,8 +124,8 @@ static void free_map(void)
  * memory and means nothing here; the demo buffer it frees last belongs to M7. */
 void wof_free_mission_assets(void)
 {
-    free_dash_shapes();
-    free_sounds();
+    wof_free_dash_shapes();
+    wof_free_sounds();
     free_map();
 }
 
@@ -181,34 +190,6 @@ static void sub_01b9bc(void)
 {
     wof_g.g_02542c = 0;
     wof_g.g_025428 = 0;
-}
-
-/* orig 0x01ABDE - the name of the aircraft's frame for a state, a facing and a frame index,
- * with the frame's records in hellcat.shp and Torpedo.shp mirrored to the facing on the way
- * (re/notes/shapes.md).  The five mission scripts reach it in the setup only with the state
- * the reset leaves, 1, and g_025a9c clear; the other states are the tick's, part 2. */
-uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame)
-{
-    uint32_t name;
-    uint16_t want = (uint16_t)(facing + 1);
-
-    if (state == 1 || state == 11) {
-        if (wof_g.g_025a9c != 0) {
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ACEA, state 1 or 11 with 0x025A9C set");
-            return 0;
-        }
-        name = wof_tbl_frames_deck[frame & 7];
-        mark_facing(WOF_C_HELLCAT, find_handle(WOF_C_HELLCAT, name), want);
-        mark_facing(WOF_C_TORPEDO, find_handle(WOF_C_TORPEDO, name), want);
-        wof_g.g_027de6 = (int16_t)wof_tbl_frames_deck_attitude[frame & 7];
-        wof_g.g_025592 = 4;
-        return name;
-    }
-    if (state == 0 || state == 4)
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ABEC-0x01ACE3, states 0 and 4");
-    else
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ADFE-0x01AEB3, the other states");
-    return 0;
 }
 
 /* orig 0x01B7BC - the carrier's deck as world x, sixteen pixels in from both ends. */
@@ -287,16 +268,19 @@ void wof_player_restart_state(void)
     player_reset();
 }
 
-/* orig 0x0135D8 player_lost_restart, as far as the mission setup reaches it.  The branch
- * that clears the playfield, flips the buffers and waits is taken when 0x027452 is set,
- * which only the tick does (re/notes/passes.md): it is part 2's. */
-void wof_player_lost_restart(void)
+/* orig 0x0135D8 player_lost_restart - the aircraft back at the carrier, facing left: with
+ * no life left or the carrier sunk the game is over; otherwise the reset on the lift and,
+ * when 0x027452 asks for it (0x0135CE sets it to 20), the playfield cleared, the buffers
+ * flipped and 21 WaitTOF: twenty that count 0x027452 down and one more that finds it zero.
+ * The waits fall inside the tick that lost the aircraft (re/notes/porting-m4.md). */
+wof_co_t wof_player_lost_restart(void)
 {
-    wof_player_t *p = &wof_m.player[0];
+    wof_ctx_t *c = &wof_f.co_lost_restart;
 
-    p->x = wof_g.player_start_x;
+    CO_BEGIN(c);
+    wof_m.player[0].x = wof_g.player_start_x;
     wof_g.attitude_index = 0;
-    p->facing = -1;
+    wof_m.player[0].facing = -1;
     for (int i = 0; i < 40; i++)
         wof_m.smoke_records[i].kind = 0;
 
@@ -309,10 +293,43 @@ void wof_player_lost_restart(void)
         wof_g.g_02535f = 3;
         wof_g.g_025360 = 0;
         wof_player_restart_state();
-        if (wof_g.g_027452 != 0)
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x013638, player_lost_restart's clear, flip and wait");
+        if (wof_g.g_027452 != 0) {
+            wof_clip_playfield();
+            wof_draw_set_target(wof_back_vport());
+            wof_rect_fill(0, 0, 0x13F, 0xA1, 0);
+            wof_flip_buffers();
+            do {
+                CO_WAIT(c);                                   /* WaitTOF */
+            } while (--wof_g.g_027452 != 0);
+            do {
+                CO_WAIT(c);                                   /* WaitTOF */
+            } while (wof_g.g_027452 != 0);
+        }
     }
     wof_g.g_027452 = 0;
+    CO_END(c);
+}
+
+/* The restart where the original reaches it outside a tick: the campaign's start and a
+ * mission's setup, through 0x0135A8.  0x027452 is zero there, because only 0x0135CE sets it
+ * and the restart it leads into clears it, so nothing waits. */
+void wof_player_lost_restart_now(void)
+{
+    wof_f.co_lost_restart.line = 0;
+    (void)wof_player_lost_restart();
+}
+
+/* orig 0x0135CE - the next aircraft: twenty VBlanks of an empty playfield, a life less,
+ * and player_lost_restart, which it falls into. */
+wof_co_t wof_next_aircraft(void)
+{
+    wof_ctx_t *c = &wof_f.co_restart;
+
+    CO_BEGIN(c);
+    wof_g.g_027452 = 0x14;
+    wof_g.lives--;
+    CO_CALL(c, &wof_f.co_lost_restart, wof_player_lost_restart());
+    CO_END(c);
 }
 
 /* orig 0x0135A8. */
@@ -324,7 +341,7 @@ void wof_mission_reset_tables(void)
     wof_g.g_0251d6 = 0;
     wof_g.g_0251d8 = 0;
     wof_g.pause_flag = 0;
-    wof_player_lost_restart();
+    wof_player_lost_restart_now();
 }
 
 /* orig 0x013562 - the campaign's start: score, lives and the counters of a run. */

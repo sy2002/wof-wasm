@@ -909,8 +909,6 @@ const char *wt_standin(int i, unsigned *count)
 void wt_standins_reset(void) { wof_trace_standins_reset(); }
 
 /* The hooks of the M4 comparisons (src/trace.c). */
-void wt_tick_waits_clear(void)             { wof_test_clear_tick_waits(); }
-void wt_tick_waits_set(unsigned t, int n)  { wof_test_set_tick_waits(t, (uint16_t)n); }
 void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
 void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
 

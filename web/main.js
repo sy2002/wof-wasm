@@ -221,6 +221,7 @@ async function boot() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
+            core.requestPause();             /* a mission comes back paused */
             clock.stop();
             audio.suspend();
         } else {

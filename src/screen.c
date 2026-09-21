@@ -140,6 +140,18 @@ wof_co_t wof_wait_vblank(void)
     CO_END(c);
 }
 
+/* orig 0x01AA32 wait_next_vblank - the flag cleared, then the next VBlank waited for; the
+ * flag stays set, so a frame_update right after it finds its VBlank already there. */
+wof_co_t wof_wait_next_vblank(void)
+{
+    wof_ctx_t *c = &wof_f.co_vblank;
+
+    CO_BEGIN(c);
+    wof_g.vblank_flag = 0;
+    CO_WAIT_UNTIL(c, wof_g.vblank_flag != 0);
+    CO_END(c);
+}
+
 /* orig 0x016FC4 view_show_wait. */
 wof_co_t wof_view_show_wait(uint8_t view)
 {
@@ -366,6 +378,18 @@ void wof_screen_game(void)
     wof_f.colour1_poked[WOF_VIEW_A] = 0;
     wof_f.colour1_poked[WOF_VIEW_B] = 0;
     wof_f.play_screen = 1;
+}
+
+/* orig 0x016D32 screen_game_restore - the play screen back after a dialog: each view's
+ * playfield linked to its dashboard again, the back view's playfield rebuilt, the front
+ * view copied into it, and the ticker ramp on its copper list. */
+void wof_screen_game_restore(void)
+{
+    VP(WOF_VP_A1)->next = WOF_VP_A2;
+    VP(WOF_VP_B1)->next = WOF_VP_B2;
+    view_set_game(wof_f.back_view);
+    wof_view_copy(wof_f.front_view, wof_f.back_view);
+    wof_cop_add_ticker_ramp(wof_f.back_view);            /* view_build_copper's list */
 }
 
 uint16_t wof_ticker_ramp(uint16_t row)

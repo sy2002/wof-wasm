@@ -444,3 +444,275 @@ def test_the_3d_views_cursor_matches_the_original(differential):
     for y in list(range(-300, 300)) + [0x7FFF, 0x8000, 0x8001, 0xFFFF]:
         d.o.w16(0x026E60, y & 0xFFFF)
         run_both(d, lambda: d.o.call(0x0141B4), lib.wof_window_height, 'height %d' % y)
+
+
+# ------------------------------------------------------ T4: the player's routines (part 2)
+# The routines of the player update against the original, run on the same randomised state:
+# the return value, and every registered global and table afterwards.  The original's
+# floating point runs in the ROM's mathffp (tests/ffp.py): its library base is a table of
+# entries that hand D0 and D1 to the ROM and put its D0 back.  A map is loaded as the
+# original's loader leaves it (tools/map_decode.py), so that the routines that look at the
+# ground have some.
+
+import ffp                           # noqa: E402
+import ffp_model                     # noqa: E402
+import map_decode                    # noqa: E402
+from unicorn import UC_HOOK_CODE     # noqa: E402
+from unicorn.m68k_const import UC_M68K_REG_D0, UC_M68K_REG_D1   # noqa: E402
+
+PLAYER = 0x025078
+MATH_BASE_SLOT = 0x027FAE
+FFP_LVO = {-0x1E: 'fix', -0x24: 'flt', -0x3C: 'neg', -0x42: 'add', -0x48: 'sub',
+           -0x4E: 'mul', -0x54: 'div'}
+needs_rom = pytest.mark.skipif(not ffp.rom_available(), reason='original/kick.rom is absent')
+
+
+class PlayerDifferential(Differential):
+    """The Differential with a map loaded and the pointers the player's code goes through."""
+
+    def __init__(self, ported, name='a'):
+        super().__init__(ported)
+        chart = map_decode.load(name)
+        self.chart = chart
+        self.map_base = self.o.alloc(3576 * 2)
+        self.o.write(self.map_base, b''.join(w.to_bytes(2, 'big') for w in chart.words))
+        self.o.w32(0x024628, self.map_base)
+        self.o.w32(0x02462C, self.map_base + chart.length - 2)
+        self.o.w16(0x024630, chart.extent)
+        self.o.w32(0x027DEC, PLAYER)                   # player_record
+        self.o.w32(0x027DF4, 0x025392)                 # player_start_x's pointer
+        self.splashes = self.o.alloc(20 * 4)           # the pools a crash leaves things in
+        self.smoke = self.o.alloc(40 * 0x14)
+        self.o.w32(0x026F30, self.splashes)
+        self.o.w32(0x026F58, self.smoke)
+        self.reference = ffp.Reference()
+        # Records worth landing on: land (low bits 2), ships (1), and the sea around them.
+        self.interesting = [i for i, word in enumerate(chart.words) if word & 3] or [0]
+        base = self.o.alloc(0x100) + 0x80
+        for lvo, operation in FFP_LVO.items():
+            self.o.write(base + lvo, bytes.fromhex('4E714E75'))           # nop; rts
+
+            def entry(uc, address, size, user, operation=operation):
+                d0 = uc.reg_read(UC_M68K_REG_D0) & 0xFFFFFFFF
+                d1 = uc.reg_read(UC_M68K_REG_D1) & 0xFFFFFFFF
+                uc.reg_write(UC_M68K_REG_D0, self.reference.call(operation, d0, d1).d0)
+            self.o.uc.hook_add(UC_HOOK_CODE, entry, begin=base + lvo, end=base + lvo)
+        self.o.w32(MATH_BASE_SLOT, base)
+        lib = ported.lib
+        lib.wof_test_player_call.argtypes = [ctypes.c_uint32, ctypes.c_int32]
+        lib.wof_test_player_call.restype = ctypes.c_int32
+
+    def memory(self):
+        return self.m4state.Memory({
+            0x023000: bytes(self.o.read(0x023000, 0x028004 - 0x023000)),
+            self.map_base: bytes(self.o.read(self.map_base, 3576 * 2)),
+            self.splashes: bytes(self.o.read(self.splashes, 20 * 4)),
+            self.smoke: bytes(self.o.read(self.smoke, 40 * 0x14))})
+
+    def port(self, orig, a=0):
+        return self.ported.lib.wof_test_player_call(orig, a)
+
+
+@pytest.fixture
+def player(ported):
+    d = PlayerDifferential(ported)
+    yield d
+    d.restore()
+
+
+def w(o, address, value):
+    o.w16(address, value & 0xFFFF)
+
+
+def random_flight(d, rng, deck=None):
+    """A state the player update can be in: the record, the controls, the carrier."""
+    o = d.o
+    w(o, PLAYER + 0x00, rng.choice([rng.randrange(-8, 1120), rng.randrange(1090, 1110), 0, 37]))
+    w(o, PLAYER + 0x02, rng.choice([rng.randrange(0, 0x7FFF), rng.randrange(6560, 7400),
+                                    8 * rng.choice(d.interesting)]))
+    w(o, PLAYER + 0x0C, deck if deck is not None else rng.choice([0, 0, 0, 1, 1, 4, 6, 7, 8, 11]))
+    w(o, PLAYER + 0x0E, rng.choice([0xC0, rng.randrange(-4, 0xC0)]))
+    w(o, PLAYER + 0x12, rng.choice([0x80, 0x80, rng.randrange(0x50, 0x80)]))
+    w(o, PLAYER + 0x14, rng.choice([1, -1]))
+    w(o, PLAYER + 0x16, rng.randrange(-20, 20))
+    w(o, PLAYER + 0x18, rng.randrange(-12, 12))
+    w(o, PLAYER + 0x1C, rng.choice([0, 1, 2, 0x2EE, rng.randrange(0, 0x546)]))
+    w(o, 0x025AA2, rng.randrange(-6000, 6000))                 # pitch_angle
+    w(o, 0x025402, rng.choice([0, 0x258, rng.randrange(-4800, 3100)]))   # pitch_target
+    w(o, 0x025408, rng.choice([0, rng.randrange(-600, 600)]))  # pitch_delta
+    w(o, 0x025AAA, rng.choice([0, 0, 1]))
+    w(o, 0x02540E, rng.choice([0, 0, rng.randrange(0, 26)]))   # attitude_index
+    w(o, 0x025414, rng.choice([0, 1000, 1400, 600, rng.randrange(-40, 1500)]))   # airspeed
+    w(o, 0x027DEA, rng.choice([0, 4, 8, rng.randrange(-3, 12)]))   # airspeed_step
+    w(o, 0x025F16, rng.choice([600, 600, 550, 650, rng.randrange(0, 1200)]))   # pitch_step
+    w(o, 0x026D42, rng.randrange(0x40))                        # tick_input
+    w(o, 0x025AA0, rng.choice([1, 2, rng.randrange(-1, 4)]))
+    w(o, 0x025A9C, rng.choice([0, 0, 1]))
+    w(o, 0x025392, rng.choice([7032, rng.randrange(6000, 8000)]))    # player_start_x
+    w(o, 0x025394, rng.choice([0, 0, 1, 2, 3]))
+    w(o, 0x0253FC, 6608)
+    w(o, 0x0253FE, 7344)
+    w(o, 0x0254D8 + 0x04, rng.choice([1, 1, 0]))               # carrier present
+    w(o, 0x0254D8 + 0x0C, rng.choice([4, 4, 0, 1]))            # carrier w0c
+    w(o, 0x0254D8 + 0x0E, rng.randrange(0, 0x40))
+    w(o, 0x0254D8 + 0x14, rng.randrange(0, 0x10))
+    w(o, 0x025592, rng.randrange(0, 12))
+    w(o, 0x02540A, rng.choice([0, 5]))
+    w(o, 0x025F14, rng.choice([0, 0x600]))
+    o.write(0x025367, bytes([rng.choice([0, 0, 0xFF])]))
+    for i in range(20):                                        # the Splashes pool
+        o.write(d.splashes + 4 * i + 2, bytes([rng.choice([0, 0, 0, 3])]))
+    for i in range(40):                                        # the Smoke pool
+        w(o, d.smoke + 0x14 * i + 0x10, rng.choice([0, 0, 0, 5]))
+    for i in range(15):                                        # the object records' kinds
+        o.write(0x024CAE + 0x2A * i + 0x20, bytes([rng.choice([0, 0, 8])]))
+    w(o, 0x026A16, rng.randrange(0x10000))                     # the C library's seed
+    w(o, 0x026A18, rng.randrange(0x10000))
+    w(o, 0x025AA6, rng.randrange(0, 0x100))
+    w(o, 0x025AA8, rng.randrange(0, 0x100))
+    for i in range(4):                                         # enemy aircraft, mostly none
+        base = 0x02522A + 0x34 * i
+        for k in (0, 2, 4, 0x16):
+            w(o, base + k, rng.choice([0, 0, 0, 1, 2, 3, 13]))
+
+
+def check(d, what, want, got):
+    found = d.differences()
+    assert found == [] and want == got, '%s: returned %r and %r, %s' % (what, want, got, found[:6])
+
+
+@needs_rom
+def test_player_motion_matches_the_original_and_the_model(player):
+    """player_motion (0x01BDFA) over 3,000 random states: every attitude, both facings, the
+    ceiling, the airspeed's floor and the bounds of airspeed_step; the whole registered state
+    afterwards against the original, and its values against tests/ffp_model.py driven by
+    the port's own floating point."""
+    d = player
+    rng = random.Random(0x1BDF)
+    for n in range(3000):
+        random_flight(d, rng, deck=rng.choice([0, 0, 0, 1]))
+        entry = {'in': {
+            'player': d.o.read(PLAYER, 0x1E).hex(), 'g_025402': d.o.read(0x025402, 0x14).hex(),
+            'g_025aa2': d.o.read(0x025AA2, 0x0A).hex(), 'g_027dea': d.o.read(0x027DEA, 2).hex(),
+            'g_025f16': d.o.read(0x025F16, 2).hex(), 'g_026d43': d.o.read(0x026D43, 1).hex()}}
+        d.load_port()
+        d.o.call(0x01BDFA)
+        d.port(0x01BDFA)
+        check(d, 'case %d' % n, 0, 0)
+        _, left = ffp_model.model_01bdfa(entry, lambda op, a, b: d.ported.ffp(op, a, b)[0])
+        after = {'g_025aa2': d.o.r16(0x025AA2), 'g_025402': d.o.r16(0x025402),
+                 'g_027dea': d.o.r16(0x027DEA), 'player_0': d.o.r16(PLAYER),
+                 'player_2': d.o.r16(PLAYER + 2), 'player_16': d.o.r16(PLAYER + 0x16),
+                 'player_18': d.o.r16(PLAYER + 0x18)}
+        assert left == after, 'case %d: the model leaves %s, the original %s' % (n, left, after)
+
+
+# The routines that take no argument and whose whole effect is on the registered state,
+# with the state each wants: in the air, on the deck, or any.
+PLAYER_ROUTINES = [
+    (0x01BFF4, 'the stick in the air', 0),
+    (0x01C4E8, 'the stick on the deck', 1),
+    (0x01AA6E, 'whether the aircraft may turn', None),
+    (0x01AAEA, 'the wheels below the reference point', None),
+    (0x01B45A, 'the hook', None),
+    (0x01B4DE, 'on the lift', 1),
+    (0x01B5B0, 'the button', None),
+    (0x01B8C4, 'touching the ground', 0),
+    (0x01B92E, 'the cables', 1),
+    (0x01BC02, "the enemy's countdown", None),
+    (0x01BCCE, 'the deck state', None),
+    (0x01BDBA, 'the roll on the deck', None),
+    (0x01C5F4, 'the ends of the deck', 1),
+    (0x01AFBA, 'the aircraft down: in the sea, on land, on a ship', 4),
+    (0x01BA80, 'the ground: a landing, a bounce, a crash', 0),
+]
+
+
+@needs_rom
+@pytest.mark.parametrize('address,what,deck', PLAYER_ROUTINES,
+                         ids=['%06X' % r[0] for r in PLAYER_ROUTINES])
+def test_the_player_routines_match_the_original(player, address, what, deck):
+    """Each of the player update's routines over 1,500 random states; flags are not part of
+    their interface (they are C and return in D0 at most)."""
+    d = player
+    lib = d.ported.lib
+    lib.wof_standin_hits.restype = ctypes.c_uint32
+    rng = random.Random(address)
+    compared = 0
+    for n in range(1500):
+        random_flight(d, rng, deck=deck)
+        d.load_port()
+        hits = lib.wof_standin_hits()
+        try:
+            want = d.o.call(address) & 0xFFFF
+        except RuntimeError as error:
+            # The enemy aircraft coming (0x01BC66, M6) draw rand_beam, which reads the beam
+            # counter the oracle has no chips for: the port must stand in there.
+            assert '00dff0' in str(error), error
+            d.port(address)
+            assert lib.wof_standin_hits() != hits, '%s, case %d: no stand-in' % (what, n)
+            continue
+        got = d.port(address) & 0xFFFF
+        if lib.wof_standin_hits() != hits:
+            continue                      # a later milestone's stand-in: the button's weapon
+        returns = address in (0x01AA6E, 0x01AAEA, 0x01B4DE, 0x01B8C4)
+        check(d, '%s, case %d' % (what, n), want if returns else 0, got if returns else 0)
+        compared += 1
+    assert compared > 1000, 'only %d cases compared' % compared
+
+
+@needs_rom
+def test_a_turn_step_matches_the_original(player):
+    """0x01AB80 with and without its argument, through every attitude."""
+    d = player
+    rng = random.Random(0x1AB8)
+    for n in range(1500):
+        random_flight(d, rng)
+        whole = rng.choice([0, 1])
+        d.load_port()
+        d.o.call(0x01AB80, d.o.L(whole))
+        d.port(0x01AB80, whole)
+        check(d, 'turn step %d' % n, 0, 0)
+
+
+@pytest.mark.parametrize('name', ['a', 'c', 'h', 'm', 'o'])
+def test_the_map_helpers_match_the_original(ported, name):
+    """ground_height (0x015714) for every record of the map, with the ships' decks at random
+    heights; map_slot_at (0x0150C8), record_at (0x01C982), on_water (0x01CB74) and
+    record_on_ship (0x01CB34) at every world x a record starts at, around both ends and at
+    random ones."""
+    d = PlayerDifferential(ported, name)
+    try:
+        rng = random.Random(ord(name))
+        for ship in (0x025460, 0x02547E, 0x02549C, 0x0254BA, 0x0254D8):
+            w(d.o, ship + 0x0E, rng.randrange(0, 0x60))
+            w(d.o, ship + 0x14, rng.randrange(0, 0x20))
+        w(d.o, 0x0253AE, rng.randrange(0, 4))
+        w(d.o, 0x025396, rng.randrange(0, 0x21))
+        d.load_port()
+        base = d.map_base
+        for i in range(len(d.chart.words)):
+            at = 2 * i
+            want = d.o.call(0x015714, regs={'a0': base + at}) & 0xFFFF
+            got = d.port(0x015714, at) & 0xFFFF
+            assert want == got, 'map %s record %d: ground %d, port %d' % (name, i, want, got)
+        xs = ([8 * i for i in range(len(d.chart.words))] + list(range(-20, 20)) +
+              list(range(d.chart.extent - 20, d.chart.extent + 20)) +
+              [rng.randrange(-0x8000, 0x8000) for _ in range(500)])
+        for x in xs:
+            x16 = x & 0xFFFF
+            sx = x16 - 0x10000 if x16 & 0x8000 else x16
+            d0 = d.o.call(0x0150C8, regs={'d0': x16})
+            want = ((d.o.reg('d1') & 0xFFFF) << 16) | (d0 & 0xFFFF)
+            got = d.port(0x0150C8, sx) & 0xFFFFFFFF
+            assert want == got, 'map %s x %d: map_slot_at %08X, port %08X' % (name, sx, want, got)
+            pointer = d.o.call(0x01C982, d.o.W(x16))
+            at = d.port(0x01C982, sx)
+            assert pointer - base == at, 'map %s x %d: record_at %d, port %d' % (
+                name, sx, pointer - base, at)
+            for call in (0x01CB74, 0x01CB34):
+                want = d.o.call(call, d.o.L(pointer)) & 0xFFFF
+                assert want == d.port(call, at) & 0xFFFF, 'map %s x %d: %06X' % (name, sx, call)
+        assert d.differences() == []
+    finally:
+        d.restore()

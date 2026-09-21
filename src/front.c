@@ -402,49 +402,242 @@ void wof_front_init(void)
 
 /* ----------------------------------------------------------------- the mission (M4) */
 
-/* orig 0x01CCF6 ingame_keys - M4 PART 2 STAND-IN: ingame_keys.  The original's command keys
- * are part 2's.  What is kept is what its path without a command does to the key buffer:
- * every waiting key is taken out, and the last one is remembered in last_key.  While the
- * tick is a stand-in nobody can fly, so the mission needs an end of its own: raw 0x12, the
- * E key by position, without Control, sets quit_flag as the original's own ways out of a
- * mission do, so that the high scores and the rank selection stay reachable.  No script of the
- * headless original presses a key during a mission, and every other key is a stand-in hit. */
-static void ingame_keys(void)
+/* A registered global's word by its original address, for the Help key's walk over the
+ * island tables, which reads on past the one it starts in. */
+static uint16_t global_word(uint32_t addr)
 {
-    wof_g.last_key = 0;
-    while (wof_key_available()) {
-        uint32_t key = wof_key_get() & 0x7FFFFFFFu;
+    uint8_t hi = 0, lo = 0;
 
-        wof_g.last_key = key;
-        if ((key & 0xFFu) == 0x12u && !((key >> 16) & 0x0008u)) {
-            /* M4 PART 2 STAND-IN: the mission's end, on KeyE, while the tick is a stand-in. */
-            wof_g.quit_flag = 0xFF;
-            continue;
-        }
-        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01CD04-0x01CE27, ingame_keys, a key during a mission");
-    }
+    wof_global_byte(addr, &hi);
+    wof_global_byte(addr + 1u, &lo);
+    return (uint16_t)((hi << 8) | lo);
 }
 
-/* M4 PART 2 STAND-IN: the tick.  logic_tick (orig 0x011386) is part 2's; this pops the
- * tick's input byte, so that the queue's arithmetic stays the original's, and does nothing
- * else.  In test builds a comparison can tell it how many VBlanks the original's tick
- * waited (the restart spins on WaitTOF inside the tick), and it then waits as many, so that
- * a replayed schedule delivers them at the same point; the release build never waits. */
-static wof_co_t tick_standin(void)
+/* A text of the DATA hunk, by its original address. */
+static const char *image_text(uint32_t addr)
 {
-    wof_ctx_t *c = &wof_f.co_tick;
+    return (const char *)&wof_tbl_data_image[addr - 0x023000u];
+}
+
+/* orig 0x01555A - a ticker message, unless one is running: ticker_message names it by the
+ * original's address of its text (src/input.c). */
+static void ticker_message(uint32_t addr)
+{
+    if (wof_g.ticker_message == 0)
+        wof_g.ticker_message = addr;
+}
+
+/* orig 0x01CCF6 ingame_keys - every waiting key, once per pass from the head of the inner
+ * loop, in flight and paused alike (re/notes/keys.md, "In flight and paused").  The key is
+ * converted without its qualifier; with Control: r restarts (the mission ends and the rank
+ * selection comes), s the music, f the vertical flip, g the save dialog on the carrier, l the
+ * load dialog, b the crash reporter, c deletes the high scores, v the version in the ticker.
+ * Any other key, and a Control key that is none of those, goes on to Escape, the pause, and
+ * the cheat sequence c o l i n with the debug keys it unlocks.  The sound engine's slots it
+ * clears (0x011F4E) are M8's; what a saved game holds is M7's. */
+static wof_co_t ingame_keys(void)
+{
+    wof_ctx_t *c = &wof_f.co_keys;
 
     CO_BEGIN(c);
-    if (!wof_g.pause_flag)
-        wof_input_queue_pop();
-    wof_f.tick_waits = wof_test_tick_waits(wof_f.ticks_run);
-    wof_f.ticks_run++;
-    while (wof_f.tick_waits) {
-        wof_f.tick_waits--;
-        CO_WAIT(c);
+    if (wof_f.pause_request) {
+        /* The shell's request (wof_request_pause), taken where Escape would be. */
+        wof_f.pause_request = 0;
+        if (!wof_g.pause_flag)
+            wof_g.pause_flag = 0xFF;
     }
-    wof_trace_add("tick", (int32_t)wof_f.ticks_run, 0, 0, 0, 0, 0);
-    wof_test_tick_end(wof_f.ticks_run - 1u);
+    wof_g.last_key = 0;
+    while (wof_key_available()) {
+        wof_g.last_key = wof_key_get() & 0x7FFFFFFFu;
+        wof_f.keys_char = (uint8_t)wof_key_to_char(wof_g.last_key & 0xFFFFu);
+        if ((wof_g.last_key >> 16) & 0x0008u) {
+            if (wof_f.keys_char == 'r') {
+                wof_g.ticker_message = 0;
+                wof_ticker_clear();
+                CO_CALL(c, &wof_f.co_fade, wof_fade_out_pair());
+                wof_g.end_of_mission = 0xFF;
+                wof_g.quit_flag = 0xFF;
+                continue;
+            }
+            if (wof_f.keys_char == 's') {
+                wof_g.opt_music_off = (uint8_t)~wof_g.opt_music_off;
+                continue;
+            }
+            if (wof_f.keys_char == 'f') {
+                wof_g.opt_invert_vertical = (uint8_t)~wof_g.opt_invert_vertical;
+                wof_invert_vertical_follow();
+                continue;
+            }
+            if (wof_f.keys_char == 'g') {
+                if (wof_m.player[0].on_deck != 1)
+                    continue;
+                CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(1));
+                wof_screen_game_restore();
+                wof_input_queue_clear();
+                continue;
+            }
+            if (wof_f.keys_char == 'l') {
+                if (wof_g.demo_mode != 0)
+                    continue;
+                wof_free_dash_shapes();                       /* 0x0134AE */
+                wof_free_sounds();                            /* 0x01346C */
+                wof_free_for_load();                          /* 0x011256 */
+                wof_g.loaded_game = 0;
+                CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(0));
+                if (wof_f.dialog_result == 0) {
+                    WOF_STANDIN("M7 STAND-IN: 0x01CDD4, a loaded game: the briefing and the mission again");
+                    continue;
+                }
+                wof_load_dash_assets();
+                wof_sounds_load();
+                wof_screen_game_restore();
+                wof_input_queue_clear();
+                continue;
+            }
+            if (wof_f.keys_char == 'b') {
+                /* An illegal instruction, the way into the game's own crash reporter, which
+                 * returns to the loop; the port has no crash reporter. */
+                continue;
+            }
+            if (wof_f.keys_char == 'c') {
+                wof_fs_delete("highscore");
+                continue;
+            }
+            if (wof_f.keys_char == 'v') {
+                uint16_t args[2] = { (uint16_t)wof_g.g_027de2, (uint16_t)wof_g.g_027de4 };
+
+                wof_raw_do_fmt((char *)wof_g.ticker_text_2, image_text(0x025F43u), args);
+                ticker_message(0x027E00u);
+                continue;
+            }
+        }
+        {
+            uint8_t  ch  = wof_f.keys_char;
+            uint8_t  raw = (uint8_t)wof_g.last_key;          /* 0x026F5F */
+            int16_t *cs  = &wof_g.cheat_state;
+
+            if (ch == 0x1B) {
+                wof_g.pause_flag = (uint8_t)~wof_g.pause_flag;
+                continue;
+            }
+            if (ch == 'o') {
+                *cs = *cs == 1 ? 2 : 0;
+                continue;
+            }
+            if (ch == 'l') {
+                *cs = *cs == 2 ? 3 : 0;
+                continue;
+            }
+            if (ch == 'n') {
+                *cs = *cs == 4 ? 5 : 0;
+                continue;
+            }
+            if (ch == 'i') {
+                if (*cs == 0)
+                    continue;
+                if (*cs == 5) {
+                    wof_g.pitch_step = (int16_t)(wof_g.pitch_step + 0x32);
+                    continue;
+                }
+                if (*cs == 3) {
+                    *cs = 4;
+                    continue;
+                }
+                *cs = 0;
+            }
+            if (ch == 'k') {
+                if (*cs == 5)
+                    wof_g.pitch_step = (int16_t)(wof_g.pitch_step - 0x32);
+                continue;
+            }
+            if (ch == 'f') {
+                if (*cs == 5)
+                    wof_m.player[0].fuel = 0x80;
+                continue;
+            }
+            if (ch == 'p') {
+                if (*cs == 5)
+                    wof_g.lives++;
+                continue;
+            }
+            if (raw == 0x59) {                                /* F10 */
+                if (*cs == 5)
+                    wof_g.ticker_message = 0;
+                continue;
+            }
+            if (ch == ' ') {
+                /* Four AvailMem figures: the port's arena has one kind of memory, so its free
+                 * bytes stand for chip, largest and total, and fast memory is none. */
+                uint32_t free_bytes = wof_arena_size() - wof_arena_used();
+                uint16_t args[8] = {
+                    (uint16_t)(free_bytes >> 16), (uint16_t)free_bytes, 0, 0,
+                    (uint16_t)(free_bytes >> 16), (uint16_t)free_bytes,
+                    (uint16_t)(free_bytes >> 16), (uint16_t)free_bytes,
+                };
+
+                if (*cs != 5)
+                    continue;
+                wof_raw_do_fmt((char *)wof_g.ticker_text, image_text(0x023B3Au), args);
+                ticker_message(0x02716Au);
+                continue;
+            }
+            if (raw == 0x5F) {                                /* Help */
+                uint16_t d1 = (uint16_t)((uint16_t)wof_g.draw_player_x >> 2);
+                uint16_t n = 0;
+                uint16_t args[2];
+
+                if (*cs != 5)
+                    continue;
+                while (n < 64 && !(d1 < global_word(0x025438u + 2u * n)))
+                    n++;
+                args[0] = global_word(0x025450u + 4u * n);
+                args[1] = global_word(0x025452u + 4u * n);
+                wof_raw_do_fmt((char *)wof_g.ticker_text_2, image_text(0x025F1Au), args);
+                ticker_message(0x027E00u);
+                continue;
+            }
+            if (ch == 'q') {
+                if (*cs == 5) {
+                    wof_g.g_026f80 = (uint16_t)((wof_g.g_026f80 & 0x00FFu) | 0xFF00u);   /* st.b */
+                    wof_g.quit_flag = 0xFF;
+                }
+                continue;
+            }
+            if (ch == 'm') {
+                if (*cs != 5)
+                    continue;
+                if (wof_g.weapon_count == 0xFF) {
+                    wof_g.weapon_count = wof_tbl_weapons_per_type[(uint16_t)wof_g.weapon_type];
+                    wof_weapon_gauge_reset();
+                } else {
+                    wof_g.weapon_count = 0xFF;
+                }
+                continue;
+            }
+            if (ch == 'r') {
+                if (*cs == 5)
+                    wof_objects_clear();
+                continue;
+            }
+            if (ch == 'c') {
+                if (*cs == 0)
+                    *cs = 1;
+                else if (*cs == 5 && ++wof_g.weapon_type == 3)
+                    wof_g.weapon_type = 0;
+                continue;
+            }
+            if (ch == '8' || ch == '2' || ch == '4' || ch == '6') {
+                if (*cs != 5)
+                    continue;
+                wof_g.g_025350 += ch == '8' ? 0x1000 : ch == '2' ? -0x1000 : ch == '4' ? -0x100 : 0x100;
+            }
+            if (ch == 'd' && *cs == 5) {
+                wof_m.player[0].oil = 0x80;
+                wof_m.player[0].on_deck = 0;
+                wof_g.g_026f72 = (int16_t)~wof_g.g_026f72;
+            }
+        }
+    }
     CO_END(c);
 }
 
@@ -460,7 +653,7 @@ static wof_co_t run_queued_ticks(void)
     if ((int8_t)wof_g.pause_flag < 0)
         CO_RETURN(c);
     while ((int16_t)wof_g.input_queue_count > 0)
-        CO_CALL(c, &wof_f.co_tick, tick_standin());
+        CO_CALL(c, &wof_f.co_tick, wof_logic_tick());
     wof_g.g_026d44 = (int16_t)(wof_g.demo_mode != 0 ? 2 : 0);
     CO_END(c);
 }
@@ -491,7 +684,7 @@ static wof_co_t mission(void)
     }
     wof_g.outside_mission = 0;
     wof_g.loaded_game = 0;
-    CO_CALL(c, &wof_f.co_tick, tick_standin());               /* main's own logic_tick */
+    CO_CALL(c, &wof_f.co_tick, wof_logic_tick());             /* main's own logic_tick */
     wof_input_queue_clear();
     if (wof_g.demo_mode != 0)
         wof_g.g_026d44 = 2;
@@ -505,16 +698,18 @@ static wof_co_t mission(void)
     wof_g.g_026d54 = (uint16_t)((wof_g.g_026d54 & 0x00FFu) | 0xFF00u);   /* st.b */
 
     for (;;) {                                                /* orig 0x01010E */
-        ingame_keys();
+        CO_CALL(c, &wof_f.co_keys, ingame_keys());
         if (wof_g.quit_flag)
             break;
         if (wof_g.pause_flag) {
-            CO_CALL(c, &wof_f.co_vblank, wof_wait_vblank());  /* wait_next_vblank */
+            CO_CALL(c, &wof_f.co_vblank, wof_wait_next_vblank());
             continue;
         }
         if (wof_g.g_025364 && wof_g.g_0253bc) {
-            /* 0x010132: the mission is won and the next one follows. */
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x010132-0x01018D, the next mission of a campaign");
+            /* 0x010132: the mission is won and the next one follows.  0x0253BC is set only
+             * by 0x015694, which only the last target destroyed (0x0146DC, soldiers_draw,
+             * M5) or a ship sunk (0x011CD8, M6) reaches. */
+            WOF_STANDIN("M7 STAND-IN: 0x010132-0x01018D, the next mission of a campaign");
             wof_g.quit_flag = 0xFF;
             break;
         }
@@ -542,6 +737,8 @@ wof_co_t wof_front(void)
     wof_ctx_t *c = &wof_f.co_main;
 
     CO_BEGIN(c);
+    wof_g.g_027de2 = 1;                                       /* 0x01AA50 */
+    wof_g.g_027de4 = 0;
     wof_g.outside_mission = 0xFF;
     wof_g.g_024cac = 0xFFFF;
     CO_CALL(c, &wof_f.co_show, wof_cop_show_blank());     /* the tail of display_init */
@@ -629,4 +826,29 @@ void wof_dev_set_score(uint32_t score)
 void wof_dev_open_dialog(int mode)
 {
     wof_f.dev_dialog = (uint16_t)(mode ? 2 : 1);
+}
+
+/* The player's x, y and player_on_deck, for the overlay and the page test: a copy, outside
+ * the state, that nothing in the core reads. */
+const int16_t *wof_dev_player(void)
+{
+    static int16_t out[3];
+
+    out[0] = wof_m.player[0].x;
+    out[1] = wof_m.player[0].y;
+    out[2] = wof_m.player[0].on_deck;
+    return out;
+}
+
+/* ------------------------------------------------------------------------- the pause */
+
+void wof_request_pause(void)
+{
+    if (!wof_g.outside_mission)
+        wof_f.pause_request = 1;
+}
+
+int wof_paused(void)
+{
+    return !wof_g.outside_mission && wof_g.pause_flag ? 1 : 0;
 }
