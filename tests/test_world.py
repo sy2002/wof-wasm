@@ -38,8 +38,8 @@ NIGHT = {0x025390: (2, 1)}         # night_flag, poked at 0x01009E
 # test_the_setup_agrees_at_step_s derives it again and holds it to this.
 SETUP_TICK_WRITES = [
     'airspeed', 'airspeed_step', 'frame_drawn', 'g_02536a', 'g_0253ac', 'g_0253ae', 'g_0253b0',
-    'g_025410', 'g_02542c', 'g_026d3e', 'g_026e62', 'input_queue[0]', 'input_queue[1]',
-    'input_queue[2]', 'input_queue[3]', 'input_queue[4]', 'input_queue_count',
+    'g_025410', 'g_02542c', 'g_026d3e', 'g_026e62', 'g_027e66', 'input_queue[0]',
+    'input_queue[1]', 'input_queue[2]', 'input_queue[3]', 'input_queue[4]', 'input_queue_count',
     'player[0].enemy_countdown', 'tick_input',
 ]
 

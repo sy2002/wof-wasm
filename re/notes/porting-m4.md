@@ -104,7 +104,7 @@ file log and of the port's trace, which the comparison holds equal):
    itself** (`0x0100F2`), `input_queue_clear`, and the inner loop at `0x01010E`, which is
    step S of the headless original.
 
-The tick at `0x0100F2` is part 2's. It writes nineteen fields of the registered state
+The tick at `0x0100F2` is part 2's. It writes twenty fields of the registered state
 before step S; `tests/test_world.py` keeps them as `SETUP_TICK_WRITES`, derived again on
 every run from the harness's own record of that tick's writes, and they are the only fields
 in which the port may differ from the original at S.
