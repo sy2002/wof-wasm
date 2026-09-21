@@ -22,7 +22,7 @@ import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST, SOURCE_PNG } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SOURCE_PNG } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -399,6 +399,77 @@ try {
     await evaluateIn(stickTab, '(window.__wofRaw.seen = 0, window.__wofRaw.calls = 0)');
     await sleep(500);
     report.stick.released = await evaluateIn(stickTab, STICK_LOOK);
+
+    /* A mission flown from the keyboard with the keys held in real time (M4), in a tab of
+       its own: the front end walked to the first rank and through the briefing, then the
+       lift, the roll, the take-off and the climb; the pause and its end; the flip, and the
+       flip still on after the page is loaded again.  Read off the overlay. */
+    const flightTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'browsingContext.activate', { context: flightTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: flightTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+    await evaluateIn(flightTab, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
+    const KEY_ENTER = '\uE007';
+    const holdIn = (value, ms) => keyAction(flightTab, 'keyDown', value)
+        .then(() => sleep(ms)).then(() => keyAction(flightTab, 'keyUp', value));
+    const player = () => evaluateIn(flightTab, PLAYER);
+    const until = async (test, limitMs, stepMs = 250) => {
+        for (let waited = 0; waited < limitMs; waited += stepMs) {
+            const now = await player();
+            if (now && test(now)) {
+                return now;
+            }
+            await sleep(stepMs);
+        }
+        return player();
+    };
+    await press(flightTab, KEY_BACKQUOTE);          /* the overlay; also the page's gesture */
+    await sleep(800);
+    await holdIn(KEY_SPACE, 250);                   /* the scroller */
+    await sleep(6600);
+    await holdIn(KEY_SPACE, 250);                   /* the title sequence */
+    await sleep(2500);
+    await press(flightTab, KEY_ENTER);              /* the first rank */
+    await sleep(3000);
+    await holdIn(KEY_SPACE, 250);                   /* the briefing */
+    const flight = { hold: await until((p) => p.deck === 1 || p.deck === 11, 15000) };
+    await sleep(1500);
+    await holdIn(KEY_SPACE, 250);                   /* the lift goes up */
+    flight.deck = await until((p) => p.deck === 1 && p.y > 30, 6000);
+    await keyAction(flightTab, 'keyDown', KEY_RIGHT);
+    flight.rolling = await until((p) => p.deck === 1 && p.x >= 7295, 20000, 60);
+    await keyAction(flightTab, 'keyDown', KEY_UP);
+    flight.air = await until((p) => p.deck === 0, 10000);
+    await sleep(2500);
+    flight.climb1 = await player();
+    await sleep(1500);
+    flight.climb2 = await player();
+    await keyAction(flightTab, 'keyUp', KEY_UP);
+    await keyAction(flightTab, 'keyUp', KEY_RIGHT);
+    await press(flightTab, 'p');
+    await sleep(600);
+    flight.paused1 = await player();
+    await sleep(1500);
+    flight.paused2 = await player();
+    await press(flightTab, 'p');
+    await sleep(600);
+    flight.running1 = await player();
+    await sleep(1500);
+    flight.running2 = await player();
+    await press(flightTab, 'f');
+    await sleep(800);
+    flight.flipped = await player();
+    await send(socket, 'browsingContext.reload', { context: flightTab, wait: 'complete' });
+    await sleep(1500);
+    await press(flightTab, KEY_BACKQUOTE);
+    await sleep(800);
+    flight.afterReload = {
+        stored: await evaluateIn(flightTab, "window.localStorage.getItem('wof:invertVertical')"),
+        player: await player(),
+    };
+    report.flight = flight;
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

@@ -18,7 +18,8 @@ import pytest
 from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
-from conftest import (assert_a_modifier_alone_starts_nothing,
+from conftest import (assert_the_mission_is_flown_from_the_keyboard,
+                      assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
                       assert_the_box_is_the_largest_that_fits,
                       assert_the_canvas_shows_the_picture,
@@ -351,6 +352,26 @@ def test_the_save_dialog_and_the_line_editor_work_on_the_page(loaded):
     assert isinstance(saved, list), saved
     assert [file['name'] for file in saved] == ['wof.amission 3'], saved
     assert all(file['bytes'] > 0 for file in saved)
+
+
+def test_a_mission_is_flown_from_the_keyboard(loaded):
+    """T7: the weapon, the lift, the roll, the take-off and the climb, the pause, the flip;
+    then three aircraft lost to the sea, each with the button for the next, and the game
+    over that leads to the high-score entry below."""
+    flight = loaded['flight']
+    assert_the_mission_is_flown_from_the_keyboard(flight)
+    assert flight['water1']['deck'] == 6, 'the dive did not reach the sea: %s' % flight['water1']
+    assert flight['second']['deck'] in (1, 11), flight['second']
+    for life in ('third', 'end'):
+        assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
+
+
+def test_the_flip_is_still_on_after_a_reload(loaded):
+    """The flip is a preference the shell stores (re/notes/porting-m3.md): the second visit
+    to the page comes up with it on."""
+    after = loaded['flipAfterReload']
+    assert after['stored'] == '1', after
+    assert after['player'] is not None and after['player']['flip'], after
 
 
 def test_a_high_score_typed_into_the_entry_reaches_the_file(loaded):

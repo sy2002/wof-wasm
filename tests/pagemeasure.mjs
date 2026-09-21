@@ -169,3 +169,14 @@ export const STORED_FILES = `(() => {
         return { error: String(err) };
     }
 })()`;
+
+/* The player's aircraft and the pause and flip, as the diagnostics overlay shows them
+ * (M4): read off the overlay, the place a person would read them, so the overlay has to
+ * be up. */
+export const PLAYER = `(() => {
+    const text = document.getElementById('overlay').textContent;
+    const m = text.match(/player\\s+x (-?\\d+)\\s+y (-?\\d+)\\s+deck state (-?\\d+)(, paused)?(, flip on)?/);
+    const c = text.match(/counters\\s+(\\d+) vbl\\s+(\\d+) tick\\s+(\\d+) pass/);
+    return m ? { x: +m[1], y: +m[2], deck: +m[3], paused: !!m[4], flip: !!m[5],
+                 vblanks: c ? +c[1] : null, ticks: c ? +c[2] : null } : null;
+})()`;

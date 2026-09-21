@@ -20,6 +20,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_screenshot_is_the_picture,
                      big_enough_blocks)
 from conftest import (ROOT,
+                      assert_the_mission_is_flown_from_the_keyboard,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
                       assert_the_box_is_the_largest_that_fits,
@@ -231,6 +232,23 @@ def test_audio_is_running_after_the_key_press(loaded_firefox):
     assert state == 'running'
     assert rate >= 8000
     assert overlay_number(loaded_firefox['overlay'], 'buffer') > 0, 'no audio is queued'
+
+
+def test_a_mission_is_flown_from_the_keyboard(loaded_firefox):
+    """T7 in Firefox: the lift, the roll, the take-off and the climb, the pause, the flip,
+    and the flip still on after the page is loaded again."""
+    flight = loaded_firefox['flight']
+    assert_the_mission_is_flown_from_the_keyboard(flight)
+    after = flight['afterReload']
+    assert after['stored'] == '1' and after['player']['flip'], after
+
+
+def test_a_mission_is_flown_in_a_visible_window(loaded_firefox_visible):
+    """The same in a real window, where the canvas is accelerated."""
+    flight = loaded_firefox_visible['flight']
+    assert_the_mission_is_flown_from_the_keyboard(flight)
+    after = flight['afterReload']
+    assert after['stored'] == '1' and after['player']['flip'], after
 
 
 def test_the_visible_canvas_shows_the_picture(loaded_firefox_visible):

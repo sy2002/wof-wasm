@@ -17,7 +17,7 @@ import { resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PRESENT_COST, STORED_FILES } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, STORED_FILES } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -277,14 +277,98 @@ try {
     await sleep(2000);
     storage.afterSave = await evaluate(STORED_FILES);
 
-    /* On through the briefing, which is left to run out by itself - fire would skip it,
-       but the key that ends it stays in the buffer and the name entry would take it as a
-       character, which is what the machine does too - and into the mission, which the key E
-       ends while the tick is a stand-in (M4 part 1); out at the high-score entry, where the
-       name goes in. */
+    /* On through the briefing, which is left to run out by itself, and into the mission,
+       which is flown from the keyboard with the keys held in real time (M4): a weapon
+       chosen in the hold, the lift up, the roll along the deck and the take-off; the pause
+       and the flip; then three aircraft lost to the sea, the game over and the high-score
+       entry, where the name goes in.  The player's state is read off the overlay. */
     await sleep(8000);
-    await press(sessionId, 'keyE');
-    await sleep(3000);
+    await press(sessionId, 'backquote');            /* the overlay, for the readings */
+    await sleep(600);
+    const flight = { hold: await evaluate(PLAYER) };
+    const until = async (test, limitMs, stepMs = 250) => {
+        for (let waited = 0; waited < limitMs; waited += stepMs) {
+            const now = await evaluate(PLAYER);
+            if (now && test(now)) {
+                return now;
+            }
+            await sleep(stepMs);
+        }
+        return evaluate(PLAYER);
+    };
+    const holdFor = async (name, ms) => {
+        await cdp.hold(sessionId, name);
+        await sleep(ms);
+        await cdp.release(sessionId, name);
+    };
+    await holdFor('down', 300);                     /* the next weapon, in the hold's menu */
+    await sleep(600);
+    await fire();                                   /* the lift goes up */
+    flight.deck = await until((p) => p.deck === 1 && p.y > 30, 5000);
+    /* The roll along the deck, and the stick forward late in it, as the scripts take off
+       (tools/pass_observe.py, TAKE_OFF): forward early keeps the tail down (0x025A9C) and
+       the aircraft leaves the bow too slow to climb. */
+    await cdp.hold(sessionId, 'right');
+    flight.rolling = await until((p) => p.deck === 1 && p.x >= 7295, 20000, 60);
+    await cdp.hold(sessionId, 'up');
+    flight.air = await until((p) => p.deck === 0, 10000);
+    await sleep(2500);
+    flight.climb1 = await evaluate(PLAYER);
+    await sleep(1500);
+    flight.climb2 = await evaluate(PLAYER);
+    await cdp.release(sessionId, 'up');
+    await cdp.release(sessionId, 'right');
+
+    /* The pause stops the ticks, and the second press lets them run on. */
+    await press(sessionId, 'keyP');
+    await sleep(600);
+    flight.paused1 = await evaluate(PLAYER);
+    await sleep(1500);
+    flight.paused2 = await evaluate(PLAYER);
+    await press(sessionId, 'keyP');
+    await sleep(600);
+    flight.running1 = await evaluate(PLAYER);
+    await sleep(1500);
+    flight.running2 = await evaluate(PLAYER);
+
+    /* Into the sea: the stick back until the aircraft is in the water, then the button,
+       which brings the next aircraft after thirty ticks rather than 150. */
+    await cdp.hold(sessionId, 'down');
+    flight.water1 = await until((p) => p.deck === 6, 15000);
+    await cdp.release(sessionId, 'down');
+    const nextAircraft = async () => {
+        /* The button held until the next aircraft is there; held on, it would send the lift
+           straight up, so it is let go and the lift sent up with a press of its own. */
+        await cdp.hold(sessionId, 'space');
+        const next = await until((p) => p.deck !== 6, 15000);
+        await cdp.release(sessionId, 'space');
+        await sleep(1500);
+        return next;
+    };
+    flight.second = await nextAircraft();
+
+    /* The flip, which the shell remembers; the next two aircraft are lost without the
+       stick's forward and back, so it changes nothing there. */
+    await press(sessionId, 'keyF');
+    await sleep(600);
+    flight.flipped = await evaluate(PLAYER);
+    for (const life of ['third', 'end']) {
+        if ((await evaluate(PLAYER)).y === 0) {
+            await fire();                           /* the lift */
+        }
+        await until((p) => p.deck === 1 && p.y > 30, 5000);
+        await cdp.hold(sessionId, 'right');         /* over the bow and into the sea */
+        flight['water_' + life] = await until((p) => p.deck === 6, 40000);
+        await cdp.release(sessionId, 'right');
+        if (life !== 'end') {
+            flight[life] = await nextAircraft();
+        }
+    }
+    report.flight = flight;
+    /* The last aircraft is left to go down without the button, which in the name entry
+       would accept the line: 150 ticks, then the game is over. */
+    await press(sessionId, 'backquote');            /* the overlay away for the entry */
+    await sleep(18000);
     storage.entry = await settle();
     for (const key of ['keyA', 'keyB', 'keyA']) {
         await press(sessionId, key);
@@ -302,6 +386,12 @@ try {
     await open(againSession, 'file://' + pagePath);
     await sleep(1500);
     storage.afterReload = await evaluateIn(againSession, STORED_FILES);
+    await press(againSession, 'backquote');
+    await sleep(800);
+    report.flipAfterReload = {
+        stored: await evaluateIn(againSession, "window.localStorage.getItem('wof:invertVertical')"),
+        player: await evaluateIn(againSession, PLAYER),
+    };
     storage.reloadConsole = channel(againSession).console;
     report.storage = storage;
 

@@ -33,7 +33,8 @@ export const KEYS = {
     two: { key: '2', code: 'Digit2', text: '2' },
     keyA: { key: 'a', code: 'KeyA', text: 'a' },
     keyB: { key: 'b', code: 'KeyB', text: 'b' },
-    keyE: { key: 'e', code: 'KeyE', text: 'e' },
+    keyP: { key: 'p', code: 'KeyP', text: 'p' },
+    keyF: { key: 'f', code: 'KeyF', text: 'f' },
 };
 
 export class Devtools {
