@@ -337,7 +337,7 @@ class Replay:
 
     # ------------------------------------------------------------------ the replay
 
-    def run(self, on_pass=None, on_setup=None):
+    def run(self, on_pass=None, on_setup=None, files=None):
         """Replay the schedule's VBlanks through the port.  Everything else happens in the
         port's own hooks, at the points where the original's steps end: step S, the end of
         a pass (where both loops compare) and the end of a tick.  The open loop sets the
@@ -352,6 +352,8 @@ class Replay:
             keys[vblank].append((code, qualifier))
 
         ported.reset_core(fade_vblanks=0)
+        for fname, data in (files or {}).items():
+            assert ported.fs_write(fname, data), fname      # laid over the disk, as the run's
         self.lib.wt_set_vblanks_per_pass(self.rate)
         self.lib.wt_standins_reset()
         self.lib.wt_tick_waits_clear()

@@ -470,27 +470,36 @@ static void airfields_scan(void)
 /* orig 0x01252C - a ship block: by map number, two bytes (how many planes stand on the
  * ship, and a second one), then from the ship's list two words and four words per plane,
  * the x words offset by the ship's world x. */
-static void ship_block(uint16_t span0, const uint8_t *counts, const uint16_t *list,
-                       uint32_t block)
+/* The two tables by the original's address: the counts at 0x023530 and the lists at
+ * 0x0235A8 are each one block of the executable (re/tables.toml). */
+#define COUNTS(addr) ((uint32_t)((addr) - 0x023530u))
+#define LIST(addr)   ((uint32_t)(((addr) - 0x0235A8u) / 2u))
+
+static void ship_block(uint16_t span0, uint32_t counts, uint32_t list, uint32_t block)
 {
     uint8_t  map = wof_tbl_mission_map_table[(uint16_t)(wof_g.rank_played * 4u + wof_g.mission_number) % 29u];
-    uint16_t d2  = counts[(uint16_t)(map * 2u) % 30u];
-    uint16_t d1  = counts[(uint16_t)(map * 2u + 1u) % 30u];
+    uint32_t c   = counts + (uint32_t)map * 2u;
+    uint16_t d2  = c < sizeof wof_tbl_block_counts ? wof_tbl_block_counts[c] : 0;
+    uint16_t d1  = c + 1 < sizeof wof_tbl_block_counts ? wof_tbl_block_counts[c + 1] : 0;
     uint16_t    d0  = (uint16_t)(span0 << 2);
     wof_word_t *out = wof_m.ship_blocks;
     uint32_t    at  = block;
 
 #define PUT(val) do { if (at < 160) out[at].v = (uint16_t)(val); at++; } while (0)
+#define NEXT()   (list < sizeof wof_tbl_block_lists / 2u ? wof_tbl_block_lists[list++] : (list++, (uint16_t)0))
     PUT(d2);
     PUT(d1);
-    PUT(*list++ + d0);
-    PUT(*list++ + d0);
+    PUT(NEXT() + d0);
+    PUT(NEXT() + d0);
     for (uint16_t i = (uint16_t)(d2 - 1u); i != 0xFFFFu; i--) {
-        PUT(*list++);
-        PUT(*list++ + d0);
-        PUT(*list++);
-        PUT(*list++);
+        uint16_t a = NEXT(), b = NEXT(), c1 = NEXT(), c2 = NEXT();
+
+        PUT(a);
+        PUT(b + d0);
+        PUT(c1);
+        PUT(c2);
     }
+#undef NEXT
 #undef PUT
 }
 
@@ -563,8 +572,7 @@ static void map_scan(void)
                 s->w0c = 2;
                 s->span0 = (int16_t)(d2 - 0x20);
                 s->span1 = (int16_t)(s->span0 + 0xC0);
-                ship_block((uint16_t)s->span0, wof_tbl_block_counts_battleship,
-                           wof_tbl_block_list_battleship, 0x40);
+                ship_block((uint16_t)s->span0, COUNTS(0x02354Eu), LIST(0x0235CCu), 0x40);
             }
             break;
         case 0x0F2:
@@ -582,8 +590,7 @@ static void map_scan(void)
                 s->w16 = 0x14;
                 s->span0 = (int16_t)(d2 - 0x20);
                 s->span1 = (int16_t)(s->span0 + 0x9C);
-                ship_block((uint16_t)s->span0, wof_tbl_block_counts_japcarrier,
-                           wof_tbl_block_list_japcarrier, 0x80);
+                ship_block((uint16_t)s->span0, COUNTS(0x02358Au), LIST(0x023614u), 0x80);
             }
             break;
         case 0x0E4:
@@ -601,8 +608,7 @@ static void map_scan(void)
                 s->w16 = 0x14;
                 s->span0 = (int16_t)(d2 - 0x20);
                 s->span1 = (int16_t)(s->span0 + 0xA0);
-                ship_block((uint16_t)s->span0, wof_tbl_block_counts_destroyer,
-                           wof_tbl_block_list_destroyer, 0x00);
+                ship_block((uint16_t)s->span0, COUNTS(0x023530u), LIST(0x0235A8u), 0x00);
             }
             break;
         case 0x0CC:
@@ -620,8 +626,7 @@ static void map_scan(void)
                 s->w16 = 0x14;
                 s->span0 = (int16_t)(d2 - 0x10);
                 s->span1 = (int16_t)(s->span0 + 0x20);
-                ship_block((uint16_t)s->span0, wof_tbl_block_counts_cruiseship,
-                           wof_tbl_block_list_cruiseship, 0x60);
+                ship_block((uint16_t)s->span0, COUNTS(0x02356Cu), LIST(0x0235F8u), 0x60);
             }
             break;
         case 0x021:
@@ -742,6 +747,7 @@ void wof_map_load(void)
     uint32_t   length, start;
     uint8_t    head[8];
     wof_file_t f;
+    int        found;
 
     airfields_clear();
     wof_g.quit_flag = 0;                      /* clr.w */
@@ -757,7 +763,11 @@ void wof_map_load(void)
     index = (uint16_t)(index + wof_g.mission_number - 1u);
     wof_m.map_records_end[0].off = 0;
 
-    if (index >= 15 || !wof_dos_open(&f, wof_tbl_map_file_ptrs[index]))
+    if (index >= 15)
+        return;
+    found = wof_dos_open(&f, wof_tbl_map_file_ptrs[index]);
+    wof_trace_add("map_load", found, index, 0, 0, wof_tbl_map_file_ptrs[index], 32);
+    if (!found)
         return;                                   /* the original goes on with a null handle */
     wof_dos_read(&f, head, 4);
     wof_dos_read(&f, head + 4, 4);

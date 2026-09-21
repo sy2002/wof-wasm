@@ -442,55 +442,23 @@ kind = "blob"
 addr = 0x0234F4
 count = 64
 
-# sub_01252c, the ship blocks: per ship two bytes by map number (how many planes, and a
-# second byte), and a list of two words and then four words per plane.
+# sub_01252c, the ship blocks: per ship two bytes by map number (how many planes stand on
+# the ship, and a second byte), and a list of two words and then four words per plane, the
+# lists of the four ships back to back from 0x0235A8.  A ship's count can exceed its own
+# list (the battleship on map j has six planes and five entries), and the loader then reads
+# on into the next ship's list, so the lists are taken as one block, addressed by the
+# original's offsets, as are the counts from 0x023530.
 [[table]]
-name = "block_counts_destroyer"
+name = "block_counts"
 kind = "blob"
 addr = 0x023530
-count = 30
+count = 120
 
 [[table]]
-name = "block_counts_battleship"
-kind = "blob"
-addr = 0x02354E
-count = 30
-
-[[table]]
-name = "block_counts_cruiseship"
-kind = "blob"
-addr = 0x02356C
-count = 30
-
-[[table]]
-name = "block_counts_japcarrier"
-kind = "blob"
-addr = 0x02358A
-count = 30
-
-[[table]]
-name = "block_list_destroyer"
+name = "block_lists"
 kind = "words"
 addr = 0x0235A8
-count = 18
-
-[[table]]
-name = "block_list_battleship"
-kind = "words"
-addr = 0x0235CC
-count = 22
-
-[[table]]
-name = "block_list_cruiseship"
-kind = "words"
-addr = 0x0235F8
-count = 14
-
-[[table]]
-name = "block_list_japcarrier"
-kind = "words"
-addr = 0x023614
-count = 30
+count = 84
 
 # sub_01350e, the gun lists: one word per gun, added to the ship's world x.
 [[table]]
