@@ -405,7 +405,7 @@ class Replay:
             memory, head = self.advance_to(lambda h: h['kind'] == 'T' and h['tick'] == tick + 1)
             if self.mode == 'open':
                 self.inject(memory, head)
-            else:
+            elif self.mode == 'closed':
                 self.apply_handover(tick)
 
         self._hooks = [one(guarded(at_s)), two(guarded(at_pass)), one(guarded(at_tick))]

@@ -186,26 +186,35 @@ class Layout:
         shapes = shapes or Shapes(memory)
         problems = []
         g = bytearray(self.globals_bytes)
+        data = memory.regions.get(DATA_START)
         for name, addr, elem, count, offset in self.globals:
+            at = addr - DATA_START
             for k in range(count):
-                v = memory.u(addr + k * elem, elem)
-                if v is None:
+                raw = data[at + k * elem:at + (k + 1) * elem]
+                if len(raw) != elem:
                     problems.append('%s: %06x is not in the state' % (name, addr))
                     continue
-                g[offset + k * elem:offset + (k + 1) * elem] = v.to_bytes(elem, 'little')
+                g[offset + k * elem:offset + (k + 1) * elem] = bytes(raw)[::-1]
         m = bytearray(self.mission_bytes)
         map_base = memory.u(0x024628, 4) or 0
         for table in self.tables:
             rec = self.records[table['record']]
             base, count = self.table_base(table, memory)
+            if not count:
+                continue
+            region = memory.region(base)
+            blob = memory.regions[region]
+            start = base - region
+            size = rec['orig_size']
             for i in range(count):
-                at = base + i * rec['orig_size']
+                at = start + i * size
                 port_at = table['port_offset'] + i * rec['port_size']
                 for fname, orig, orig_elem, port, elem, kind in rec['fields']:
-                    v = memory.u(at + orig, orig_elem)
-                    if v is None:
-                        problems.append('%s[%d].%s: not in the state' % (table['name'], i, fname))
+                    raw = bytes(blob[at + orig:at + orig + orig_elem])
+                    if kind == K_PLAIN:
+                        m[port_at + port:port_at + port + elem] = raw[::-1]
                         continue
+                    v = int.from_bytes(raw, 'big')
                     if kind == K_SHAPE:
                         h = shapes.handle_of(v)
                         if h is None:
@@ -214,7 +223,7 @@ class Layout:
                         v = h
                     elif kind == K_MAP:
                         v = (v - map_base) & 0xFFFFFFFF if v else 0
-                    elif kind == K_POOL:
+                    else:
                         v = 1 if v else 0
                     m[port_at + port:port_at + port + elem] = v.to_bytes(elem, 'little')
         return g, m, problems
@@ -223,6 +232,8 @@ class Layout:
 
     def fields(self):
         """Every field of both structs as (name, struct, offset, size, orig address or None)."""
+        if getattr(self, '_fields', None) is not None:
+            return self._fields
         out = []
         for name, addr, elem, count, offset in self.globals:
             for k in range(count):
@@ -235,10 +246,13 @@ class Layout:
                     out.append(('%s[%d].%s' % (table['name'], i, fname), 'm',
                                 table['port_offset'] + i * rec['port_size'] + port, elem,
                                 (table, i, orig, orig_elem)))
+        self._fields = out
         return out
 
     def differences(self, port_g, port_m, want_g, want_m, skip=()):
         out = []
+        if port_g == want_g and port_m == want_m:
+            return out
         for name, which, offset, size, orig in self.fields():
             if any(name == s or name.startswith(s + '[') or name.startswith(s + '.') for s in skip):
                 continue
