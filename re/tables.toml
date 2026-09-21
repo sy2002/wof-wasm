@@ -400,3 +400,294 @@ name = "sine_degrees"
 kind = "longs"
 addr = 0x025B74
 count = 91
+
+# ------------------------------------------------------------------ the mission (M4)
+#
+# What the mission setup and the pass read: the initial contents of the DATA hunk, which
+# every registered global starts from (src/wof.h, wof_globals_from_image), and the
+# constant tables of the map loader, the ships and the dashboard.  Where a table's length
+# is not given by a count in the code it is the distance to the next thing the code
+# addresses, which the note re/notes/porting-m4.md lists per table.
+
+[[table]]
+name = "data_image"
+kind = "blob"
+addr = 0x023000
+count = 0x3C60
+
+# map_load: mission_map_table[rank * 4 + mission] is the map number, and the file is
+# map_file_ptrs[sum of maps_per_rank below the rank + mission - 1].
+[[table]]
+name = "mission_map_table"
+kind = "blob"
+addr = 0x02345F
+count = 29
+
+[[table]]
+name = "maps_per_rank"
+kind = "words"
+addr = 0x025548
+count = 7
+
+[[table]]
+name = "map_file_ptrs"
+kind = "strptrs"
+addr = 0x02550C
+count = 15
+
+# 0x012C84: two bytes per airfield marker, two markers per map, by map number.
+[[table]]
+name = "airfield_table"
+kind = "blob"
+addr = 0x0234F4
+count = 64
+
+# sub_01252c, the ship blocks: per ship two bytes by map number (how many planes, and a
+# second byte), and a list of two words and then four words per plane.
+[[table]]
+name = "block_counts_destroyer"
+kind = "blob"
+addr = 0x023530
+count = 30
+
+[[table]]
+name = "block_counts_battleship"
+kind = "blob"
+addr = 0x02354E
+count = 30
+
+[[table]]
+name = "block_counts_cruiseship"
+kind = "blob"
+addr = 0x02356C
+count = 30
+
+[[table]]
+name = "block_counts_japcarrier"
+kind = "blob"
+addr = 0x02358A
+count = 30
+
+[[table]]
+name = "block_list_destroyer"
+kind = "words"
+addr = 0x0235A8
+count = 18
+
+[[table]]
+name = "block_list_battleship"
+kind = "words"
+addr = 0x0235CC
+count = 22
+
+[[table]]
+name = "block_list_cruiseship"
+kind = "words"
+addr = 0x0235F8
+count = 14
+
+[[table]]
+name = "block_list_japcarrier"
+kind = "words"
+addr = 0x023614
+count = 30
+
+# sub_01350e, the gun lists: one word per gun, added to the ship's world x.
+[[table]]
+name = "guns_destroyer"
+kind = "words"
+addr = 0x025602
+count = 8
+
+[[table]]
+name = "guns_battleship"
+kind = "words"
+addr = 0x025612
+count = 14
+
+[[table]]
+name = "guns_japcarrier"
+kind = "words"
+addr = 0x02562E
+count = 15
+
+[[table]]
+name = "guns_cruiseship"
+kind = "words"
+addr = 0x02564C
+count = 4
+
+# The order in which 0x014C3E, 0x01391E and snapshot_for_draw walk the ship records: five
+# pointers into ship_records and a negative long that ends the list.
+[[table]]
+name = "ship_order"
+kind = "longs"
+addr = 0x02555A
+count = 6
+
+# sub_013684: bombs, torpedoes or rockets per weapon type.
+[[table]]
+name = "weapons_per_type"
+kind = "blob"
+addr = 0x024BF9
+count = 3
+
+# sub_01abde, the aircraft's frame names and their dashboard attitude.
+[[table]]
+name = "frame_attitude"
+kind = "words"
+addr = 0x025AD8
+count = 26
+
+[[table]]
+name = "frames_deck"
+kind = "longs"
+addr = 0x025CE0
+count = 8
+
+[[table]]
+name = "frames_deck_attitude"
+kind = "words"
+addr = 0x025D00
+count = 8
+
+[[table]]
+name = "frames_left"
+kind = "longs"
+addr = 0x025D10
+count = 26
+
+[[table]]
+name = "frames_right"
+kind = "longs"
+addr = 0x025D78
+count = 26
+
+[[table]]
+name = "frames_flight"
+kind = "longs"
+addr = 0x025DE0
+count = 26
+
+# 0x01D1EA: the enemy aircraft's frames, 28 names each way, and the same in 8thscale.shp
+# and three variants in dash.shp.
+[[table]]
+name = "japplane_frames_left"
+kind = "longs"
+addr = 0x025F58
+count = 28
+
+[[table]]
+name = "japplane_frames_right"
+kind = "longs"
+addr = 0x025FC8
+count = 28
+
+[[table]]
+name = "eighth_frames_left"
+kind = "longs"
+addr = 0x026038
+count = 28
+
+[[table]]
+name = "eighth_frames_right"
+kind = "longs"
+addr = 0x0260A8
+count = 28
+
+[[table]]
+name = "dash_frames_left"
+kind = "longs"
+addr = 0x026118
+count = 28
+
+[[table]]
+name = "dash_frames_right"
+kind = "longs"
+addr = 0x026188
+count = 28
+
+# The pass: the player's aircraft (0x0103A6), the carrier's deck (0x013B1C), the ground
+# targets (0x014DB8), the dashboard's map window (0x014206, 0x014430) and its digits.
+[[table]]
+name = "prop_frames"
+kind = "blob"
+addr = 0x024C08
+count = 4
+
+[[table]]
+name = "deck_flag_frames"
+kind = "blob"
+addr = 0x024C4D
+count = 4
+
+[[table]]
+name = "target_frames"
+kind = "blob"
+addr = 0x024C1C
+count = 49
+
+[[table]]
+name = "deck_lift_a"
+kind = "words"
+addr = 0x02565C
+count = 12
+
+[[table]]
+name = "deck_lift_b"
+kind = "words"
+addr = 0x025674
+count = 12
+
+[[table]]
+name = "window_rows"
+kind = "blob"
+addr = 0x024692
+count = 12
+
+[[table]]
+name = "window_steps"
+kind = "words"
+addr = 0x0246A0
+count = 12
+
+[[table]]
+name = "window_height_index"
+kind = "blob"
+addr = 0x0246CF
+count = 102
+
+[[table]]
+name = "window_clip"
+kind = "blob"
+addr = 0x024735
+count = 16
+
+[[table]]
+name = "window_row"
+kind = "blob"
+addr = 0x024745
+count = 16
+
+[[table]]
+name = "window_frame"
+kind = "blob"
+addr = 0x024755
+count = 16
+
+[[table]]
+name = "digit_rows"
+kind = "blob"
+addr = 0x024BFC
+count = 10
+
+[[table]]
+name = "ticker_ramp"
+kind = "words"
+addr = 0x025994
+count = 10
+
+[[table]]
+name = "score_format"
+kind = "cstr"
+addr = 0x0266C8

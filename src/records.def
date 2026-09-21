@@ -1,0 +1,206 @@
+/* The layouts of the original's records (SPEC 7.2).
+ *
+ * Every record the port keeps is described here once, field by field, with the offset and
+ * the width the original uses.  src/wof.h turns each description into a C struct with the
+ * fields in the original order; tests/shim.c turns the same description into a table that
+ * the harness uses to copy a record between the original's big-endian bytes and the
+ * port's struct.  A field's name is its role where the listing shows it and its offset
+ * where it does not yet (w1c is the word at +0x1C); later milestones rename as they learn.
+ *
+ *   WOF_RECORD(rec, size)                        begin record type wof_<rec>_t, the original's size
+ *   WOF_FIELD(rec, name, ctype, offset, kind)    one field
+ *   WOF_FIELD_ARRAY(rec, name, ctype, n, offset, kind)
+ *   WOF_RECORD_END(rec)
+ *
+ * Kinds say how a field travels between the two representations:
+ *   WOF_K_PLAIN  an integer of the same width on both sides, big-endian in the original
+ *   WOF_K_SHAPE  a pointer to a shape record in the original (4 bytes), a shape handle in
+ *                the port (uint16_t, wof_shape_handle), 0 on both sides for none
+ *   WOF_K_MAP    a pointer into the map's record list in the original (4 bytes), a byte
+ *                offset into wof_m.map_records in the port (uint32_t)
+ *   WOF_K_POOL   a pointer to an allocation in the original (4 bytes); the port keeps the
+ *                allocation at a fixed place in its state and this field only says whether
+ *                there is one (uint16_t, 0 or 1)
+ *
+ * The fields of a record tile it exactly; tests/test_mission.py holds every record to that.
+ */
+
+/* ------------------------------------------------------------------ one object, 0x2A
+ * object_records (0x024CAE, fifteen) and object_record_extra (0x025594), re/notes/objects.md.
+ * +0x08 to +0x0D is what snapshot_for_draw copies for the drawing: the position and the
+ * kind byte with the byte after it. */
+WOF_RECORD(object, 0x2A)
+WOF_FIELD(object, x,          int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(object, w02,        int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(object, y,          int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(object, w06,        int16_t,  0x06, WOF_K_PLAIN)
+WOF_FIELD(object, draw_x,     int16_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(object, draw_y,     int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(object, draw_kind,  uint8_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(object, draw_b0d,   uint8_t,  0x0D, WOF_K_PLAIN)
+WOF_FIELD(object, speed_x,    int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(object, w10,        int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(object, l12,        int32_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(object, w16,        int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(object, w18,        int16_t,  0x18, WOF_K_PLAIN)
+WOF_FIELD(object, w1a,        int16_t,  0x1A, WOF_K_PLAIN)
+WOF_FIELD(object, w1c,        int16_t,  0x1C, WOF_K_PLAIN)
+WOF_FIELD(object, frame,      uint8_t,  0x1E, WOF_K_PLAIN)
+WOF_FIELD(object, b1f,        int8_t,   0x1F, WOF_K_PLAIN)
+WOF_FIELD(object, kind,       uint8_t,  0x20, WOF_K_PLAIN)
+WOF_FIELD(object, b21,        uint8_t,  0x21, WOF_K_PLAIN)
+WOF_FIELD(object, type,       int16_t,  0x22, WOF_K_PLAIN)
+WOF_FIELD(object, w24,        int16_t,  0x24, WOF_K_PLAIN)
+WOF_FIELD(object, w26,        int16_t,  0x26, WOF_K_PLAIN)
+WOF_FIELD(object, w28,        int16_t,  0x28, WOF_K_PLAIN)
+WOF_RECORD_END(object)
+
+/* ------------------------------------------------------------ the player, 0x1E at 0x025078
+ * The record player_record (0x027DEC) points at.  It ends at +0x1E: what follows at
+ * 0x025096 are the five ship blocks, which snapshot_for_draw copies as a whole. */
+WOF_RECORD(player, 0x1E)
+WOF_FIELD(player, y,          int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(player, x,          int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(player, shape,      uint16_t, 0x04, WOF_K_SHAPE)
+WOF_FIELD(player, frame_name, uint32_t, 0x08, WOF_K_PLAIN)
+WOF_FIELD(player, on_deck,    int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(player, fuel,       int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(player, w10,        int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(player, oil,        int16_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(player, facing,     int16_t,  0x14, WOF_K_PLAIN)
+WOF_FIELD(player, speed_x,    int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(player, speed_y,    int16_t,  0x18, WOF_K_PLAIN)
+WOF_FIELD(player, w1a,        int16_t,  0x1A, WOF_K_PLAIN)
+WOF_FIELD(player, enemy_countdown, int16_t, 0x1C, WOF_K_PLAIN)
+WOF_RECORD_END(player)
+
+/* ---------------------------------------------------------- an enemy aircraft, 0x34
+ * aircraft_records (0x02522A, four).  Part 1 of M4 reads only +0x00, +0x02, +0x12, +0x14,
+ * +0x20, +0x26, +0x2C, +0x2E and +0x30; the rest is M6's, kept as words until then. */
+WOF_RECORD(aircraft, 0x34)
+WOF_FIELD_ARRAY(aircraft, w, int16_t, 26, 0x00, WOF_K_PLAIN)
+WOF_RECORD_END(aircraft)
+
+/* --------------------------------------------------------------------- a ship, 0x1E
+ * ship_records (0x025460, five: destroyer, battleship, cruise ship, japanese carrier, and
+ * the player's carrier at carrier_record 0x0254D8).  map_scan fills them, re/notes/map.md. */
+WOF_RECORD(ship, 0x1E)
+WOF_FIELD(ship, span0,        int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(ship, span1,        int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(ship, present,      int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(ship, guns,         uint16_t, 0x06, WOF_K_POOL)
+WOF_FIELD(ship, gun_count,    int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(ship, w0c,          int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(ship, w0e,          int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(ship, w10,          int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(ship, w12,          int16_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(ship, w14,          int16_t,  0x14, WOF_K_PLAIN)
+WOF_FIELD(ship, w16,          int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(ship, w18,          int16_t,  0x18, WOF_K_PLAIN)
+WOF_FIELD(ship, row,          int16_t,  0x1A, WOF_K_PLAIN)
+WOF_FIELD(ship, slot_base,    int16_t,  0x1C, WOF_K_PLAIN)
+WOF_RECORD_END(ship)
+
+/* ------------------------------------------------------------ a ship's gun, 0x0E
+ * The list sub_01350e allocates for a ship (ship +0x06), one entry per gun_count. */
+WOF_RECORD(gun, 0x0E)
+WOF_FIELD_ARRAY(gun, w, int16_t, 7, 0x00, WOF_K_PLAIN)
+WOF_RECORD_END(gun)
+
+/* ------------------------------------------------------------------ an airfield, 0x14
+ * airfield_records (0x0252FA, four), filled by 0x012C84 from the markers 0x114 and 0x115;
+ * snapshot_for_draw copies +0x06..+0x09 to +0x10..+0x13 for the drawing. */
+WOF_RECORD(airfield, 0x14)
+WOF_FIELD_ARRAY(airfield, w, int16_t, 10, 0x00, WOF_K_PLAIN)
+WOF_RECORD_END(airfield)
+
+/* ----------------------------------------------- a slot-4 or slot-3 target, 0x10
+ * target_records_4 and target_records_3, re/notes/map.md. */
+WOF_RECORD(gtarget, 0x10)
+WOF_FIELD(gtarget, map_offset, uint32_t, 0x00, WOF_K_PLAIN)
+WOF_FIELD(gtarget, x0,         int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(gtarget, x1,         int16_t,  0x06, WOF_K_PLAIN)
+WOF_FIELD(gtarget, state,      uint8_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(gtarget, island,     uint8_t,  0x09, WOF_K_PLAIN)
+WOF_FIELD(gtarget, w0a,        int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(gtarget, w0c,        int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(gtarget, w0e,        int16_t,  0x0E, WOF_K_PLAIN)
+WOF_RECORD_END(gtarget)
+
+/* --------------------------------------------------------- a slot-0x0F target, 0x0E */
+WOF_RECORD(gtarget_f, 0x0E)
+WOF_FIELD(gtarget_f, map_offset, int16_t, 0x00, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, w02,      int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, w04,      int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, island,   int16_t,  0x06, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, state,    uint8_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, b09,      uint8_t,  0x09, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, w0a,      int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(gtarget_f, w0c,      int16_t,  0x0C, WOF_K_PLAIN)
+WOF_RECORD_END(gtarget_f)
+
+/* ------------------------------------------------------------------- a soldier, 8 */
+WOF_RECORD(soldier, 0x08)
+WOF_FIELD(soldier, x,         int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(soldier, dir,       int8_t,   0x02, WOF_K_PLAIN)
+WOF_FIELD(soldier, frame,     uint8_t,  0x03, WOF_K_PLAIN)
+WOF_FIELD(soldier, timer,     int8_t,   0x04, WOF_K_PLAIN)
+WOF_FIELD(soldier, island,    uint8_t,  0x05, WOF_K_PLAIN)
+WOF_FIELD(soldier, state,     int16_t,  0x06, WOF_K_PLAIN)
+WOF_RECORD_END(soldier)
+
+/* ------------------------------------------------------------- the four pools of alloc_pools
+ * Positions and velocities of Smoke and Balloons are 16.16 longs; code that addresses
+ * the word at +0x00 or +0x04 is addressing the whole part (re/notes/objects.md). */
+WOF_RECORD(smoke, 0x14)
+WOF_FIELD(smoke, x,           int32_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(smoke, y,           int32_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(smoke, dx,          int32_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(smoke, dy,          int32_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(smoke, kind,        int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(smoke, timer,       int16_t,  0x12, WOF_K_PLAIN)
+WOF_RECORD_END(smoke)
+
+WOF_RECORD(splash, 0x04)
+WOF_FIELD(splash, x,          int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(splash, count,      uint8_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(splash, kind,       uint8_t,  0x03, WOF_K_PLAIN)
+WOF_RECORD_END(splash)
+
+WOF_RECORD(balloon, 0x12)
+WOF_FIELD(balloon, x,         int32_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(balloon, y,         int32_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(balloon, dx,        int32_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(balloon, dy,        int32_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(balloon, frame,     int8_t,   0x10, WOF_K_PLAIN)
+WOF_FIELD(balloon, in_use,    uint8_t,  0x11, WOF_K_PLAIN)
+WOF_RECORD_END(balloon)
+
+/* ------------------------------------------------ the dashboard's per-buffer cache, 0x14
+ * view_caches (0x027F30), one entry per view; draw_dashboard redraws an instrument only
+ * when its value differs from what this buffer last showed.  sub_01ed7a invalidates an
+ * entry by setting the high byte of every word, and of the score's long. */
+WOF_RECORD(cache, 0x14)
+WOF_FIELD(cache, oil_warn,    int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(cache, oil,         int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(cache, fuel_warn,   int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(cache, fuel,        int16_t,  0x06, WOF_K_PLAIN)
+WOF_FIELD(cache, weapon,      int16_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(cache, weapons,     int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(cache, lives,       int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(cache, w0e,         int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(cache, score,       uint32_t, 0x10, WOF_K_PLAIN)
+WOF_RECORD_END(cache)
+
+/* ------------------------------------------------------- tables of one kind of value */
+WOF_RECORD(word, 0x02)
+WOF_FIELD(word, v,            uint16_t, 0x00, WOF_K_PLAIN)
+WOF_RECORD_END(word)
+
+WOF_RECORD(shaperef, 0x04)
+WOF_FIELD(shaperef, s,           uint16_t, 0x00, WOF_K_SHAPE)
+WOF_RECORD_END(shaperef)
+
+WOF_RECORD(mapptr, 0x04)
+WOF_FIELD(mapptr, off,        uint32_t, 0x00, WOF_K_MAP)
+WOF_RECORD_END(mapptr)

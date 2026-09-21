@@ -283,3 +283,24 @@ void wof_sysfont_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_t
         }
     }
 }
+
+/* What vblank_server's ticker (orig 0x0118F8) reads of the font: the first character, a
+ * character's width byte (the byte at +4 of the file, indexed from the first character),
+ * and the word of a glyph at a byte offset from font_glyphs plus font_glyph_offsets. */
+uint8_t wof_font_first(void)
+{
+    return font_first;
+}
+
+uint8_t wof_font_width_byte(uint8_t index)
+{
+    return font_file && 4u + index < font_len ? font_file[4u + index] : 0;
+}
+
+uint16_t wof_font_glyph_word(uint8_t index, uint32_t byte_offset)
+{
+    uint32_t at = (uint32_t)(font_glyphs - font_file) +
+                  (index < FONT_GLYPHS ? font_offsets[index] : 0u) + byte_offset;
+
+    return font_file && at + 1 < font_len ? be16(font_file + at) : 0;
+}

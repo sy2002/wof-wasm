@@ -400,6 +400,137 @@ void wof_front_init(void)
     wof_display_init();
 }
 
+/* ----------------------------------------------------------------- the mission (M4) */
+
+/* orig 0x01CCF6 ingame_keys - M4 PART 2 STAND-IN: ingame_keys.  The original's command keys
+ * are part 2's.  What is kept is what its path without a command does to the key buffer:
+ * every waiting key is taken out, and the last one is remembered in last_key.  While the
+ * tick is a stand-in nobody can fly, so the mission needs an end of its own: raw 0x12, the
+ * E key by position, ends it the way the original's Control-R does not and quit_flag does,
+ * so that the high scores and the rank selection stay reachable.  No script of the
+ * headless original presses a key during a mission, and every other key is a stand-in hit. */
+static void ingame_keys(void)
+{
+    wof_g.last_key = 0;
+    while (wof_key_available()) {
+        uint32_t key = wof_key_get() & 0x7FFFFFFFu;
+
+        wof_g.last_key = key;
+        if ((key & 0xFFu) == 0x12u && !((key >> 16) & 0x0008u)) {
+            /* M4 PART 2 STAND-IN: the mission's end, on KeyE, while the tick is a stand-in. */
+            wof_g.quit_flag = 0xFF;
+            continue;
+        }
+        WOF_STANDIN("M4 PART 2 STAND-IN: ingame_keys, a key during a mission");
+    }
+}
+
+/* M4 PART 2 STAND-IN: the tick.  logic_tick (orig 0x011386) is part 2's; this pops the
+ * tick's input byte, so that the queue's arithmetic stays the original's, and does nothing
+ * else.  In test builds a comparison can tell it how many VBlanks the original's tick
+ * waited (the restart spins on WaitTOF inside the tick), and it then waits as many, so that
+ * a replayed schedule delivers them at the same point; the release build never waits. */
+static wof_co_t tick_standin(void)
+{
+    wof_ctx_t *c = &wof_f.co_tick;
+
+    CO_BEGIN(c);
+    if (!wof_g.pause_flag)
+        wof_input_queue_pop();
+    wof_f.tick_waits = wof_test_tick_waits(wof_f.ticks_run);
+    wof_f.ticks_run++;
+    while (wof_f.tick_waits) {
+        wof_f.tick_waits--;
+        CO_WAIT(c);
+    }
+    wof_trace_add("tick", (int32_t)wof_f.ticks_run, 0, 0, 0, 0, 0);
+    CO_END(c);
+}
+
+/* orig 0x0114D8 run_queued_ticks - one tick per queued byte.  In demo playback and
+ * recording it first spins until the server has taken two bytes (M7). */
+static wof_co_t run_queued_ticks(void)
+{
+    wof_ctx_t *c = &wof_f.co_ticks;
+
+    CO_BEGIN(c);
+    if (wof_g.g_026d44)
+        WOF_STANDIN("M7 STAND-IN: run_queued_ticks, demo playback and recording");
+    if ((int8_t)wof_g.pause_flag < 0)
+        CO_RETURN(c);
+    while ((int16_t)wof_g.input_queue_count > 0)
+        CO_CALL(c, &wof_f.co_tick, tick_standin());
+    wof_g.g_026d44 = (int16_t)(wof_g.demo_mode != 0 ? 2 : 0);
+    CO_END(c);
+}
+
+/* The setup after the briefing and the inner loop, main from 0x0100B6 to 0x0101C2.  It
+ * returns with wof_f.mission_end saying how the loop was left: 1 for quit_flag, which goes
+ * on to the high scores, 2 for end_of_mission, which goes straight back to the outer loop. */
+static wof_co_t mission(void)
+{
+    wof_ctx_t *c = &wof_f.co_mission;
+
+    CO_BEGIN(c);
+    /* The point the original reaches mission_display_setup at, as the harness's observer
+     * sees it. */
+    wof_trace_add("mission", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
+    wof_dashboard_invalidate();                               /* orig 0x01EDAA */
+    CO_CALL(c, &wof_f.co_setup, wof_mission_display_setup());
+    wof_load_ship_shapes();
+    wof_build_master_lists();
+    wof_sounds_load();
+    if (!wof_g.loaded_game) {
+        wof_mission_reset_tables();                           /* orig 0x0135A8 */
+        wof_player_restart_state();                           /* orig 0x013684 */
+        wof_g.loaded_game = 0;
+        wof_g.pause_flag = 0;
+        wof_g.g_026d3c = 0;
+        wof_g.tick_input = 0;
+    }
+    wof_g.outside_mission = 0;
+    wof_g.loaded_game = 0;
+    CO_CALL(c, &wof_f.co_tick, tick_standin());               /* main's own logic_tick */
+    wof_input_queue_clear();
+    if (wof_g.demo_mode != 0)
+        wof_g.g_026d44 = 2;
+
+    /* Step S of the headless original: the mission's inner loop is reached. */
+    wof_trace_add("step_s", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
+    wof_f.mission_count++;
+    wof_trace_globals();
+    wof_trace_mission();
+    wof_g.g_026d54 = (uint16_t)((wof_g.g_026d54 & 0x00FFu) | 0xFF00u);   /* st.b */
+
+    for (;;) {                                                /* orig 0x01010E */
+        ingame_keys();
+        if (wof_g.quit_flag)
+            break;
+        if (wof_g.pause_flag) {
+            CO_CALL(c, &wof_f.co_vblank, wof_wait_vblank());  /* wait_next_vblank */
+            continue;
+        }
+        if (wof_g.g_025364 && wof_g.g_0253bc) {
+            /* 0x010132: the mission is won and the next one follows. */
+            WOF_STANDIN("M4 PART 2 STAND-IN: the next mission of a campaign");
+            wof_g.quit_flag = 0xFF;
+            break;
+        }
+        CO_CALL(c, &wof_f.co_pass, wof_frame_update());
+        CO_CALL(c, &wof_f.co_ticks, run_queued_ticks());
+        if (wof_g.end_of_mission) {
+            wof_f.mission_end = 2;
+            CO_RETURN(c);
+        }
+        if (wof_g.demo_mode == 1 && wof_poll_fire())
+            break;
+        if (wof_g.quit_flag)
+            break;
+    }
+    wof_f.mission_end = 1;
+    CO_END(c);
+}
+
 /* orig 0x010006 main, with the outer loop at 0x010066 (re/notes/frontend.md's diagram).
  * The initialisation that comes before it is src/assets.c and wof_init; what is left of it
  * here is the wait inside display_init, which is why the music call of the title sequence
@@ -409,44 +540,51 @@ wof_co_t wof_front(void)
     wof_ctx_t *c = &wof_f.co_main;
 
     CO_BEGIN(c);
+    wof_g.outside_mission = 0xFF;
+    wof_g.g_024cac = 0xFFFF;
     CO_CALL(c, &wof_f.co_show, wof_cop_show_blank());     /* the tail of display_init */
     CO_CALL(c, &wof_f.co_stage, title_sequence());
 
     for (;;) {
+        wof_free_mission_assets();
         wof_g.opt_music_off = 0;
         wof_g.end_of_mission = 0;
         wof_g.demo_mode = 0;
-        wof_g.quit_flag = 0;
+        wof_g.g_026d44 = 0;
+        wof_m.object_record_extra[0].draw_kind = 0;
+        wof_m.object_record_extra[0].kind = 0;
+        wof_campaign_reset();                                 /* orig 0x013562 */
+        wof_g.game_over = 0;
+        wof_g.quit_flag = 0;                                  /* clr.w */
+        wof_g.g_0253c3 = 0;
+        wof_g.g_0255c1 = 0;
+        wof_g.g_02537f = 0;
 
         CO_CALL(c, &wof_f.co_stage, rank_select());
+        wof_test_poke_after_rank();
+        wof_load_dash_assets();
+        if (!wof_g.loaded_game)
+            wof_map_load();
         CO_CALL(c, &wof_f.co_stage, mission_briefing());
         if (wof_f.briefing_result)
             continue;
 
-        /* The tail of main's mission set-up that is not the mission itself: one logic
-         * tick and then the queue cleared, so that the release of the press which ended
-         * the briefing is the first thing the mission samples (re/notes/input.md).  The
-         * tick is M4; clearing the queue is what leaves the latches where they belong. */
-        wof_input_queue_clear();
+        CO_CALL(c, &wof_f.co_mission, mission());
+        if (wof_f.mission_end == 2)
+            continue;
 
-        /* The point the original reaches mission_display_setup at, which is where the
-         * mission begins and where the harness's dump takes its step S; a differential
-         * test compares the state here with the state there. */
-        wof_trace_add("mission", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
-        wof_f.mission_count++;
-        wof_trace_globals();
-
-        /* M4 STAND-IN: the mission.  mission_display_setup, the ship shapes, the master
-         * lists, the sounds and the inner loop go here; until they do, the mission ends at
-         * once, so the high-score sequence follows and the loop comes back to the rank
-         * selection.  That is what makes the whole front end reachable without a mission. */
-        wof_g.quit_flag = 0xFF;
-
-        /* The end of the outer loop (re/notes/frontend.md's diagram): a run that was a
-         * demo playback skips the high-score screen; nothing else does. */
+        /* 0x0101C6: the mission is over. */
+        wof_ticker_clear();                                   /* sub_011f4e is M8's */
+        CO_CALL(c, &wof_f.co_fade, wof_fade_out_pair());
+        wof_g.g_026d54 = 0;
         wof_g.demo_was_played = (uint8_t)(wof_g.demo_mode == 1 ? 0xFF : 0);
-        if (!wof_g.demo_was_played)
+        wof_demo_end();                                       /* orig 0x01852A */
+        wof_g.outside_mission = 0xFF;
+        wof_g.ticker_message = 0;
+        if (!wof_g.demo_was_played) {
+            wof_free_mission_assets();
             CO_CALL(c, &wof_f.co_stage, wof_high_score_screen());
+        }
     }
     CO_END(c);
 }

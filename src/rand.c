@@ -7,7 +7,7 @@
  * fixed the port is deterministic, and the headless original of M2 is hooked to serve the
  * same values, which turns any divergence in call order into a visible state mismatch.
  *
- * rand_beam itself is not ported yet; this is only its input side. */
+ * rand_beam itself is at the end of this file. */
 #include "wof.h"
 
 /* Numerical Recipes' LCG constants.  The generator only has to be cheap, reproducible and
@@ -33,4 +33,20 @@ uint16_t wof_entropy_next(void)
     uint32_t lo = ((v >> 8) & 0xFFFFu) % 0xE4u;
 
     return (uint16_t)((hi << 8) | lo);
+}
+
+/* orig 0x0203BE rand_beam - the game's only random source (re/notes/random.md): a constant
+ * derived from rand_seed_const, exclusive-ored in its low word with the beam position,
+ * which the port takes from the entropy stream.  The result is the whole long in D0, whose
+ * high word is the constant's; every caller the five mission scripts reach uses the low
+ * word, and the callers that shift or rotate it say so where they do. */
+uint32_t wof_rand_beam(void)
+{
+    int32_t  v    = (int32_t)(int16_t)wof_g.rand_seed_const * 0x1AFB + 0x1FCCD;
+    uint16_t beam = wof_entropy_next();
+
+    v = (int32_t)(((uint32_t)v & 0xFFFF0000u) | (uint16_t)((uint16_t)v ^ beam));
+    wof_g.rand_state = (uint16_t)v;
+    wof_trace_add("rand_beam", beam, (uint16_t)v, 0, 0, 0, 0);
+    return (uint32_t)v;
 }

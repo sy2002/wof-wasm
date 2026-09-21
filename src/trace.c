@@ -78,4 +78,116 @@ void wof_trace_add(const char *what, int32_t a, int32_t b, int32_t c, int32_t d,
     copy_text(r->text, text, len);
 }
 
+/* The marked stand-ins that were reached, by marker, in the order they were first reached.
+ * A differential test asserts that this is empty: no script may run into code the port has
+ * not got yet without the test saying so. */
+#define STANDIN_MAX 64
+
+static const char *standin_marker[STANDIN_MAX];
+static uint32_t    standin_count[STANDIN_MAX];
+static uint32_t    standin_used;
+
+void wof_trace_standin(const char *marker)
+{
+    for (uint32_t i = 0; i < standin_used; i++)
+        if (standin_marker[i] == marker) {
+            standin_count[i]++;
+            return;
+        }
+    if (standin_used < STANDIN_MAX) {
+        standin_marker[standin_used] = marker;
+        standin_count[standin_used++] = 1;
+    }
+}
+
+uint32_t wof_trace_standins(void) { return standin_used; }
+
+const char *wof_trace_standin_at(uint32_t i, uint32_t *count)
+{
+    if (i >= standin_used)
+        return 0;
+    if (count)
+        *count = standin_count[i];
+    return standin_marker[i];
+}
+
+void wof_trace_standins_reset(void)
+{
+    standin_used = 0;
+}
+
+/* ------------------------------------------------------------- the M4 comparisons */
+
+/* The whole state as it stood at step S, for the setup comparison: the outer loop runs on
+ * into the inner loop in the same pass, so the state has to be taken there. */
+static wof_state_t mission_snapshot;
+static int         mission_snapshot_taken;
+
+void wof_trace_mission(void)
+{
+    wof_mem_copy(&mission_snapshot, &wof_s, sizeof mission_snapshot);
+    mission_snapshot_taken = 1;
+}
+
+const wof_state_t *wof_trace_mission_state(void)
+{
+    return mission_snapshot_taken ? &mission_snapshot : 0;
+}
+
+/* How many VBlanks the original's tick waited, by the port's tick number: the comparison
+ * of a replayed schedule counts the V entries that fall inside each T and hands them over,
+ * so that the tick stand-in waits where the original's tick waited (src/front.c). */
+#define TICK_WAITS_MAX 8192
+
+static uint16_t tick_waits[TICK_WAITS_MAX];
+
+uint16_t wof_test_tick_waits(uint32_t tick)
+{
+    return tick < TICK_WAITS_MAX ? tick_waits[tick] : 0;
+}
+
+void wof_test_set_tick_waits(uint32_t tick, uint16_t n)
+{
+    if (tick < TICK_WAITS_MAX)
+        tick_waits[tick] = n;
+}
+
+void wof_test_clear_tick_waits(void)
+{
+    wof_mem_set(tick_waits, 0, sizeof tick_waits);
+}
+
+/* Pokes a run applies to the registered globals at the rank selection's end, which is how
+ * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night").  The
+ * headless original's run gets the same pokes at the same point (0x01009E). */
+#define POKES_MAX 8
+
+static struct { uint32_t offset, size, value; } pokes[POKES_MAX];
+static uint32_t poke_count;
+
+void wof_test_poke(uint32_t offset, uint32_t size, uint32_t value)
+{
+    if (poke_count < POKES_MAX) {
+        pokes[poke_count].offset = offset;
+        pokes[poke_count].size   = size;
+        pokes[poke_count].value  = value;
+        poke_count++;
+    }
+}
+
+void wof_test_pokes_clear(void)
+{
+    poke_count = 0;
+}
+
+void wof_test_poke_after_rank(void)
+{
+    for (uint32_t i = 0; i < poke_count; i++) {
+        uint8_t *at = (uint8_t *)&wof_s.g + pokes[i].offset;
+
+        for (uint32_t b = 0; b < pokes[i].size; b++)
+            at[b] = (uint8_t)(pokes[i].value >> (8 * b));
+    }
+}
+
 #endif /* WOF_TRACE */

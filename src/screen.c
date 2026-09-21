@@ -17,6 +17,7 @@
  */
 #include "wof.h"
 #include "coro.h"
+#include "gen/tables.h"
 
 #define VP(i) (&wof_f.vport[i])
 
@@ -119,6 +120,8 @@ static void cop_install(void)
  * itself here, because the port's viewport is its own BitMap and RastPort. */
 void wof_view_show(uint8_t view)
 {
+    wof_trace_add("view_show", view, 0, 0, 0, 0, 0);
+    wof_f.blank = 0;
     cop_install();
     wof_f.front_view = view;
     wof_f.back_view  = (uint8_t)(view == WOF_VIEW_A ? WOF_VIEW_B : WOF_VIEW_A);
@@ -156,8 +159,7 @@ wof_co_t wof_cop_show_blank(void)
     wof_ctx_t *c = &wof_f.co_show;
 
     CO_BEGIN(c);
-    wof_f.view_first[0] = WOF_VP_NONE;
-    wof_f.view_first[1] = WOF_VP_NONE;
+    wof_f.blank = 1;
     cop_install();
     CO_CALL(c, &wof_f.co_vblank, wof_wait_vblank());
     CO_END(c);
@@ -167,6 +169,7 @@ wof_co_t wof_cop_show_blank(void)
 
 static void chain(uint8_t view, uint8_t first, uint8_t second)
 {
+    wof_f.play_screen = 0;
     wof_f.view_first[view] = first;
     VP(first)->next = second;
     if (second != WOF_VP_NONE)
@@ -293,6 +296,108 @@ wof_co_t wof_screen_hiscore(void)
     CO_END(c);
 }
 
+/* orig 0x016BD8 ticker_vport_init - the ticker's viewport: a bitmap of 672 x 13 with one
+ * plane, of which 640 are shown, at display line 201.  It is shared by both views and its
+ * plane is ticker_plane, which display_init allocated once. */
+static void ticker_vport_init(void)
+{
+    wof_vport_t *t = VP(WOF_VP_TICKER);
+
+    t->next          = WOF_VP_NONE;
+    t->width         = 640;                 /* +0xA8 is 0x2A0; 0x50 bytes a row are shown */
+    t->height        = WOF_TICKER_H;
+    t->bytes_per_row = 84;
+    t->rows          = WOF_TICKER_H;
+    t->disp_rows     = WOF_TICKER_H;
+    t->out_y         = WOF_TICKER_Y;
+    t->depth         = 1;
+    t->hires         = 1;
+    t->plane         = wof_f.ticker_base;
+    t->scroll        = 0;
+    t->ring_at       = WOF_VP_RING_NONE;
+    t->ramp          = 0;
+    t->split_on      = 0;
+    t->apen = 0xFF;
+    t->bpen = 0;
+    t->drmd = WOF_JAM2;
+}
+
+/* orig 0x016C38 view_set_game - the playfield, 320 x 162 with five planes, whose split line
+ * starts at 150 and is enabled once the view is laid out; the dashboard, 640 x 37 with four
+ * planes at display line 163; then the shared ticker behind it. */
+static void view_set_game(uint8_t view)
+{
+    uint8_t      first  = (uint8_t)(view == WOF_VIEW_A ? WOF_VP_A1 : WOF_VP_B1);
+    uint8_t      second = VP(first)->next;
+    wof_vport_t *a = VP(first), *b = VP(second);
+
+    a->width      = 0x140;
+    a->height     = 0xA2;
+    a->depth      = 5;
+    a->split_line = 0x96;
+    b->next       = WOF_VP_NONE;
+    b->width      = 0x280;
+    b->height     = 0x25;
+    b->depth      = 4;
+    wof_view_layout(view);
+    b->next       = WOF_VP_TICKER;
+    b->out_y      = 0xA3;
+    a->split_on   = 1;
+}
+
+/* orig 0x016CC6 screen_game - the play screen on both views (re/notes/display.md).  The
+ * copper lists it rebuilds become the views' ticker ramp being off until
+ * mission_display_setup appends it again. */
+void wof_screen_game(void)
+{
+    wof_mem_set(wof_f.vram + wof_f.ticker_base, 0, WOF_TICKER_BYTES);   /* BltClear */
+    ticker_vport_init();
+    wof_f.view_first[WOF_VIEW_A] = WOF_VP_A1;
+    wof_f.view_first[WOF_VIEW_B] = WOF_VP_B1;
+    VP(WOF_VP_A1)->next = WOF_VP_A2;
+    VP(WOF_VP_B1)->next = WOF_VP_B2;
+    VP(WOF_VP_A2)->next = WOF_VP_TICKER;
+    VP(WOF_VP_B2)->next = WOF_VP_TICKER;
+    VP(WOF_VP_TICKER)->next = WOF_VP_NONE;
+    view_set_game(WOF_VIEW_A);
+    view_set_game(WOF_VIEW_B);
+    wof_f.ticker_ramp[WOF_VIEW_A] = 0;
+    wof_f.ticker_ramp[WOF_VIEW_B] = 0;
+    wof_f.colour1_poked[WOF_VIEW_A] = 0;
+    wof_f.colour1_poked[WOF_VIEW_B] = 0;
+    wof_f.play_screen = 1;
+}
+
+uint16_t wof_ticker_ramp(uint16_t row)
+{
+    return wof_tbl_ticker_ramp[row < 10 ? row : 9];
+}
+
+/* orig 0x01876E cop_set_split_line - the back list's split WAIT rewritten in place, at the
+ * row the pass computed (clamped to 162 by the caller). */
+void wof_cop_set_split_line(int16_t row)
+{
+    wof_vport_t *v = wof_back_vport();
+
+    wof_trace_add("split_line", row, wof_f.back_view, 0, 0, 0, 0);
+    if (v)
+        v->split_line = (uint16_t)row;
+}
+
+/* orig 0x0187BA cop_add_ticker_ramp, on a view's list: ten WAIT and COLOR01 pairs from
+ * ticker_ramp at display lines 201 to 210.  The last value holds for the rest of the ticker. */
+void wof_cop_add_ticker_ramp(uint8_t view)
+{
+    wof_f.ticker_ramp[view & 1] = 1;
+}
+
+/* orig 0x01030C's poke: COLOR01 of the back list's first viewport, at list entry 35. */
+void wof_cop_poke_colour1(uint8_t view, uint16_t colour)
+{
+    wof_f.colour1_poked[view & 1] = 1;
+    wof_f.colour1[view & 1] = colour;
+}
+
 /* ------------------------------------------------------------- what reaches the output */
 
 /* The story scroller's two grey ramps (orig 0x017D4E story_copper_build): COLOR01 takes
@@ -313,12 +418,62 @@ static uint16_t story_colour1(const wof_vport_t *v, uint16_t row)
     return (uint16_t)((n - 1u) * 0x111u);
 }
 
+/* The play screen's colours per row of one viewport (re/notes/display.md): the playfield
+ * shows table 1 above its split line and, below it, table 2 wherever table 2 differs from
+ * table 1 (the copper moves only those); COLOR01 above the split is what flip_buffers poked
+ * into the list.  The ticker takes its ten-line ramp on COLOR01 when its view's list has
+ * one.  Returns the number of rows from `row` on that share the colours it fills in. */
+static uint16_t play_colours(const wof_vport_t *v, uint16_t row, uint16_t *colours)
+{
+    uint8_t  view  = wof_f.front_view;
+    uint16_t rows  = v->disp_rows;
+    uint16_t run   = (uint16_t)(rows - row);
+
+    for (uint32_t i = 0; i < WOF_PAL_COLOURS; i++)
+        colours[i] = v->colours[i];
+
+    if (v == VP(WOF_VP_TICKER)) {
+        if (wof_f.ticker_ramp[view]) {
+            colours[1] = row < 10 ? wof_ticker_ramp(row) : wof_ticker_ramp(9);
+            run = row < 9 ? 1 : (uint16_t)(rows - row);
+        }
+        return run;
+    }
+    if (wof_f.colour1_poked[view])
+        colours[1] = wof_f.colour1[view];
+    if (v->has_colours2 && v->split_on) {
+        uint16_t split = v->split_line;
+
+        if (row >= split) {
+            for (uint32_t i = 0; i < WOF_PAL_COLOURS; i++)
+                if (v->colours2[i] != v->colours[i])
+                    colours[i] = v->colours2[i];
+        } else if (split < rows) {
+            run = (uint16_t)(split - row);
+        }
+    }
+    return run;
+}
+
 /* One viewport of the front view onto the output.  A run of rows that share a source row
  * and a set of colours is one band.  Two things break a run: the plane-pointer reload of
  * the story scroller, which sends the source back to row 0, and its ramps, which change
  * COLOR01 on every row. */
 static void band_vport(const wof_vport_t *v)
 {
+    if (wof_f.play_screen) {
+        uint16_t done = 0;
+
+        while (done < v->disp_rows) {
+            uint16_t colours[WOF_PAL_COLOURS];
+            uint16_t run = play_colours(v, done, colours);
+
+            wof_screen_band(v, (uint16_t)(v->out_y + done), run, (int32_t)done, colours);
+            done = (uint16_t)(done + run);
+        }
+        return;
+    }
+    {
     uint16_t rows = v->disp_rows;
     uint16_t done = 0;
 
@@ -351,6 +506,7 @@ static void band_vport(const wof_vport_t *v)
         }
         done = (uint16_t)(done + run);
     }
+    }
 }
 
 /* The front view's chain onto the output.  Rows no viewport covers stay black, which is
@@ -358,7 +514,8 @@ static void band_vport(const wof_vport_t *v)
 void wof_screen_from_front_view(void)
 {
     wof_screen_reset();
-    for (uint8_t i = wof_f.view_first[wof_f.front_view]; i != WOF_VP_NONE; i = VP(i)->next)
-        band_vport(VP(i));
+    if (!wof_f.blank)
+        for (uint8_t i = wof_f.view_first[wof_f.front_view]; i != WOF_VP_NONE; i = VP(i)->next)
+            band_vport(VP(i));
     wof_screen_present();
 }

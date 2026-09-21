@@ -81,6 +81,8 @@ WOF_API(wof_set_invert_vertical) void          wof_set_invert_vertical(int on);
 WOF_API(wof_invert_vertical)   int             wof_invert_vertical(void);
 WOF_API(wof_set_fade_vblanks)  void            wof_set_fade_vblanks(int n);
 WOF_API(wof_fade_vblanks)      int             wof_fade_vblanks(void);
+WOF_API(wof_set_vblanks_per_pass) void         wof_set_vblanks_per_pass(int n);
+WOF_API(wof_vblanks_per_pass)  int             wof_vblanks_per_pass(void);
 
 /* Development entries, for looking at what a mission would otherwise be needed to reach.
  * They are not part of the game and not part of the port's key layer: the shell offers them
@@ -224,6 +226,11 @@ typedef struct {
     wof_ctx_t co_menu;        /* menu_input */
     wof_ctx_t co_release;     /* wait_input_release */
     wof_ctx_t co_text;        /* text_input */
+    wof_ctx_t co_setup;       /* mission_display_setup */
+    wof_ctx_t co_mission;     /* the mission: main's setup after the briefing, the inner loop */
+    wof_ctx_t co_pass;        /* frame_update */
+    wof_ctx_t co_ticks;       /* run_queued_ticks */
+    wof_ctx_t co_tick;        /* the tick (M4 PART 2 STAND-IN) */
 
     /* Locals that live across a wait.  The original keeps them on its stack; a stackless
      * coroutine cannot, so they carry the name they have in the routine that owns them. */
@@ -301,7 +308,35 @@ typedef struct {
     uint16_t hs_pass;
     uint16_t hs_row;
 
-    uint16_t mission_count;   /* how often the mission stand-in has been reached */
+    uint16_t mission_count;   /* how often a mission has been reached (step S) */
+    uint16_t mission_end;     /* how the inner loop was left: 1 quit_flag, 2 end_of_mission */
+    uint16_t tick_waits;      /* VBlanks the tick stand-in still owes (test builds only) */
+    uint32_t ticks_run;       /* logic ticks run, the stand-in's and main's own */
+    uint32_t passes_run;      /* passes of the inner loop */
+    uint8_t  draw_vport;      /* the viewport draw_set_target was last given, or WOF_VP_NONE */
+
+    /* The mirror markers of hellcat.shp and Torpedo.shp (+8 of each record): game state,
+     * because the game mirrors the pixel data in place when the facing changes
+     * (re/notes/shapes.md, SPEC 7.2).  The containers' own copies follow these on a load. */
+    uint8_t  marker_hellcat[128];
+    uint8_t  marker_torpedo[128];
+
+    /* What the original keeps as pointers that are not game data: which dashboard container
+     * dash_shapes names (night_flag when load_dash_assets ran), which of the eight sounds are
+     * loaded, and which ship containers are (by ship record index). */
+    uint8_t  dash_night;
+    uint8_t  dash_picture_night;  /* night + 1 of the picture load_dash_assets kept, or 0 */
+    uint8_t  sound_loaded;
+    uint8_t  ship_loaded;
+
+    /* The play screen's copper lists, as far as anything can see them (re/notes/display.md):
+     * whether a view's list carries the ticker ramp, and the COLOR01 flip_buffers poked into
+     * it.  `blank` is the black list cop_show_wait installs between screens. */
+    uint8_t  play_screen;
+    uint8_t  blank;
+    uint8_t  ticker_ramp[2];
+    uint8_t  colour1_poked[2];
+    uint16_t colour1[2];
     uint16_t dev_dialog;      /* a development request: 1 the load dialog, 2 the save one */
 
     /* The music calls, recorded rather than played: the player is M8. */
@@ -327,6 +362,37 @@ typedef struct {
 #undef WOF_GLOBAL_ARRAY
 } wof_globals_t;
 
+/* ------------------------------------------------------------- the original's records */
+
+/* The record layouts of src/records.def become C structs with the original's field order;
+ * the offsets and widths travel beside them for the tests (SPEC 7.2).  The kinds say how a
+ * field travels between the original's bytes and the port's struct. */
+#define WOF_K_PLAIN 0
+#define WOF_K_SHAPE 1
+#define WOF_K_MAP   2
+#define WOF_K_POOL  3
+
+#define WOF_RECORD(r, size)                   typedef struct {
+#define WOF_FIELD(r, n, t, off, k)            t n;
+#define WOF_FIELD_ARRAY(r, n, t, c, off, k)   t n[c];
+#define WOF_RECORD_END(r)                     } wof_##r##_t;
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+
+/* The tables of src/mission.def: those at a fixed address in DATA and those the original
+ * allocates, both kept at a fixed place in the core's state (re/notes/porting-m4.md, "Where
+ * mission memory lives").  Nothing here is a pointer. */
+typedef struct {
+#define WOF_TABLE(n, r, c, a)  wof_##r##_t n[c];
+#define WOF_POOL(n, r, c, p)   wof_##r##_t n[c];
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+} wof_mission_t;
+
 /* ------------------------------------------------------------------------ core state */
 
 /* Everything the core may change while running, in one struct, so that wof_state_save is a
@@ -349,18 +415,39 @@ typedef struct {
                              * directions cancelled: the port's JOY1DAT and CIA-A PRA */
     uint16_t invert_pref;   /* the shell's remembered vertical flip, 0 or 1 */
     uint16_t invert_given;  /* whether the shell ever handed one over (SPEC 6.1) */
+    uint32_t standin_hits;  /* marked stand-ins reached, wof_standin_hits (M4) */
+    uint32_t since_pass;    /* VBlanks since the previous pass began, wof_vblanks_per_pass */
     wof_globals_t g;        /* the original's own globals, src/globals.def */
+    wof_mission_t m;        /* the original's tables, src/mission.def */
     wof_front_t   f;        /* the front end: coroutines, screens, dialogs (SPEC 6.3) */
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 3u
+#define WOF_STATE_VERSION 4u
 
 extern wof_state_t wof_s;
 
 /* The ported globals read as themselves: wof_g.key_count is the original's key_count. */
 #define wof_g (wof_s.g)
 #define wof_f (wof_s.f)
+#define wof_m (wof_s.m)
+
+/* The registered globals start as the original's DATA hunk starts them: the initialised
+ * part of the hunk comes out of the executable at build time (re/tables.toml, data_image)
+ * and every entry of src/globals.def and src/mission.def that has an address inside it is
+ * loaded from there, with the byte order converted.  wof_init calls it after zeroing. */
+void wof_globals_from_image(void);
+
+/* ------------------------------------------------------------- the marked stand-ins (M4)
+ *
+ * Code the five mission scripts never executed is not ported yet; each such region is one
+ * stand-in with a marker naming the milestone that owes it.  Reaching one counts in the
+ * state (wof_standin_hits, which the diagnostics overlay shows), and in test builds it is
+ * also logged by name, so that every differential test can assert that none was reached.
+ * In the release build a stand-in skips and does nothing else. */
+void wof_standin(const char *marker);
+#define WOF_STANDIN(marker) wof_standin(marker)
+WOF_API(wof_standin_hits)      uint32_t        wof_standin_hits(void);
 
 /* ------------------------------------------------------------------ memory and blocks */
 
@@ -379,6 +466,7 @@ void    *wof_scratch_alloc(uint32_t bytes);
 /* ------------------------------------------------------------------------ entropy 7.3 */
 
 uint16_t wof_entropy_next(void);            /* one value per rand_beam call */
+uint32_t wof_rand_beam(void);               /* orig 0x0203BE */
 void     wof_entropy_seed(uint32_t seed);
 
 /* ------------------------------------------------- the packed file system and dos glue */
@@ -459,6 +547,15 @@ typedef struct {
     const char    *file;     /* the name the game asks for, for the viewer */
 } wof_container_t;
 
+/* A shape as game state names it: the container's slot and the shape's index in it, so
+ * that a pointer the original keeps in a record or a table survives a save state
+ * (SPEC 7.2).  0 is the original's null pointer. */
+#define WOF_SHAPE_NONE ((uint16_t)0)
+uint16_t           wof_shape_handle(int slot, int16_t index);
+const wof_shape_t *wof_shape_of(uint16_t handle);
+uint16_t           wof_shape_handle_of(const wof_shape_t *s);  /* by where it lies, 0 if none */
+uint16_t           wof_table_handle(int slot, uint16_t entry);  /* entry of a resolved table */
+
 int16_t  wof_shape_find(const wof_container_t *c, uint32_t name);   /* orig 0x020560 */
 int16_t  wof_shape_by_index(const wof_container_t *c, uint16_t i);  /* orig 0x02050E */
 int16_t *wof_shapes_resolve(const wof_container_t *c, const uint32_t *list, uint16_t count);
@@ -525,6 +622,8 @@ void wof_clip_set(int16_t top, int16_t bottom, int16_t left, int16_t right); /* 
 void wof_clip_set_full(void);                                          /* orig 0x021280 */
 void wof_shape_draw(const wof_shape_t *s, int16_t x, int16_t y);       /* orig 0x020CE2 */
 void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y); /* orig 0x020B0C */
+void wof_rect_fill(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour); /* orig 0x021010 */
+void wof_draw_restore(void);                             /* the target again after a state load */
 void wof_draw_context(uint16_t layer, uint16_t owner);   /* what the display list records */
 const wof_target_t *wof_draw_target(void);
 wof_vport_t        *wof_draw_target_vport(void);
@@ -535,6 +634,10 @@ wof_vport_t        *wof_draw_target_vport(void);
 int      wof_font_load(void);
 uint16_t wof_font_height(void);
 uint16_t wof_text_width(const char *s, uint16_t len);
+uint8_t  wof_font_first(void);
+uint8_t  wof_font_width_byte(uint8_t index);
+uint16_t wof_font_glyph_word(uint8_t index, uint32_t byte_offset);
+uint8_t  wof_ticker_char(uint32_t orig_address);     /* a byte of the executable's text */
 uint16_t wof_text_render(const char *s, uint16_t len, uint8_t *buffer, int16_t x, int16_t row,
                          int16_t justify, int16_t buf_w, int16_t buf_h);
 void     wof_text_draw(const char *s, uint16_t len, int16_t x, int16_t y, uint8_t pen);
@@ -569,6 +672,7 @@ typedef struct {
 extern wof_assets_t wof_assets;
 
 void wof_assets_init(void);          /* orig 0x0134BC init_assets, as far as M1 goes */
+void wof_assets_follow_state(void);  /* mirror what the state's markers say is mirrored */
 
 /* ------------------------------------------------------- the key buffer (keys.md) */
 
@@ -616,6 +720,11 @@ wof_co_t     wof_screen_hires3(void);                 /* orig 0x016B04 */
 wof_co_t     wof_screen_dialog(void);                 /* orig 0x0169A4 */
 wof_co_t     wof_screen_hiscore(void);                /* orig 0x016D7A */
 void         wof_screen_from_front_view(void);
+void         wof_screen_game(void);                   /* orig 0x016CC6 */
+void         wof_cop_set_split_line(int16_t row);     /* orig 0x01876E */
+void         wof_cop_add_ticker_ramp(uint8_t view);   /* orig 0x0187BA */
+void         wof_cop_poke_colour1(uint8_t view, uint16_t colour);
+uint16_t     wof_ticker_ramp(uint16_t row);           /* ticker_ramp[row], from the executable */
 
 /* --------------------------------------------- graphics.library on indexed pixels 6.4 */
 
@@ -690,9 +799,16 @@ const wof_trace_t *wof_trace_at(uint32_t i);
  * the next rank selection in the same pass while the M3 mission is a stand-in. */
 void                   wof_trace_globals(void);
 const wof_globals_t   *wof_trace_globals_at(void);
+
+/* The stand-ins reached, by marker, for the tests to assert on (src/trace.c). */
+void                   wof_trace_standin(const char *marker);
+uint32_t               wof_trace_standins(void);
+const char            *wof_trace_standin_at(uint32_t i, uint32_t *count);
+void                   wof_trace_standins_reset(void);
 #else
 #define wof_trace_add(what, a, b, c, d, text, len) ((void)0)
 #define wof_trace_globals() ((void)0)
+#define wof_trace_standin(marker) ((void)(marker))
 #endif
 
 /* ------------------------------------------------------------------- the front end */
@@ -727,5 +843,57 @@ wof_co_t wof_high_score_entry(void);                         /* orig 0x019472 */
 void     wof_high_score_draw(void);                          /* orig 0x01967E */
 
 void wof_audio_init(void);
+
+/* ------------------------------------------------------ the mission (M4, src/mission.c) */
+
+void     wof_mission_init(void);            /* the dashboard picture's buffer, at start-up */
+void     wof_free_mission_assets(void);     /* orig 0x011234 */
+void     wof_campaign_reset(void);          /* orig 0x013562 */
+void     wof_mission_reset_tables(void);    /* orig 0x0135A8 */
+void     wof_player_lost_restart(void);     /* orig 0x0135D8, as the setup reaches it */
+void     wof_player_restart_state(void);    /* orig 0x013684 */
+void     wof_objects_clear(void);           /* orig 0x013756 */
+uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame);  /* orig 0x01ABDE */
+uint16_t wof_rand_mod(uint16_t n);          /* orig 0x01CAC8 */
+void     wof_choose_night(void);            /* orig 0x0111FC */
+void     wof_load_dash_assets(void);        /* orig 0x01653C */
+int      wof_dash_slot(void);               /* the container dash_shapes names */
+void     wof_map_load(void);                /* orig 0x012ADC, with map_scan 0x012D5A */
+void     wof_dashboard_invalidate(void);    /* orig 0x01EDAA */
+void     wof_load_ship_shapes(void);        /* orig 0x013252 */
+void     wof_build_master_lists(void);      /* orig 0x01535A */
+void     wof_sounds_load(void);             /* orig 0x013368 */
+void     wof_ticker_clear(void);            /* orig 0x016BBC */
+void     wof_demo_end(void);                /* orig 0x01852A */
+wof_co_t wof_mission_display_setup(void);   /* orig 0x018806 */
+
+/* ------------------------------------------- the pass (M4, src/world.c and src/dash.c) */
+
+wof_co_t wof_frame_update(void);            /* orig 0x010228 */
+void     wof_draw_player(void);             /* orig 0x0103A6 */
+void     wof_draw_enemy_aircraft(void);     /* orig 0x010DA6 */
+void     wof_map_window(void);              /* orig 0x01417E */
+void     wof_draw_dashboard(void);          /* orig 0x01EE16 */
+void     wof_clip_playfield(void);          /* orig 0x01524A */
+void     wof_draw_at(uint16_t handle, int16_t x, int16_t y);
+void     wof_draw_world_shape(int table, int16_t slot, int16_t x, int16_t y);  /* orig 0x015174 */
+uint16_t wof_table_entry(int table, int16_t index);
+
+/* Test-build hooks of the M4 comparisons (tests/shim.c); in the release build they are
+ * constants, so dist/core.wasm has neither the table nor the pokes. */
+#ifdef WOF_TRACE
+uint16_t wof_test_tick_waits(uint32_t tick);      /* VBlanks the original's tick waited */
+void     wof_test_set_tick_waits(uint32_t tick, uint16_t n);
+void     wof_test_clear_tick_waits(void);
+void     wof_test_poke(uint32_t offset, uint32_t size, uint32_t value);
+void     wof_test_pokes_clear(void);
+const wof_state_t *wof_trace_mission_state(void);
+void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
+void     wof_trace_mission(void);                 /* the whole state at step S */
+#else
+#define wof_test_tick_waits(tick) ((uint16_t)0)
+#define wof_test_poke_after_rank() ((void)0)
+#define wof_trace_mission() ((void)0)
+#endif
 
 #endif /* WOF_H */

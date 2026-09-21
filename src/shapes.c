@@ -242,3 +242,51 @@ void wof_shape_set_facing(wof_shape_t *s, int16_t facing)
     s->marker = want;
     wof_shape_mirror_x(s);
 }
+
+/* ------------------------------------------------------------------ shape handles
+ *
+ * Game state keeps shapes in records and tables where the original keeps pointers to shape
+ * records: the player's frame, MasterList and AthList, the frames of the enemy aircraft.
+ * A pointer cannot be part of a save state (SPEC 7.2), so the port keeps a handle: the
+ * container's slot and the shape's index in it, packed into a word, with 0 for the
+ * original's null pointer. */
+uint16_t wof_shape_handle(int slot, int16_t index)
+{
+    if (slot < 0 || slot >= WOF_C_COUNT || index < 0 || index >= 0x800)
+        return WOF_SHAPE_NONE;
+    return (uint16_t)(((uint16_t)(slot + 1) << 11) | (uint16_t)index);
+}
+
+const wof_shape_t *wof_shape_of(uint16_t handle)
+{
+    int     slot  = (int)(handle >> 11) - 1;
+    int16_t index = (int16_t)(handle & 0x7FF);
+
+    if (handle == WOF_SHAPE_NONE || slot < 0 || slot >= WOF_C_COUNT)
+        return 0;
+    if (index >= (int16_t)wof_assets.c[slot].count)
+        return 0;
+    return &wof_assets.c[slot].shapes[index];
+}
+
+/* The handle of entry `entry` of a container's resolved pointer table: what the original
+ * reads with move.l (a0,d2.w),a0 from world_shapes, dash_shapes and the others. */
+uint16_t wof_table_handle(int slot, uint16_t entry)
+{
+    const int16_t *table = (slot >= 0 && slot < WOF_C_COUNT) ? wof_assets.table[slot] : 0;
+
+    if (!table)
+        return WOF_SHAPE_NONE;
+    return table[entry] < 0 ? WOF_SHAPE_NONE : wof_shape_handle(slot, table[entry]);
+}
+
+uint16_t wof_shape_handle_of(const wof_shape_t *s)
+{
+    for (int slot = 0; s && slot < WOF_C_COUNT; slot++) {
+        const wof_container_t *c = &wof_assets.c[slot];
+
+        if (c->shapes && s >= c->shapes && s < c->shapes + c->count)
+            return wof_shape_handle(slot, (int16_t)(s - c->shapes));
+    }
+    return WOF_SHAPE_NONE;
+}

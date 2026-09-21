@@ -51,12 +51,18 @@ static int load_permanent_shapes(void)
 
     ok &= load_one(WOF_C_WORLD,    wof_tbl_world_shp,    wof_tbl_world_names);
     ok &= load_one(WOF_C_HELLCAT,  wof_tbl_hellcat_shp,  wof_tbl_hellcat_names);
-    for (uint16_t i = 0; i < wof_assets.c[WOF_C_HELLCAT].count; i++)
+    for (uint16_t i = 0; i < wof_assets.c[WOF_C_HELLCAT].count; i++) {
         wof_assets.c[WOF_C_HELLCAT].shapes[i].marker = 2;
+        if (i < sizeof wof_f.marker_hellcat)
+            wof_f.marker_hellcat[i] = 2;
+    }
 
     ok &= load_one(WOF_C_TORPEDO,  wof_tbl_torpedo_shp,  wof_tbl_torpedo_names);
-    for (uint16_t i = 0; i < wof_assets.c[WOF_C_TORPEDO].count; i++)
+    for (uint16_t i = 0; i < wof_assets.c[WOF_C_TORPEDO].count; i++) {
         wof_assets.c[WOF_C_TORPEDO].shapes[i].marker = 2;
+        if (i < sizeof wof_f.marker_torpedo)
+            wof_f.marker_torpedo[i] = 2;
+    }
 
     ok &= load_one(WOF_C_JAPPLANE, wof_tbl_japplane_shp, wof_tbl_japplane_names);
     ok &= load_one(WOF_C_EIGHTH,   wof_tbl_eighth_shp,   wof_tbl_world_names);
@@ -122,7 +128,27 @@ void wof_assets_init(void)
     load_palette(wof_tbl_ocean_palette_files[0], wof_assets.ocean_palette);
     load_palette(wof_tbl_ocean_palette_files[1], wof_assets.night_ocean_palette);
 
+    wof_mission_init();
     wof_assets.ok = ok;
+}
+
+/* After a state was loaded: the markers in the state say which way the pixel data of each
+ * hellcat.shp and Torpedo.shp record faces, and the containers are brought to match by
+ * mirroring, which is its own inverse (re/notes/shapes.md). */
+void wof_assets_follow_state(void)
+{
+    static const int slots[2] = { WOF_C_HELLCAT, WOF_C_TORPEDO };
+
+    for (int k = 0; k < 2; k++) {
+        wof_container_t *c = &wof_assets.c[slots[k]];
+        const uint8_t   *m = k ? wof_f.marker_torpedo : wof_f.marker_hellcat;
+
+        for (uint16_t i = 0; i < c->count && i < 128; i++)
+            if (c->shapes[i].marker != m[i]) {
+                wof_shape_mirror_x(&c->shapes[i]);
+                c->shapes[i].marker = m[i];
+            }
+    }
 }
 
 uint32_t wof_assets_ready(void)

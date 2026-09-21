@@ -30,13 +30,23 @@
  *   is the OR of its stored planes, which on converted pixels is p != 0.  Without a mask
  *   the whole box is written and the shape is opaque - eleven shapes on the disk are.
  *
- * Rectangle fill, line mode and the exclusive-or draw are not part of M1. */
+ * The rectangle fill is M4's; the line mode is not ported, because none of the five mission
+ * scripts of M4 draws a line (re/notes/porting-m4.md).
+ *
+ * The clip rectangle is the original's own six words (clip_top .. clip_right_incl) and
+ * lives in the registered globals, because the tick reads and writes it as well as the pass
+ * (re/notes/passes.md).  The draw target is kept as the index of its viewport in the state,
+ * and the pointers below are derived from it. */
 #include "wof.h"
 
 #define MASKBUFFER_SIZE 1040u    /* orig: alloc_pools stores 0x410 in MaskBuffer_size */
 
+#define clip_top    (wof_g.clip_top)
+#define clip_bottom (wof_g.clip_bottom)
+#define clip_left   (wof_g.clip_left)
+#define clip_right  (wof_g.clip_right)
+
 static wof_target_t target;
-static int16_t clip_top, clip_bottom, clip_left, clip_right;
 static uint16_t draw_layer, draw_owner;
 
 static wof_draw_t draw_list[WOF_DRAW_MAX];
@@ -98,6 +108,9 @@ wof_vport_t *wof_draw_target_vport(void)
 void wof_draw_set_target(wof_vport_t *v)
 {
     target_vport = v;
+    wof_f.draw_vport = (uint8_t)(v && v >= wof_f.vport && v < wof_f.vport + WOF_VP_MAX
+                                 ? v - wof_f.vport : WOF_VP_NONE);
+    wof_trace_add("draw_set_target", wof_f.draw_vport, 0, 0, 0, 0, 0);
     if (!v) {
         target.pixels = 0;
         target.stride = target.width = target.height = 0;
@@ -111,15 +124,28 @@ void wof_draw_set_target(wof_vport_t *v)
     target.mask   = (uint8_t)(0xFFu >> (8 - v->depth));
 }
 
+/* The target after a state was loaded: the viewport's index is state, the pointers are
+ * not (SPEC 7.2). */
+void wof_draw_restore(void)
+{
+    uint8_t i = wof_f.draw_vport;
+
+    wof_draw_set_target(i < WOF_VP_MAX ? &wof_f.vport[i] : 0);
+}
+
 /* orig 0x02129C - bottom and right are exclusive, and left and right are rounded down to
  * a multiple of 16 because the blitter works in words.  The rounding is behaviour: a clip
- * asked for at column 100 really clips at 96. */
+ * asked for at column 100 really clips at 96.  The two inclusive words beside them are the
+ * original's too; rect_fill and line_draw read those. */
 void wof_clip_set(int16_t top, int16_t bottom, int16_t left, int16_t right)
 {
     clip_top    = top;
     clip_bottom = bottom;
     clip_left   = (int16_t)(left & (int16_t)0xFFF0);
     clip_right  = (int16_t)(right & (int16_t)0xFFF0);
+    wof_g.clip_right_incl  = (int16_t)(clip_right - 1);
+    wof_g.clip_bottom_incl = (int16_t)(clip_bottom - 1);
+    wof_trace_add("clip_set", top, bottom, left, right, 0, 0);
 }
 
 /* orig 0x021280 - the whole current BitMap. */
@@ -130,7 +156,7 @@ void wof_clip_set_full(void)
 
 /* orig 0x020B0C together with 0x0209BC.  `useMask` is the original's A1: non-zero means
  * the cookie-cut mask that shape_draw chose, zero means an opaque blit. */
-void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y)
+static void shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y)
 {
     if (!s || !target.pixels)
         return;
@@ -186,6 +212,50 @@ void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y)
     }
 }
 
+/* orig 0x020B0C called directly, which the dashboard's digits and 0x010344 do: no mask,
+ * the whole box is written. */
+void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y)
+{
+    if (!s)
+        return;
+    wof_trace_add("shape_blit", x, y, wof_shape_handle_of(s), useMask, 0, 0);
+    shape_blit(s, useMask, x, y);
+    wof_draw_list_add(s->name, x, y, draw_layer, 1, draw_owner);
+}
+
+/* orig 0x021010 rect_fill, with rect_fill_aligned (0x02113E) that it jumps into when both
+ * edges fall on a word.  The corners are inclusive and are clamped to the clip rectangle
+ * first; what is left is filled with the colour in every plane of the target's mask, exact
+ * to the pixel on all four sides, because the first and last word masks of the blit are
+ * left_mask_table[x0 & 15] and right_mask_table[(x1 & 15) + 1] (re/notes/drawing.md).  A
+ * rectangle that is empty after the clamp draws nothing. */
+void wof_rect_fill(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour)
+{
+    wof_trace_add("rect_fill", x0, y0, x1, y1, 0, colour);
+    if (x0 < clip_left)
+        x0 = clip_left;
+    if (x1 >= clip_right)
+        x1 = (int16_t)(clip_right - 1);
+    if (y0 < clip_top)
+        y0 = clip_top;
+    if (y1 >= clip_bottom)
+        y1 = (int16_t)(clip_bottom - 1);
+    if (!target.pixels || y1 < y0 || x1 < x0)
+        return;
+    if (x0 < 0 || y0 < 0 || x1 >= target.width || y1 >= target.height)
+        return;                             /* the clip rectangle is always inside the target */
+
+    uint8_t M = target.mask;
+    uint8_t c = (uint8_t)(colour & M);
+
+    for (int32_t r = y0; r <= y1; r++) {
+        uint8_t *row = target.pixels + r * target.stride;
+
+        for (int32_t x = x0; x <= x1; x++)
+            row[x] = (uint8_t)((row[x] & ~M) | c);
+    }
+}
+
 /* orig 0x020CE2 - chooses the mask, then blits.  A plane larger than MaskBuffer_size does
  * not get one, whatever it stores; neither does a shape that stores no plane at all.  With
  * one stored plane the plane itself is the mask, with two or more the CPU ORs them into
@@ -204,8 +274,9 @@ void wof_shape_draw(const wof_shape_t *s, int16_t x, int16_t y)
         name[0] = (char)(s->name >> 24); name[1] = (char)(s->name >> 16);
         name[2] = (char)(s->name >> 8);  name[3] = (char)s->name; name[4] = 0;
         wof_trace_add("shape_draw_c", x, y, s->wbytes, s->height, name, 4);
+        wof_trace_add("shape_draw", x, y, wof_shape_handle_of(s), 0, name, 4);
     }
-    wof_shape_blit(s, useMask, x, y);
+    shape_blit(s, useMask, x, y);
 
     /* SPEC 6.4: every shape draw also appends a display-list record.  The classic
      * renderer ignores it; it is here so that an enhanced one can be added later. */

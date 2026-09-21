@@ -13,6 +13,7 @@
  * produce and what the headless original's script is turned into before it writes JOY1DAT.
  */
 #include "wof.h"
+#include "gen/tables.h"
 
 #define RAW_FORWARD 0x01u
 #define RAW_BACK    0x02u
@@ -172,6 +173,71 @@ void wof_input_queue_clear(void)
     wof_g.input_queue[0]    = 0;
 }
 
+/* orig 0x011842 to 0x01195C - vblank_server's mission half: nothing outside a mission; in
+ * one, 0x025410 counts VBlanks, and the ticker scrolls its plane one pixel left on every
+ * VBlank while 0x0255C8 says a message is running, taking the next character of the
+ * message into the hidden column at byte 80 whenever the last one has scrolled its width
+ * (re/notes/display.md).  No script of M4 runs a message; the scroll and the glyph copy are
+ * ported from reading and held to the original under the oracle (tests/test_world.py). */
+static void ticker(void)
+{
+    uint8_t *plane = wof_f.vram + wof_f.ticker_base;
+
+    if (wof_g.outside_mission)
+        return;
+    wof_g.g_025410++;
+    if (wof_g.g_0255c8) {
+        for (uint32_t r = 0; r < WOF_TICKER_H; r++) {
+            uint8_t *row = plane + r * 672u;
+
+            for (uint32_t x = 0; x + 1 < 672u; x++)
+                row[x] = row[x + 1];
+            row[671] = 0;
+        }
+        wof_g.g_0255c8--;
+        if (wof_g.g_0255e0) {
+            if (--wof_g.g_0255e0)
+                return;
+        }
+    }
+    if (!wof_g.ticker_message)
+        return;
+    {
+        uint8_t ch = wof_ticker_char(wof_g.ticker_message);
+        uint8_t index, width;
+
+        wof_g.ticker_message++;
+        if (ch == 0) {
+            wof_g.ticker_message = 0;
+            wof_g.g_0255e0 = 0;
+            return;
+        }
+        wof_g.g_0255c8 = 0x2A0;
+        index = (uint8_t)(ch - wof_font_first());
+        width = wof_font_width_byte(index);
+        if (width == 0) {
+            wof_g.g_0255e0 = 10;
+            return;
+        }
+        wof_g.g_0255e0 = (uint16_t)(width + 1);
+        {
+            uint16_t words = (uint16_t)((width + 15u) >> 4);
+            uint32_t at    = 0;
+
+            for (uint32_t r = 0; r < wof_font_height(); r++) {
+                uint8_t *dst = plane + r * 672u + 640u;
+
+                for (uint16_t w = 0; w < words; w++, at += 2) {
+                    uint16_t bits = wof_font_glyph_word(index, at);
+
+                    for (int b = 0; b < 16 && 640u + w * 16u + (uint32_t)b < 672u; b++)
+                        dst[w * 16 + b] = (uint8_t)((bits >> (15 - b)) & 1u);
+                }
+            }
+        }
+    }
+}
+
 /* orig 0x011754 vblank_server, together with 0x01C9CA vblank_every_frame (SPEC 6.1).
  *
  * What is here is the input half: the flag the waits spin on, the pause gate, the divider,
@@ -194,6 +260,7 @@ void wof_vblank(uint8_t raw)
 
     wof_s.raw = state;
     wof_s.vblanks++;
+    wof_s.since_pass++;
     wof_g.vblank_flag = 0xFF;
 
     if (wof_g.pause_flag)
@@ -202,8 +269,10 @@ void wof_vblank(uint8_t raw)
     wof_g.vblank_total++;
     vblank_every_frame();
 
-    if ((int16_t)--wof_g.vblank_divider > 0)
+    if ((int16_t)--wof_g.vblank_divider > 0) {
+        ticker();
         return;
+    }
     wof_g.vblank_divider = VBLANKS_PER_TICK;
 
     /* M7: demo playback takes the byte from the recorded buffer instead. */
@@ -219,6 +288,18 @@ void wof_vblank(uint8_t raw)
     wof_g.input_queue[count - 1] = wof_g.input_byte;
 
     /* The count of samples taken, which is the rate one logic tick per queued byte runs
-     * at; run_queued_ticks and the tick itself arrive with M4. */
+     * at: wof_tick_count.  The ticks the inner loop runs are counted in wof_f.ticks_run. */
     wof_s.ticks++;
+    ticker();
+}
+
+/* A byte of a ticker message.  The original keeps the message pointer at 0x0257B6 and the
+ * messages in its own data; the port names a message by that address and reads it from the
+ * executable's initialised DATA hunk (re/tables.toml, data_image). */
+uint8_t wof_ticker_char(uint32_t addr)
+{
+    if (addr >= 0x023000u && addr - 0x023000u < sizeof wof_tbl_data_image)
+        return wof_tbl_data_image[addr - 0x023000u];
+    WOF_STANDIN("M7 STAND-IN: a ticker message outside the DATA hunk");
+    return 0;
 }

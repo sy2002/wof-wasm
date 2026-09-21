@@ -157,7 +157,7 @@ def test_the_mission_begins_at_the_same_vblank(ported, run_name, mission_at):
     stand-in.  The harness's own observer says where that is; the numbers in the parameters
     are only there so that a change shows up as a change."""
     machine = headless_run(run_name, observe=['mission_display_setup'])
-    replay(ported, machine)
+    replay(ported, machine, stop_at_mission=True)
 
     want = [o['vblank'] for o in machine.observed if o['routine'] == 'mission_display_setup']
     got = [r['vblank'] for r in ported.traces('mission')]

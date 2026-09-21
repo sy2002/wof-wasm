@@ -25,6 +25,15 @@ WOF_GLOBAL(vblank_total,       uint32_t, 0x0253CA)  /* vblank_server's is_Data, 
 WOF_GLOBAL(fire_press_frame,   uint32_t, 0x026C8E)  /* vblank_counter when the current press began */
 WOF_GLOBAL(player_score,       uint32_t, 0x02534C)  /* compared with entry 9 by high_score_entry */
 
+/* the mission (M4): the outer loop's reset, the map, the sounds, the ticker */
+WOF_GLOBAL(g_025350,           int32_t,  0x025350)  /* sub_013562 sets 0x6000 */
+WOF_GLOBAL(g_025354,           int32_t,  0x025354)  /* sub_013562 sets 0x400 */
+WOF_GLOBAL_ARRAY(sound_length, uint32_t, 8, 0x025572) /* sounds_load: file_length of each effect */
+WOF_GLOBAL(last_key,           uint32_t, 0x026F5C)  /* what ingame_keys took last, 0 for none */
+WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next character, as the original's
+                                                     * address in its text: a message is named by
+                                                     * where the original keeps it */
+
 /* ------------------------------------------------------------------------------ words */
 
 /* timing and the input queue (re/notes/input.md) */
@@ -53,6 +62,126 @@ WOF_GLOBAL(rank_played,        uint16_t, 0x0253BE)  /* the rank an entry is writ
 WOF_GLOBAL(mission_number,     uint16_t, 0x0253C0)
 WOF_GLOBAL(loaded_game,        uint16_t, 0x026D40)
 
+/* the mission (M4): the map, the view and the scroll (re/notes/map.md) */
+WOF_GLOBAL(map_extent,         uint16_t, 0x024630)  /* four times the map's length: the world x past it */
+WOF_GLOBAL(map_length,         uint16_t, 0x0253C6)  /* the map's first long, as a word */
+WOF_GLOBAL(player_start_x,     int16_t,  0x025392)
+WOF_GLOBAL(night_flag,         uint16_t, 0x025390)
+WOF_GLOBAL(soldier_count,      uint16_t, 0x0253C4)
+WOF_GLOBAL(g_024cac,           uint16_t, 0x024CAC)  /* main sets 0xFFFF at start-up */
+WOF_GLOBAL(view_x,             int16_t,  0x024F30)
+WOF_GLOBAL(view_y,             int16_t,  0x024F32)
+WOF_GLOBAL(view_shift,         int16_t,  0x024F34)  /* 3 in the eighth-scale view, else 0 */
+WOF_GLOBAL(view_step,          int16_t,  0x024F36)  /* 1 in the eighth-scale view, 8 at full scale */
+WOF_GLOBAL(split_row,          int16_t,  0x0253A0)
+WOF_GLOBAL(pass_counter,       uint16_t, 0x0253C8)  /* 0..99, draw_world */
+WOF_GLOBAL(g_026e56,           int16_t,  0x026E56)  /* snapshot of 0x0253AE */
+WOF_GLOBAL(draw_player_x,      int16_t,  0x026E5C)  /* snapshot of the player's x */
+WOF_GLOBAL(draw_player_y,      int16_t,  0x026E60)  /* snapshot of the player's y */
+WOF_GLOBAL(g_026e62,           int16_t,  0x026E62)
+WOF_GLOBAL(draw_facing,        int16_t,  0x026F7A)  /* snapshot of the player's facing */
+WOF_GLOBAL(draw_attitude,      int16_t,  0x026F78)  /* snapshot of attitude_index */
+WOF_GLOBAL(draw_g_026f7c,      int16_t,  0x026F7C)  /* snapshot of 0x026E62 */
+WOF_GLOBAL(g_026f72,           int16_t,  0x026F72)
+
+/* the mission (M4): the islands and the enemy formations map_scan counts */
+WOF_GLOBAL_ARRAY(island_slot1, uint16_t, 4, 0x025430)  /* map offsets of the slot-1 records */
+WOF_GLOBAL_ARRAY(island_slot2, uint16_t, 4, 0x025438)  /* map offsets of the slot-2 records */
+WOF_GLOBAL_ARRAY(island_span,  uint16_t, 8, 0x025440)  /* first and last target offset per island */
+WOF_GLOBAL_ARRAY(island_score, uint16_t, 8, 0x025450)  /* five per target, and a second word */
+WOF_GLOBAL(g_0251d6,           int16_t,  0x0251D6)
+WOF_GLOBAL(g_0251d8,           int16_t,  0x0251D8)  /* count of the words that follow */
+WOF_GLOBAL_ARRAY(g_0251da,     int16_t, 40, 0x0251DA)
+
+/* the mission (M4): the player's reset, sub_013684 and sub_01b7ec (re/notes/objects.md) */
+WOF_GLOBAL(g_02534a,           int16_t,  0x02534A)
+WOF_GLOBAL(g_025358,           int16_t,  0x025358)
+WOF_GLOBAL(g_02535a,           int16_t,  0x02535A)
+WOF_GLOBAL(g_02536a,           int16_t,  0x02536A)
+WOF_GLOBAL(g_025394,           int16_t,  0x025394)  /* 1 while the aircraft is aboard the carrier */
+WOF_GLOBAL(g_025396,           int16_t,  0x025396)
+WOF_GLOBAL(g_0253a2,           int16_t,  0x0253A2)
+WOF_GLOBAL(weapon_type,        int16_t,  0x0253A4)  /* the dashboard's weapon, 1 at a reset */
+WOF_GLOBAL(g_0253a6,           uint16_t, 0x0253A6)  /* frame_update counts it 0..10 */
+WOF_GLOBAL(g_0253a8,           int16_t,  0x0253A8)
+WOF_GLOBAL(g_0253aa,           int16_t,  0x0253AA)
+WOF_GLOBAL(g_0253ac,           int16_t,  0x0253AC)
+WOF_GLOBAL(g_0253ae,           int16_t,  0x0253AE)
+WOF_GLOBAL(g_0253b0,           int16_t,  0x0253B0)  /* the view_step the next snapshot takes */
+WOF_GLOBAL(g_0253b2,           int16_t,  0x0253B2)
+WOF_GLOBAL(g_0253b4,           int16_t,  0x0253B4)
+WOF_GLOBAL(g_0253b6,           int16_t,  0x0253B6)
+WOF_GLOBAL(g_0253b8,           int16_t,  0x0253B8)
+WOF_GLOBAL(g_0253ba,           int16_t,  0x0253BA)
+WOF_GLOBAL(g_0253bc,           int16_t,  0x0253BC)
+WOF_GLOBAL(g_0253fc,           int16_t,  0x0253FC)
+WOF_GLOBAL(g_0253fe,           int16_t,  0x0253FE)
+WOF_GLOBAL(pitch_target,       int16_t,  0x025402)
+WOF_GLOBAL(g_02540a,           int16_t,  0x02540A)
+WOF_GLOBAL(attitude_index,     int16_t,  0x02540E)
+WOF_GLOBAL(g_025410,           uint16_t, 0x025410)  /* vblank_server counts it during a mission */
+WOF_GLOBAL(airspeed,           int16_t,  0x025414)
+WOF_GLOBAL(flash_count,        uint16_t, 0x025416)
+WOF_GLOBAL(flash_colour,       uint16_t, 0x025418)
+WOF_GLOBAL(g_025428,           int16_t,  0x025428)
+WOF_GLOBAL(g_02542c,           int16_t,  0x02542C)
+WOF_GLOBAL(g_025592,           int16_t,  0x025592)
+WOF_GLOBAL(g_025a9c,           int16_t,  0x025A9C)
+WOF_GLOBAL(g_025f14,           int16_t,  0x025F14)
+WOF_GLOBAL(g_026d3a,           int16_t,  0x026D3A)
+WOF_GLOBAL(g_026d3c,           int16_t,  0x026D3C)
+WOF_GLOBAL(g_026d3e,           int16_t,  0x026D3E)
+WOF_GLOBAL(g_026d44,           int16_t,  0x026D44)
+WOF_GLOBAL(g_026d54,           uint16_t, 0x026D54)  /* set at step S; vblank_server's demo branches test it */
+WOF_GLOBAL(g_027166,           int16_t,  0x027166)  /* draw_world's distance for the sound engine */
+WOF_GLOBAL(g_027164,           uint16_t, 0x027164)  /* its flag: st.b the high byte, clr.w both */
+WOF_GLOBAL(g_027168,           int16_t,  0x027168)
+WOF_GLOBAL(g_02734e,           int16_t,  0x02734E)
+WOF_GLOBAL(g_027de6,           int16_t,  0x027DE6)
+WOF_GLOBAL(g_027de8,           int16_t,  0x027DE8)
+WOF_GLOBAL(airspeed_step,      int16_t,  0x027DEA)
+WOF_GLOBAL(g_027350,           int16_t,  0x027350)  /* the tick's oil timer (part 2) */
+
+/* the mission (M4): the pass's own counters and the carrier's deck animation */
+WOF_GLOBAL(g_025654,           int16_t,  0x025654)
+WOF_GLOBAL(g_025656,           int16_t,  0x025656)
+WOF_GLOBAL(g_025658,           int16_t,  0x025658)
+WOF_GLOBAL(g_02565a,           int16_t,  0x02565A)
+WOF_GLOBAL(g_0253d8,           int16_t,  0x0253D8)
+WOF_GLOBAL(g_0253da,           int16_t,  0x0253DA)
+WOF_GLOBAL(g_0253e2,           int16_t,  0x0253E2)
+WOF_GLOBAL(g_0253e4,           int16_t,  0x0253E4)
+WOF_GLOBAL(g_0253e6,           int16_t,  0x0253E6)  /* the horizon row of the dashboard's map window */
+WOF_GLOBAL(g_027452,           int16_t,  0x027452)
+WOF_GLOBAL(g_027454,           uint16_t, 0x027454)  /* draw_world: a target is near (st.b high byte) */
+WOF_GLOBAL(g_027456,           int16_t,  0x027456)  /* draw_world: the nearest target's distance */
+WOF_GLOBAL(g_02745a,           int16_t,  0x02745A)
+WOF_GLOBAL(g_0276fe,           int16_t,  0x0276FE)
+WOF_GLOBAL(g_0255c8,           uint16_t, 0x0255C8)  /* the ticker's pixels left to scroll */
+WOF_GLOBAL(g_0255e0,           uint16_t, 0x0255E0)  /* the ticker's current glyph width */
+
+/* the mission (M4): the dashboard's gauges (draw_dashboard) */
+WOF_GLOBAL(gauge_weapons_lo,   int16_t,  0x027F2A)  /* the two drums of the weapon counter */
+WOF_GLOBAL(gauge_weapons_hi,   int16_t,  0x027F2C)
+WOF_GLOBAL(gauge_lives,        int16_t,  0x027F2E)
+WOF_GLOBAL(gauge_oil,          int16_t,  0x027F58)
+WOF_GLOBAL(gauge_fuel,         int16_t,  0x027F5A)
+WOF_GLOBAL(gauge_flying,       uint16_t, 0x027F5C)  /* st.b the high byte, clr.w both */
+WOF_GLOBAL(gauge_oil_blink,    int16_t,  0x027F5E)
+WOF_GLOBAL(gauge_fuel_blink,   int16_t,  0x027F60)
+
+/* the blitter library's clip rectangle (re/notes/drawing.md) */
+WOF_GLOBAL(clip_top,           int16_t,  0x02695C)
+WOF_GLOBAL(clip_bottom,        int16_t,  0x02695E)
+WOF_GLOBAL(clip_left,          int16_t,  0x026960)
+WOF_GLOBAL(clip_right,         int16_t,  0x026962)
+WOF_GLOBAL(clip_bottom_incl,   int16_t,  0x026964)
+WOF_GLOBAL(clip_right_incl,    int16_t,  0x026966)
+
+/* the generator (re/notes/random.md) */
+WOF_GLOBAL(rand_state,         uint16_t, 0x026910)
+WOF_GLOBAL(rand_seed_const,    uint16_t, 0x026912)
+
 /* ------------------------------------------------------------------------------ bytes */
 
 WOF_GLOBAL(vblank_flag,        uint8_t,  0x0255BE)  /* set by vblank_server, consumed by wait_vblank */
@@ -66,3 +195,48 @@ WOF_GLOBAL(demo_was_played,    uint8_t,  0x026F8C)  /* skips the high-score scre
 WOF_GLOBAL(outside_mission,    uint8_t,  0x02464E)  /* vblank_server then skips the ticker */
 WOF_GLOBAL(opt_invert_vertical, uint8_t, 0x0254F6)  /* the flip, read by read_joy_bits */
 WOF_GLOBAL(opt_music_off,      uint8_t,  0x0254F7)
+
+/* the mission (M4) */
+WOF_GLOBAL(g_0253c3,           uint8_t,  0x0253C3)  /* the second byte of quit_flag's clr.w */
+WOF_GLOBAL(g_024f24,           uint8_t,  0x024F24)  /* frame_update calls player_lost_restart */
+WOF_GLOBAL(lives,              uint8_t,  0x02535C)
+WOF_GLOBAL(g_02535d,           uint8_t,  0x02535D)
+WOF_GLOBAL(g_02535e,           uint8_t,  0x02535E)
+WOF_GLOBAL(g_02535f,           uint8_t,  0x02535F)
+WOF_GLOBAL(g_025360,           uint8_t,  0x025360)
+WOF_GLOBAL(game_over,          uint8_t,  0x025362)  /* draw_game_over draws `gmov` while set */
+WOF_GLOBAL(g_025364,           uint8_t,  0x025364)
+WOF_GLOBAL(g_025366,           uint8_t,  0x025366)
+WOF_GLOBAL(g_025367,           uint8_t,  0x025367)
+WOF_GLOBAL(g_025368,           uint8_t,  0x025368)
+WOF_GLOBAL(g_025369,           uint8_t,  0x025369)
+WOF_GLOBAL(g_02536c,           uint8_t,  0x02536C)
+WOF_GLOBAL(weapon_count,       uint8_t,  0x02536D)
+WOF_GLOBAL(g_02536e,           uint8_t,  0x02536E)
+WOF_GLOBAL(g_02536f,           uint8_t,  0x02536F)
+WOF_GLOBAL(g_025371,           uint8_t,  0x025371)
+WOF_GLOBAL(has_battleship,     uint8_t,  0x025377)  /* the ship flags map_scan sets (re/notes/shapes.md) */
+WOF_GLOBAL(has_japcarrier,     uint8_t,  0x025378)
+WOF_GLOBAL(has_carrier,        uint8_t,  0x025379)
+WOF_GLOBAL(has_destroyer,      uint8_t,  0x02537A)
+WOF_GLOBAL(has_cruiseship,     uint8_t,  0x02537B)
+WOF_GLOBAL(g_02537f,           uint8_t,  0x02537F)
+WOF_GLOBAL(g_025380,           uint8_t,  0x025380)
+WOF_GLOBAL(g_025383,           uint8_t,  0x025383)
+WOF_GLOBAL(island_count,       uint8_t,  0x025384)
+WOF_GLOBAL(target_count_f,     uint8_t,  0x025385)
+WOF_GLOBAL(target_count_3,     uint8_t,  0x025386)
+WOF_GLOBAL(target_count_4,     uint8_t,  0x025387)
+WOF_GLOBAL(g_025388,           uint8_t,  0x025388)
+WOF_GLOBAL(g_02538d,           uint8_t,  0x02538D)
+WOF_GLOBAL(g_02538e,           uint8_t,  0x02538E)
+WOF_GLOBAL(g_0255bf,           uint8_t,  0x0255BF)
+WOF_GLOBAL(g_0255c1,           uint8_t,  0x0255C1)
+WOF_GLOBAL(game_over_count,    uint8_t,  0x0255C2)  /* draw_game_over's countdown to quit_flag */
+WOF_GLOBAL(g_025600,           uint8_t,  0x025600)
+WOF_GLOBAL(g_02568c,           uint8_t,  0x02568C)
+WOF_GLOBAL(g_02568d,           uint8_t,  0x02568D)
+WOF_GLOBAL(frame_drawn,        uint8_t,  0x026E3C)
+WOF_GLOBAL(g_027458,           uint8_t,  0x027458)
+WOF_GLOBAL(g_0276fc,           uint8_t,  0x0276FC)
+WOF_GLOBAL_ARRAY(score_text,   uint8_t, 8, 0x027F22)  /* sprintf("%ld") of the score, for the digits */

@@ -756,3 +756,167 @@ uint32_t wt_ffp_table(int which, int index)
         return (uint32_t)count;
     return index < count ? table[index] : 0u;
 }
+
+/* ------------------------------------------------ the tables of src/mission.def (M4)
+ *
+ * A table is a run of records at a fixed address in DATA, or an allocation whose pointer
+ * the original keeps at an address; the records have the layouts of src/records.def.  The
+ * harness copies a table between the original's big-endian memory and the port field by
+ * field, with the kinds of records.def saying how a pointer field travels. */
+typedef struct {
+    const char *record;
+    const char *field;
+    uint32_t    orig_offset;
+    uint32_t    elem;         /* bytes per element in the port */
+    uint32_t    count;        /* elements, 1 for a scalar field */
+    uint32_t    port_offset;
+    uint32_t    kind;
+} wt_field_t;
+
+static const wt_field_t wt_fields[] = {
+#define WOF_RECORD(r, size)
+#define WOF_FIELD(r, n, t, off, k) { #r, #n, (uint32_t)(off), (uint32_t)sizeof(t), 1u, \
+                                     (uint32_t)offsetof(wof_##r##_t, n), (uint32_t)(k) },
+#define WOF_FIELD_ARRAY(r, n, t, c, off, k) { #r, #n, (uint32_t)(off), (uint32_t)sizeof(t), \
+                                     (uint32_t)(c), (uint32_t)offsetof(wof_##r##_t, n), (uint32_t)(k) },
+#define WOF_RECORD_END(r)
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+};
+
+typedef struct {
+    const char *record;
+    uint32_t    orig_size;
+    uint32_t    port_size;
+} wt_record_t;
+
+static const wt_record_t wt_records[] = {
+#define WOF_RECORD(r, size) { #r, (uint32_t)(size), (uint32_t)sizeof(wof_##r##_t) },
+#define WOF_FIELD(r, n, t, off, k)
+#define WOF_FIELD_ARRAY(r, n, t, c, off, k)
+#define WOF_RECORD_END(r)
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+};
+
+typedef struct {
+    const char *name;
+    const char *record;
+    uint32_t    count;        /* records, or the capacity of a pool */
+    uint32_t    addr;         /* the table's address, or the pointer's for a pool */
+    uint32_t    pool;
+    uint32_t    port_offset;  /* inside wof_mission_t */
+} wt_table_t;
+
+static const wt_table_t wt_tables[] = {
+#define WOF_TABLE(n, r, c, a) { #n, #r, (uint32_t)(c), (uint32_t)(a), 0u, (uint32_t)offsetof(wof_mission_t, n) },
+#define WOF_POOL(n, r, c, p)  { #n, #r, (uint32_t)(c), (uint32_t)(p), 1u, (uint32_t)offsetof(wof_mission_t, n) },
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+};
+
+int wt_field_count(void)  { return (int)(sizeof wt_fields / sizeof wt_fields[0]); }
+int wt_record_count(void) { return (int)(sizeof wt_records / sizeof wt_records[0]); }
+int wt_table_count(void)  { return (int)(sizeof wt_tables / sizeof wt_tables[0]); }
+int wt_mission_bytes(void) { return (int)sizeof(wof_mission_t); }
+
+/* One field: record, name, and the numbers as orig offset, elem, count, port offset, kind. */
+const char *wt_field(int i, const char **field, unsigned *numbers)
+{
+    if (i < 0 || i >= wt_field_count())
+        return 0;
+    *field = wt_fields[i].field;
+    numbers[0] = wt_fields[i].orig_offset;
+    numbers[1] = wt_fields[i].elem;
+    numbers[2] = wt_fields[i].count;
+    numbers[3] = wt_fields[i].port_offset;
+    numbers[4] = wt_fields[i].kind;
+    return wt_fields[i].record;
+}
+
+const char *wt_record(int i, unsigned *numbers)
+{
+    if (i < 0 || i >= wt_record_count())
+        return 0;
+    numbers[0] = wt_records[i].orig_size;
+    numbers[1] = wt_records[i].port_size;
+    return wt_records[i].record;
+}
+
+const char *wt_table(int i, const char **record, unsigned *numbers)
+{
+    if (i < 0 || i >= wt_table_count())
+        return 0;
+    *record = wt_tables[i].record;
+    numbers[0] = wt_tables[i].count;
+    numbers[1] = wt_tables[i].addr;
+    numbers[2] = wt_tables[i].pool;
+    numbers[3] = wt_tables[i].port_offset;
+    return wt_tables[i].name;
+}
+
+/* The mission tables and the globals as raw bytes of the port's structs, now or as they
+ * stood at step S; the harness converts them with the layouts above. */
+int wt_mission_get(int at_s, uint8_t *dst, int max)
+{
+    const wof_state_t *st = at_s ? wof_trace_mission_state() : &wof_s;
+
+    if (!st || max < (int)sizeof(wof_mission_t))
+        return -1;
+    wof_mem_copy(dst, &st->m, sizeof(wof_mission_t));
+    return (int)sizeof(wof_mission_t);
+}
+
+void wt_mission_put(const uint8_t *src)
+{
+    wof_mem_copy(&wof_s.m, src, sizeof(wof_mission_t));
+}
+
+int wt_globals_get(int at_s, uint8_t *dst, int max)
+{
+    const wof_state_t *st = at_s ? wof_trace_mission_state() : &wof_s;
+
+    if (!st || max < (int)sizeof(wof_globals_t))
+        return -1;
+    wof_mem_copy(dst, &st->g, sizeof(wof_globals_t));
+    return (int)sizeof(wof_globals_t);
+}
+
+void wt_globals_put(const uint8_t *src)
+{
+    wof_mem_copy(&wof_s.g, src, sizeof(wof_globals_t));
+}
+
+/* The stand-ins reached since the last reset, by marker. */
+int wt_standin_count(void) { return (int)wof_trace_standins(); }
+
+const char *wt_standin(int i, unsigned *count)
+{
+    uint32_t n = 0;
+    const char *m = wof_trace_standin_at((uint32_t)i, &n);
+
+    *count = n;
+    return m;
+}
+
+void wt_standins_reset(void) { wof_trace_standins_reset(); }
+
+/* The hooks of the M4 comparisons (src/trace.c). */
+void wt_tick_waits_clear(void)             { wof_test_clear_tick_waits(); }
+void wt_tick_waits_set(unsigned t, int n)  { wof_test_set_tick_waits(t, (uint16_t)n); }
+void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
+void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
+
+/* Port-side counters and settings the comparisons read. */
+unsigned wt_ticks_run(void)   { return wof_f.ticks_run; }
+unsigned wt_passes_run(void)  { return wof_f.passes_run; }
+int      wt_front_view(void)  { return wof_f.front_view; }
+int      wt_back_view(void)   { return wof_f.back_view; }
+int      wt_dash_night(void)  { return wof_f.dash_night; }

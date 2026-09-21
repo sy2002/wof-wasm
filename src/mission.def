@@ -1,0 +1,76 @@
+/* The registry of the original's tables (SPEC 7.2), beside src/globals.def.
+ *
+ * globals.def holds the plain globals; this file holds what is a table of records: the
+ * tables that sit at a fixed address in the DATA hunk, and the tables the original
+ * allocates per mission or once at start-up.  The entries become the members of
+ * wof_mission_t (src/wof.h), which lives inside the core's state, and tests/shim.c reads
+ * the same list so that the harness can copy a table between the original's memory and
+ * the port with the record layouts of src/records.def.
+ *
+ *   WOF_TABLE(name, rec, count, addr)       `count` records of wof_<rec>_t at `addr` in DATA
+ *   WOF_POOL(name, rec, capacity, pointer)  an allocation: the original keeps a pointer to
+ *                                           it at `pointer`; the port keeps up to
+ *                                           `capacity` records at a fixed place, zeroed
+ *                                           when the original allocates (MEMF_CLEAR)
+ *
+ * Where the memory lives, and why a pool has the capacity it has, is in
+ * re/notes/porting-m4.md ("Where mission memory lives"); tests/test_mission.py holds each
+ * capacity against the fifteen maps.
+ */
+
+/* ------------------------------------------------------------- at fixed addresses in DATA */
+
+WOF_TABLE(object_records,      object,   15, 0x024CAE)
+WOF_TABLE(object_record_extra, object,    1, 0x025594)
+WOF_TABLE(player,              player,    1, 0x025078)
+WOF_TABLE(aircraft_records,    aircraft,  4, 0x02522A)
+WOF_TABLE(airfield_records,    airfield,  4, 0x0252FA)
+WOF_TABLE(ship_records,        ship,      5, 0x025460)
+WOF_TABLE(view_caches,         cache,     2, 0x027F30)
+
+/* The five ship blocks at 0x025096 (0x40 bytes each: a count at +0 and entries of eight
+ * bytes from +8) and the drawing's copy of them, which snapshot_for_draw takes with 80
+ * moves of a long in every pass. */
+WOF_TABLE(ship_blocks,         word,    160, 0x025096)
+WOF_TABLE(ship_blocks_draw,    word,    160, 0x024F38)
+
+/* Shape pointers.  0x01D1EA fills the three frame tables of the enemy aircraft at the
+ * mission's start: japplane_shapes and eighth-scale by name, 28 facing each way, and three
+ * variants of each in the dashboard's map window. */
+WOF_TABLE(japplane_frames,     shaperef,    56, 0x026F8E)
+WOF_TABLE(eighth_frames,       shaperef,    56, 0x02706E)
+WOF_TABLE(dash_frames,         shaperef,   168, 0x02745C)
+WOF_TABLE(torpedo_shape,       shaperef,     1, 0x02541E)
+WOF_TABLE(g_02541a,            shaperef,     1, 0x02541A)
+
+/* A pointer into the map's record list: the last record. */
+WOF_TABLE(map_records_end,     mapptr,    1, 0x02462C)
+
+/* ------------------------------------------------------------------------ allocations */
+
+/* The map's record list: `length` bytes from map_load, of which the last eight come from
+ * no file and stay zero; map_scan's second walk reads one record past the list.  The
+ * longest map, m, is 7,138 bytes. */
+WOF_POOL(map_records,          word,   3576, 0x024628)
+
+/* map_scan's tables, by the counts it takes in its first walk.  The largest over the
+ * fifteen maps: 14 slot-4 targets and 13 slot-3 targets (map m, 135 soldiers), 30
+ * slot-0x0F targets (map o). */
+WOF_POOL(target_records_4,     gtarget,   16, 0x0254F8)
+WOF_POOL(target_records_3,     gtarget,   16, 0x0254FC)
+WOF_POOL(soldier_records,      soldier, 160, 0x025500)
+WOF_POOL(target_records_f,     gtarget_f, 32, 0x025504)
+
+/* The gun lists of the four enemy ships, sub_01350e (ship +0x06). */
+WOF_POOL(guns_destroyer,       gun,      16, 0x025466)
+WOF_POOL(guns_battleship,      gun,      16, 0x025484)
+WOF_POOL(guns_cruiseship,      gun,      16, 0x0254A2)
+WOF_POOL(guns_japcarrier,      gun,      16, 0x0254C0)
+
+/* The four pools and the two master lists of alloc_pools, allocated once at start-up. */
+WOF_POOL(ricochet_records,     splash,   20, 0x026EA4)
+WOF_POOL(splash_records,       splash,   20, 0x026F30)
+WOF_POOL(smoke_records,        smoke,    40, 0x026F58)
+WOF_POOL(balloon_records,      balloon,  20, 0x026F66)
+WOF_POOL(master_list,          shaperef,   278, 0x026F54)
+WOF_POOL(ath_list,             shaperef,   278, 0x026F82)
