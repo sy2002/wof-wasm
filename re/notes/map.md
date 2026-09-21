@@ -151,8 +151,9 @@ records into game objects (read, and observed as the writer of every table below
 1. **First walk**, over the records with the draw flag only: it counts the targets by slot —
    slot 4 into `target_count_4` (`0x025387`), slot 3 into `target_count_3` (`0x025386`), slot
    `0x0F` into `target_count_f` (`0x025385`) — counts the islands (slot 2) and the briefing
-   numbers, and fills the five `ship_records` (`0x025460`, `0x1E` bytes each: japanese
-   carrier, cruise ship, destroyer, battleship, and the player's carrier at `carrier_record`)
+   numbers, and fills the five `ship_records` (`0x025460`, `0x1E` bytes each: the destroyer,
+   the battleship, the cruise ship, the Japanese carrier, and the player's carrier at
+   `carrier_record`, in this order)
    from the slot that introduces each: their span of map offsets at `+0` and `+2` and a set of
    constants for the rest.
 2. **The allocations**: `target_count_4` records of `0x10` bytes at `target_records_4`

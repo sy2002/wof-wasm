@@ -66,7 +66,7 @@ CLIPS = {PLAYFIELD: [(0, 162, 0, 320), (10, 120, 32, 288), (0, 0x6C, 0, 320)],
 def test_rect_fill_matches_the_blitter(ported, target):
     """Random rectangles - inside, across every edge, beyond the target, empty and one pixel
     wide - in every colour of the target, under the clips the pass uses (the playfield, the
-    ocean band above the waterline, the dashboard, its map window and its score row)."""
+    ocean band above the waterline, the dashboard, its 3-D view and its score row)."""
     bytes_per_row, rows, depth = target
     width = bytes_per_row * 8
     reference = Reference('shapes/world.shp', bytes_per_row, rows, depth)
@@ -431,8 +431,9 @@ def test_clip_to_waterline_matches_the_original(differential):
         run_both(d, lambda: d.o.call(0x01526E), lib.wof_clip_to_waterline, 'case %d' % n)
 
 
-def test_the_window_height_matches_the_original(differential):
-    """0x0141B4 over the whole range of the drawing's height: the marker's row.  The draw
+def test_the_3d_views_cursor_matches_the_original(differential):
+    """0x0141B4 over the whole range of the drawing's height: the row of the 3-D view's
+    cursor, the artificial horizon of the manual's page 8.  The draw
     at its end is stubbed on the original's side; its place is part of the pass's calls."""
     d, lib = differential, differential.ported.lib
     frames = d.o.alloc(4 * 8, fill=0)

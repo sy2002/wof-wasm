@@ -279,9 +279,12 @@ try {
 
     /* On through the briefing, which is left to run out by itself - fire would skip it,
        but the key that ends it stays in the buffer and the name entry would take it as a
-       character, which is what the machine does too - and into the mission stand-in and out
-       at the high-score entry, where the name goes in. */
+       character, which is what the machine does too - and into the mission, which the key E
+       ends while the tick is a stand-in (M4 part 1); out at the high-score entry, where the
+       name goes in. */
     await sleep(8000);
+    await press(sessionId, 'keyE');
+    await sleep(3000);
     storage.entry = await settle();
     for (const key of ['keyA', 'keyB', 'keyA']) {
         await press(sessionId, key);

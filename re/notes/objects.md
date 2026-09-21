@@ -17,7 +17,7 @@ whole table every tick or every pass.
 
 | Table | Where | Record | Records | Built by | Walked in the tick | Walked in the pass |
 |---|---|---|---|---|---|---|
-| the player | `player_record` `0x027DEC` points at `0x025078` | `0x30` | 1 | `0x013684` | `0x01C660` | `snapshot_for_draw`, `0x0103A6` |
+| the player | `player_record` `0x027DEC` points at `0x025078` | `0x1E` | 1 | `0x013684` | `0x01C660` | `snapshot_for_draw`, `0x0103A6` |
 | `object_records` | `0x024CAE`, in DATA | `0x2A` | 15 and one more at `0x025594` | `0x013756` clears them | `0x010A72`, `object_spawn` | `0x0106BE`, `0x010702`, `snapshot_for_draw` |
 | `aircraft_records` | `0x02522A`, in DATA | `0x34` | 4 | `0x01E608`, `0x0135A8` | `0x01E7D6`, `0x01B682` (their guns), `0x012132` | `snapshot_for_draw`, `0x010DA6`, `0x014206` |
 | `ship_records` | `0x025460`, in DATA | `0x1E` | 5 | `map_scan` | `ground_height`, `0x011510`, `0x011CAE`, `0x01B45A`, `0x01BC02` | `ride_on_ship`, `0x014206`, `0x01409C`, `0x01526E` |
@@ -162,14 +162,14 @@ from (observed: it writes exactly those bytes of every record in every pass, 657
 ## The player's record
 
 `player_record` (`0x027DEC`) always points at `0x025078`; `0x01B7EC` sets both at a reset. The
-record is `0x30` bytes. Every field below is observed over the flights of
+record is `0x1E` bytes. Every field below is observed over the flights of
 `tools/object_observe.py --player`, with the routine the write summary names as its writer.
 
 | Offset | Name | Unit | What the run shows | Writer |
 |---|---|---|---|---|
 | `+0x00` | `player_y` | pixels above the water | moves by `+0x18`: **every one of the 413 ticks in the air** of the flight, and 340 of the 344 of the climb, the other four being the ceiling below | `player_motion`, `0x01C5F4`, `0x01C660` |
 | `+0x02` | `player_x` | world pixels | moves by `+0x16` times `+0x14`: **every tick in the air** of both flights | `player_motion`, `0x01BDBA`, `0x01B7EC` |
-| `+0x04` … `+0x0B` | | | four words the drawing reads; they move while the aircraft turns | `0x01C378` |
+| `+0x04` … `+0x0B` | | | the frame: at `+0x04` the pointer to its shape record, at `+0x08` its name, which `aircraft_frame` (`0x01ABDE`) gives; they move while the aircraft turns | `0x01C378`, `0x01B7EC` |
 | `+0x0C` | `player_on_deck` | | 1 on the carrier, 0 in the air, and 4, 6, 8 and 11 through the lift and the restart | `0x0112B0`, `0x01C5F4`, `0x01C660` |
 | `+0x0E` | `player_fuel` | | `0xC0` at a reset, one less every 28 ticks in the air, never while the aircraft stands in the hold, and never upward | `logic_tick` |
 | `+0x10` | | | `rand_beam` modulo 4 plus 6 at the reset, constant afterwards | `0x01B7EC` |
@@ -178,7 +178,13 @@ record is `0x30` bytes. Every field below is observed over the flights of
 | `+0x16` | `player_speed_x` | pixels per tick | what `player_motion` computes from the airspeed and the attitude | `player_motion`, `0x01BDBA` |
 | `+0x18` | `player_speed_y` | pixels per tick | the same for the climb | `player_motion` |
 | `+0x1C` | `enemy_countdown` | ticks | `1349` at the start of a mission, one less on every tick whose input byte has **neither** fire bit, and never on a tick that has one: 249 moves and 319 stands in a 568-tick run with the guns firing, with no exception | `0x01BC02` |
-| `+0x1E` … `+0x2E` | `player_trail` | | five words four apart that `snapshot_for_draw` reads in every pass; **no run saw anything write them**, so what fills them is open | — |
+
+The words directly behind the record, from `0x025096`, are not part of it: they are the
+ships' blocks of deck planes, 160 words that `ship_block` (`0x01252C`) fills in the setup for
+each enemy ship the map carries (the destroyer's at word 0, the battleship's at `0x40`, the
+cruise ship's at `0x60`, the Japanese carrier's at `0x80`) and that `snapshot_for_draw`
+copies to `0x024F38` in every pass (read, and compared on every map at step S and after
+every pass of the five scripts, `re/notes/porting-m4.md`).
 
 The two position rules hold with the speed the tick **ends** with, because `player_motion`
 writes each speed and applies it in the same tick. They are stated for the ticks the aircraft

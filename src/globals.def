@@ -161,8 +161,8 @@ WOF_GLOBAL(g_0255c8,           uint16_t, 0x0255C8)  /* the ticker's pixels left 
 WOF_GLOBAL(g_0255e0,           uint16_t, 0x0255E0)  /* the ticker's current glyph width */
 
 /* the mission (M4): the dashboard's gauges (draw_dashboard) */
-WOF_GLOBAL(gauge_weapons_lo,   int16_t,  0x027F2A)  /* the two drums of the weapon counter */
-WOF_GLOBAL(gauge_weapons_hi,   int16_t,  0x027F2C)
+WOF_GLOBAL(gauge_weapons_tens,   int16_t,  0x027F2A)  /* the two drums of the weapon counter */
+WOF_GLOBAL(gauge_weapons_ones,   int16_t,  0x027F2C)
 WOF_GLOBAL(gauge_lives,        int16_t,  0x027F2E)
 WOF_GLOBAL(gauge_oil,          int16_t,  0x027F58)
 WOF_GLOBAL(gauge_fuel,         int16_t,  0x027F5A)
@@ -181,6 +181,7 @@ WOF_GLOBAL(clip_right_incl,    int16_t,  0x026966)
 /* the generator (re/notes/random.md) */
 WOF_GLOBAL(rand_state,         uint16_t, 0x026910)
 WOF_GLOBAL(rand_seed_const,    uint16_t, 0x026912)
+WOF_GLOBAL(g_027e66,           uint16_t, 0x027E66)  /* a counter of the tick's (0x01DBDE, part 2); it keeps the struct free of padding */
 
 /* ------------------------------------------------------------------------------ bytes */
 

@@ -406,8 +406,8 @@ void wof_front_init(void)
  * are part 2's.  What is kept is what its path without a command does to the key buffer:
  * every waiting key is taken out, and the last one is remembered in last_key.  While the
  * tick is a stand-in nobody can fly, so the mission needs an end of its own: raw 0x12, the
- * E key by position, ends it the way the original's Control-R does not and quit_flag does,
- * so that the high scores and the rank selection stay reachable.  No script of the
+ * E key by position, without Control, sets quit_flag as the original's own ways out of a
+ * mission do, so that the high scores and the rank selection stay reachable.  No script of the
  * headless original presses a key during a mission, and every other key is a stand-in hit. */
 static void ingame_keys(void)
 {
@@ -421,7 +421,7 @@ static void ingame_keys(void)
             wof_g.quit_flag = 0xFF;
             continue;
         }
-        WOF_STANDIN("M4 PART 2 STAND-IN: ingame_keys, a key during a mission");
+        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01CD04-0x01CE27, ingame_keys, a key during a mission");
     }
 }
 
@@ -456,7 +456,7 @@ static wof_co_t run_queued_ticks(void)
 
     CO_BEGIN(c);
     if (wof_g.g_026d44)
-        WOF_STANDIN("M7 STAND-IN: run_queued_ticks, demo playback and recording");
+        WOF_STANDIN("M7 STAND-IN: 0x0114E0, run_queued_ticks, demo playback and recording");
     if ((int8_t)wof_g.pause_flag < 0)
         CO_RETURN(c);
     while ((int16_t)wof_g.input_queue_count > 0)
@@ -514,7 +514,7 @@ static wof_co_t mission(void)
         }
         if (wof_g.g_025364 && wof_g.g_0253bc) {
             /* 0x010132: the mission is won and the next one follows. */
-            WOF_STANDIN("M4 PART 2 STAND-IN: the next mission of a campaign");
+            WOF_STANDIN("M4 PART 2 STAND-IN: 0x010132-0x01018D, the next mission of a campaign");
             wof_g.quit_flag = 0xFF;
             break;
         }

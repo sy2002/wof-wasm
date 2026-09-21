@@ -130,7 +130,7 @@ void wof_ticker_clear(void)
 void wof_demo_end(void)
 {
     if (wof_g.demo_mode == 2)
-        WOF_STANDIN("M7 STAND-IN: saving a recorded demo");
+        WOF_STANDIN("M7 STAND-IN: 0x018536, saving a recorded demo");
     wof_g.demo_mode = 0;
 }
 
@@ -156,8 +156,8 @@ void wof_weapon_gauge_reset(void)
     uint16_t n = wof_g.weapon_count;
     uint16_t q = (uint16_t)(n / 10u), r = (uint16_t)(n % 10u);
 
-    wof_g.gauge_weapons_lo = (int16_t)(0x50 - (int16_t)(uint16_t)(q << 3));
-    wof_g.gauge_weapons_hi = (int16_t)(0x50 - (int16_t)(uint16_t)(r << 3));
+    wof_g.gauge_weapons_tens = (int16_t)(0x50 - (int16_t)(uint16_t)(q << 3));
+    wof_g.gauge_weapons_ones = (int16_t)(0x50 - (int16_t)(uint16_t)(r << 3));
     wof_m.view_caches[0].weapons = (int16_t)high_byte((uint16_t)wof_m.view_caches[0].weapons, 0xFF);
     wof_m.view_caches[1].weapons = (int16_t)high_byte((uint16_t)wof_m.view_caches[1].weapons, 0xFF);
 }
@@ -194,7 +194,7 @@ uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame)
 
     if (state == 1 || state == 11) {
         if (wof_g.g_025a9c != 0) {
-            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ABDE, state 1 with 0x025A9C set");
+            WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ACEA, state 1 or 11 with 0x025A9C set");
             return 0;
         }
         name = wof_tbl_frames_deck[frame & 7];
@@ -204,7 +204,10 @@ uint32_t wof_aircraft_frame(int16_t state, int16_t facing, int16_t frame)
         wof_g.g_025592 = 4;
         return name;
     }
-    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ABDE, a flying state");
+    if (state == 0 || state == 4)
+        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ABEC-0x01ACE3, states 0 and 4");
+    else
+        WOF_STANDIN("M4 PART 2 STAND-IN: 0x01ADFE-0x01AEB3, the other states");
     return 0;
 }
 
@@ -307,7 +310,7 @@ void wof_player_lost_restart(void)
         wof_g.g_025360 = 0;
         wof_player_restart_state();
         if (wof_g.g_027452 != 0)
-            WOF_STANDIN("M4 PART 2 STAND-IN: player_lost_restart, the clear, flip and wait");
+            WOF_STANDIN("M4 PART 2 STAND-IN: 0x013638, player_lost_restart's clear, flip and wait");
     }
     wof_g.g_027452 = 0;
 }

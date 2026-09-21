@@ -96,3 +96,54 @@ def test_a_state_saved_in_a_mission_continues_identically(ported, blob_file):
     assert wasm['saved'] == digest(saved), 'the two targets saved different states'
     assert wasm['savedFrame'] == saved_frame
     assert (wasm['straight']['state'], wasm['straight']['frame']) == straight
+
+
+def wasm_function_names(path):
+    """The function names of a WebAssembly module's name section."""
+    data = path.read_bytes()
+
+    def leb(at):
+        value = shift = 0
+        while True:
+            byte = data[at]
+            at += 1
+            value |= (byte & 0x7F) << shift
+            shift += 7
+            if not byte & 0x80:
+                return value, at
+
+    names, at = [], 8
+    while at < len(data):
+        section, at = data[at], at + 1
+        size, at = leb(at)
+        end = at + size
+        if section == 0:
+            length, p = leb(at)
+            if data[p:p + length] == b'name':
+                p += length
+                while p < end:
+                    sub, p = data[p], p + 1
+                    sub_size, p = leb(p)
+                    if sub == 1:
+                        count, q = leb(p)
+                        for _ in range(count):
+                            _, q = leb(q)
+                            n, q = leb(q)
+                            names.append(data[q:q + n].decode())
+                            q += n
+                    p += sub_size
+        at = end
+    return names
+
+
+def test_the_release_core_has_no_test_hooks(ported):
+    """The hooks the comparison drives the port with - the pass, tick and step S hooks, the
+    tick stand-in's waits, the pokes, the trace - exist in the native test build only
+    (WOF_TRACE); dist/core.wasm is built without them."""
+    names = wasm_function_names(WASM)
+    assert len(names) > 100, 'the release core has no name section to check'
+    hooks = [n for n in names if n.startswith(('wof_test_', 'wof_trace'))]
+    assert hooks == [], hooks
+    lib = ported.lib
+    for name in ('wof_test_set_tick_waits', 'wof_test_set_pass_hook', 'wof_trace_add'):
+        assert hasattr(lib, name), 'the test build lacks %s' % name

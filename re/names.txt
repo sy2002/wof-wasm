@@ -594,3 +594,87 @@
 025f16 pitch_step            ; word: how far pitch_target moves per tick; 600 in every observed flight, the cheat keys i and k change it by 50
 02522a aircraft_records      ; four enemy-aircraft records of 0x34 bytes; word 0 is the state, 0 is free
 027dec player_record         ; long: the player aircraft's record, which player_motion writes
+
+# ---- the world as a pass, M4 part 1  (see re/notes/porting-m4.md)
+010344 weapon_marker         ; asm. two world shapes at a fixed place, blitted without a mask, while 0x025364 is set
+0103a6 draw_player           ; asm. the player's aircraft; also sets draw_player_y, which the tick reads
+0106be draw_objects          ; asm. the fifteen object records and the extra one
+010da6 draw_enemy_aircraft   ; asm. the four enemy-aircraft records (M6)
+010ee0 smoke_draw            ; asm. the Smoke pool
+01391e ship_planes           ; asm. the enemy ships' deck aircraft and cranes (M6)
+013a18 airfields_draw        ; asm. the airfields' aircraft rows (M6)
+013abc deck_aircraft         ; asm. the spare aircraft on the carrier's deck, one per life above one
+013b1c record_extras         ; asm. what a map record carries besides its shape: the lift, the flag, an island's flag
+013d78 targets_3_draw        ; asm. the slot-3 targets of the map
+013de8 targets_f_draw        ; asm. the slot-0x0F targets of the map
+013e6c ocean                 ; asm. the sea below the horizon row; returns the islands' count in D1
+013eee soldiers_draw         ; asm. the Soldiers pool (M5)
+01409c lift_aircraft         ; asm. the aircraft on the carrier's lift
+0140e8 islands_draw          ; asm. the islands' strips of sea colour
+01417e map_window            ; asm. the dashboard's 3-D view (the manual, page 8)
+0141b4 window_height         ; asm. the 3-D view's cursor, the artificial horizon, its row by the height
+014206 window_strip          ; asm. the 3-D view's strip of map records ahead of the aircraft
+014430 window_ship           ; asm. the ship the aircraft stands on, in the 3-D view
+014564 window_background     ; asm. the 3-D view's sky and sea
+014a52 ship_at_span          ; asm. ship_at_offset's search, for D0 already in map words
+014c3e ship_guns_draw        ; asm. the enemy ships' guns (M6)
+014d50 target_frame          ; asm. a ground target's firing frame this pass, or -1
+014db8 target_range_frame    ; asm. the frame by distance and height at full scale, or -1 out of range
+014f5c target_fire           ; asm. a ground target within 0x1C0 pixels may hit the aircraft (M5)
+0152f8 splashes_draw         ; asm. the Splashes pool
+01526e clip_to_waterline     ; asm. the playfield's clip with its bottom at the carrier's waterline
+01557c balloons_draw         ; asm. the Balloons pool (M5)
+01852a demo_end              ; C. the end of a demo recording (M7), then demo_mode cleared
+01abde aircraft_frame        ; C. the name of the player's frame for a state, facing and index, mirrored to the facing
+01b7bc deck_span             ; C. the carrier's deck as world x, sixteen pixels in from both ends
+01b7ec player_reset          ; C. the player's record at a reset
+01cac8 rand_mod              ; C. rand_beam modulo the argument
+01cb34 record_on_ship        ; C. whether a map record rides on a ship
+01cbf2 ship_of_record        ; C. the ship a map record rides on, as its place in ship_order
+01d1ea enemy_frames          ; C. the enemy aircraft's frame tables
+01e608 aircraft_clear        ; C. the four enemy-aircraft records cleared
+01ed7a dash_cache_invalidate ; asm. one buffer's instrument cache told to redraw everything
+01edaa dashboard_invalidate  ; asm. both buffers' caches, and the oil and fuel gauges' rows
+01edbc weapon_gauge_reset    ; asm. the weapon counter's two drums from weapon_count
+01edea lives_gauge_reset     ; asm. the lives drum from lives
+01f200 kill_icons            ; asm. a row of the enemy plane counter's kill icons (M5)
+01f21a enemy_arrows          ; asm. the arrows that point to an enemy aircraft (M6)
+01f26a draw_score            ; asm. the score, sprintf %07ld and a digit per character
+01f2b0 dash_digit            ; asm. one digit: a slice of dashboard frame 7, blitted without a mask
+01252c ship_block            ; asm. a ship's block of deck planes from the count table and the list
+012bbe free_map              ; asm. the map and its allocations freed, the ships released
+012c84 airfields_scan        ; asm. the airfield records from the map
+01350e ship_guns_setup       ; asm. a ship's gun list: its world x plus the table's word per gun
+013554 airfields_clear
+013562 campaign_reset        ; asm. score, lives and the counters of a campaign
+0135a8 mission_reset_tables
+013684 player_restart_state
+0257b6 ticker_message        ; long: the next character of the running ticker message, 0 when none
+02716a ticker_text           ; 300 bytes: a buffer the tick formats ticker messages into with sprintf
+027e00 ticker_text_2         ; 102 bytes: the other one
+025572 sound_length          ; 8 longs: file_length of each sound effect, kept by sounds_load
+026e5c draw_player_x         ; word: the drawing's copy of player_x, written by snapshot_for_draw
+026e60 draw_player_y         ; word: the drawing's copy of the height; draw_player overwrites it and the tick reads it
+026f7a draw_facing           ; word: the drawing's copy of player_facing
+026f78 draw_attitude         ; word: the drawing's copy of attitude_index
+025430 island_slot1          ; 4 words: the islands' first slot, from map_scan
+025438 island_slot2          ; 4 words: their second slot
+0253a4 weapon_type           ; word: the weapon selected, 0 to 3
+027f2a gauge_weapons_tens    ; word: the weapon counter's tens drum, 0x50 - 8 * digit
+027f2c gauge_weapons_ones    ; word: its ones drum
+027f2e gauge_lives           ; word: the lives drum's row, moving toward 0x59 - 8 * lives
+027f58 gauge_oil             ; word: the oil needle's frame row
+027f5a gauge_fuel            ; word: the fuel needle's frame row
+027f5c gauge_flying          ; word
+027f5e gauge_oil_blink       ; word: the oil warning's blink count
+027f60 gauge_fuel_blink      ; word: the fuel warning's blink count
+02535c lives                 ; byte: lives left
+025362 game_over             ; byte: the game is over; draw_game_over draws gmov
+025377 has_battleship        ; byte: map_scan found the ship on the map
+025378 has_japcarrier
+025379 has_carrier
+02537a has_destroyer
+02537b has_cruiseship
+025384 island_count          ; byte: the islands map_scan counted
+0255c2 game_over_count       ; byte: draw_game_over's countdown to quit_flag
+027f22 score_text            ; 8 bytes: sprintf("%07ld") of the score

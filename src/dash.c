@@ -1,4 +1,4 @@
-/* The dashboard of a pass: the map window (orig 0x01417E) and the instruments of
+/* The dashboard of a pass: the 3-D view (orig 0x01417E) and the instruments of
  * draw_dashboard (orig 0x01EE16), drawn into the back view's dashboard viewport, which
  * frame_update has made the draw target (re/notes/drawing.md, "The scene routines").
  *
@@ -39,7 +39,7 @@ static int16_t high_ff(int16_t word)
     return (int16_t)(uint16_t)(0xFF00u | ((uint16_t)word & 0xFFu));
 }
 
-/* ------------------------------------------------------------------ the map window */
+/* --------------------------------------------------------------------- the 3-D view */
 
 /* orig 0x014564 - the window's sky and, below the horizon row 0x0253E6, its sea. */
 static void window_background(void)
@@ -51,7 +51,8 @@ static void window_background(void)
     wof_rect_fill(0x102, wof_g.g_0253e6, 0x17C, 0x20, 1);
 }
 
-/* orig 0x0141B4 - the aircraft's height marker at the window's right edge: row 0x0D above
+/* orig 0x0141B4 - the 3-D view's cursor, the artificial horizon of the manual's page 8,
+ * at x 0x13F: row 0x0D above
  * height 0x51, lower by a quarter of what the height falls short of it. */
 void wof_window_height(void)
 {
@@ -142,7 +143,7 @@ static void window_strip(void)
             if (s->w12 == 0)
                 wof_g.g_02745a = 1;
             else
-                WOF_STANDIN("M6 STAND-IN: 0x014244, the map window over an enemy ship");
+                WOF_STANDIN("M6 STAND-IN: 0x014244, the 3-D view over an enemy ship");
         }
     }
 
@@ -177,7 +178,7 @@ static void window_strip(void)
             const wof_aircraft_t *a = &wof_m.aircraft_records[i];
 
             if (a->w[0] != 0 && !(d3 > a->w[0x17]) && !(d4 < a->w[0x17]))
-                WOF_STANDIN("M6 STAND-IN: 0x0142BC, an enemy aircraft in the map window");
+                WOF_STANDIN("M6 STAND-IN: 0x0142BC, an enemy aircraft in the 3-D view");
         }
 
         for (int16_t n = d5; n >= 0; n--) {
@@ -190,9 +191,9 @@ static void window_strip(void)
                 if (low == (uint16_t)wof_g.g_02745a)
                     slot = 0;
                 if (slot >> 2)
-                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01434C, a map record in the map window");
+                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x01434C, a map record in the 3-D view");
                 else if ((uint8_t)(low - 2) == 0)
-                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x014382, land in the map window");
+                    WOF_STANDIN("M4 PART 2 STAND-IN: 0x014382, land in the 3-D view");
             }
             d6 = (int16_t)(d6 + dir);
         }
@@ -204,8 +205,8 @@ static void window_strip(void)
     }
 }
 
-/* orig 0x01417E - the map window: its clip, its horizon row, the background and, at full
- * scale, the strip and the height marker. */
+/* orig 0x01417E - the 3-D view (the manual, page 8): its clip, its horizon row, the
+ * background and, at full scale, the strip and the cursor. */
 void wof_map_window(void)
 {
     wof_clip_set(7, 0x20, 0x100, 0x190);                      /* clip_dash_window */
@@ -246,7 +247,7 @@ static void score(void)
     }
     text[7] = 0;
     if ((int32_t)wof_g.player_score < 0)
-        WOF_STANDIN("M7 STAND-IN: 0x01F26A, a negative score");
+        WOF_STANDIN("M7 STAND-IN: a negative score, in 0x01F26A");
     for (int i = 0; i < 8; i++)
         wof_g.score_text[i] = (uint8_t)text[i];
     for (int i = 0; text[i]; i++, x = (int16_t)(x + 0x0E))
@@ -258,13 +259,13 @@ static void enemy_arrows(void)
 {
     for (int i = 0; i < 4; i++)
         if (wof_m.aircraft_records[i].w[0] != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x01F226, an arrow to an enemy aircraft");
+            WOF_STANDIN("M6 STAND-IN: 0x01F226-0x01F269, an arrow to an enemy aircraft");
 }
 
 /* orig 0x01EE16 draw_dashboard.  Oil and fuel are needle gauges that move four steps a pass
  * toward their value; the weapon, the weapon counter's two drums, the lives drum, the score
- * and the two-digit counter at 0x02537F are redrawn when this buffer's cache says they
- * changed (the manual, page 8, names the instruments). */
+ * and the enemy plane counter at 0x02537F are redrawn when this buffer's cache says they
+ * changed (the manual, pages 8 and 9, names the instruments). */
 void wof_draw_dashboard(void)
 {
     wof_cache_t        *c = &wof_m.view_caches[wof_f.back_view & 1];
@@ -351,14 +352,14 @@ void wof_draw_dashboard(void)
                 WOF_STANDIN("M5 STAND-IN: 0x01F062, unlimited weapons");
                 d2 = d3 = 0x64;
             }
-            if (wof_g.gauge_weapons_lo == d3 && wof_g.gauge_weapons_hi == d2)
+            if (wof_g.gauge_weapons_tens == d3 && wof_g.gauge_weapons_ones == d2)
                 c->weapons = (int16_t)n;
             else
                 WOF_STANDIN("M5 STAND-IN: 0x01F07A, the weapon counter's drums turning");
             wof_g.clip_top = 0x13;
             wof_g.clip_bottom = 0x1C;
-            draw_hot(6, 0x2A, (int16_t)(0x1C + wof_g.gauge_weapons_lo));
-            draw_hot(6, 0x42, (int16_t)(0x1C + wof_g.gauge_weapons_hi));
+            draw_hot(6, 0x2A, (int16_t)(0x1C + wof_g.gauge_weapons_tens));
+            draw_hot(6, 0x42, (int16_t)(0x1C + wof_g.gauge_weapons_ones));
         }
     }
 
@@ -399,12 +400,12 @@ void wof_draw_dashboard(void)
         score();
     }
 
-    /* The two-digit counter of 0x02537F and its bars. */
+    /* The enemy plane counter of 0x02537F: two digits and its kill icons. */
     {
         uint16_t d3 = wof_g.g_02537f;
 
         if (d3 > 0x63) {
-            WOF_STANDIN("M5 STAND-IN: 0x01F186, the counter above 99");
+            WOF_STANDIN("M5 STAND-IN: 0x01F186, the enemy plane counter above 99");
             d3 = 0x63;
         }
         if ((int16_t)d3 != c->w0e) {
@@ -421,8 +422,8 @@ void wof_draw_dashboard(void)
             n2 = (int16_t)(n1 - 7);
             if (n2 > 0)
                 n1 = 7;
-            if (n1 > 0 || n2 > 0)
-                WOF_STANDIN("M5 STAND-IN: 0x01F206, the counter's bars");
+            if (n1 > 0 || n2 > 0)                             /* orig 0x01F200, a row of icons */
+                WOF_STANDIN("M5 STAND-IN: 0x01F206, the enemy plane counter's kill icons");
         }
     }
 }

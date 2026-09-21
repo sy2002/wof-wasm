@@ -174,6 +174,7 @@ class Core {
             arenaSize: this.x.wof_arena_size(),
             assetsReady: this.x.wof_assets_ready(),
             filesWritten: this.x.wof_fs_written_count(),
+            standinHits: this.x.wof_standin_hits(),
         };
     }
 }

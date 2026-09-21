@@ -103,7 +103,7 @@ Each screen is set up by one routine that fills in sizes and depths and calls `v
 
 Display line 0 is beam line `0x2C`, so the picture ends at beam line 257, inside an NTSC frame. The horizontal window is the standard one: `DIWSTRT` x `0x81`, `DIWSTOP` x `0xC1`, `DDFSTRT` `0x38` and `DDFSTOP` `0xD0` in low resolution, `0x3C` and `0xD4` in high resolution.
 
-The ticker bitmap is 84 bytes wide with 80 shown (`BPL1MOD` = 4). `vblank_server` draws each new glyph into the hidden 32 pixels at byte 80 and shifts the whole plane left by one pixel per VBlank with a `roxl` chain over 42 words x 13 rows (`0x011856`–`0x0118C0`). This is CPU work inside the interrupt, not a blit.
+The ticker bitmap is 84 bytes wide with 80 shown (`BPL1MOD` = 4). `vblank_server` draws each new glyph into the hidden 32 pixels at byte 80 and shifts the whole plane left by one pixel per VBlank with a `roxl` chain over 42 words x 13 rows (`0x011856`–`0x0118C0`). This is CPU work inside the interrupt, not a blit. The message the pointer `ticker_message` (`0x0257B6`) walks is not a text of the executable: the tick formats it with `sprintf` into `ticker_text` (`0x02716A`, 300 bytes) or `ticker_text_2` (`0x027E00`, 102 bytes) and hands it over through `0x01555A`, which takes it only while no message runs.
 
 ### The story scroller
 
@@ -157,7 +157,7 @@ Every global that holds a BitMap, a plane pointer or a RastPort is listed in the
 
 ### Day and night
 
-`choose_night` (`0x0111FC`), called from `main` before each mission, looks the map number up in `mission_map_table` (`0x02345F`, index rank x 4 + mission). For map numbers up to 6 `night_flag` is 0. Above 6 it calls `rand_beam` four times and takes the top bit of the last result, so night is an even chance. `night_flag` then selects one file from each of four pairs: `wingspalette` or `night.p` into playfield table 1, `ocean.palette` or `nightocean.p` into playfield table 2, `iff-dash` or `nightdash` as the dashboard picture with its own 16 colours, and `dash.shp` or `nightdash.shp`. `mission_display_setup` loads them into the back view, sets ticker colour 1 to `0x777`, copies everything to the other view with `view_copy`, rebuilds both lists and appends the ticker ramp to both.
+`choose_night` (`0x0111FC`), called from `main` only on the way from one mission of a campaign to the next (`0x010160`), so that the first mission of a campaign is always day, looks the map number up in `mission_map_table` (`0x02345F`, index rank x 4 + mission). For map numbers up to 6 `night_flag` is 0. Above 6 it calls `rand_beam` four times and takes the top bit of the last result, so night is an even chance. `night_flag` then selects one file from each of four pairs: `wingspalette` or `night.p` into playfield table 1, `ocean.palette` or `nightocean.p` into playfield table 2, `iff-dash` or `nightdash` as the dashboard picture with its own 16 colours, and `dash.shp` or `nightdash.shp`. `mission_display_setup` loads them into the back view, sets ticker colour 1 to `0x777`, copies everything to the other view with `view_copy`, rebuilds both lists and appends the ticker ramp to both.
 
 Sky and ocean palettes differ in colours 2–15 and 24 by day (15 moves after the split wait) and in 2–15, 20 and 22–24 by night (18 moves). The files `palette` and `ocean.p` are never opened; the executable does not contain their names.
 

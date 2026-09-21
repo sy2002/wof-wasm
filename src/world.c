@@ -371,7 +371,7 @@ static void islands(int16_t d1_in)
         wof_rect_fill(d0, wof_g.split_row, d2, d3, 0x11);
     }
     if (n > 4)
-        WOF_STANDIN("M6 STAND-IN: 0x0140E8, more than four islands");
+        WOF_STANDIN("M6 STAND-IN: more than four islands, in 0x0140E8");
 }
 
 /* orig 0x014D50 - whether a target of the map shows its firing frame this pass: never while
@@ -952,7 +952,7 @@ wof_co_t wof_frame_update(void)
         wof_cop_set_split_line(d0);
     }
     if (wof_g.g_024f24) {
-        WOF_STANDIN("M4 PART 2 STAND-IN: frame_update's call of player_lost_restart");
+        WOF_STANDIN("M4 PART 2 STAND-IN: 0x0102BC, frame_update's call of player_lost_restart");
         carrier.present = -1;
         wof_g.g_024f24 = 0;
     }

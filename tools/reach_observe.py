@@ -23,6 +23,11 @@ choose_night decides, who writes view_step, and where ingame_keys is entered fro
     .venv/bin/python tools/reach_observe.py --runs deck flight
     .venv/bin/python tools/reach_observe.py --markdown TABLE.md  the tables for the note
     .venv/bin/python tools/reach_observe.py --json REACH.json    everything, for the tests
+    .venv/bin/python tools/reach_observe.py --blocks --json REACH.json   with block coverage
+    .venv/bin/python tools/reach_observe.py --blocks --setups --json REACH.json
+                                            the same with the setups of all fifteen maps
+    .venv/bin/python tools/reach_observe.py --cold REACH.json    the never-run regions of every
+                                                                 ported routine, with markers
 
 An entry is the execution of a routine's first instruction.  A routine that branches back
 to its own first instruction would count each round; the tool finds those statically and
@@ -30,10 +35,12 @@ names them.  A routine that another one falls into is entered by the fall, which
 frame_update reaches flip_buffers.
 """
 import argparse
+import bisect
 import collections
 import csv
 import json
 import os
+import re
 import struct
 import sys
 import time
@@ -178,10 +185,52 @@ def observe(name, verbose=True, blocks=False, **more):
     return machine
 
 
-def collect(names, verbose=True, blocks=False):
+# The setups of V4 (tests/test_mission.py): every map loaded under its own number, its rank
+# chosen with the stick in the rank selection and the mission number poked at the selection's
+# end, run to step S.  Their names are `setup-` and the map's letter.
+LETTERS = 'abcdefghijklmno'
+MISSION_NUMBER = 0x0253C0
+MISSION_MAP_TABLE = 0x02345F
+
+
+def setup_runs():
+    """{letter: (rank, mission)}: the first place mission_map_table names each map."""
+    import oracle as oracle_module
+    table = oracle_module.Oracle().read(MISSION_MAP_TABLE, 29)
     out = {}
-    for name in names:
-        m = observe(name, verbose=verbose, blocks=blocks)
+    for rank in range(7):
+        for mission in range(1, 5):
+            if rank * 4 + mission < 29 and table[rank * 4 + mission] < 15:
+                out.setdefault(LETTERS[table[rank * 4 + mission]], (rank, mission))
+    return out
+
+
+def rank_script(rank):
+    return (pass_observe.FRONT[:4] + [[4, '']] + [[2, 'D'], [10, '']] * rank +
+            [[3, 'F'], [30, ''], [3, 'F'], [40, '']])
+
+
+def observe_setup(letter, rank, mission, verbose=True, blocks=False):
+    started = time.time()
+    machine = Reach({'raw': rank_script(rank), 'stop': {'vblanks': 2000}}, blocks=blocks)
+    machine.stop_at(0x01009E, lambda: machine.o.write(MISSION_NUMBER, bytes([0, mission])))
+    machine.run(until='inner')
+    if verbose:
+        print('setup-%s   rank %d, mission %d, %d VBlanks  (%.0f s)'
+              % (letter, rank, mission, machine.vblanks, time.time() - started))
+    return machine
+
+
+def collect(names, verbose=True, blocks=False, setups=False):
+    out = {}
+    machines = [(name, lambda name=name: observe(name, verbose=verbose, blocks=blocks))
+                for name in names]
+    if setups:
+        machines += [('setup-' + letter, lambda l=letter, rm=rm: observe_setup(l, *rm, verbose=verbose,
+                                                                                blocks=blocks))
+                     for letter, rm in sorted(setup_runs().items())]
+    for name, make in machines:
+        m = make()
         out[name] = {
             'entries': [[w, p, r, n] for (w, p, r), n in sorted(m.entries.items())],
             'draws': [[w, p, r, n] for (w, p, r), n in sorted(m.draws.items())],
@@ -190,7 +239,7 @@ def collect(names, verbose=True, blocks=False):
             'night': m.night,
             'counters': {'vblanks': m.vblanks, 'passes': m.passes, 'ticks': m.ticks,
                          'missions': m.missions, 'entropy': len(m.entropy_log)},
-            'self_looping': self_looping(m, m.table) if name == names[0] else None,
+            'self_looping': self_looping(m, m.table) if names and name == names[0] else None,
             'blocks': [[w, p, a, size, n] for (w, p, a, size), n in sorted(m.blocks.items())],
         }
     return out
@@ -208,6 +257,15 @@ LISTS = [
     ('The inner loop beside frame_update during a mission (phase M)', ('mission',), 'M'),
     ('The tick during a mission (phase T, part 2)', ('mission',), 'T'),
 ]
+
+
+CODE_WORD = re.compile(r"(?<![`\w])((?:[A-Za-z][\w.]*_[\w.]*[\w])|(?:0x[0-9A-Fa-f]+))(?![`\w])")
+
+
+def code_words(text):
+    """Identifiers and addresses in backticks, so that Markdown does not read their
+    underscores as emphasis."""
+    return CODE_WORD.sub(r'`\1`', text)
 
 
 def table_rows(data, names, windows, phase, key='entries'):
@@ -232,7 +290,7 @@ def markdown(data, names):
     lines = []
     for title, windows, phase in LISTS:
         rows = table_rows(data, names, windows, phase)
-        lines.append('### %s' % title)
+        lines.append('### %s' % code_words(title))
         lines.append('')
         if not rows:
             lines.append('Nothing was entered.')
@@ -245,7 +303,7 @@ def markdown(data, names):
                 routine, address_of(routine.split(':')[0], table),
                 ' | '.join(str(v) for v in rows[routine])))
         lines.append('')
-    lines.append('### Entropy reads, by the routine that called rand_beam')
+    lines.append('### Entropy reads, by the routine that called `rand_beam`')
     lines.append('')
     lines.append('| Window | Phase | Caller | ' + ' | '.join('`%s`' % n for n in names) + ' |')
     lines.append('|---|---|---|' + '---|' * len(names))
@@ -297,8 +355,10 @@ def main():
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
                         help='also record every basic block executed, by window and phase (slow)')
+    parser.add_argument('--setups', action='store_true',
+                        help='also the setups of all fifteen maps under their own numbers, to S')
     args = parser.parse_args()
-    data = collect(args.runs, blocks=args.blocks)
+    data = collect(args.runs, blocks=args.blocks, setups=args.setups)
     report(data, args.runs)
     if args.markdown:
         with open(args.markdown, 'w') as f:
@@ -310,9 +370,6 @@ def main():
         print('%s written' % args.json)
     return 0
 
-
-if __name__ == '__main__':
-    sys.exit(main())
 
 
 # ---------------------------------------------------------------- coverage inside routines
@@ -353,3 +410,160 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
     if start is not None:
         cold.append((start, address + span))
     return len(hot), len(code), cold
+
+
+# ------------------------------------------------ the cold regions of the ported routines
+
+# M4's routines: every one a port file names with an `orig 0x......` comment, and of the
+# files that hold M3's too, the routines M4 changed.
+PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c']
+M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server']
+MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c']
+STANDIN = re.compile(r'WOF_STANDIN\("((M\d+(?: PART \d)?) STAND-IN: '
+                     r'(?:(0x[0-9A-Fa-f]{6})(?:-(0x[0-9A-Fa-f]{6}))?, )?([^"]*))"\)')
+ORIG = re.compile(r'orig (0x[0-9A-Fa-f]{6})')
+
+# What a region no script ran and no marker stands for is, by its first address.  Every
+# such region must be named here: the table marks any other one as unclassified, and
+# --cold then fails.
+REGION_NOTES = {
+    0x010036: "M3's: the command line's demo file, which the port has no command line for",
+    0x010104: 'ported from reading: demo_mode sets 0x026D44 before step S',
+    0x010196: 'ported from reading: a paused mission waits for the next VBlank',
+    0x0101B4: 'ported from reading: a demo ends on the fire button',
+    0x01020A: 'ported from reading: back to the outer loop after the high scores',
+    0x010322: 'ported from reading: the flash of flip_buffers',
+    0x01043E: 'unreachable: no branch leads there',
+    0x0104D4: 'ported from reading: the climb clamped at -2 in the eighth-scale view',
+    0x01058C: 'ported from reading',
+    0x0106CC: 'ported from reading: 0x02536C cleared',
+    0x0106F6: 'ported from reading: the extra object record drawn',
+    0x011118: 'ported from reading; tests/test_oracle_m4.py, every count',
+    0x0111FC: 'ported from reading; reached only between two missions, part 2',
+    0x0114EE: 'ported from reading: nothing runs while paused',
+    0x011508: 'ported from reading: demo_mode sets 0x026D44',
+    0x011790: "M3's input half: demo playback (M7)",
+    0x01180A: "M3's input half: demo recording (M7)",
+    0x011856: 'ported from reading; tests/test_oracle_m4.py, the ticker',
+    0x0118DE: 'ported from reading; tests/test_oracle_m4.py, the ticker',
+    0x012B80: 'an allocation failed, fatal; the port\'s tables are fixed (src/mission.def)',
+    0x012BF6: 'ported from reading: a ship released at the end of a mission',
+    0x012C1A: 'ported from reading: a ship released at the end of a mission',
+    0x012C3E: 'ported from reading: a ship released at the end of a mission',
+    0x012C62: 'ported from reading: a ship released at the end of a mission',
+    0x0130AE: 'an allocation failed, fatal; the port\'s tables are fixed (src/mission.def)',
+    0x01327C: 'battleship.shp missing from the disk; the port loads every container at start-up',
+    0x0132C4: 'destroyer.shp missing, fatal; the port loads every container at start-up',
+    0x0132FE: 'cruiseship.shp missing, fatal; the port loads every container at start-up',
+    0x013346: 'japcarrier.shp missing, fatal; the port loads every container at start-up',
+    0x013516: 'ported from reading: nothing for a loaded game',
+    0x01382E: 'ported from reading: records before the map\'s start stepped over',
+    0x0138F2: 'ported from reading: the distance handed to the sound engine',
+    0x013ADA: 'ported from reading: more than nine lives count as nine',
+    0x014390: 'reached only after the stand-in at 0x014382 set D7 (M4 PART 2)',
+    0x0143AE: 'reached only after the stand-in at 0x01434C set 0x0253DA (M4 PART 2)',
+    0x0143E6: 'reached only after the stand-in at 0x01434C set 0x0253D8 (M4 PART 2)',
+    0x014A5A: 'ported from reading; tests/test_oracle_m4.py, ship_at_offset',
+    0x014A78: 'ported from reading; tests/test_oracle_m4.py, ship_at_offset',
+    0x014A96: 'ported from reading; tests/test_oracle_m4.py, ship_at_offset',
+    0x014AB4: 'ported from reading; tests/test_oracle_m4.py, ship_at_offset',
+    0x014AE0: 'ported from reading; tests/test_oracle_m4.py, ship_at_offset',
+    0x014D92: 'reached only when 0x014DB8 gives a frame, after its stand-ins (M5)',
+    0x014DD6: 'ported from reading: no frame for a target far ahead',
+    0x016568: 'dash.shp missing, fatal; the port loads every container at start-up',
+    0x01CB50: 'ported from reading: a record at the list\'s end is on no ship',
+    0x01CB70: 'ported from reading: a record of other low bits is on no ship',
+    0x01EDF4: 'ported from reading; tests/test_oracle_m4.py, the gauge resets',
+    0x01EDFE: 'ported from reading; tests/test_oracle_m4.py, the gauge resets',
+    0x01EF68: 'ported from reading: the fuel needle moving down',
+    0x01F1DA: 'ported from reading: the first row of bars clamped at seven',
+    0x01F1EE: 'ported from reading: the second row of bars clamped at seven',
+}
+
+
+def ported_and_markers():
+    """(routine start addresses of M4's routines, [(first, last, marker, milestone)]).  A
+    marker names the first address of what it stands for, or a range."""
+    table = sorted(routines())
+    starts = [a for a, _, _ in table]
+    ported, markers = set(), []
+    for path in MARKER_FILES:
+        with open(os.path.join(ROOT, path)) as handle:
+            text = handle.read()
+        if path in PORT_FILES:
+            for m in ORIG.finditer(text):
+                i = bisect.bisect_right(starts, int(m.group(1), 16)) - 1
+                if i >= 0 and int(m.group(1), 16) < table[i][0] + max(table[i][1], 2):
+                    ported.add(table[i][0])
+        for m in STANDIN.finditer(text):
+            first = int(m.group(3), 16) if m.group(3) else None
+            last = int(m.group(4), 16) if m.group(4) else first
+            markers.append((first, last, m.group(1), m.group(2)))
+    ported.update(a for a, _, n in table if n in M4_IN_OTHER_FILES)
+    return ported, markers
+
+
+def cold_table(data, names):
+    """(Markdown rows, unclassified count): every region of an M4 routine that no run
+    executed in any window or phase, with the stand-in marker whose address or range covers
+    it, or its note from REGION_NOTES; then the markers whose region the original did run
+    (the port stands in there although a script reached it in the original's tick, or on a
+    value no script produced), and the markers that name no region."""
+    import oracle as oracle_module
+    o = oracle_module.Oracle()
+    windows = {w for name in names for w, _, _, _, _ in data[name]['blocks']}
+    phases = {p for name in names for _, p, _, _, _ in data[name]['blocks']}
+    table = {a: (s, n) for a, s, n in routines()}
+    ported, markers = ported_and_markers()
+    rows = ['| Routine | Region no run executed | Stand-in marker, or what it is | Owed to |',
+            '|---|---|---|---|']
+    used, unclassified = set(), 0
+
+    def text(marker):
+        return marker.split(': ', 1)[1]
+
+    for start in sorted(ported):
+        span, name = table[start]
+        if span <= 0:
+            continue
+        hot, total, cold = cold_ranges(o, data, names, name, windows, phases)
+        for lo, hi in cold:
+            inside = [mk for mk in markers if mk[0] is not None and
+                      (lo <= mk[0] < hi or mk[0] <= lo <= mk[1])]
+            where = '`%s` `0x%06X`' % (name, start)
+            region = '`0x%06X`-`0x%06X`' % (lo, hi - 1)
+            if inside:
+                for mk in inside:
+                    used.add(mk)
+                    rows.append('| %s | %s | %s | %s |' % (where, region, code_words(text(mk[2])),
+                                                             mk[3]))
+            elif lo in REGION_NOTES:
+                rows.append('| %s | %s | %s | |' % (where, region, code_words(REGION_NOTES[lo])))
+            else:
+                unclassified += 1
+                rows.append('| %s | %s | **unclassified** | |' % (where, region))
+    for mk in sorted((m for m in markers if m not in used), key=lambda m: (m[0] is None, m[0] or 0)):
+        where = 'run by the original' if mk[0] is not None else 'no region: a value'
+        rows.append('| | %s | %s | %s |' % (where, code_words(text(mk[2])), mk[3]))
+    return rows, unclassified
+
+
+def cold_main(argv):
+    parser = argparse.ArgumentParser(description='the cold regions of the ported routines')
+    parser.add_argument('--cold', required=True, help='a REACH.json written with --blocks')
+    args = parser.parse_args(argv)
+    with open(args.cold) as handle:
+        data = json.load(handle)
+    rows, unclassified = cold_table(data, sorted(data))
+    print('\n'.join(rows))
+    if unclassified:
+        print('%d regions are unclassified: give each a marker or a REGION_NOTES entry'
+              % unclassified, file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    if '--cold' in sys.argv:
+        sys.exit(cold_main(sys.argv[1:]))
+    sys.exit(main())
