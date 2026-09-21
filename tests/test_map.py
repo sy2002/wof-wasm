@@ -138,7 +138,8 @@ def flown():
 def test_every_map_of_the_disk_parses_without_a_byte_left_over():
     """The first long is the file's own length, the second gives the player's start.  The
     record list runs to the end of the file, and the loader reads eight bytes more than the
-    file holds, so the last four records of every map come from whatever memory it got."""
+    file holds, so the last four records of every map never come from it; they are zero,
+    because every allocation the game makes asks AllocMem for MEMF_CLEAR (re/notes/map.md)."""
     for name in map_decode.NAMES:
         chart = map_decode.load(name)
         assert chart.length == chart.file_length, name

@@ -167,8 +167,8 @@ record is `0x30` bytes. Every field below is observed over the flights of
 
 | Offset | Name | Unit | What the run shows | Writer |
 |---|---|---|---|---|
-| `+0x00` | `player_y` | pixels above the water | moves by `+0x18` every tick, 516 of 568 ticks | `player_motion`, `0x01C5F4`, `0x01C660` |
-| `+0x02` | `player_x` | world pixels | moves by `+0x16` times `+0x14`, 554 of 568 ticks | `player_motion`, `0x01BDBA`, `0x01B7EC` |
+| `+0x00` | `player_y` | pixels above the water | moves by `+0x18`: **every one of the 413 ticks in the air** of the flight, and 340 of the 344 of the climb, the other four being the ceiling below | `player_motion`, `0x01C5F4`, `0x01C660` |
+| `+0x02` | `player_x` | world pixels | moves by `+0x16` times `+0x14`: **every tick in the air** of both flights | `player_motion`, `0x01BDBA`, `0x01B7EC` |
 | `+0x04` … `+0x0B` | | | four words the drawing reads; they move while the aircraft turns | `0x01C378` |
 | `+0x0C` | `player_on_deck` | | 1 on the carrier, 0 in the air, and 4, 6, 8 and 11 through the lift and the restart | `0x0112B0`, `0x01C5F4`, `0x01C660` |
 | `+0x0E` | `player_fuel` | | `0xC0` at a reset, one less every 28 ticks in the air, never while the aircraft stands in the hold, and never upward | `logic_tick` |
@@ -179,6 +179,19 @@ record is `0x30` bytes. Every field below is observed over the flights of
 | `+0x18` | `player_speed_y` | pixels per tick | the same for the climb | `player_motion` |
 | `+0x1C` | `enemy_countdown` | ticks | `1349` at the start of a mission, one less on every tick whose input byte has **neither** fire bit, and never on a tick that has one: 249 moves and 319 stands in a 568-tick run with the guns firing, with no exception | `0x01BC02` |
 | `+0x1E` … `+0x2E` | `player_trail` | | five words four apart that `snapshot_for_draw` reads in every pass; **no run saw anything write them**, so what fills them is open | — |
+
+The two position rules hold with the speed the tick **ends** with, because `player_motion`
+writes each speed and applies it in the same tick. They are stated for the ticks the aircraft
+is in the air, and the exceptions outside that are all accounted for (observed over the
+`flight` and `climb` runs, 1,236 ticks):
+
+- **on the lift and on the deck** (`+0x0C` of 11 and 1) the aircraft is moved by the deck code
+  and not by `player_motion`: in the flight that is 31 ticks of the lift raising it a pixel a
+  tick with both speeds at zero, and 13 ticks of the roll, where x advances by one more than
+  the speed. Those are every exception the flight has.
+- **at the ceiling** `player_motion` clamps the height to 1100 instead of adding the speed
+  (`re/notes/ffp.md`). In the climb that is exactly four ticks, 367 to 371, each with y already
+  at 1100; they are the only in-air exceptions in either run.
 
 The globals around it, and the three names `re/notes/ffp.md` left open:
 

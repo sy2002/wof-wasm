@@ -204,15 +204,23 @@ def player_report(name, rows):
                 changed[i * 2] += 1
     print('  offsets that ever change: %s' % ' '.join(
         '+0x%02x x%d' % (offset, count) for offset, count in sorted(changed.items())))
+    # player_motion writes the two speeds and applies them in the same tick, so the position
+    # moves by the speed the tick ends with.  On the deck and on the lift the aircraft is moved
+    # by the deck code instead, so the two are counted apart.
     ok = collections.Counter()
     for before, after in zip(rows, rows[1:]):
-        want_x = before['record'][1] + before['record'][0x16 // 2] * before['record'][0x14 // 2]
-        ok['x moves by the horizontal speed times the facing'] += (
-            (want_x & 0xFFFF) == (after['record'][1] & 0xFFFF))
-        ok['y moves by the vertical speed'] += (
-            ((before['record'][0] + before['record'][0x18 // 2]) & 0xFFFF)
-            == (after['record'][0] & 0xFFFF))
+        one, two = before['record'], after['record']
+        air = one[0x0c // 2] == 0 and two[0x0c // 2] == 0
+        moved_x = (one[1] + two[0x16 // 2] * two[0x14 // 2]) & 0xFFFF == two[1] & 0xFFFF
+        moved_y = (one[0] + two[0x18 // 2]) & 0xFFFF == two[0] & 0xFFFF
         ok['ticks compared'] += 1
+        ok['ticks in the air'] += air
+        ok['x moves by the horizontal speed times the facing'] += moved_x
+        ok['y moves by the vertical speed'] += moved_y
+        ok['   of them, in the air: x'] += air and moved_x
+        ok['   of them, in the air: y'] += air and moved_y
+        if air and not moved_y:
+            ok['   y in the air, at the ceiling of 1100'] += two[0] == 1100
     for what, count in sorted(ok.items()):
         print('  %-52s %d' % (what, count))
     for key in sorted(PLAYER_GLOBALS):

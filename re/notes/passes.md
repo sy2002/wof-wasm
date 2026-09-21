@@ -57,7 +57,9 @@ read **62 of those blocks**. The full table is one command:
 .venv/bin/python tools/pass_observe.py --out TABLE.txt
 ```
 
-What crosses from the pass into the tick is this, and nothing else (observed):
+What the seven runs saw cross from the pass into the tick is this (observed). It is a
+**lower bound**, not the whole: a coupling only shows up here if a script reached it, and the
+table below this one lists the ones that are read but that no script reached.
 
 | Written in a pass | By | Read in a tick by | What it is |
 |---|---|---|---|
@@ -81,9 +83,21 @@ calls the restart at the tick where the wait is over. `re/notes/drawing.md` has 
 `0x024F24`, was never taken, and every entry came from the tick or from the mission setup.
 Both callers exist; the port has to keep the drawing globals shared between the two trees.
 
-The rest of what a pass writes is drawing state that no tick reads: `snapshot_for_draw`'s
-copies (47 blocks), the map window of the dashboard, the blitter's parameter block, the copper
-lists and the sky flash.
+The rest of what a pass writes is drawing state that no tick read in these runs:
+`snapshot_for_draw`'s copies (47 blocks), the map window of the dashboard, the blitter's
+parameter block, the copper lists and the sky flash.
+
+### Couplings that are read and that no run reached
+
+These are in the listing and in `re/notes/drawing.md` but **absent from the table above**,
+because no script of this note met the condition that exercises them. M4 and M5 must take the
+table above together with this one.
+
+| Written in a pass | By | Read in a tick by | What has to happen |
+|---|---|---|---|
+| `player_score` `0x02534C` and `island_score` `0x025450` | `0x013EEE`, which adds `0x19` per soldier and takes one off the island's count | `0x011CD8`, `0x0146DC` | **a soldier has to die.** The bombing run brought six out of a barracks at tick 850 and one of them left again, but none was killed, so no pass ever wrote the score: killing them needs the guns held over the island after the barracks is hit, which no script does. The 200 points that run scored were written in a tick, not in a pass |
+| `0x02508A`, the player's record `+0x12` | `re/notes/drawing.md` names `0x014F5C`, under `draw_world` | `logic_tick`, `0x011BFC` (both observed as readers) | unknown. In the seven runs `0x014F5C` wrote the word at `+0x10` of the record and nothing wrote `+0x12` inside a pass, so either another path of that routine writes it or the static attribution is off by two |
+| whatever `player_lost_restart` writes when `frame_update` calls it | `frame_update`, guarded by `0x024F24` | the readers of the restart's own state | that guard has to be set. In all seven runs the restart was reached from the tick or from the mission setup and `frame_update`'s own call was never taken |
 
 ### What a pass reads of the tick
 
@@ -96,34 +110,49 @@ between `Forbid` and `Permit`, and `draw_world` takes `view_x`, `view_y`, `view_
 
 The same script at three pass rates, over an **entropy stream of one constant value**
 (`{"entropy": {"constant": 10304}}`), so that the three runs see the same stream although a
-pass consumes entropy. Compared is the state at the same tick number, byte by byte
-(`tools/pass_observe.py --control`, observed):
+pass consumes entropy. `tools/pass_observe.py --control --runs NAME --ticks N` then compares
+their state at the same tick number, byte by byte, and:
 
-```text
-  1 VBlanks per pass: 873 passes, 1005 VBlanks at tick 220
-  2 VBlanks per pass: 437 passes, 1005 VBlanks at tick 220
-  3 VBlanks per pass: 292 passes, 1006 VBlanks at tick 220
-51 bytes differ; 43 of them were written by a pass, 3 only by a VBlank server, 5 by neither
-```
+- **checks that the three runs fed the tick the same input bytes.** They are the schedule's
+  own `T` entries; if they differed the comparison would say nothing at all. They are equal in
+  every run below.
+- takes the writer of every byte **from the three compared runs themselves**, so a byte that
+  only these runs write is still attributed;
+- asks one more run of the same script, with a read hook over exactly the ranges a pass wrote,
+  which routines read them inside a tick;
+- and puts every differing byte into one of four classes, the last of which is a finding:
+  written by a pass; written only by a VBlank server or something it calls; written in a tick
+  by a routine that reads a pass-written range; written in a tick by a routine such a reader
+  calls. A VBlank can happen inside a tick — the restart spins on `WaitTOF` there — so a
+  server is recognised by its routine and not by the phase the write was tagged with.
 
-Of 20,996 bytes of state, **51 differ after 220 ticks** although the pass rate is three times
-apart, and every one of them is explained:
+Three scripts, the third of them run twice as far as the other two and through the restart
+(observed):
 
-- **43 bytes were written in phase `F`**: the pass counter, the sky split row, the
-  `snapshot_for_draw` copies, the plane and view pointers of the double buffer, the copper
-  list pointers and two bytes of the sound engine's queue. Every one is a row of the table
-  above or a drawing range beside it.
-- **4 bytes were written by a VBlank server** (`vblank_total`, `vblank_counter`,
-  `vblank_divider`, one sound slot): the three runs stand at 1005, 1005 and 1006 VBlanks at
-  tick 220, because a pass waits for a VBlank of its own, so they are one VBlank apart.
-- **4 bytes were written inside a tick** and differ because that tick read a coupled range:
-  `0x027352` by `0x011460`, which reads `pass_counter`, and three bytes of the sound engine by
-  `0x01EAC0`, which `0x012132` drives from `0x027164`.
+| Script | Ticks | Passes at 1, 2, 3 VBlanks | VBlanks there | Bytes that differ | Left over |
+|---|---|---|---|---|---|
+| `flight` | 220 | 873, 437, 292 | 1005, 1005, 1006 | 51: 43 by a pass, 1 by a reader, 3 below one, 4 by a VBlank server | none |
+| `lost` | 600 | 2373, 1188, 793 | 2525, 2526, 2527 | 82: 49 by a pass, 27 by a reader, 2 below one, 4 by a VBlank server | none |
+| `bomb` | 1050 | 4193, 2097, 1399 | 4325, 4325, 4327 | 121: 61 by a pass, 54 by a reader, 2 below one, 4 by a VBlank server | none |
 
-**Everything else is identical at equal tick numbers**, including the player's record, the
-enemy aircraft, the map, the score and the input queue. The tick is therefore a function of
-the input bytes and the entropy stream alone, as long as the coupled ranges above are
-reproduced; the pass rate changes only them.
+The first script is level flight with nothing in the air; the second flies the aircraft into
+the sea and through the restart, which is where the tick itself draws; the third drops twenty
+bombs, brings soldiers out of a barracks and keeps fifteen object records turning over. Of
+about 21,000 bytes of state, the hardest of the three differs in 121 after 1,050 ticks
+although the pass rate is three times apart, and **every one of them is explained**:
+
+- a pass wrote it, which means it is a row of the table above or a drawing range beside it;
+- or a VBlank server wrote it (`vblank_total`, `vblank_counter`, `vblank_divider` and one
+  sound slot), and the runs stand one or two VBlanks apart at the same tick, because a pass
+  waits for a VBlank of its own;
+- or a tick wrote it, and the routine that did is one that reads a coupled range —
+  `object_spawn`, `0x010AA6`, `0x0152B0`, `0x011E82`, `0x011460`, `0x013684` — or one such a
+  reader calls, which is how the sound engine's `0x01EAC0` comes in behind `0x012132`.
+
+**Everything else is identical at equal tick numbers**, including the map, the input queue and
+the tick's own input bytes. The tick is therefore a function of the input bytes and the
+entropy stream alone, as long as the coupled ranges above are reproduced; the pass rate
+changes only them.
 
 ## What this does not answer
 

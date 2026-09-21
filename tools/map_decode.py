@@ -48,9 +48,9 @@ class Map:
         self.file_length = len(data)
         self.length, self.start = struct.unpack_from('>LL', data, 0)
         # The first long is the file's own length, and the loader reads that many bytes of
-        # records after the eight-byte header: the last eight bytes of the list are never
-        # read from the file and are whatever the allocation held.  Here they are zero,
-        # which is what the harness's fresh memory gives them.
+        # records after the eight-byte header: the last eight bytes of the list never come
+        # from the file.  They are zero everywhere, because the game's allocator asks
+        # AllocMem for MEMF_CLEAR (re/notes/map.md).
         self.on_disk = (len(data) - 8) // 2
         self.padding = self.length // 2 - self.on_disk
         self.words = list(struct.unpack_from('>%dH' % self.on_disk, data, 8)) + [0] * self.padding

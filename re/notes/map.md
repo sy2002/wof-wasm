@@ -28,11 +28,18 @@ rank and the mission number, reads two longs, allocates and reads the record lis
 - `player_start_x` (`0x025392`) is the second long times four less eight.
 - **The loader reads eight bytes more than the file holds.** It allocates and asks for
   `length` bytes of records although only `length - 8` follow the header, so the last four
-  records of every map are whatever the allocation held. In the harness that memory is fresh
-  and reads as zero, which is a record that draws nothing and has ground height zero; on a
-  real machine `AllocMem` without `MEMF_CLEAR` leaves what was there. The last record of the
-  list is read by the draw loop but never drawn, because the loop tests the pointer after it
-  has been advanced. Observed for all 15 maps (`test_every_map_of_the_disk_parses_without_a_byte_left_over`).
+  records of every map never come from the file. **They are zero records everywhere**, not
+  undefined memory: the game's own allocator `0x020874`, which every `mem_alloc` goes through,
+  sets bit 16 of the flags it hands `AllocMem` (`bset #$10,d0` at `0x020884`), which is
+  `MEMF_CLEAR`, and the two entries above it already push `0x10001` and `0x10003` (read). The
+  harness's fresh memory reads the same way. A zero record draws nothing and gives ground
+  height zero. The last record of the list is read by the draw loop but never drawn, because
+  the loop tests the pointer after it has been advanced. Observed for all 15 maps
+  (`test_every_map_of_the_disk_parses_without_a_byte_left_over`).
+
+  For the port this is a rule, not a curiosity: **its arena has to hand out zeroed memory**,
+  because every allocation the game makes asks for `MEMF_CLEAR` and the game relies on it
+  here.
 
 All 15 maps parse with nothing left over (observed):
 
@@ -206,6 +213,5 @@ else the map feeds is drawing.
   records, are filled but no reader of them was looked for.
 - `0x012C84` reads the map a second time for the airfield markers `0x114` and `0x115`, which
   only the later maps carry; the records it builds at `0x0252FA` were not followed further.
-- The four records past the end of the file are uninitialised memory in the original. Whether
-  any of them can draw depends on what was there; the port has to decide what to put there and
-  should say so.
+- Why the loader asks for eight bytes more than the file holds is not established; the
+  records it gets are zero and harmless, so nothing depends on the answer.
