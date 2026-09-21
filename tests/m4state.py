@@ -39,8 +39,8 @@ def handle(slot, index):
 class Memory:
     """A state of the original as {region base: bytes}: the DATA hunk and the allocations."""
 
-    def __init__(self, regions):
-        self.regions = {a: bytes(b) for a, b in regions.items()}
+    def __init__(self, regions, copy=True):
+        self.regions = {a: bytes(b) for a, b in regions.items()} if copy else regions
         self.bases = sorted(self.regions)
 
     def region(self, address):
@@ -58,7 +58,7 @@ class Memory:
 
     def u(self, address, n):
         raw = self.read(address, n)
-        return None if raw is None else int.from_bytes(raw, 'big')
+        return None if raw is None else int.from_bytes(bytes(raw), 'big')
 
     def size_of(self, base):
         return len(self.regions.get(base, b''))

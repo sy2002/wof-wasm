@@ -439,6 +439,8 @@ static uint16_t play_colours(const wof_vport_t *v, uint16_t row, uint16_t *colou
         }
         return run;
     }
+    if (v != VP(wof_f.view_first[view]))
+        return run;                         /* the dashboard: its own table, no poke, no split */
     if (wof_f.colour1_poked[view])
         colours[1] = wof_f.colour1[view];
     if (v->has_colours2 && v->split_on) {

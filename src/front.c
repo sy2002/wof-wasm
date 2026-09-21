@@ -444,6 +444,7 @@ static wof_co_t tick_standin(void)
         CO_WAIT(c);
     }
     wof_trace_add("tick", (int32_t)wof_f.ticks_run, 0, 0, 0, 0, 0);
+    wof_test_tick_end(wof_f.ticks_run - 1u);
     CO_END(c);
 }
 
@@ -500,6 +501,7 @@ static wof_co_t mission(void)
     wof_f.mission_count++;
     wof_trace_globals();
     wof_trace_mission();
+    wof_test_step_s(wof_f.mission_count);
     wof_g.g_026d54 = (uint16_t)((wof_g.g_026d54 & 0x00FFu) | 0xFF00u);   /* st.b */
 
     for (;;) {                                                /* orig 0x01010E */

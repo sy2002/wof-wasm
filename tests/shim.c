@@ -920,3 +920,61 @@ unsigned wt_passes_run(void)  { return wof_f.passes_run; }
 int      wt_front_view(void)  { return wof_f.front_view; }
 int      wt_back_view(void)   { return wof_f.back_view; }
 int      wt_dash_night(void)  { return wof_f.dash_night; }
+
+/* The state after the last pass, as raw bytes of the two structs (tests/m4state.py). */
+int wt_pass_mission_get(uint8_t *dst, int max)
+{
+    const wof_state_t *st = wof_trace_pass_state();
+
+    if (!st || max < (int)sizeof(wof_mission_t))
+        return -1;
+    wof_mem_copy(dst, &st->m, sizeof(wof_mission_t));
+    return (int)sizeof(wof_mission_t);
+}
+
+int wt_pass_globals_get(uint8_t *dst, int max)
+{
+    const wof_state_t *st = wof_trace_pass_state();
+
+    if (!st || max < (int)sizeof(wof_globals_t))
+        return -1;
+    wof_mem_copy(dst, &st->g, sizeof(wof_globals_t));
+    return (int)sizeof(wof_globals_t);
+}
+
+int wt_pass_view(int front)
+{
+    const wof_state_t *st = wof_trace_pass_state();
+
+    return st ? (front ? st->f.front_view : st->f.back_view) : -1;
+}
+
+/* What the open-loop comparison sets besides the registries: which view is shown, the
+ * entropy stream's position, and the mirror markers of hellcat.shp and Torpedo.shp. */
+void wt_views_set(int front)
+{
+    wof_f.front_view = (uint8_t)(front ? WOF_VIEW_B : WOF_VIEW_A);
+    wof_f.back_view  = (uint8_t)(front ? WOF_VIEW_A : WOF_VIEW_B);
+}
+
+void wt_entropy_set(unsigned state) { wof_s.entropy = state; }
+unsigned wt_entropy_get(void)        { return wof_s.entropy; }
+
+void wt_markers_put(const uint8_t *hellcat, const uint8_t *torpedo)
+{
+    wof_mem_copy(wof_f.marker_hellcat, hellcat, sizeof wof_f.marker_hellcat);
+    wof_mem_copy(wof_f.marker_torpedo, torpedo, sizeof wof_f.marker_torpedo);
+    wof_assets_follow_state();
+}
+
+void wt_markers_get(uint8_t *hellcat, uint8_t *torpedo)
+{
+    wof_mem_copy(hellcat, wof_f.marker_hellcat, sizeof wof_f.marker_hellcat);
+    wof_mem_copy(torpedo, wof_f.marker_torpedo, sizeof wof_f.marker_torpedo);
+}
+
+void wt_set_tick_hook(void (*hook)(uint32_t)) { wof_test_set_tick_hook(hook); }
+void wt_set_vblanks_per_pass(int n)          { wof_set_vblanks_per_pass(n); }
+void wt_set_step_s_hook(void (*hook)(uint32_t)) { wof_test_set_step_s_hook(hook); }
+void wt_set_pass_hook(void (*hook)(uint32_t, uint32_t)) { wof_test_set_pass_hook(hook); }
+void wt_present(void) { wof_screen_from_front_view(); }

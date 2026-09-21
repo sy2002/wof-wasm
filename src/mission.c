@@ -31,7 +31,7 @@ static uint16_t high_byte(uint16_t word, uint8_t value)
  * division of the zero-extended word). */
 uint16_t wof_rand_mod(uint16_t n)
 {
-    uint16_t r = (uint16_t)wof_rand_beam();
+    uint16_t r = (uint16_t)wof_rand_beam(0x01CAC8);
 
     return n ? (uint16_t)(r % n) : 0;
 }
@@ -352,10 +352,10 @@ void wof_choose_night(void)
     uint16_t d0  = 0;
 
     if ((int8_t)map > 6) {
-        wof_rand_beam();
-        wof_rand_beam();
-        wof_rand_beam();
-        d0 = (uint16_t)wof_rand_beam();
+        wof_rand_beam(0x0111FC);
+        wof_rand_beam(0x0111FC);
+        wof_rand_beam(0x0111FC);
+        d0 = (uint16_t)wof_rand_beam(0x0111FC);
         d0 = (uint16_t)(((d0 << 1) | (d0 >> 15)) & 1u);
     }
     wof_g.night_flag = d0;

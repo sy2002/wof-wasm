@@ -383,7 +383,7 @@ static int16_t target_frame(int16_t x)
     if (wof_m.player[0].on_deck != 0)
         return -1;
     if (wof_g.view_shift) {
-        uint16_t r = (uint16_t)wof_rand_beam();
+        uint16_t r = (uint16_t)wof_rand_beam(0x014D50);
 
         return (r & 0x8000u) ? 0x5A : -1;
     }
@@ -693,6 +693,8 @@ static void draw_world(void)
 
                 if ((rec & 3u) == 1)
                     y = ride_on_ship(d4, y);
+                wof_trace_add("map_draw", (int32_t)(at / 2 - 1), (int32_t)((rec >> 2) & 0x1FF),
+                              (int16_t)(d4 - 8), y, 0, 0);
                 wof_draw_at(h, (int16_t)(d4 - 8), y);
             }
         }
@@ -906,6 +908,7 @@ wof_co_t wof_frame_update(void)
     CO_WAIT_UNTIL(c, wof_s.since_pass >= (uint32_t)wof_vblanks_per_pass() && wof_g.vblank_flag);
     wof_s.since_pass = 0;
     wof_f.passes_run++;
+    wof_test_pass_start(wof_f.passes_run);
     wof_trace_add("pass", (int32_t)wof_f.passes_run, 0, 0, 0, 0, 0);
     CO_CALL(c, &wof_f.co_vblank, wof_wait_vblank());
 
@@ -959,5 +962,6 @@ wof_co_t wof_frame_update(void)
     wof_draw_dashboard();
     wof_g.frame_drawn = 0xFF;
     flip_buffers();
+    wof_trace_pass_end();
     CO_END(c);
 }

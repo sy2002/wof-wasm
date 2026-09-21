@@ -231,7 +231,7 @@ void wof_shape_blit(const wof_shape_t *s, int useMask, int16_t x, int16_t y)
  * rectangle that is empty after the clamp draws nothing. */
 void wof_rect_fill(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t colour)
 {
-    wof_trace_add("rect_fill", x0, y0, x1, y1, 0, colour);
+    wof_trace_add("rect_fill", x0, y0, (int32_t)(((uint32_t)colour << 16) | (uint16_t)x1), y1, 0, 0);
     if (x0 < clip_left)
         x0 = clip_left;
     if (x1 >= clip_right)

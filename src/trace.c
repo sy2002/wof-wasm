@@ -134,6 +134,68 @@ const wof_state_t *wof_trace_mission_state(void)
     return mission_snapshot_taken ? &mission_snapshot : 0;
 }
 
+/* The whole state as it stood at the end of the last pass (after flip_buffers): the loop
+ * runs on into the ticks in the same wof_pass, so the comparison takes it here. */
+static wof_state_t pass_snapshot;
+static int         pass_snapshot_taken;
+
+static void (*pass_hook)(uint32_t pass, uint32_t end);
+
+void wof_test_set_pass_hook(void (*hook)(uint32_t pass, uint32_t end))
+{
+    pass_hook = hook;
+}
+
+/* The start of a pass, after its wait: the open-loop comparison sets the port's state here. */
+void wof_test_pass_start(uint32_t pass)
+{
+    if (pass_hook)
+        pass_hook(pass, 0);
+}
+
+void wof_trace_pass_end(void)
+{
+    wof_mem_copy(&pass_snapshot, &wof_s, sizeof pass_snapshot);
+    pass_snapshot_taken = 1;
+    if (pass_hook)
+        pass_hook(wof_s.f.passes_run, 1);
+}
+
+const wof_state_t *wof_trace_pass_state(void)
+{
+    return pass_snapshot_taken ? &pass_snapshot : 0;
+}
+
+/* A test's hook at the end of every tick (the stand-in's and main's own), which is where
+ * the half-closed comparison hands the port what the original's tick wrote. */
+static void (*tick_hook)(uint32_t tick);
+
+void wof_test_set_tick_hook(void (*hook)(uint32_t tick))
+{
+    tick_hook = hook;
+}
+
+void wof_test_tick_end(uint32_t tick)
+{
+    if (tick_hook)
+        tick_hook(tick);
+}
+
+/* And one at step S, where the open-loop comparison sets the port to the original's state
+ * at S, so that main's own work between S and the first pass runs on it. */
+static void (*step_s_hook)(uint32_t mission);
+
+void wof_test_set_step_s_hook(void (*hook)(uint32_t mission))
+{
+    step_s_hook = hook;
+}
+
+void wof_test_step_s(uint32_t mission)
+{
+    if (step_s_hook)
+        step_s_hook(mission);
+}
+
 /* How many VBlanks the original's tick waited, by the port's tick number: the comparison
  * of a replayed schedule counts the V entries that fall inside each T and hands them over,
  * so that the tick stand-in waits where the original's tick waited (src/front.c). */

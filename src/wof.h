@@ -466,7 +466,7 @@ void    *wof_scratch_alloc(uint32_t bytes);
 /* ------------------------------------------------------------------------ entropy 7.3 */
 
 uint16_t wof_entropy_next(void);            /* one value per rand_beam call */
-uint32_t wof_rand_beam(void);               /* orig 0x0203BE */
+uint32_t wof_rand_beam(uint32_t caller);    /* orig 0x0203BE; caller: the original routine */
 void     wof_entropy_seed(uint32_t seed);
 
 /* ------------------------------------------------- the packed file system and dos glue */
@@ -890,7 +890,19 @@ void     wof_test_pokes_clear(void);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
 void     wof_trace_mission(void);                 /* the whole state at step S */
+void     wof_trace_pass_end(void);                /* the whole state after a pass */
+const wof_state_t *wof_trace_pass_state(void);
+void     wof_test_set_tick_hook(void (*hook)(uint32_t tick));
+void     wof_test_tick_end(uint32_t tick);        /* calls the test's hook, if any */
+void     wof_test_set_step_s_hook(void (*hook)(uint32_t mission));
+void     wof_test_set_pass_hook(void (*hook)(uint32_t pass, uint32_t end));
+void     wof_test_pass_start(uint32_t pass);
+void     wof_test_step_s(uint32_t mission);
 #else
+#define wof_test_step_s(mission) ((void)0)
+#define wof_test_pass_start(pass) ((void)0)
+#define wof_trace_pass_end() ((void)0)
+#define wof_test_tick_end(tick) ((void)0)
 #define wof_test_tick_waits(tick) ((uint16_t)0)
 #define wof_test_poke_after_rank() ((void)0)
 #define wof_trace_mission() ((void)0)

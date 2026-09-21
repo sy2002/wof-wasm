@@ -39,14 +39,17 @@ uint16_t wof_entropy_next(void)
  * derived from rand_seed_const, exclusive-ored in its low word with the beam position,
  * which the port takes from the entropy stream.  The result is the whole long in D0, whose
  * high word is the constant's; every caller the five mission scripts reach uses the low
- * word, and the callers that shift or rotate it say so where they do. */
-uint32_t wof_rand_beam(void)
+ * word, and the callers that shift or rotate it say so where they do.  `caller` is the
+ * original address of the routine that calls it, which the comparison with the harness's
+ * entropy log needs (test builds record it). */
+uint32_t wof_rand_beam(uint32_t caller)
 {
     int32_t  v    = (int32_t)(int16_t)wof_g.rand_seed_const * 0x1AFB + 0x1FCCD;
     uint16_t beam = wof_entropy_next();
 
     v = (int32_t)(((uint32_t)v & 0xFFFF0000u) | (uint16_t)((uint16_t)v ^ beam));
     wof_g.rand_state = (uint16_t)v;
-    wof_trace_add("rand_beam", beam, (uint16_t)v, 0, 0, 0, 0);
+    wof_trace_add("rand_beam", beam, (uint16_t)v, (int32_t)caller, 0, 0, 0);
+    (void)caller;
     return (uint32_t)v;
 }
