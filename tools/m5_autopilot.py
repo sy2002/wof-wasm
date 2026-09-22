@@ -195,8 +195,17 @@ def attack(m, s):
         want_face = -1 if way == 'L' else 1
         if s['face'] == want_face and s['att'] == 0:
             m.go('leg')
+            m.button = False
             return way + hold_height(s, leg.get('y', 400))
-        return way + hold_height(s, leg.get('y', 400), limit=2)
+        # The button held inside the turn, from attitude 4 to 20, where it neither fires the
+        # guns nor drops a weapon (0x01B5B0) but keeps the enemy's countdown from running out
+        # (0x01BC02): left alone for 1,349 ticks it brings the enemy aircraft, which are
+        # M6's.  Released before the turn ends, after more than ten VBlanks, it is no tap.
+        if 4 <= s['att'] <= 20:
+            m.button = True
+        elif s['att'] > 20 or s['att'] == 0:
+            m.button = False
+        return way + hold_height(s, leg.get('y', 400), limit=2) + ('F' if getattr(m, 'button', False) else '')
     if ph == 'leg':
         if m.leg >= len(plan['legs']):
             m.go('end')
@@ -366,7 +375,7 @@ PLANS = {
                                                   ('bombfull', 1300, 3800)]},
         {'dir': 'L', 'y': 130, 'to': 1300, 'do': [('hunt', 1300, 3800, 25),
                                                   ('bombfull', 1300, 3800)]},
-    ] * 8, 'end': 'crash', 'tail': 700, 'until_clear': True},
+    ] * 8, 'end': 'crash', 'tail': 400, 'until_clear': True},
     # Rockets (the menu one step up) at map a's targets: a rocket falls for a few ticks,
     # then flies on along the aircraft's pitch, accelerating (object_step, 0x010AC0), so it
     # comes down within reach only from a dive; a salvo every three ticks over each target.
@@ -385,7 +394,7 @@ PLANS = {
         {'dir': 'L', 'y': 45, 'to': 1600}, {'dir': 'L', 'y': 150, 'to': 1100},
         {'dir': 'R', 'y': 150, 'to': 1500}, {'dir': 'R', 'y': 45, 'to': 3600},
         {'dir': 'R', 'y': 150, 'to': 4100}, {'dir': 'L', 'y': 150, 'to': 3700},
-    ] * 10, 'end': 'level', 'tail': 400, 'once': True},
+    ] * 10, 'end': 'level', 'tail': 250, 'once': True},
     # Into the ground of map a's island, next to the eastern hut.
     'crash_a': {'legs': [
         {'dir': 'L', 'y': 120, 'to': 2900},
