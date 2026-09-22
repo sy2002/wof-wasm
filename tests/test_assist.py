@@ -219,14 +219,16 @@ def test_a_key_held_when_the_menu_opens_steps_nothing_until_pressed_again(core):
     assert [s for _, s in c.steps] == [-1], c.steps
 
 
+@pytest.mark.parametrize('length', [2, 5])
 @pytest.mark.parametrize('period', [10, 12], ids=['200ms-pal', '200ms-ntsc'])
-def test_three_quick_taps_are_three_steps(core, period):
+def test_three_quick_taps_are_three_steps(core, period, length):
     """A press made while a step runs is remembered and starts the next push when the
-    current one ends."""
+    current one ends.  A press still down when the push ends would start the next one
+    anyway; a short one is gone by then and needs the memory."""
     c = in_the_hold(core, assist=True)
     for _ in range(3):
-        c.run(5, 'U')
-        c.run(period - 5)
+        c.run(length, 'U')
+        c.run(period - length)
     c.run(60)
     assert [s for _, s in c.steps] == [-1] * 3, c.steps
 
