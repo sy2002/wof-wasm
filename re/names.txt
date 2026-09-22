@@ -659,7 +659,9 @@
 026f78 draw_attitude         ; word: the drawing's copy of attitude_index
 025430 island_slot1          ; 4 words: the islands' first slot, from map_scan
 025438 island_slot2          ; 4 words: their second slot
-0253a4 weapon_type           ; word: the weapon selected, 0 to 3
+0253a4 weapon_type           ; word: the weapon selected, 0 to 2: weapon_menu steps it round
+025364 weapon_menu_up        ; byte: the weapon menu in the hold is up; player_restart_state sets it, weapon_menu clears it when the button closes the menu, and the player does not move meanwhile
+02536e weapon_menu_wait      ; byte: ticks that carry input the weapon menu lets pass before its next step: 2 after a step, 1 when the menu opens
 027f2a gauge_weapons_tens    ; word: the weapon counter's tens drum, 0x50 - 8 * digit
 027f2c gauge_weapons_ones    ; word: its ones drum
 027f2e gauge_lives           ; word: the lives drum's row, moving toward 0x59 - 8 * lives

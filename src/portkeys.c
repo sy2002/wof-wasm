@@ -46,6 +46,10 @@ void wof_port_key(uint8_t code, uint16_t qualifier)
 {
     uint16_t with_control = (uint16_t)(qualifier | IEQUALIFIER_CONTROL);
 
+    /* The keyboard assist steps the weapon menu with the stick alone; the cursor keys would
+     * reach it a second time through last_key (src/assist.c). */
+    if (wof_assist_swallows(code))
+        return;
     if (!wof_f.editing) {
         switch (code) {
         case RAW_P:                             /* KeyP pauses and continues */

@@ -56,7 +56,8 @@ static int read_fire_button(void)
 
 /* orig 0x01520E read_joy_bits - b0 forward, b1 back, b2 left, b3 right, and the vertical
  * flip applied only when one of the two vertical bits is set, because eori #3 on a centred
- * stick would produce up and down at once. */
+ * stick would produce up and down at once.  Port policy, not the original: a push of the
+ * keyboard assist in the weapon menu is not flipped (WOF_RAW_UNFLIPPED, src/assist.c). */
 uint16_t wof_read_joy_bits(void)
 {
     uint16_t bits = 0;
@@ -66,7 +67,7 @@ uint16_t wof_read_joy_bits(void)
     if (wof_s.raw & RAW_LEFT)    bits |= 0x4u;
     if (wof_s.raw & RAW_RIGHT)   bits |= 0x8u;
 
-    if ((bits & 0x3u) && wof_g.opt_invert_vertical)
+    if ((bits & 0x3u) && wof_g.opt_invert_vertical && !(wof_s.raw & WOF_RAW_UNFLIPPED))
         bits ^= 0x3u;
     return bits;
 }
@@ -268,6 +269,7 @@ void wof_vblank(uint8_t raw)
 
     wof_g.vblank_total++;
     vblank_every_frame();
+    wof_assist_vblank();                /* port policy: the keyboard assist watches (src/assist.c) */
 
     if ((int16_t)--wof_g.vblank_divider > 0) {
         wof_vblank_ticker();
@@ -276,7 +278,16 @@ void wof_vblank(uint8_t raw)
     wof_g.vblank_divider = VBLANKS_PER_TICK;
 
     /* M7: demo playback takes the byte from the recorded buffer instead. */
-    read_joystick();
+    {
+        /* Port policy, not the original: the sample sees what the keyboard assist makes of
+         * the VBlanks since the previous one, and everything else keeps seeing the
+         * controller as it is (src/assist.c).  While the assist is off it is the identity. */
+        uint16_t physical = wof_s.raw;
+
+        wof_s.raw = wof_assist_sample(physical);
+        read_joystick();
+        wof_s.raw = physical;
+    }
 
     uint16_t count = wof_g.input_queue_count;
 

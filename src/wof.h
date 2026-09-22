@@ -79,6 +79,8 @@ WOF_API(wof_key)               void            wof_key(uint8_t code, uint16_t qu
 WOF_API(wof_port_key)          void            wof_port_key(uint8_t code, uint16_t qualifier);
 WOF_API(wof_set_invert_vertical) void          wof_set_invert_vertical(int on);
 WOF_API(wof_invert_vertical)   int             wof_invert_vertical(void);
+WOF_API(wof_set_keyboard_assist) void          wof_set_keyboard_assist(int on);   /* the port's own, src/assist.c */
+WOF_API(wof_keyboard_assist)   int             wof_keyboard_assist(void);
 WOF_API(wof_set_fade_vblanks)  void            wof_set_fade_vblanks(int n);
 WOF_API(wof_fade_vblanks)      int             wof_fade_vblanks(void);
 WOF_API(wof_set_vblanks_per_pass) void         wof_set_vblanks_per_pass(int n);
@@ -89,7 +91,7 @@ WOF_API(wof_vblanks_per_pass)  int             wof_vblanks_per_pass(void);
  * only while the diagnostics overlay is up (SPEC 6.2, and M3's deliverable 7). */
 WOF_API(wof_dev_set_score)     void            wof_dev_set_score(uint32_t score);
 WOF_API(wof_dev_open_dialog)   void            wof_dev_open_dialog(int mode);
-WOF_API(wof_dev_player)        const int16_t  *wof_dev_player(void);   /* x, y, player_on_deck; read-only */
+WOF_API(wof_dev_player)        const int16_t  *wof_dev_player(void);   /* x, y, player_on_deck, weapon_type; read-only */
 
 /* The pause as a request (M4): the shell asks for it when the page is hidden, and the next
  * pass of a mission pauses the game as Escape does.  Outside a mission it is dropped. */
@@ -429,13 +431,20 @@ typedef struct {
     uint16_t invert_given;  /* whether the shell ever handed one over (SPEC 6.1) */
     uint32_t standin_hits;  /* marked stand-ins reached, wof_standin_hits (M4) */
     uint32_t since_pass;    /* VBlanks since the previous pass began, wof_vblanks_per_pass */
+    uint16_t assist;        /* the keyboard assist is on (src/assist.c), 0 or 1 */
+    uint16_t assist_prev;   /* the directions of the previous VBlank, for the edges */
+    uint16_t assist_armed;  /* directions pressed since the previous sample, not yet sampled */
+    uint16_t assist_push;   /* the direction of the weapon menu's running push, 0 for none */
+    uint16_t assist_left;   /* the VBlanks that push still covers */
+    uint16_t assist_queued; /* presses remembered while it runs, at most two */
+    uint16_t assist_queue[2];
     wof_globals_t g;        /* the original's own globals, src/globals.def */
     wof_mission_t m;        /* the original's tables, src/mission.def */
     wof_front_t   f;        /* the front end: coroutines, screens, dialogs (SPEC 6.3) */
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 5u
+#define WOF_STATE_VERSION 6u
 
 extern wof_state_t wof_s;
 
@@ -711,6 +720,15 @@ uint16_t wof_input_queue_pop(void);                 /* orig 0x011714 */
 /* The port's key layer and the vertical flip as a preference (src/portkeys.c). */
 void     wof_invert_vertical_follow(void);          /* the flip command changed the byte */
 void     wof_invert_vertical_restore(void);         /* M7: after a loaded game */
+
+/* The keyboard assist, the port's own policy in front of the sample (src/assist.c).  While
+ * the sample is taken the raw word may carry WOF_RAW_UNFLIPPED, which the shell can never
+ * send (wof_vblank keeps five bits): its vertical bits are a push of the weapon menu, which
+ * read_joy_bits does not flip. */
+#define WOF_RAW_UNFLIPPED 0x20u
+void     wof_assist_vblank(void);                   /* every VBlank that is not paused */
+uint16_t wof_assist_sample(uint16_t physical);      /* what the sample sees */
+int      wof_assist_swallows(uint8_t code);         /* a cursor key the weapon menu must not see */
 
 /* ------------------------------ the arithmetic game logic computes with (7.1, point 13) */
 

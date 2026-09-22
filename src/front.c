@@ -828,15 +828,16 @@ void wof_dev_open_dialog(int mode)
     wof_f.dev_dialog = (uint16_t)(mode ? 2 : 1);
 }
 
-/* The player's x, y and player_on_deck, for the overlay and the page test: a copy, outside
- * the state, that nothing in the core reads. */
+/* The player's x, y and player_on_deck, and the weapon type the menu in the hold steps, for
+ * the overlay and the page test: a copy, outside the state, that nothing in the core reads. */
 const int16_t *wof_dev_player(void)
 {
-    static int16_t out[3];
+    static int16_t out[4];
 
     out[0] = wof_m.player[0].x;
     out[1] = wof_m.player[0].y;
     out[2] = wof_m.player[0].on_deck;
+    out[3] = wof_g.weapon_type;
     return out;
 }
 
