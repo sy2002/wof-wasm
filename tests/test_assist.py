@@ -57,8 +57,10 @@ class Core:
             ported.set_invert_vertical(invert)
         self.index = {name: ported._global_index(name)
                       for name in ('weapon_type', 'tick_input', 'g_025364', 'vblank_divider',
-                                   'g_026d3e', 'g_02536e')}
+                                   'g_026d3e', 'g_02536e', 'input_queue_count')}
         self.vblank = 0
+        self.step_s = None                 # the VBlank the last mission reached step S at
+        self.missions = 0
         self.steps = []                    # (VBlank, -1 or +1) for every step of the menu
         self.ticks = []                    # (VBlank, tick_input, menu flag after the tick)
         self.on_tick = None
@@ -91,6 +93,8 @@ class Core:
             after = self.g('weapon_type')
             if after != before:
                 self.steps.append((self.vblank, -1 if after == (before - 1) % 3 else 1))
+            if self.p.mission_count() != self.missions:
+                self.missions, self.step_s = self.p.mission_count(), self.vblank
 
     def script(self, segments):
         for segment in segments:
@@ -100,6 +104,12 @@ class Core:
         """Run idle until the next VBlank would be `phase` VBlanks after a sample."""
         while (4 - self.g('vblank_divider')) % 4 != phase:
             self.run(1)
+
+    def live(self):
+        """Whether the tick that takes the next sample runs the weapon menu: 0x026D3E less
+        the bytes already waiting is at most 1 (logic_tick, 0x011402)."""
+        left = self.g('g_026d3e') - self.g('input_queue_count')
+        return left <= 1
 
     def player(self):
         return list((ctypes.c_int16 * 4).from_address(self.lib.wof_dev_player()))
@@ -269,6 +279,90 @@ def test_the_push_ends_with_the_menu(core):
         assert closed and closed[0][1] & 0x30, (phase, c.ticks_since(start))
         assert all(t[1] & 0x0F == 0 for t in closed), (phase, closed)
         assert c.player()[2] == 11 or c.player()[2] == 1, c.player()
+
+
+# --------------------------------------------------- the menu's first fifteen ticks
+
+def at_step_s(core, after, **options):
+    """`after` VBlanks past the first mission's step S, the briefing ended by the button and
+    nothing pressed in the hold since."""
+    c = core(**options)
+    c.script(pass_observe.FRONT[:7])           # the fourth press of the button ends the briefing
+    c.run(3, 'F')
+    assert c.step_s is not None and c.vblank - c.step_s <= after
+    c.run(after - (c.vblank - c.step_s))
+    c.steps = []
+    return c
+
+
+@pytest.mark.parametrize('after', [2, 10, 30])
+def test_a_press_in_the_menus_first_ticks_waits_for_it(core, after):
+    """The tick does not run the menu for 15 ticks after it opens.  A tap then is one step,
+    taken when the menu becomes live, to the weapon a tap after the window gives."""
+    late = at_step_s(core, 80, assist=True)
+    assert late.live()
+    late.run(3, 'D')
+    late.run(60)
+    c = at_step_s(core, after, assist=True)
+    assert not c.live(), 'the tap is not inside the window'
+    c.run(3, 'D')
+    c.run(120)
+    assert [s for _, s in c.steps] == [1] == [s for _, s in late.steps], (c.steps, late.steps)
+    assert c.g('weapon_type') == late.g('weapon_type') == 2
+
+
+def test_without_the_assist_a_press_in_the_menus_first_ticks_is_lost(core):
+    c = at_step_s(core, 10)
+    c.run(3, 'D')
+    c.run(120)
+    assert c.steps == [] and c.g('weapon_type') == 1
+
+
+def test_two_presses_in_the_menus_first_ticks_are_two_steps(core):
+    c = at_step_s(core, 5, assist=True)
+    c.run(3, 'D')
+    c.run(12)
+    assert not c.live()
+    c.run(3, 'U')
+    c.run(12)
+    assert not c.live()
+    c.run(3, 'D')
+    c.run(120)
+    assert [s for _, s in c.steps] == [1, -1], c.steps
+
+
+def test_a_key_held_through_the_menus_first_ticks_steps_when_it_is_live_and_repeats(core):
+    c = at_step_s(core, 10, assist=True)
+    live = None
+    for _ in range(130):
+        if live is None and c.live():
+            live = c.vblank + 1                # the VBlank about to be run
+        c.run(1, 'D')
+    release = c.vblank + 1
+    c.run(60)
+    assert live is not None and live > c.step_s + 10
+    pushes = -(-(release - live) // 12)
+    assert [s for _, s in c.steps] == [1] * pushes, (live, release, c.steps)
+    assert live <= c.steps[0][0] < live + 12, (live, c.steps)
+    assert all(b[0] - a[0] == 12 for a, b in zip(c.steps, c.steps[1:])), c.steps
+
+
+@pytest.mark.parametrize('assist', [True, False], ids=['assist', 'original'])
+def test_a_press_when_the_next_aircraft_comes_waits_for_the_menu(core, assist):
+    """The same window after an aircraft rolled off the bow (0x01362C into
+    player_restart_state)."""
+    c = core(assist=assist)
+    c.script(pass_observe.FRONT + [[40, ''], [3, 'F'], [60, '']])
+    assert not c.g('g_025364')
+    while not c.g('g_025364'):                 # over the bow and into the sea
+        c.run(1, 'R')
+        assert c.vblank < 5000, 'no next aircraft'
+    c.run(5)
+    assert not c.live()
+    c.steps = []
+    c.run(3, 'D')
+    c.run(120)
+    assert [s for _, s in c.steps] == ([1] if assist else []), c.steps
 
 
 # -------------------------------------------------------------------- the never-lost tap

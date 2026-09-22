@@ -21,12 +21,14 @@
  * vertical bits do not reach the sample meanwhile.  A press made while a push runs is
  * remembered, at most two, and each starts one more push when the current one ends; with
  * none remembered and the key still down, the next push starts at once, which is the
- * original's own repeat of one step every three ticks.  A key already held when the menu
- * opens does nothing until it is pressed again.  The push is not flipped: up on the key is up
+ * original's own repeat of one step every three ticks.  For its first 15 ticks the menu is
+ * up but the tick does not run it (0x026D3E); a press made then is remembered the same way
+ * and its push starts on the VBlank the menu becomes live, so no press is ever lost.  A key
+ * already held when the menu opens does nothing until it is pressed again.  The push is not flipped: up on the key is up
  * in the menu, weapon_type decreasing.  It ends the moment the menu loses the stick, and on
- * a sample that carries the button, which gets the stick as it is: weapon_menu tests the
- * button before it steps, so the push could not step on that tick, and that tick's player
- * update already rides the lift.  The cursor keys reach the menu a second way, through
+ * a sample that carries the button to a live menu, which gets the stick as it is:
+ * weapon_menu tests the button before it steps, so the push could not step on that tick,
+ * and that tick's player update already rides the lift.  The cursor keys reach the menu a second way, through
  * last_key, so while the menu has the stick wof_port_key swallows them; otherwise a tap could
  * step twice.
  *
@@ -67,6 +69,16 @@ static int menu_has_stick(void)
 {
     return wof_g.g_025364 && !wof_g.g_0253bc
         && wof_f.co_mission.line != 0 && wof_f.co_keys.line == 0;
+}
+
+/* The tick runs the menu only once 0x026D3E has run down (logic_tick, 0x011402), which
+ * player_restart_state sets to 15 every time the menu opens: at a mission's start, when the
+ * lift reaches the hold and when the next aircraft comes.  The tick that takes the next
+ * sample runs the menu when what is left of the count after the bytes already waiting is at
+ * most 1. */
+static int menu_live(void)
+{
+    return (int16_t)(wof_g.g_026d3e - (int16_t)wof_g.input_queue_count) <= 1;
 }
 
 static void push_start(uint16_t dir)
@@ -124,15 +136,23 @@ void wof_assist_vblank(void)
     /* The weapon menu: a sideways tap is armed as anywhere, forward and back are pushes. */
     wof_s.assist_armed = (uint16_t)(arm(wof_s.assist_armed, down & HORIZONTAL) & HORIZONTAL);
     press = (uint16_t)(down & VERTICAL);
+    if (!menu_live()) {
+        /* Up, but not run by the tick yet: a press waits for it in the queue. */
+        wof_s.assist_push = 0;
+        wof_s.assist_left = 0;
+        if (press && wof_s.assist_queued < QUEUE_MAX)
+            wof_s.assist_queue[wof_s.assist_queued++] = press;
+        return;
+    }
     if (wof_s.assist_push && --wof_s.assist_left == 0) {
         wof_s.assist_push = 0;
-        if (wof_s.assist_queued) {
-            push_start(wof_s.assist_queue[0]);
-            wof_s.assist_queue[0] = wof_s.assist_queue[1];
-            wof_s.assist_queued--;
-        } else if ((now & VERTICAL) && !press) {
-            push_start((uint16_t)(now & VERTICAL));
-        }
+        if (!wof_s.assist_queued && (now & VERTICAL) && !press)
+            push_start((uint16_t)(now & VERTICAL));         /* still down: the repeat */
+    }
+    if (!wof_s.assist_push && wof_s.assist_queued) {
+        push_start(wof_s.assist_queue[0]);
+        wof_s.assist_queue[0] = wof_s.assist_queue[1];
+        wof_s.assist_queued--;
     }
     if (press) {
         if (!wof_s.assist_push)
@@ -160,7 +180,7 @@ uint16_t wof_assist_sample(uint16_t physical)
         out = (uint16_t)((out & ~HORIZONTAL) | (physical & HORIZONTAL));
     if (!menu_has_stick())
         return out;
-    if (wof_g.fire_tap_latch || wof_g.fire_hold_latch) {
+    if ((wof_g.fire_tap_latch || wof_g.fire_hold_latch) && menu_live()) {
         push_end();                    /* this byte carries the button and closes the menu */
         return out;
     }
