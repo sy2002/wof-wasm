@@ -125,33 +125,14 @@ def test_every_pass_agrees_and_every_other_difference_is_owed(ported, name):
 
 # ------------------------------------------------------------------ completeness (T3)
 
-# What the M5 scripts write that neither registry holds, beside tests/m4complete.py's rows:
-# (first, last, writers, what it is, why the port does not keep it, milestone).
-M5_EXCLUDED = [
-    (0x027700, 0x027723, {'crash_hit'},
-     'g_027700: the object record 0x0146C6 makes up for a crash on land (x at +0, type 0 at '
-     '+0x22) and hands to 0x0146DC',
-     'the crash on land is the tick\'s, behind the stand-in at 0x01BBF4', 'M5 part 2'),
-]
-# Display memory beside tests/m4complete.py's HEAP rows.
-M5_HEAP = [
-    ('ticker_vport_init', {'vblank_server'},
-     'the ticker\'s plane, which vblank_server scrolls and fills with glyphs by CPU',
-     'the port scrolls its own plane (wof_vblank_ticker); the message pointer and the '
-     'counters are registered and compared after every step, and the plane is held to the '
-     'original VBlank by VBlank under the oracle (test_the_ticker_matches_the_original)',
-     'M4'),
-]
-
-
 def test_every_address_the_m5_scripts_write_is_compared_or_excluded(ported, request):
     """T3 over the M5 scripts: every address the original writes during their missions is a
     registered field, compared by another check, or on an exclusion list with its reason and
     milestone.  The two long scripts are taken with --slow."""
     slow = request.config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1'
     coverage = m4complete.Coverage(m4state.Layout(ported),
-                                   excluded=m4complete.EXCLUDED + M5_EXCLUDED,
-                                   heap=m4complete.HEAP + M5_HEAP)
+                                   excluded=m4complete.EXCLUDED + m4complete.M5_EXCLUDED,
+                                   heap=m4complete.HEAP + m4complete.M5_HEAP)
     for name in SCRIPTS:
         if name in SLOW and not slow:
             continue

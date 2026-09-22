@@ -135,6 +135,41 @@ HEAP = [
 ]
 
 
+# What the M5 scripts write that neither registry holds, beside the rows above, which the
+# M4 scripts need (tests/test_weapons.py takes both):
+# (first, last, writers, what it is, why the port does not keep it, milestone).
+M5_EXCLUDED = [
+    (0x027700, 0x027723, {'crash_hit'},
+     'g_027700: the object record 0x0146C6 makes up for a crash on land (x at +0, type 0 at '
+     '+0x22) and hands to 0x0146DC',
+     'the crash on land is the tick\'s, behind the stand-in at 0x01BBF4', 'M5 part 2'),
+    # A restart in flight (Control-R, bomb_restart) fades both views to black in the
+    # mission's inner loop (fade_out_pair, re/notes/keys.md) before the mission ends.
+    (0x027A08, 0x027A0B, {'fade_to_pair'},
+     'view_b + 2: the copper buffer of the second view, which every step of a fade swaps '
+     'with cop_spare',
+     'the port has no copper lists; its fades are held to the original by '
+     'test_oracle_m3.py::test_the_fades_agree_with_the_original', 'M3'),
+    (0x027A18, 0x027BD7, {'cmap_file_to_table', 'iff_cmap_to_table', 'mission_display_setup',
+                          'view_poke_colours1', 'view_poke_colours2', 'vport_init_bitmap',
+                          'fade_to_pair'},
+     'coltab_a1 ... coltab_b1_split, as a restart\'s fade leaves them',
+     'compared as the palette of every row at every pass (V1 rows); the fade between two '
+     'passes is held to the original by test_the_fades_agree_with_the_original', 'M3, M4'),
+    (0x027C64, 0x027C67, {'fade_to_pair'},
+     'cop_spare: the third copper buffer', 'as view_b + 2', 'M3'),
+]
+# Display memory beside HEAP's rows.
+M5_HEAP = [
+    ('display_init', {'vblank_server'},
+     'the ticker\'s plane, which vblank_server scrolls and fills with glyphs by CPU',
+     'the port scrolls its own plane (wof_vblank_ticker); the message pointer and the '
+     'counters are registered and compared after every step, and the plane is held to the '
+     'original VBlank by VBlank under the oracle (test_the_ticker_matches_the_original)',
+     'M4'),
+]
+
+
 def _owner(label):
     """'alloc 57 (load_file shapes/wingspalette)' -> 'load_file'."""
     inside = label[label.index('(') + 1:label.rindex(')')] if '(' in label else label

@@ -460,7 +460,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020ce2,shape_draw,asm,264,,,-31956,16,shape_clear_box blit_begin blit_end,,3,,verified
 020dea,shape_clear_box,asm,32,,,,1,rect_fill,,0,,todo
 020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,ported
-020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,ported
+020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,verified
 020f54,blit_raw_c_unused,asm,40,,,,0,blit_raw_unused blit_begin blit_end,,1,,todo
 020f7c,blit_raw_unused,asm,118,,,,1,,,0,,todo
 020ff2,rect_fill_c,asm,30,,,-31938,0,rect_fill blit_begin blit_end,,1,,todo

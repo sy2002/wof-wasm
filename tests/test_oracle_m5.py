@@ -345,3 +345,40 @@ def test_a_targets_frame_and_fire_match_the_original(targets):
                                    'd2': (upper << 16) | rng.randrange(0x10000)})
             d.port(0x014F5C, s16(x))
             check(d, 'target_fire %d' % n)
+
+
+# ------------------------------------------------ the exclusive-or blit, the muzzle flash
+
+SHAPE_DRAW_XOR = 0x020E24
+HELLCAT = 1
+
+
+def test_the_exclusive_or_blit_matches_the_blitter(ported):
+    """shape_draw_xor (0x020E24), which the guns' muzzle flash draws with on the 5-plane
+    playfield: every shape of hellcat.shp, the flash's frames among them, at aligned,
+    shifted and hanging-off positions under the full and a narrow clip, over a noisy
+    background, against the original's register programme replayed by tests/blitter.py.
+    The core is reset first, so that hellcat.shp faces as the file does."""
+    from test_oracle_m4 import (PLAYFIELD, CLIPS, POSITIONS_5, CUSTOM, Reference, background,
+                                draw_op, differ)
+    ported.reset_core()
+    bytes_per_row, rows, depth = PLAYFIELD
+    width = bytes_per_row * 8
+    reference = Reference('shapes/hellcat.shp', bytes_per_row, rows, depth)
+    o = reference.original.o
+    noisy = background(width, rows, 0x6A, depth)
+    changed = cases = 0
+    for index in range(reference.count):
+        record = reference.container['records'][index]
+        for x, y in POSITIONS_5:
+            for clip in CLIPS[PLAYFIELD][:2]:
+                def call():
+                    o.call(SHAPE_DRAW_XOR, regs={'a0': record, 'd0': x & 0xFFFF, 'd1': y & 0xFFFF,
+                                                 'a6': CUSTOM})
+                want = reference.replay(clip, noisy, call)
+                got = draw_op(ported, 5, PLAYFIELD, clip, noisy, slot=HELLCAT, index=index, a=x, b=y)
+                assert got == want, 'hellcat.shp %d at (%d,%d) clip %s: %d pixels differ' % (
+                    index, x, y, clip, differ(got, want))
+                changed += want != noisy
+                cases += 1
+    assert changed > cases // 3, 'only %d of %d blits drew anything' % (changed, cases)
