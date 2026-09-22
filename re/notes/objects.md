@@ -255,12 +255,15 @@ to the notes of M5 and M6.
   barracks its puffs of smoke and the passes between them. What each kind does is in
   re/notes/porting-m5.md, "The targets and the soldiers".
 - **Ricochet** has one writer, `0x011A14`, and nothing in the executable calls it: its
-  far-call slot at `0x023054` is named by no instruction (read). None of the sixteen M5
+  far-call slot at `0x023054` is named by no instruction (read). None of the seventeen M5
   scripts writes the pool (observed, `tools/m5_observe.py pools`). It is dead.
 - **Balloons** are released by `0x01557C` in the pass while `balloons_on` (`0x02535D`) is set,
   and moved by `0x011C5E` in the tick. Only the promotion at the end of a rank's last mission
   sets `balloons_on` (`0x0156CC`); of maps a to c only map c can give one, with all three of
-  its islands neutralised. No M5 script writes the pool (observed, the same command).
+  its islands neutralised. The next mission's `mission_reset_tables` clears it, so the
+  balloons fly from the promotion until the aircraft is back on the deck (read). The M5
+  script `balloons_c` pokes `balloons_on` on map c, and the pool is written by `0x01557C`
+  and `0x011C5E` alone (observed, the same command; re/notes/porting-m5.md).
 
 ## The controls
 
@@ -318,5 +321,6 @@ about 150 bytes. Sizes of routines that only a kind's handler calls are counted 
   `aircraft_motion`: no script of this note brought one up.
 - What `+0x04` to `+0x0B` of the player's record hold; `0x01C378` writes all four words and
   the drawing reads them.
-- The Balloons pool in a run: only a promotion fills it, on map c the whole map
-  neutralised (re/notes/porting-m5.md, "The left-overs").
+- The promotion in a run: only map c with its three islands neutralised gives one on
+  maps a to c, which no script reaches; its balloons are observed with `balloons_on` poked
+  (re/notes/porting-m5.md, "The left-overs").
