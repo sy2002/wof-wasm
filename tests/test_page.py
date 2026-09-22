@@ -19,6 +19,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
 from conftest import (assert_the_mission_is_flown_from_the_keyboard,
+                      assert_the_weapon_menu_steps_once_per_tap,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
                       assert_the_box_is_the_largest_that_fits,
@@ -364,6 +365,12 @@ def test_a_mission_is_flown_from_the_keyboard(loaded):
     assert flight['second']['deck'] in (1, 11), flight['second']
     for life in ('third', 'end'):
         assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
+
+
+def test_the_weapon_menu_steps_once_per_tap(loaded):
+    """The keyboard assist, keys through the driver: three quick taps of ArrowUp in the hold
+    are three steps, and with the flip on ArrowUp still steps up."""
+    assert_the_weapon_menu_steps_once_per_tap(loaded['flight']['weapon'])
 
 
 def test_the_flip_is_still_on_after_a_reload(loaded):

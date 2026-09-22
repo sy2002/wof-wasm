@@ -97,6 +97,10 @@ the original does with a plain letter, so the restriction narrows the original a
 nothing to it. The qualifier the shell sent survives the rewrite; the readers strip it
 before they convert and test only the Control bit.
 
+With the keyboard assist on, which the page always switches on, the layer also swallows the
+cursor keys `0x4C` and `0x4D` while the weapon menu in the hold has the stick, because the
+assist steps that menu with the stick alone (`re/notes/porting-m4.md`, "The keyboard assist").
+
 **What the decision costs.** Five keys — P, F, G, L and M — carry a command in every state
 outside the line editor, so a plain press of them never reaches a reader as a plain letter
 (`test_the_letters_the_layer_always_takes_are_exactly_four`). Nothing the manual describes

@@ -21,6 +21,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      big_enough_blocks)
 from conftest import (ROOT,
                       assert_the_mission_is_flown_from_the_keyboard,
+                      assert_the_weapon_menu_steps_once_per_tap,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
                       assert_the_box_is_the_largest_that_fits,
@@ -241,6 +242,15 @@ def test_a_mission_is_flown_from_the_keyboard(loaded_firefox):
     assert_the_mission_is_flown_from_the_keyboard(flight)
     after = flight['afterReload']
     assert after['stored'] == '1' and after['player']['flip'], after
+
+
+def test_the_weapon_menu_steps_once_per_tap(loaded_firefox):
+    """The keyboard assist in Firefox, keys through the driver."""
+    assert_the_weapon_menu_steps_once_per_tap(loaded_firefox['flight']['weapon'])
+
+
+def test_the_weapon_menu_steps_once_per_tap_in_a_visible_window(loaded_firefox_visible):
+    assert_the_weapon_menu_steps_once_per_tap(loaded_firefox_visible['flight']['weapon'])
 
 
 def test_a_mission_is_flown_in_a_visible_window(loaded_firefox_visible):

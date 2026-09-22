@@ -561,7 +561,113 @@ weapon menu, the lift, the roll with the stick forward late in it (forward from 
 keeps the tail down and the aircraft leaves the bow too slow to climb), the climb, the
 pause stopping the tick count and the second press letting it run, the flip, and the flip
 still on after a reload; in Chrome also a dive into the sea, the button for the next
-aircraft, two aircraft rolled off the bow, the game over and the high-score entry.
+aircraft, two aircraft rolled off the bow, the game over and the high-score entry. The page
+switches the keyboard assist on at start (below), the overlay's player line shows the weapon
+type, and both browsers tap the up key three times in the hold, a tenth of a second each and
+a tenth apart, for three steps, and once more with the flip on, where up still steps up.
+
+## The keyboard assist
+
+`src/assist.c` is the port's own policy, decided with the owner on 2026-09-22, like the key
+layer of `src/portkeys.c` (`re/notes/porting-m3.md`, "The port's own layer"). One switch,
+`wof_set_keyboard_assist`, turns on both halves below. The core starts with it off, which is
+the original, and every comparison with the original runs that way: the open and the closed
+loop, the key runs, the oracle tests and the front end. The page switches it on at start.
+
+### What the original does
+
+The weapon menu in the hold (`weapon_menu`, `0x0112B0`) steps on the tick's input byte, which
+`vblank_server` samples every fourth VBlank through `read_joy_bits` and its flip; when the byte
+is 0 it takes `last_key` instead, so the cursor keys `0x4C` and `0x4D` reach it as well. After a
+step it sets `weapon_menu_wait` (`0x02536E`) to 2 and counts that down only on ticks that carry
+input, sideways bits included, so one step costs three sampled inputs; the menu opens with 1
+there, so the first step falls on the second sample. The tick does not run the menu for the
+first 15 ticks after it opens (`0x026D3E`). Observed under the headless original, twelve taps
+of the stick forward, 20 VBlanks apart:
+
+| Tap | Steps |
+|---|---|
+| 1 VBlank | 1 |
+| 2 VBlanks | 2 |
+| 4 VBlanks | 4 |
+| 8 VBlanks | 8 |
+| 12 VBlanks | 12 |
+| held for 240 VBlanks | 20 |
+
+A key is tapped for two to six VBlanks, so on a keyboard a step takes two or three presses,
+and with the flip on, up on the key goes down in the menu. In flight a tap shorter than four
+VBlanks falls between two samples at some phases of the divider and is lost. The port matches
+the original in all of this with the assist off (`tests/test_assist.py` repeats the table). The
+rank menu (`menu_input`) polls every VBlank, reads the hardware without the flip and waits for
+the release, so it already behaves as a keyboard player expects and is left alone.
+
+### What the assist does
+
+**The weapon menu's push.** The menu has the stick while `weapon_menu_up` (`0x025364`) is set
+and `0x0253BC` clear, which is what `weapon_menu` tests, the mission coroutine is running and
+`ingame_keys` is not inside a dialog or a fade of its own. The byte outlives a mission left
+from the hold by a restart, and it is set by the campaign reset before the first mission; the
+two further conditions keep the rank menu and the load dialog opened from the hold in
+possession of their cursor keys. While the menu has the stick:
+
+1. A press of forward or back starts a push of that direction for exactly twelve VBlanks,
+   which is three samples at any phase of the divider: one step and the two pause counts. The
+   physical vertical bits do not reach the sample meanwhile.
+2. A press made while a push runs is remembered with its direction, at most two, and each
+   starts one more push when the current one ends, so quick taps are one step each at the
+   menu's own rate. With none remembered and the key still down when a push ends, the next
+   push starts at once, which is the original's repeat of one step every three ticks.
+3. A key already held when the menu opens does nothing until it is pressed again.
+4. The push is not flipped: up on the key is up in the menu, `weapon_type` decreasing. The
+   sample carries `WOF_RAW_UNFLIPPED` beside it, and `read_joy_bits` skips the flip for it.
+5. The push ends the moment the menu loses the stick, and on a sample that carries the button
+   (a tap or hold latch set), which gets the stick as it is: `weapon_menu` tests the button
+   before it steps, so the push could not step on that tick, and that tick's player update
+   already rides the lift. No synthetic bit reaches the lift or the deck.
+6. `wof_port_key` swallows `0x4C` and `0x4D`, because they reach the menu a second time
+   through `last_key`.
+
+**The never-lost tap.** Everywhere else, a direction that goes down arms itself; the next
+sample carries it whether it is still down or not, and disarms it. A press therefore gives one
+tick of stick for every sample it covers and one where it covers none: a tap shorter than four
+VBlanks is exactly one tick, never zero and never more than the original gives a push of that
+length. A plain OR of every VBlank since the last sample would give a two- or three-VBlank tap
+that straddles a sample two ticks. A new press clears an armed tap of the opposite end, and a
+sample never carries both ends of an axis: the end held now wins. In the weapon menu the
+sideways bits are armed the same way.
+
+### Where it hooks, and what it leaves alone
+
+`wof_vblank` calls `wof_assist_vblank` on every VBlank that is not paused, after
+`vblank_every_frame` and before the divider, and around `read_joystick` it hands the sample
+`wof_assist_sample` of the controller, restoring `wof_s.raw` right after. So only the sample
+sees the assist: the front end's pollers (`wof_poll_joy_dir8`, `wof_poll_fire`) and the button's
+latches see the controller as it is. The other two places are the flip in `read_joy_bits` and
+the swallow in `wof_port_key`; each is one marked condition. The assist's state lives in the
+core's state beside the flip preference (`WOF_STATE_VERSION` 6), so save states stay exact;
+nothing of it is a registered global, and it never writes one.
+
+Nothing in the tick changes. Run with the same raw schedule with the assist off and on and
+compared after every tick, the deck script is identical in every registered field; on the
+select script the sample itself differs on eight ticks, all while the menu is up (the input
+byte, `tick_input` and the queue slot), and otherwise only what the chosen weapon writes:
+`weapon_type`, `weapon_count`, `weapon_menu_wait`, the gauge's two drums, the weapon and the
+count in both views' dashboard caches, and the clip rectangle a redraw of the gauge leaves
+behind. The lift, the roll and the climb that follow are the same to the byte.
+
+### What is fragile
+
+- The push is twelve VBlanks because the original samples every fourth VBlank and a step
+  costs three input ticks. Any three input ticks in a row contain exactly one step, whatever
+  `weapon_menu_wait` stands at, which is why a push is one step also right after the menu
+  opens with 1 there. A queue that dropped a sample of a push (more than six waiting, which
+  only a long stall of the passes can cause) would break that.
+- A push during the menu's first 15 ticks steps nothing, as a tap does in the original; one
+  that straddles the end of that window can end on the pause count instead of a step.
+- The swallow cannot be told from the push in steady play: the push covers every tick on which
+  a cursor code's `last_key` is read, so a tap with its code steps once with or without the
+  swallow. What the swallow stops is a key held when the menu opens, whose repeated codes would
+  step the menu upward through `last_key` (the test's negative control).
 
 ## What M5 must know
 

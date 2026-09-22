@@ -175,8 +175,8 @@ export const STORED_FILES = `(() => {
  * be up. */
 export const PLAYER = `(() => {
     const text = document.getElementById('overlay').textContent;
-    const m = text.match(/player\\s+x (-?\\d+)\\s+y (-?\\d+)\\s+deck state (-?\\d+)(, paused)?(, flip on)?/);
+    const m = text.match(/player\\s+x (-?\\d+)\\s+y (-?\\d+)\\s+deck state (-?\\d+)\\s+weapon (-?\\d+)(, paused)?(, flip on)?/);
     const c = text.match(/counters\\s+(\\d+) vbl\\s+(\\d+) tick\\s+(\\d+) pass/);
-    return m ? { x: +m[1], y: +m[2], deck: +m[3], paused: !!m[4], flip: !!m[5],
+    return m ? { x: +m[1], y: +m[2], deck: +m[3], weapon: +m[4], paused: !!m[5], flip: !!m[6],
                  vblanks: c ? +c[1] : null, ticks: c ? +c[2] : null } : null;
 })()`;

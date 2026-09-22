@@ -301,6 +301,43 @@ try {
         await sleep(ms);
         await cdp.release(sessionId, name);
     };
+    /* The weapon menu with the keyboard assist (src/assist.c): three quick taps of the up
+       key, a tenth of a second each and a tenth apart, are three steps, which bring the
+       weapon type round to where it started, with a step seen on the way; with the flip on,
+       up still steps up, which is the weapon type going down.  The flip goes off again, so
+       the flip further on starts from the stored value as before. */
+    async function weaponTaps(read, tapUp, flip) {
+        const weapon = { before: (await read()).weapon, seen: [] };
+        const until = Date.now() + 2000;
+        const watching = (async () => {
+            while (Date.now() < until) {
+                const now = await read();
+                if (now) {
+                    weapon.seen.push(now.weapon);
+                }
+                await sleep(30);
+            }
+        })();
+        for (let i = 0; i < 3; i++) {
+            await tapUp();
+            await sleep(100);
+        }
+        await watching;
+        weapon.after = (await read()).weapon;
+        await flip();
+        await sleep(600);
+        weapon.flipOn = (await read()).flip;
+        await tapUp();
+        await sleep(800);
+        weapon.flipped = (await read()).weapon;
+        await flip();
+        await sleep(600);
+        weapon.flipOff = !(await read()).flip;
+        return weapon;
+    }
+    await sleep(1500);                              /* the menu takes the stick after 15 ticks */
+    flight.weapon = await weaponTaps(() => evaluate(PLAYER), () => holdFor('up', 100),
+                                     () => press(sessionId, 'keyF'));
     await holdFor('down', 300);                     /* the next weapon, in the hold's menu */
     await sleep(600);
     await fire();                                   /* the lift goes up */

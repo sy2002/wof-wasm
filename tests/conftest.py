@@ -254,6 +254,20 @@ def assert_the_mission_is_flown_from_the_keyboard(flight):
     assert flight['flipped']['flip'], flight['flipped']
 
 
+def assert_the_weapon_menu_steps_once_per_tap(weapon):
+    """The keyboard assist on the page (src/assist.c): three quick taps of the up key are
+    three steps of the weapon type, which has three values, so they come round to where they
+    started with a step seen on the way; with the flip on, up still steps up, the weapon type
+    going down by one."""
+    before = weapon['before']
+    assert before in (0, 1, 2), weapon
+    assert any(value != before for value in weapon['seen']), 'no step was seen: %s' % weapon
+    assert weapon['after'] == before, 'three taps did not make three steps: %s' % weapon
+    assert weapon['flipOn'], 'the flip did not come on: %s' % weapon
+    assert weapon['flipped'] == (before - 1) % 3, 'with the flip on, up went down: %s' % weapon
+    assert weapon['flipOff'], 'the flip did not go off again: %s' % weapon
+
+
 def assert_the_next_real_key_starts_the_sound(report):
     after = report['modifierFirst']['afterSpace']
     assert [call['call'] for call in after['audio']] == ['construct', 'resume'], after['audio']

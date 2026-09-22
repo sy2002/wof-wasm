@@ -20,6 +20,12 @@ def test_exports_the_spec_interface(wasm):
     assert 'memory' in wasm['exports'], 'the shell needs the linear memory'
 
 
+def test_exports_the_keyboard_assist(wasm):
+    """The port's own switch (src/assist.c), which the page turns on at start."""
+    missing = {'wof_set_keyboard_assist', 'wof_keyboard_assist'} - set(wasm['exports'])
+    assert not missing, 'missing from the core: %s' % sorted(missing)
+
+
 def test_core_needs_nothing_from_the_host(wasm):
     """No imports at all: no clock, no allocator, no callback into JavaScript (SPEC 6.1)."""
     assert wasm['imports'] == []

@@ -92,6 +92,17 @@ class Core {
         return this.x.wof_invert_vertical() !== 0;
     }
 
+    /* The keyboard assist, the port's own (src/assist.c): the weapon menu steps once per key
+       press with up always up, and a tap in flight is never lost between two samples.  The
+       core starts without it, as the original; the shell switches it on. */
+    setKeyboardAssist(on) {
+        this.x.wof_set_keyboard_assist(on ? 1 : 0);
+    }
+
+    keyboardAssist() {
+        return this.x.wof_keyboard_assist() !== 0;
+    }
+
     /* --------------------------------------------------- the file system's write side
        (SPEC 6.2, Storage).  Everything the game writes - the high-score file and the saved
        games - lives in an overlay in front of the read-only disk; the shell copies it into
@@ -147,10 +158,11 @@ class Core {
         this.x.wof_dev_open_dialog(mode ? 1 : 0);
     }
 
-    /* The player's x, y and deck state, for the overlay and the page test (read-only). */
+    /* The player's x, y and deck state and the weapon type, for the overlay and the page
+       test (read-only). */
     devPlayer() {
-        const p = new Int16Array(this.x.memory.buffer, this.x.wof_dev_player(), 3);
-        return { x: p[0], y: p[1], deck: p[2] };
+        const p = new Int16Array(this.x.memory.buffer, this.x.wof_dev_player(), 4);
+        return { x: p[0], y: p[1], deck: p[2], weapon: p[3] };
     }
 
     /* The pause as a request: the next pass of a mission pauses as Escape does. */

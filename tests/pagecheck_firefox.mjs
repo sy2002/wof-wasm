@@ -436,6 +436,39 @@ try {
     await holdIn(KEY_SPACE, 250);                   /* the briefing */
     const flight = { hold: await until((p) => p.deck === 1 || p.deck === 11, 15000) };
     await sleep(1500);
+    /* The weapon menu with the keyboard assist (src/assist.c): three quick taps of the up
+       key, a tenth of a second each and a tenth apart, are three steps, which bring the
+       weapon type round to where it started, with a step seen on the way; with the flip on,
+       up still steps up, which is the weapon type going down.  The flip goes off again, so
+       the flip further on starts from the stored value as before. */
+    flight.weapon = { before: (await player()).weapon, seen: [] };
+    {
+        const until = Date.now() + 2000;
+        const watching = (async () => {
+            while (Date.now() < until) {
+                const now = await player();
+                if (now) {
+                    flight.weapon.seen.push(now.weapon);
+                }
+                await sleep(30);
+            }
+        })();
+        for (let i = 0; i < 3; i++) {
+            await holdIn(KEY_UP, 100);
+            await sleep(100);
+        }
+        await watching;
+    }
+    flight.weapon.after = (await player()).weapon;
+    await press(flightTab, 'f');
+    await sleep(600);
+    flight.weapon.flipOn = (await player()).flip;
+    await holdIn(KEY_UP, 100);
+    await sleep(800);
+    flight.weapon.flipped = (await player()).weapon;
+    await press(flightTab, 'f');
+    await sleep(600);
+    flight.weapon.flipOff = !(await player()).flip;
     await holdIn(KEY_SPACE, 250);                   /* the lift goes up */
     flight.deck = await until((p) => p.deck === 1 && p.y > 30, 6000);
     await keyAction(flightTab, 'keyDown', KEY_RIGHT);

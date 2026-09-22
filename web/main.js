@@ -102,6 +102,10 @@ async function boot() {
     let invert = readSetting('invertVertical') === '1';
     core.setInvertVertical(invert);
 
+    /* The keyboard assist is the port's own and always on here: the core starts as the
+       original does, which is what every comparison with it runs. */
+    core.setKeyboardAssist(true);
+
     /* What the game wrote last time, back before the first pass. */
     restoreFiles(core);
     let fsSeen = core.fsChanges();

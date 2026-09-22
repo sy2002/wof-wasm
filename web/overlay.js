@@ -57,6 +57,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'files stored ' + c.filesWritten + '\n' +
             'stand-ins    ' + c.standinHits + ' reached\n' +
             'player       x ' + pl.x + '  y ' + pl.y + '  deck state ' + pl.deck +
+                '  weapon ' + pl.weapon +
                 (core.paused() ? ', paused' : '') + (core.invertVertical() ? ', flip on' : '') + '\n' +
             'while this is up: 5 PAL, 6 NTSC, 1 a high score, 2 the save dialog,\n' +
             '                  3 the load dialog (development keys, not the game\'s)';
