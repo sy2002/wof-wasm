@@ -335,7 +335,7 @@ wof_co_t wof_next_aircraft(void)
 /* orig 0x0135A8. */
 void wof_mission_reset_tables(void)
 {
-    wof_g.g_02535d = 0;
+    wof_g.balloons_on = 0;
     for (int i = 0; i < 4; i++)
         wof_m.aircraft_records[i].w[0] = 0;
     wof_g.g_0251d6 = 0;
@@ -575,7 +575,7 @@ static void map_scan(void)
             if (wof_g.g_025600) {
                 wof_g.g_025600 = 0;
                 wof_g.briefing_number_1++;
-                wof_g.g_025383++;
+                wof_g.islands_left++;
             }
             break;
         case 0x10D:
@@ -584,7 +584,7 @@ static void map_scan(void)
 
                 wof_g.has_battleship = 0xFF;
                 wof_g.briefing_number_2++;
-                wof_g.g_025371++;
+                wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 0x0E;
                 s->w0e = 0x1B;
@@ -601,7 +601,7 @@ static void map_scan(void)
 
                 wof_g.has_japcarrier = 0xFF;
                 wof_g.briefing_number_2++;
-                wof_g.g_025371++;
+                wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 0x0F;
                 s->w0e = 0x15;
@@ -619,7 +619,7 @@ static void map_scan(void)
 
                 wof_g.has_destroyer = 0xFF;
                 wof_g.briefing_number_2++;
-                wof_g.g_025371++;
+                wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 8;
                 s->w0e = 0x1B;
@@ -637,7 +637,7 @@ static void map_scan(void)
 
                 wof_g.has_cruiseship = 0xFF;
                 wof_g.briefing_number_2++;
-                wof_g.g_025371++;
+                wof_g.ships_left++;
                 s->present = -1;
                 s->w0e = 0x1C;
                 s->gun_count = 4;
@@ -773,10 +773,10 @@ void wof_map_load(void)
     wof_g.quit_flag = 0;                      /* clr.w */
     wof_g.g_0253c3 = 0;
     wof_g.briefing_number_2 = 0;
-    wof_g.g_025371 = 0;
+    wof_g.ships_left = 0;
     wof_g.island_count = 0;
     wof_g.briefing_number_1 = 0;
-    wof_g.g_025383 = 0;
+    wof_g.islands_left = 0;
 
     for (uint16_t r = 0; r < wof_g.rank_played && r < 7; r++)
         index = (uint16_t)(index + wof_tbl_maps_per_rank[r]);

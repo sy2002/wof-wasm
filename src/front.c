@@ -679,7 +679,7 @@ static wof_co_t mission(void)
         wof_player_restart_state();                           /* orig 0x013684 */
         wof_g.loaded_game = 0;
         wof_g.pause_flag = 0;
-        wof_g.g_026d3c = 0;
+        wof_g.soldiers_killed = 0;
         wof_g.tick_input = 0;
     }
     wof_g.outside_mission = 0;

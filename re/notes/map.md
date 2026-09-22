@@ -80,10 +80,14 @@ whole map is that strip; there is nothing else in the file.
 | 1–0 | 0 nothing, 2 stands on the world, 1 rides on a ship |
 
 The `draw` flag is the one `SPEC.md` section 3.5 called "`0x8000` occurs frequently": a shape
-wider than eight pixels occupies several columns, and only its leftmost record carries the
-flag. **The other columns still carry the slot**, and the ground height routine reads the slot
-without looking at the flag, so a hut four records wide gives ground under all four while
-drawing once (read, and confirmed by the ground heights the tick asks for over a flight).
+wider than eight pixels occupies several columns, and one of its records carries the flag,
+most often the third. Over the 2,847 drawn records on land of the fifteen maps, 1,756 have two
+records of the same slot left of them, 664 three, 110 one and 317 none (observed, from the
+files with `tools/map_decode.py`); a target's four records carry it on the third, which is
+what `0x014AE4` looks for (re/notes/porting-m5.md). **The other columns still carry the
+slot**, and the ground height routine reads the slot without looking at the flag, so a hut
+four records wide gives ground under all four while drawing once (read, and confirmed by the
+ground heights the tick asks for over a flight).
 
 Low bits 1 mean the record moves with the ship it stands on, which is how the carrier deck and
 the enemy ships' decks are drawn: 2,677 records of the 15 maps carry it and every one of them
@@ -169,8 +173,13 @@ records into game objects (read, and observed as the writer of every table below
    `0x025438`, and each island gets the span of its targets in `island_span` (`0x025440`) and
    five points per target in `island_score` (`0x025450`).
 
-**Nothing else is done to the record list**: the records themselves are never written after
-the read, in any of the seven runs of `re/notes/passes.md` (observed). What is rebuilt per
+**A hit rewrites the record list**, and nothing else does: in the tick `0x0146DC` turns a
+bombed barracks' four records from slot 4 into slot 5, the burnt barracks, and a pillbox's four
+hit records into another of the slots `0x0F` to `0x1E`, each keeping its draw flag and its low
+bits (observed, `tools/m5_observe.py mapwrites`: `0x0146DC` is the only writer of the list in
+`bomb_a`, `crash_a` and `rockets_c`, and the records change from `0x12` to `0x16` under the two
+barracks of map a, and from `0x3E` to `0x52` and `0x4E` under the two pillboxes of map c).
+The seven runs of `re/notes/passes.md` hit no barracks and write no record. What is rebuilt per
 mission is the tables above, plus `MasterList` and `AthList` (`re/notes/shapes.md`).
 
 ## Who reads the map, and when
@@ -208,8 +217,8 @@ else the map feeds is drawing.
 
 ## Open
 
-- What the individual terrain slots are — which shape a hut, a palm or a gun emplacement has —
-  belongs to the shape tables (`re/notes/shapes.md`) and to M5.
+- What the individual terrain slots are is in `re/notes/shapes.md`, "The slots of the islands";
+  the targets among them in re/notes/porting-m5.md.
 - The lists at `0x025430` and `0x025438`, which take the map offsets of the slot-1 and slot-2
   records, are filled but no reader of them was looked for.
 - `0x012C84` reads the map a second time for the airfield markers `0x114` and `0x115`, which

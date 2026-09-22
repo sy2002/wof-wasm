@@ -728,3 +728,39 @@
 01cae0 burn_smoke            ; C. a puff from the burning wreck
 0145a6 window_shape          ; asm. the shape of a record's class on a row of the 3-D view
 025aaa landing_stall         ; the stick forward alone flying left: the manual's stall; the touch-down needs it
+
+# ---- M5 part 1: the targets, the soldiers, the pools, the weapons in the pass  (see re/notes/porting-m5.md)
+010702 object_draw           ; asm. one object record drawn by its type; kind 8: eight frames going out, then freed
+011a14 ricochet_spawn        ; asm. a record of the Ricochet pool at world x D0; no caller: the pool is dead
+011a46 guns_ground_x         ; asm. D0 = the pitch as a bearing: the world x the guns' bullets reach the ground at
+011a8c soldiers_hit          ; asm. D0 = world x, D1 = half width: running soldiers there start dying
+011ae2 torpedoes_hit         ; asm. the same for torpedo records in the water
+011e82 soldier_out           ; asm. A0 = target, D0 1 or 2: a soldier comes out of it, into the first free record
+0146c6 crash_hit             ; asm. the crash on land as a type-0 hit at crash_object, then weapon_hit
+0146dc weapon_hit            ; asm. A0 = object record: what its impact does to the map record under it
+014ae4 target_records        ; asm. D0 = world x: A0..A3 the byte offsets of the target's four records
+014b40 target_release        ; asm. A0 = target: its soldiers inside are let out, the release timer 60
+014b54 target_of             ; asm. D0 = world x: A0 = the target's table entry, D0 negative for none
+014fee target_refill         ; asm. A0 = empty dug-out: a soldier from the nearest barracks of its island
+015034 nearest_barracks      ; asm. the walk of target_refill over target_records_4
+015078 format_to             ; asm. exec RawDoFmt of A0 with the data at A1 into the buffer at A2
+015090 format_putch          ; asm. the PutChProc of format_to: move.b d0,(a3)+
+01555a ticker_offer          ; asm. A0 = message: the ticker takes it only when it has none
+015624 ticker_say            ; asm. A0 = format, D0 = data: formatted into ticker_text, then ticker_offer
+015694 mission_won           ; asm. the map's last island neutralised: the next mission, or the promotion
+015ae8 island_bonus          ; asm. D0 = island: its bonus from island_bonus_table by map and island
+02347c island_bonus_table    ; words by map number * 4 and island
+0239fa msg_island_done       ; the island's message, with the bonus as %ld (printable text, read by address)
+02399e msg_next_mission      ; the mission won, the next one follows (printable text)
+023a5a msg_promotion         ; the rank's last mission won (printable text)
+024bf0 smoke_turn            ; bytes by attitude: how far smoke_at_player moves the smoke in a turn
+024c08 muzzle_frames         ; 0, 1, 0, 2: the guns' muzzle flash by muzzle_frame
+024c1c range_frames          ; bytes: a target's gun frame by height in 32s and distance in 40s
+025548 missions_per_rank     ; words: 3, 3, 2, 2, 1, 1, 3
+027700 crash_object          ; a made-up object record for crash_hit: x at +0, type at +0x22
+025371 ships_left            ; the enemy ships still afloat, map_scan's count; with islands_left 0 the mission is won
+02535d balloons_on           ; set by mission_won's promotion: balloons_draw releases the balloons; a life more next
+025380 flag_frame            ; the island flag's frame, 2 to 0, stepped on every draw of a flag
+025383 islands_left          ; the islands not yet neutralised
+025388 muzzle_frame          ; the guns' muzzle flash, counted 0 to 3 while they fire
+026d3c soldiers_killed       ; one more for every soldier soldiers_draw lets die

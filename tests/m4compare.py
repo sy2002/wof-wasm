@@ -103,7 +103,11 @@ class Recorder(headless.Headless):
             self.stop_at(0x01009E, self._poke)
 
     def _window(self, uc, address, size, user):
-        self.window = MISSION_WINDOW[address]
+        # A mission won goes on to the campaign's next one at 0x010132, which is M7's (the
+        # port's stand-in ends the campaign there); nothing after it is recorded as a mission.
+        if address == 0x010132:
+            self.won = True
+        self.window = None if getattr(self, 'won', False) else MISSION_WINDOW[address]
         if self.window == 'mission':
             self.at_s.append(bytes(self.o.read(headless.DATA_START,
                                                headless.DATA_END - headless.DATA_START)))
@@ -146,7 +150,8 @@ class Recorder(headless.Headless):
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
     """One script under the headless original, dumped to `dump_path`."""
-    description = m4_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
+    import m5_scripts
+    description = m5_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
     machine = Recorder(description, pokes=pokes)
     machine.open_dump(dump_path)
     try:
@@ -325,6 +330,7 @@ class Replay:
             memory, head = self.advance_to(lambda h: h['kind'] == 'S' and h['mission'] == mission)
             self.shapes = m4state.Shapes(memory)
             self.missions = mission
+            self.flash_before = memory.u(0x025416, 2)
             if on_setup:
                 on_setup(self, memory, head)
             if self.mode == 'open':
@@ -339,6 +345,7 @@ class Replay:
             self.passes = number
             if on_pass:
                 on_pass(self, memory, head, number)
+            self.flash_before = memory.u(0x025416, 2)
             if self.mode == 'open':
                 self.inject(memory, head)
             self.lib.wt_trace_reset()
@@ -358,6 +365,7 @@ class Replay:
             if on_tick and self.missions:
                 waited = self.lib.wof_vblank_count() - self.vblank_mark
                 on_tick(self, memory, head, tick + 1, waited)
+            self.flash_before = memory.u(0x025416, 2)
             if self.mode == 'open':
                 self.inject(memory, head)
             if not self.setup_tick:
@@ -556,6 +564,9 @@ class Replay:
                 out.append(('shape_blit', t['c'], t['a'], t['b']))
             elif w == 'shape_xor_c':
                 pass
+            elif w == 'shape_draw_xor':
+                out.append(('shape_draw_xor', 0, None, None) if t['d'] else
+                           ('shape_draw_xor', t['c'], t['a'], t['b']))
             elif w == 'rect_fill':
                 out.append(('rect_fill', t['a'], t['b'], signed(t['c']), t['d'], (t['c'] >> 16) & 0xFF))
             elif w == 'clip_set':
@@ -593,7 +604,13 @@ class Replay:
         dash = [memory.u(dasha + 2 * i, 2) for i in range(16)]
         ticker = [memory.u(self.COLTAB_TICKER + 2 * i, 2) for i in range(2)]
         ramp = [memory.u(self.TICKER_RAMP + 2 * i, 2) for i in range(10)]
-        assert memory.u(0x025416, 2) == 0, 'a flash is running; the model does not cover it'
+        # The sky's flash: flip_buffers pokes COLOR01 of the list it shows with flash_colour
+        # when the count it found was odd, and counts it down (re/notes/porting-m5.md, "The
+        # sky's flash").  The count it found is the one the step before the pass left.
+        colour1 = t1[1]
+        before = getattr(self, 'flash_before', 0)
+        if before and before & 1:
+            colour1 = memory.u(0x025418, 2)
         split = min(signed(memory.u(0x0253A0, 2)), 162)
         rows = []
         for y in range(214):
@@ -603,7 +620,7 @@ class Replay:
                 else:
                     row = [b if b != a else a for a, b in zip(t1, t2)]
                 if y < split or t2[1] == t1[1]:
-                    row[1] = t1[1]
+                    row[1] = colour1
                 rows.append(row)
             elif 163 <= y < 200:
                 rows.append(dash)

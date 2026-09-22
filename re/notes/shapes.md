@@ -83,6 +83,33 @@ Allocated once by `alloc_pools` (`0x01283E`), `0x458` bytes each (278 longs, 273
 
 A map record selects a slot with bits 2 to 10 (`draw_world` at `0x013842`, the height routine at `0x015714`). `draw_world` takes `AthList` when `view_step` (`0x024F36`) is 1, the eighth-scale view, and `MasterList` otherwise, and **skips a record whose slot is null** (`0x01386E`). The ship blocks are present or null per mission: the test is the table pointer for cruise ship, destroyer and battleship, and the flag `0x025378` for the Japanese carrier.
 
+## The slots of the islands and the weapons
+
+What the pass draws for M5, by slot of `world_names` (`MasterList` at full scale, `AthList` in
+the eighth-scale view; read from the drawing routines of re/notes/porting-m5.md, and observed
+as the shapes of their draw calls in the M5 scripts' comparison):
+
+| Slots | Names | What they are |
+|---|---|---|
+| 1, 2 | `bchl`, `bchr` | an island's west and east beach |
+| 3 | `dugo` | a dug-out, a target with soldiers that fires |
+| 4, 5 | `huta`, `hutb` | a barracks and the burnt barracks a hit leaves in the map |
+| 6 to 9 | `tre1` to `tre3`, `bumb` | palms and a bump of land |
+| `0x0C` to `0x0E` | `balb`, `balr`, `balw` | the balloons, by colour |
+| `0x0F` to `0x1E` | `pila` to `pilp` | a pillbox, whole and in its states of damage |
+| `0x4A` to `0x4C` | `rock`, `bomb`, `torp` | the weapon marker in the hold, by `weapon_type` |
+| `0x5A` to `0x60` | `expl`, `exp0` to `exp5` | an explosion over land (an object going out); `0x5A` is also a target in the eighth-scale view |
+| `0x61` to `0x66` | `smk0` to `smk5` | smoke, by its kind |
+| `0x66` to `0x6C` | `smk5`, `spl0` to `spl5` | a splash in the sea (an object going out, and the Splashes pool) |
+| `0x6E` | `ric0` | the dust of a bullet on land |
+| `0x6F` to `0x80` | `guy0` to `gy11` | a soldier running, nine further on facing west, and dying |
+| `0x81` to `0x8E` | `gun0` to `gun6`, `gnf0` to `gnf6` | a dug-out's or pillbox's gun by range and height, and firing |
+| `0xB0` to `0xB3` | `flg0` to `flg2`, `POST` | an island's flag, and the bare post once the island is neutralised |
+
+`torpedo_shapes` gives the bomb's frames (`0x40` on) and the rocket's (`0x4C` on, `0x74` on
+while it falls) and the torpedo's (`0x88`, `0x89`); `hellcat_shapes` the guns' muzzle flash
+(`0x43` on and `0x57` on by the aircraft's frame).
+
 ## Names looked up at run time
 
 Several tables of names in DATA are not lists for `shapes_resolve`; code indexes them and calls `shape_find` through `shape_find_c` (`0x0204F4`, reached by the jump at `0x01CB30`).
@@ -139,6 +166,6 @@ not in ascending order, although the thirteen containers are, which is all that
 ## Open
 
 - What the header words `+8` and `+10` were for the tool that wrote the files is inferred from their values (multiples of 16 in x, many shapes of one animation sharing one position). The game's only use is the one described.
-- The meaning of the individual slots (which index is which object) belongs to the subsystems that use them. The lists give the names, which are mnemonic.
+- The meaning of the slots the M4 and M5 scripts do not draw belongs to the subsystems that use them; the lists give the names, which are mnemonic.
 - The 40 `wh..` names at `0x025E52` sit at a word-aligned, not long-aligned, address; the reader at `0x01C436` was not followed further.
 - Whether any state ever draws the 11 frame names that are absent from `hellcat.shp` or `Torpedo.shp`. The headless original can log null results of `shape_find_c`.

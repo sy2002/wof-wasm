@@ -927,8 +927,9 @@ uint16_t wof_map_slot_at(int16_t x, uint16_t *slot);     /* orig 0x0150C8 */
 int16_t  wof_ground_height(uint32_t at);    /* orig 0x015714 */
 void     wof_object_spawn(uint32_t at, int16_t y, int16_t flag);   /* orig 0x010820 */
 void     wof_splash_spawn(int16_t x);       /* orig 0x0152B0 */
-void     wof_smoke_claim(int32_t x, int32_t y, int16_t kind);      /* orig 0x015460 */
+uint32_t wof_smoke_claim(int32_t x, int32_t y, int16_t kind);      /* orig 0x015460: D0 at its end */
 uint16_t wof_image16(uint32_t addr);        /* a constant word of the DATA hunk, by address */
+uint8_t  wof_image8(uint32_t addr);         /* a byte of the same */
 uint32_t wof_image32(uint32_t addr);
 
 /* ------------------------------------------- the pass (M4, src/world.c and src/dash.c) */
@@ -953,6 +954,31 @@ void     wof_draw_at(uint16_t handle, int16_t x, int16_t y);
 void     wof_draw_world_shape(int table, int16_t slot, int16_t x, int16_t y);  /* orig 0x015174 */
 uint16_t wof_table_entry(int table, int16_t index);
 
+/* ---------------------------- the targets, the soldiers, the pools (M5, src/targets.c, pools.c) */
+
+void     wof_soldier_out(const wof_gtarget_t *t, uint8_t d0, int16_t d1);   /* orig 0x011E82 */
+void     wof_island_flag(int table, int16_t d4);            /* orig 0x013B52 */
+void     wof_targets_3_draw(int table);                    /* orig 0x013D78 */
+void     wof_targets_f_draw(int table);                    /* orig 0x013DE8 */
+void     wof_soldiers_draw(void);                          /* orig 0x013EEE */
+int      wof_target_records(int16_t x, uint16_t out[4]);   /* orig 0x014AE4 */
+void    *wof_target_of(int16_t x);                         /* orig 0x014B54 */
+int16_t  wof_target_frame(int16_t x);                      /* orig 0x014D50 */
+int16_t  wof_target_range_frame(int16_t d0, int16_t d1, int16_t d2);   /* orig 0x014DB8 */
+void     wof_burnt_barracks(int16_t d4);                   /* orig 0x014E18 */
+void     wof_target_fire(int16_t x);                       /* orig 0x014F5C */
+void     wof_target_refill(wof_gtarget_t *a0);             /* orig 0x014FEE */
+void     wof_ticker_format(uint32_t format, uint32_t value, uint16_t at);   /* orig 0x015078 */
+void     wof_ticker_say(uint32_t format, uint32_t value);  /* orig 0x015624 */
+void     wof_mission_won(void);                            /* orig 0x015694 */
+uint16_t wof_island_bonus(uint8_t island);                 /* orig 0x015AE8 */
+void     wof_smoke_draw(void);                             /* orig 0x010EE0 */
+void     wof_splashes_draw(void);                          /* orig 0x0152F8 */
+void     wof_smoke_at_player(int16_t kind, uint16_t d2_high);   /* orig 0x0154E0 */
+void     wof_balloons_draw(void);                          /* orig 0x01557C */
+void     wof_draw_objects(void);                           /* orig 0x0106BE */
+uint32_t wof_rand_upper(void);                             /* rand_beam's constant upper word */
+
 /* Test-build hooks of the M4 comparisons (tests/shim.c); in the release build they are
  * constants, so dist/core.wasm has neither the table nor the pokes. */
 #ifdef WOF_TRACE
@@ -961,6 +987,7 @@ void     wof_test_pokes_clear(void);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
 int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
+int32_t  wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/targets.c */
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);

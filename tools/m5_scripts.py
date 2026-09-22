@@ -343,6 +343,12 @@ RUNS['bomb_pause'] = (with_keys(with_keys(BOMB_A, BOMB_KEYS_AT, [ESCAPE]), BOMB_
                                 [ESCAPE]), length(BOMB_A) + 20)
 RUNS['bomb_flip'] = (with_keys(BOMB_A, BOMB_KEYS_AT, [CONTROL_F]), length(BOMB_A) + 20)
 RUNS['bomb_restart'] = (with_keys(BOMB_A, BOMB_KEYS_AT, [CONTROL_R]), BOMB_KEYS_AT + 400)
+# The cheat sequence of tests/runs/flight-cheat.json in the climb, then its `m` (0x37), which
+# makes the weapons unlimited (0x01D08A, weapon_count 0xFF: the counter's drums turn to 0x64,
+# 0x01F062), and `m` again during the bombing run, which gives the weapon type's count back.
+CHEAT = [0x33, 0x18, 0x28, 0x17, 0x36]
+RUNS['bomb_cheat'] = (with_keys(with_keys(with_keys(BOMB_A, 800, CHEAT), 900, [0x37]),
+                                BOMB_KEYS_AT + 200, [0x37]), length(BOMB_A) + 20)
 
 # The mission number each script is flown on, poked at the rank selection's end (0x01009E)
 # as {address: (size, value)} on both sides, as tests/test_mission.py's setups do.

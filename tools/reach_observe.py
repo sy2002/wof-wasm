@@ -28,6 +28,12 @@ choose_night decides, who writes view_step, and where ingame_keys is entered fro
                                             the same with the setups of all fifteen maps
     .venv/bin/python tools/reach_observe.py --cold REACH.json    the never-run regions of every
                                                                  ported routine, with markers
+    .venv/bin/python tools/reach_observe.py --m5 --blocks --setups --jobs 12 --json REACH.json
+                                            every script of M4 and M5 (M5's: tools/m5_scripts.py)
+    .venv/bin/python tools/reach_observe.py --m5-only --load REACH.json --markdown TABLE.md
+                                            M5's tables from a saved run
+    .venv/bin/python tools/reach_observe.py --cold REACH4.json REACH5.json
+                                            the cold regions over the union of the runs
 
 An entry is the execution of a routine's first instruction.  A routine that branches back
 to its own first instruction would count each round; the tool finds those statically and
@@ -445,6 +451,8 @@ def main():
     parser.add_argument('--m5-only', action='store_true', help="M5's scripts alone")
     parser.add_argument('--jobs', type=int, default=1,
                         help='run the scripts in this many processes')
+    parser.add_argument('--load', nargs='+',
+                        help='take the runs from REACH.json files instead of running them')
     parser.add_argument('--markdown')
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
@@ -458,7 +466,16 @@ def main():
         args.runs = PART2_SCRIPTS + m5_scripts_list()
     if args.m5_only:
         args.runs = m5_scripts_list()
-    data = collect(args.runs, blocks=args.blocks, setups=args.setups, jobs=args.jobs)
+    if args.load:
+        data = {}
+        for path in args.load:
+            with open(path) as handle:
+                data.update(json.load(handle))
+        wanted = args.runs if (args.m5 or args.m5_only or args.part2) else list(data)
+        data = {name: data[name] for name in wanted if name in data}
+        args.runs = list(data)
+    else:
+        data = collect(args.runs, blocks=args.blocks, setups=args.setups, jobs=args.jobs)
     report(data, args.runs)
     if args.markdown:
         with open(args.markdown, 'w') as f:
@@ -516,7 +533,8 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
 
 # M4's routines: every one a port file names with an `orig 0x......` comment, and of the
 # files that hold M3's too, the routines M4 changed.
-PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c']
+PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c',
+              'src/objects.c', 'src/targets.c', 'src/pools.c']
 M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
                      'wait_next_vblank', 'screen_game_restore']
 MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']
@@ -659,6 +677,42 @@ REGION_NOTES = {
     0x02138E: 'ported from reading, PROVISIONAL: the clipping of line_draw',
     0x021556: "the blitter's busy wait, which the port's line has none of",
     0x0215D0: 'ported from reading, PROVISIONAL: a line wholly outside the clip',
+    # M5 part 1: the pass's regions of the targets, the soldiers and the pools that no script
+    # of either milestone ran (re/notes/porting-m5.md, "Appendix: the regions no run executed")
+    0x010752: 'ported from reading: the torpedo drawn facing the other way (+0x1F negative)',
+    0x0118EC: "ported from reading; tests/test_oracle_m4.py, the ticker: a message's end",
+    0x011EF2: 'ported from reading: every soldier record in use, nobody comes out',
+    0x011F42: "ported from reading: a dug-out's soldier turned round by rand_beam",
+    0x013B68: "ported from reading: an island's flag with the player past the island's end",
+    0x013FA8: 'ported from reading: an island neutralised that is not the map\'s last',
+    0x013FE8: 'ported from reading: a soldier turning round at the water',
+    0x014694: 'ported from reading: the shape of a record in the 3-D view',
+    0x014B88: 'ported from reading: no draw record among the four, no target',
+    0x014BC6: 'ported from reading: a burnt barracks not in the table, no target',
+    0x014BF4: 'ported from reading: a dug-out not in the table, no target',
+    0x014C2C: 'ported from reading: a pillbox not in the table, no target',
+    0x014C3A: 'ported from reading: another slot, no target',
+    0x014DCA: 'unreachable from target_frame, which takes the eighth-scale view itself; '
+              'ship_guns_draw (M6) is its other caller',
+    0x01501E: 'ported from reading: the barracks east of the dug-out, its soldier runs west',
+    0x015060: 'ported from reading: the barracks west of the dug-out, the distance negated',
+    0x015624: "ported from reading: an island neutralised that is not the map's last, its "
+              'message (0x015624)',
+    0x0156B2: "ported from reading: the rank's last mission won, the promotion (map c)",
+    0x01F0A4: "ported from reading: the weapon counter's tens drum round after 0x50",
+    0x015584: "ported from reading: the balloons, which only mission_won's promotion releases: "
+              "on maps a to c map c with its three islands neutralised (re/notes/porting-m5.md)",
+    # M5 part 2: the tick's regions that part 2 ports (re/notes/porting-m5.md)
+    0x010970: "M5 part 2: a rocket's frame from the pitch, clamped at 0 (object_spawn's "
+              "second entry, behind the stand-in at 0x01B5E2)",
+    0x011218: 'ported from reading; reached only between two missions, M7\'s next mission',
+    0x011E6E: 'M5 part 2: the release timer from vblank_total, 0 counting as 3',
+    0x01B00A: 'M5 part 2: ported from reading (M4), the crash on land or a ship',
+    0x01B0E2: 'M5 part 2: ported from reading (M4), a wreck sliding along a ship',
+    0x01B41A: 'M5 part 2: ported from reading (M4), a wreck at rest on a ship',
+    0x01B5DA: 'M5 part 2: the other weapon not dropped inside a turn (attitude 6 to 16)',
+    0x01BBBA: 'M5 part 2: ported from reading (M4), a crash on a deck',
+    0x01C80C: 'M5 part 2: ported from reading (M4), the burning wreck on a ship',
 }
 
 
@@ -731,10 +785,14 @@ def cold_table(data, names):
 
 def cold_main(argv):
     parser = argparse.ArgumentParser(description='the cold regions of the ported routines')
-    parser.add_argument('--cold', required=True, help='a REACH.json written with --blocks')
+    parser.add_argument('--cold', required=True, nargs='+',
+                        help='REACH.json files written with --blocks; their runs are joined, so '
+                             'the cold list covers the union of M4\'s and M5\'s scripts')
     args = parser.parse_args(argv)
-    with open(args.cold) as handle:
-        data = json.load(handle)
+    data = {}
+    for path in args.cold:
+        with open(path) as handle:
+            data.update(json.load(handle))
     rows, unclassified = cold_table(data, sorted(data))
     print('\n'.join(rows))
     if unclassified:

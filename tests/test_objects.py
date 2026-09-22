@@ -41,7 +41,7 @@ def firing():
     """A take-off and then twenty bombs: object records are claimed and freed all the time."""
     return run(TAPS, 330, summary=True, keep_report=False,
                observe=['objects_step', 'enemy_aircraft_step', 'gun_splashes', 'balloons_step',
-                        'sub_011e82', 'player_update', 'guns'])
+                        'soldier_out', 'player_update', 'guns'])
 
 
 def test_the_tables_are_where_the_note_says(firing):
@@ -71,7 +71,7 @@ def test_an_object_record_is_claimed_and_freed_through_its_kind_byte(firing):
         assert ('T', 'object_spawn') in writers[kind], (i, writers[kind])
         assert ('M', 'sub_013756') in writers[kind], (i, writers[kind])
     freed = [i for i in range(OBJECT_COUNT)
-             if ('F', 'sub_010702') in writers.get(OBJECT_RECORDS + OBJECT_STRIDE * i + KIND, ())]
+             if ('F', 'object_draw') in writers.get(OBJECT_RECORDS + OBJECT_STRIDE * i + KIND, ())]
     assert freed, 'no record was ever freed inside a pass'
     kinds = [firing.o.read(OBJECT_RECORDS + OBJECT_STRIDE * i + KIND, 1)[0]
              for i in range(OBJECT_COUNT)]

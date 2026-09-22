@@ -124,51 +124,6 @@ void wof_object_spawn(uint32_t at, int16_t y, int16_t flag)
         o->b1f = 2;
 }
 
-/* orig 0x0152B0 - a splash at world x: the first free record of the Splashes pool, with the
- * low bits of the map record under it and six frames to run. */
-void wof_splash_spawn(int16_t x)
-{
-    for (int i = 0; i < 20; i++) {
-        wof_splash_t *s = &wof_m.splash_records[i];
-        uint16_t      slot;
-
-        if (s->count)
-            continue;
-        s->x = x;
-        s->kind = (uint8_t)wof_map_slot_at(x, &slot);
-        if (s->kind == 2) {
-            WOF_STANDIN("M5 STAND-IN: 0x0152D8, a splash on a record of low bits 2");
-            return;
-        }
-        s->count = 6;
-        return;
-    }
-}
-
-/* orig 0x015460 smoke_claim - a puff of smoke: the first free record of the Smoke pool at
- * (x, y) in 16.16, y at least 16, drifting by two draws of rand_beam; with all forty in
- * use nothing happens. */
-void wof_smoke_claim(int32_t x, int32_t y, int16_t kind)
-{
-    for (int i = 0; i < 40; i++) {
-        wof_smoke_t *s = &wof_m.smoke_records[i];
-
-        if (s->kind)
-            continue;
-        s->x = x;
-        if (y < 0x100000) {
-            WOF_STANDIN("M5 STAND-IN: 0x01548A, smoke below the ground's line");
-            return;
-        }
-        s->y = y;
-        s->kind = kind;
-        s->timer = 6;
-        s->dx = (int32_t)((wof_rand_beam(0x015460) & 0xFFFFu) + 0x10000u);
-        s->dy = (int32_t)((wof_rand_beam(0x015460) & 0xFFFFu) + 0x10000u);
-        return;
-    }
-}
-
 /* ----------------------------------------------------------------- logic_tick's calls */
 
 /* orig 0x0112B0 - the weapon menu in the hold, while 0x025364 is up and the mission not
@@ -325,7 +280,7 @@ static void object_step(wof_object_t *o)
 {
     if (o->kind == 8)
         return;
-    WOF_STANDIN("M5 STAND-IN: 0x010AB6-0x010DA5, a weapon or a shot in flight");
+    WOF_STANDIN("M5 PART 2 STAND-IN: 0x010AB6-0x010DA5, a weapon or a shot in flight");
 }
 
 /* orig 0x010A72 - the object records: 0x010AA6 for every one in use, then the extra one. */
@@ -343,7 +298,7 @@ static void objects(void)
 static void gun_splashes(void)
 {
     if (wof_g.g_02536a)
-        WOF_STANDIN("M5 STAND-IN: 0x0119C4, the guns' bullets in the water");
+        WOF_STANDIN("M5 PART 2 STAND-IN: 0x0119C4, the guns' bullets in the water");
 }
 
 /* orig 0x011622 - the enemy's airfields: an aircraft taking off, and the player near one
@@ -365,7 +320,7 @@ static void airfields(void)
             continue;
         if (wof_g.g_026e6a > (int16_t)(a->w[1] + 0x1E0))
             continue;
-        WOF_STANDIN("M6 STAND-IN: 0x0116BE, the player near an enemy airfield");
+        WOF_STANDIN("M6 STAND-IN: 0x0116BE-0x011709, the player near an enemy airfield");
         return;
     }
 }
@@ -422,17 +377,17 @@ static void target_timers(void)
 {
     for (int i = 0; i < wof_g.target_count_3; i++)
         if (wof_m.target_records_3[i].w0a & 0xFF)
-            WOF_STANDIN("M5 STAND-IN: 0x011DFE, a slot-3 target's timer");
+            WOF_STANDIN("M5 PART 2 STAND-IN: 0x011DFE, a slot-3 target's timer");
     for (int i = 0; i < wof_g.target_count_4; i++)
         if (wof_m.target_records_4[i].w0a & 0xFF)
-            WOF_STANDIN("M5 STAND-IN: 0x011E48, a slot-4 target's timer");
+            WOF_STANDIN("M5 PART 2 STAND-IN: 0x011E48, a slot-4 target's timer");
 }
 
 /* orig 0x011C5E - the balloons (M5). */
 static void balloons(void)
 {
-    if (wof_g.g_02535d)
-        WOF_STANDIN("M5 STAND-IN: 0x011C66, the balloons");
+    if (wof_g.balloons_on)
+        WOF_STANDIN("M5 PART 2 STAND-IN: 0x011C66, the balloons");
 }
 
 /* ------------------------------------------------------------------------ logic_tick */

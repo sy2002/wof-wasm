@@ -257,14 +257,15 @@ static void deck_flag(int table, int16_t d4, int16_t d6)
 }
 
 /* orig 0x013B1C - what one map record adds beside its own shape, by its slot word D3 (the
- * record shifted right by two, which keeps its height): the carrier's lift and flag at full
- * scale.  D4 is the record's screen x. */
+ * record shifted right by two, which keeps its height): a burnt barracks' smoke (a drawn
+ * record of slot 5, at both scales), and at full scale the carrier's lift and flag and an
+ * island's flag.  D4 is the record's screen x. */
 static void record_extras(int table, uint16_t d3, int16_t d4, int16_t d6)
 {
     if (d3 & 0x2000u) {
         d3 &= (uint16_t)~0x2000u;
         if (d3 == 5) {
-            WOF_STANDIN("M5 STAND-IN: 0x014E18, a slot-5 target in view");
+            wof_burnt_barracks(d4);                              /* beq.w 0x014E18 */
             return;
         }
     }
@@ -275,7 +276,7 @@ static void record_extras(int table, uint16_t d3, int16_t d4, int16_t d6)
     else if (d3 == 0x9F)
         deck_lift(table, d4, d6);
     else if (d3 == 0x113)
-        WOF_STANDIN("M5 STAND-IN: 0x013B52, an island's flag");
+        wof_island_flag(table, d4);
 }
 
 /* orig 0x013ABC - the lives waiting on the carrier's deck: one aircraft for every life but
@@ -377,84 +378,6 @@ static void islands(int16_t d1_in)
     }
     if (n > 4)
         WOF_STANDIN("M6 STAND-IN: more than four islands, in 0x0140E8");
-}
-
-/* orig 0x014D50 - whether a target of the map shows its firing frame this pass: never while
- * the aircraft is on the deck; in the eighth-scale view on a coin of rand_beam's top bit;
- * at full scale by 0x014DB8's range test, which gives none for a target more than 0x200
- * pixels behind or ahead of the aircraft.  The five scripts met only such targets; one in
- * range goes on to a frame by height and distance (M5).  D0 is the target's world x.
- * Returns the frame, or -1.  `sub.w d0,d1` and `bgt` decide on the exact difference, the
- * two compares with 0x200 on the 16-bit one. */
-static int16_t target_frame(int16_t x)
-{
-    if (wof_m.player[0].on_deck != 0)
-        return -1;
-    if (wof_g.view_shift) {
-        uint16_t r = (uint16_t)wof_rand_beam(0x014D50);
-
-        return (r & 0x8000u) ? 0x5A : -1;
-    }
-    if (wof_g.view_step == 1) {                                   /* orig 0x014DB8 */
-        WOF_STANDIN("M5 STAND-IN: 0x014DCA, the range test in the eighth-scale view");
-        return -1;
-    }
-    {
-        int32_t r  = (int32_t)wof_g.draw_player_x - x;
-        int16_t d1 = (int16_t)r;
-
-        if (r > 0 ? d1 > 0x200 : d1 < -0x200)
-            return -1;
-    }
-    WOF_STANDIN("M5 STAND-IN: 0x014DE8, a target within range at full scale");
-    return -1;
-}
-
-/* orig 0x014F5C - a target near the aircraft may hit it: the five scripts only met targets
- * more than 448 pixels away, where it returns at once. */
-static void target_fire(int16_t x)
-{
-    int16_t d0 = (int16_t)(x - wof_g.draw_player_x);
-
-    if (d0 < 0)
-        d0 = (int16_t)-d0;
-    if (d0 > 0x1C0)
-        return;
-    WOF_STANDIN("M5 STAND-IN: 0x014F72-0x014FE7, a target near the aircraft");
-}
-
-/* orig 0x013D78 - the slot-3 targets of the map: while one stands (+8 set) and its count at
- * +0x0C is clear, its frame from 0x014D50 at its world x, then 0x014F5C. */
-static void targets_3(int table)
-{
-    for (uint16_t i = 0; i < wof_g.target_count_3 && i < 16; i++) {
-        wof_gtarget_t *t = &wof_m.target_records_3[i];
-        int16_t        x, frame;
-
-        if (t->state == 0) {
-            WOF_STANDIN("M5 STAND-IN: 0x013D92, a destroyed slot-3 target");
-            continue;
-        }
-        if (t->w0c != 0) {
-            WOF_STANDIN("M5 STAND-IN: 0x013DB2, a slot-3 target's count");
-            continue;
-        }
-        x = (int16_t)(uint16_t)((uint16_t)t->map_offset << 2);
-        frame = target_frame(x);
-        if (frame < 0)
-            continue;
-        wof_draw_world_shape(table, frame, x, 0x14);
-        target_fire(x);
-    }
-}
-
-/* orig 0x013DE8 - the slot-0x0F targets.  Map a has none, so the five scripts never ran
- * the loop's body. */
-static void targets_f(int table)
-{
-    (void)table;
-    if (wof_g.target_count_f)
-        WOF_STANDIN("M5 STAND-IN: 0x013DFA-0x013E5D, the slot-0x0F targets");
 }
 
 /* orig 0x014C3E - the enemy ships' guns, while the aircraft is off the deck: the ship list
@@ -640,8 +563,30 @@ void wof_draw_player(void)
         !wof_g.view_shift)
         wof_draw_at(wof_m.torpedo_shape[0].s, d6, d7);         /* 0x010610: banked */
     wof_clip_playfield();
-    if (wof_g.g_02536a != 0 && wof_g.draw_attitude == 0 && wof_g.view_step != 1)
-        WOF_STANDIN("M5 STAND-IN: 0x010642, the guns' muzzle flash");
+    if (wof_g.g_02536a != 0 && wof_g.draw_attitude == 0 && wof_g.view_step != 1) {
+        /* 0x010654: the guns' muzzle flash, a frame of muzzle_frames (0x024C08) by a count
+         * of the passes the guns fire, none on its even steps: a hellcat_shapes entry by the
+         * aircraft's frame (0x025592), 0x43 on or 0x57 on, ten further on facing left,
+         * drawn with the exclusive-or blit at the aircraft's place. */
+        uint8_t d0 = (uint8_t)((wof_g.muzzle_frame + 1u) & 3u);
+
+        wof_g.muzzle_frame = d0;
+        d0 = wof_image8(0x024C08u + d0);
+        if (d0) {
+            int16_t  d2 = (int16_t)(wof_g.g_025592 - 5 + (d0 == 1 ? 0x43 : 0x57));
+            uint16_t h;
+            const wof_shape_t *s;
+
+            if (wof_g.draw_facing < 0)
+                d2 = (int16_t)(d2 + 0x0A);
+            h = wof_table_entry(T_HELLCAT, d2);
+            s = wof_shape_of(h);
+            wof_trace_add("shape_draw_xor", s ? (int16_t)(d6 - s->hot_x) : 0,
+                          s ? (int16_t)(d7 - s->hot_y) : 0, h, s ? 0 : 1, 0, 0);
+            if (s)
+                wof_shape_draw_xor(s, (int16_t)(d6 - s->hot_x), (int16_t)(d7 - s->hot_y));
+        }
+    }
 done:
 
     wof_g.clip_bottom = saved;
@@ -739,8 +684,8 @@ layers:
     lift_aircraft();
     wof_draw_player();
     wof_draw_enemy_aircraft();
-    targets_3(table);
-    targets_f(table);
+    wof_targets_3_draw(table);
+    wof_targets_f_draw(table);
     ship_guns();
     airfields();
     ship_planes();
@@ -761,101 +706,6 @@ layers:
 
 /* ---------------------------------------------------------- the pools and the objects */
 
-/* orig 0x010EE0 - the Smoke pool: every record in use drawn from MasterList (or AthList) at
- * its whole-pixel position, moved by its velocity, its timer counted and its kind counted
- * down (re/notes/objects.md).  Clipped at the carrier's waterline while 0x025394 is set. */
-static void smoke(void)
-{
-    int16_t saved = wof_g.clip_bottom;
-
-    if (wof_g.g_025394 != 0)
-        wof_g.clip_bottom = (int16_t)(0x84 + wof_g.g_026e56 + carrier.row);
-    for (int i = 0; i < 40; i++) {
-        if (wof_m.smoke_records[i].kind != 0)
-            WOF_STANDIN("M5 STAND-IN: 0x010F2A, a smoke record");
-    }
-    wof_g.clip_bottom = saved;
-}
-
-/* orig 0x013EEE - the soldiers (M5): the walk over soldier_count records, of which the
- * five scripts only ever met free ones. */
-static void soldiers(void)
-{
-    for (uint16_t i = 0; i < wof_g.soldier_count && i < 160; i++)
-        if (wof_m.soldier_records[i].state != 0)
-            WOF_STANDIN("M5 STAND-IN: 0x013F0A-0x01408B, a soldier");
-}
-
-/* orig 0x0152F8 - the Splashes pool: twenty records of four bytes, each in use while its
- * count is non-zero, drawn from world_shapes (or eighth_shapes) and counted down. */
-static void splashes(void)
-{
-    int table = wof_g.view_step == 8 ? T_WORLD : T_EIGHTH;
-
-    for (int i = 0; i < 20; i++) {
-        wof_splash_t *s = &wof_m.splash_records[i];
-        int16_t       d2;
-
-        if (s->count == 0)
-            continue;
-        if (s->kind == 2) {
-            WOF_STANDIN("M5 STAND-IN: 0x015334, a splash of kind 2");
-            continue;
-        }
-        d2 = (int16_t)(uint8_t)(0x67 + s->count);                 /* add.b */
-        wof_draw_world_shape(table, d2, s->x, 0x0D);
-        s->count--;
-    }
-}
-
-/* orig 0x010702 - one object record's drawing: type 1 (a bomb) from torpedo_shapes by its
- * frame.  While its drawing kind is 8 it is going out: eight frames of the explosion from
- * world_shapes, counted in +0x21, and after the eighth the pass frees the record by
- * clearing its kind (re/notes/passes.md).  The five scripts drew objects only at full
- * scale and only of type 1. */
-static void object_draw(wof_object_t *o)
-{
-    int     table = T_TORPEDO;
-    int16_t d2;
-
-    if (o->type != 1) {
-        WOF_STANDIN("M5 STAND-IN: 0x010726, an object of another type");
-        return;
-    }
-    d2 = 9;
-    if (wof_g.view_step != 1)
-        d2 = (int16_t)(uint8_t)(0x40 + o->frame);                 /* add.b */
-    if (o->draw_kind == 8) {
-        uint16_t d3 = (uint16_t)(o->b21 + 1u);
-
-        table = T_WORLD;
-        if (d3 == 8) {
-            o->kind = 0;
-            o->b21  = 0;
-            return;
-        }
-        o->b21 = (uint8_t)d3;
-        d2 = (int16_t)((o->b1f == 0 ? 0x65 : 0x59) + d3);
-    }
-    if (wof_g.view_step != 8) {
-        WOF_STANDIN("M5 STAND-IN: 0x0107C2, an object in the eighth-scale view");
-        return;
-    }
-    wof_draw_world_shape(table, d2, o->draw_x, o->draw_y);
-}
-
-/* orig 0x0106BE - the object records whose drawing kind is set, the extra one last. */
-static void objects(void)
-{
-    if (wof_g.g_02536c)
-        wof_g.g_02536c = 0;
-    for (int i = 0; i < 15; i++)
-        if (wof_m.object_records[i].draw_kind)
-            object_draw(&wof_m.object_records[i]);
-    if (wof_m.object_record_extra[0].draw_kind)
-        object_draw(&wof_m.object_record_extra[0]);
-}
-
 /* orig 0x010344 - two shapes of world_shapes at a fixed place, unmasked, while 0x025364 is
  * set and 0x0253BC clear: entry 0x4D, and entry 0x4A plus the weapon type. */
 static void weapon_marker(void)
@@ -871,13 +721,6 @@ static void weapon_marker(void)
         if (b)
             wof_shape_blit(b, 0, (int16_t)(0xFA - b->hot_x), (int16_t)(0x3C - b->hot_y));
     }
-}
-
-/* orig 0x01557C - the Balloons pool, while 0x02535D is set at full scale (M5). */
-static void balloons(void)
-{
-    if (wof_g.g_02535d && wof_g.view_step == 8)
-        WOF_STANDIN("M5 STAND-IN: 0x015584, the balloons");
 }
 
 /* orig 0x0110C2 draw_game_over - `gmov` from world.shp, centred on the playfield, while the
@@ -981,12 +824,12 @@ wof_co_t wof_frame_update(void)
         wof_g.g_024f24 = 0;
     }
     draw_world();
-    smoke();
-    soldiers();
-    splashes();
-    objects();
+    wof_smoke_draw();
+    wof_soldiers_draw();
+    wof_splashes_draw();
+    wof_draw_objects();
     weapon_marker();
-    balloons();
+    wof_balloons_draw();
     wof_draw_game_over();
     wof_clip_set(0, 0x25, 0, 0x280);                         /* clip_dashboard 0x01F2DC */
     {

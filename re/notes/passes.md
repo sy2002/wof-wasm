@@ -45,8 +45,10 @@ Reaching an island took some care: the other weapon is dropped with a short clic
 button (the manual, page 7), the island of map `a` lies about 3,000 pixels left of the
 carrier, and a turn after the take-off dives the aircraft, so the script turns, levels out
 with a short push forward, flies left at ten pixels a tick and drops a bomb every four ticks
-from world x 4,200 on. One of them hits a barracks at tick 850: the score rises by 200 and six
-soldiers appear in the soldier table (observed, `pass_observe.py` script `bomb`).
+from world x 4,200 on. One of them hits a dug-out (slot 3) at tick 850: the score rises by 200
+and six soldiers appear in the soldier table (observed, `pass_observe.py` script `bomb`; a hit
+on a dug-out with soldiers inside scores 200, one on a barracks 150, as the bombs of
+`tools/m5_scripts.py`'s `bomb_a` show, re/notes/porting-m5.md).
 
 ## The answer
 
@@ -87,17 +89,18 @@ The rest of what a pass writes is drawing state that no tick read in these runs:
 `snapshot_for_draw`'s copies (47 blocks), the map window of the dashboard, the blitter's
 parameter block, the copper lists and the sky flash.
 
-### Couplings that are read and that no run reached
+### The couplings the seven scripts did not reach
 
-These are in the listing and in `re/notes/drawing.md` but **absent from the table above**,
-because no script of this note met the condition that exercises them. M4 and M5 must take the
-table above together with this one.
+These are in the listing and in `re/notes/drawing.md` but absent from the table above,
+because no script of this note met the condition that exercises them. The scripts of M5
+(`tools/m5_scripts.py`) reach the first two, and `tools/m5_observe.py couplings` hooks the
+writes over `island_a`, `guns_a` and `hit_a` (observed):
 
-| Written in a pass | By | Read in a tick by | What has to happen |
+| Written in a pass | By | Read in a tick by | What the M5 scripts show |
 |---|---|---|---|
-| `player_score` `0x02534C` and `island_score` `0x025450` | `0x013EEE`, which adds `0x19` per soldier and takes one off the island's count | `0x011CD8`, `0x0146DC` | **a soldier has to die.** The bombing run brought six out of a barracks at tick 850 and one of them left again, but none was killed, so no pass ever wrote the score: killing them needs the guns held over the island after the barracks is hit, which no script does. The 200 points that run scored were written in a tick, not in a pass |
-| `0x02508A`, the player's record `+0x12` | `re/notes/drawing.md` names `0x014F5C`, under `draw_world` | `logic_tick`, `0x011BFC` (both observed as readers) | unknown. In the seven runs `0x014F5C` wrote the word at `+0x10` of the record and nothing wrote `+0x12` inside a pass, so either another path of that routine writes it or the static attribution is off by two |
-| whatever `player_lost_restart` writes when `frame_update` calls it | `frame_update`, guarded by `0x024F24` | the readers of the restart's own state | that guard has to be set. In all seven runs the restart was reached from the tick or from the mission setup and `frame_update`'s own call was never taken |
+| `player_score` `0x02534C` and `island_score` `0x025450` | `0x013EEE`, which adds `0x19` per soldier and takes one off the island's count | `0x011CD8`, `0x0146DC` | **a soldier dies in a pass.** `soldiers_draw` writes `player_score` 21 times in `island_a`, twenty soldiers and the island's bonus, and `island_score` 20 times, every one in phase F. The guns bring the soldiers down in the tick (`0x011A8C` puts them in state 2); the pass counts their dying frames and scores |
+| `0x02508A`, the player's record `+0x12` | `0x014F5C`, `target_fire`, under `draw_world` | `logic_tick`, `0x011BFC` (both observed as readers) | **the oil falls in a pass**: `target_fire` writes it 2 times in `guns_a`, 15 in `hit_a`, 11 in `island_a`. A target's hit counts `+0x10` down every time; the oil falls only when that count runs out, which is why the seven runs saw `+0x10` written and never `+0x12` |
+| whatever `player_lost_restart` writes when `frame_update` calls it | `frame_update`, guarded by `0x024F24` | the readers of the restart's own state | **still unreachable**: nothing writes `0x024F24` in the three scripts, and no instruction of the executable writes it (read) |
 
 ### What a pass reads of the tick
 
@@ -189,5 +192,6 @@ frames are 4 ms apart.
   (`re/notes/objects.md`).
 - `0x01AF7C`, the routine the player update runs while the aircraft is in the water, was read
   only as far as the restart it ends in.
-- The sky flash, which `re/notes/frontend.md` names writers for, was not provoked by any of
-  the seven scripts.
+- The sky flash is provoked by a rocket's hit on land and by a crash on land, in the tick
+  (`0x0146DC`), and drawn by the pass (`flip_buffers`); re/notes/porting-m5.md, "The sky's
+  flash", has the observation.

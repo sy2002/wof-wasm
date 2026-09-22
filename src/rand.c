@@ -53,3 +53,10 @@ uint32_t wof_rand_beam(uint32_t caller)
     (void)caller;
     return (uint32_t)v;
 }
+
+/* The upper word of the long rand_beam leaves in D0: a constant while the seed stands,
+ * which some callers carry on in a register's upper word (src/targets.c, target_fire). */
+uint32_t wof_rand_upper(void)
+{
+    return (uint32_t)((int32_t)(int16_t)wof_g.rand_seed_const * 0x1AFB + 0x1FCCD) & 0xFFFF0000u;
+}

@@ -69,7 +69,7 @@ In hardware terms: minterm `0xCA` (D = A·B + ¬A·C) with A the mask, shifted b
 
 Eleven shapes exceed 1040 bytes per plane and are therefore always opaque: `fcar`, `mcar`, `rcar` and `rank` in `world.shp`, `batb`, `batf`, `batm`, `crus`, `dstb`, `dstm`, `jrmt` in the ship files. The ten ship and carrier pieces **contain no colour-0 pixel at all**; they carry sky colour 1 around the hull, which shows that the artwork was made for this behaviour. `rank` is two-thirds colour 0 and is drawn on an empty screen.
 
-`shape_draw_xor` uses no mask and ignores `+12`: inside the clipped box it inverts the planes of `set & M` and exclusive-ors each stored plane into the planes of `m[i] & M` (minterm `0x6A`). Drawing twice restores the background. Callers: the rank selection highlight (`0x018262`), and one call each in `0x0103A6` and `0x010DA6`.
+`shape_draw_xor` uses no mask and ignores `+12`: inside the clipped box it inverts the planes of `set & M` and exclusive-ors each stored plane into the planes of `m[i] & M` (minterm `0x6A`). Drawing twice restores the background. Callers: the rank selection highlight (`0x018262`), and one call each in `0x0103A6`, the guns' muzzle flash (re/notes/porting-m5.md), and `0x010DA6`, an enemy aircraft's.
 
 A null record draws nothing: `blit_clip_setup` rejects it. Before that, `shape_draw` and the hotspot subtraction of the callers read a few words at addresses 0 to 19, harmless on the Amiga; the port needs the null test up front.
 
@@ -152,7 +152,7 @@ Found by intersecting the globals written in the call tree of `frame_update` wit
 | `0x026E3C` | `frame_update`, set at the end of every pass; cleared by `0x010A72` in the tick | `0x010AA6` at `0x010CD4` | a frame was drawn since the previous tick. Only then, and only when the pass counter is odd, does an object whose word at `+0x22` is 1 advance its frame byte at `+0x1E` |
 | `0x0253C8` | `draw_world`, pass counter 0 to 99 | `0x010AA6` (also copied into object field `+0x1A`), `0x011460` | |
 | `0x02534C`, `0x025383` | `0x013EEE` | `0x011CD8`, `0x0146DC` | the score (25 is added per soldier) and a countdown of what is left on the island; both meanings inferred from the ticker texts the routine queues |
-| `0x02508A` | `0x014F5C`, reached from `draw_world` | `logic_tick`, `0x011BFC` | |
+| `0x02508A` | `0x014F5C`, reached from `draw_world` | `logic_tick`, `0x011BFC` | the player's oil: a target's fire takes one when the hit count at `+0x10` runs out, and some fuel with it (observed in the M5 scripts, re/notes/passes.md) |
 | `0x02507A`, `0x02508C`, `0x02535C`, `0x02540E` | `player_lost_restart` | many | the restart of the player |
 | `0x027164`, `0x027166` | `draw_world` | `0x012132` | a distance-derived value, inferred to be a sound volume |
 | `0x026E5C`, `0x026E60`, `view_shift` | `snapshot_for_draw`, `frame_update` | `0x010AA6`, `0x010820`, `0x011A46` | the drawing's copy of the player position and the scale |

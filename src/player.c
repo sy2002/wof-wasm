@@ -37,6 +37,11 @@ uint16_t wof_image16(uint32_t addr)
     return (uint16_t)((data_byte(addr) << 8) | data_byte(addr + 1u));
 }
 
+uint8_t wof_image8(uint32_t addr)
+{
+    return data_byte(addr);
+}
+
 uint32_t wof_image32(uint32_t addr)
 {
     return ((uint32_t)wof_image16(addr) << 16) | wof_image16(addr + 2);
@@ -321,7 +326,7 @@ void wof_crash(void)
         if (where == 2)
             wof_splash_spawn((int16_t)(P.x + (int16_t)(P.facing << 3)));
         else
-            WOF_STANDIN("M5 STAND-IN: 0x01B304, a wreck at rest on land or a deck");
+            WOF_STANDIN("M5 PART 2 STAND-IN: 0x01B304, a wreck at rest on land or a deck");
     } else {                                                      /* 0x01B340 */
         wof_g.pitch_target = (int16_t)(wof_g.pitch_target - wof_g.pitch_step);
         if (wof_g.pitch_target < (int16_t)0xF3E4)
@@ -418,7 +423,7 @@ static void button(void)
     if (P.on_deck == 0) {
         if (INPUT & 0x20u) {
             if (wof_g.attitude_index < 6 || wof_g.attitude_index > 0x10)
-                WOF_STANDIN("M5 STAND-IN: 0x01B5E2, the other weapon dropped");
+                WOF_STANDIN("M5 PART 2 STAND-IN: 0x01B5E2, the other weapon dropped");
         } else if (wof_g.attitude_index == 0 && wof_g.g_025f14 > 0) {
             wof_g.g_02536a = 1;
         } else {
@@ -528,7 +533,7 @@ static void ground(void)
     wof_g.airspeed = (int16_t)(P.speed_x * 100);
     if (!wof_on_water(at) && !(wof_record_on_ship(at) && P.y < 0x14)) {    /* 0x01BBC4 */
         wof_object_spawn(wof_record_at((int16_t)((int16_t)(P.facing << 4) + P.x)), P.y, 0);
-        WOF_STANDIN("M5 STAND-IN: 0x01BBF4, what a crash on land does to the island's targets");
+        WOF_STANDIN("M5 PART 2 STAND-IN: 0x01BBF4, what a crash on land does to the island's targets");
     }
     wof_crash();
 }

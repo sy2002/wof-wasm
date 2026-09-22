@@ -22,10 +22,10 @@ whole table every tick or every pass.
 | `aircraft_records` | `0x02522A`, in DATA | `0x34` | 4 | `0x01E608`, `0x0135A8` | `0x01E7D6`, `0x01B682` (their guns), `0x012132` | `snapshot_for_draw`, `0x010DA6`, `0x014206` |
 | `ship_records` | `0x025460`, in DATA | `0x1E` | 5 | `map_scan` | `ground_height`, `0x011510`, `0x011CAE`, `0x01B45A`, `0x01BC02` | `ride_on_ship`, `0x014206`, `0x01409C`, `0x01526E` |
 | `airfield_records` | `0x0252FA`, in DATA | `0x14` | 4 | `0x012C84`, `0x013554` | `0x011622` | `snapshot_for_draw`, `0x013A18` |
-| Ricochet | `ricochet_records` `0x026EA4` | 4 | 20 | `alloc_pools` | `0x011A14` (read only) | |
+| Ricochet | `ricochet_records` `0x026EA4` | 4 | 20 | `alloc_pools` | none: its writer `0x011A14` has no caller | |
 | Splashes | `splash_records` `0x026F30` | 4 | 20 | `alloc_pools` | `0x0119BC`, `0x0152B0` | `0x0152F8` |
 | Smoke | `smoke_records` `0x026F58` | `0x14` | 40 | `alloc_pools` | `smoke_at_player` | `0x010EE0`, `smoke_claim`, `player_lost_restart` |
-| Balloons | `balloon_records` `0x026F66` | `0x12` | 20 | `alloc_pools` | `0x011C5E` (read only) | `0x01557C` (read only) |
+| Balloons | `balloon_records` `0x026F66` | `0x12` | 20 | `alloc_pools` | `0x011C5E` | `0x01557C`, which fills them after a promotion |
 | `soldier_records` | `0x025500` | 8 | five per target | `map_scan` | `0x011E82`, `0x011A8C` | `0x013EEE` |
 | `target_records_4` | `0x0254F8` | `0x10` | one per slot-4 record | `map_scan` | `0x011DE4` | `draw_world`, `0x011E82`, `0x014FEE`, `0x015034` |
 | `target_records_3` | `0x0254FC` | `0x10` | one per slot-3 record | `map_scan` | `0x011DE4`, `0x011E82`, `0x0146DC`, `0x014B40` | `draw_world`, `0x013D78`, `0x013EEE` |
@@ -94,25 +94,36 @@ Smoke, 0x14 bytes          Balloons, 0x12 bytes
 +0x12 word  6 at the claim
 ```
 
-Splashes and Ricochet are four bytes: a word at `+0x00`, the in-use byte at `+0x02` and a
-random byte at `+0x03` that their walkers take from `rand_beam`.
+Splashes and Ricochet are four bytes: a word at `+0x00`, the world x; the count of passes
+still to run at `+0x02`, 0 when the record is free; and at `+0x03` the low bits of the map
+record at that x, which `map_slot_at` gives the claim (read, `0x0152C8` and `0x011A28`; held
+to the original over random states by `tests/test_oracle_m5.py`, `splash_spawn`).
 
-An `object_records` record keeps whole pixels instead (observed over one bomb of the bombing
-run, from the tick it was dropped to the tick it went out):
+An `object_records` record keeps its position as longs in 16.16 as well, whose whole words
+are what the drawing copies (observed over one bomb of the bombing run, from the tick it was
+dropped to the tick it went out, and read from `object_step`, `0x010AA6`):
 
 | Offset | What the run shows |
 |---|---|
-| `+0x00` | word, world x; it moves by the word at `+0x0E` every tick |
-| `+0x04` | word, world y; it falls faster and faster |
-| `+0x08`, `+0x0A` | words, the position of the previous tick |
-| `+0x0E` | word, the horizontal speed, `-9` for a bomb dropped while flying left at 10 |
-| `+0x12` | long, `0xFFFFA000` at the drop and `0x6000` less every tick, which is three eighths of a pixel per tick in 16.16 |
+| `+0x00` | long, world x in 16.16 (the whole word at `+0x00`); it moves by the long at `+0x0E` every tick |
+| `+0x04` | long, world y in 16.16 (the whole word at `+0x04`, the fraction at `+0x06`); it falls faster and faster |
+| `+0x08`, `+0x0A` | words, the drawing's copy of the position, which `snapshot_for_draw` takes |
+| `+0x0E` | long, the horizontal speed in 16.16, `-9` for a bomb dropped while flying left at 10; it loses a tenth of its whole part every tick |
+| `+0x12` | long, the vertical speed in 16.16: `0xFFFFA000` at the drop and `g_025350` (`0x6000`) less every tick, three eighths of a pixel per tick |
 | `+0x1E` | byte, the animation frame, counting 0 to 11 |
 | `+0x20` | byte, the kind: `0xFF`, then 8, then 0 |
-| `+0x22` | word, the type, 1 for a bomb |
+| `+0x22` | word, the type: 0 a rocket, 1 a bomb, 2 the torpedo |
 
-How exactly `+0x12` moves `+0x04` is not established: the fall is not the plain sum of the
-velocity, and the fraction is kept somewhere this reading did not find.
+**The fall.** Every tick the height becomes the high word of `+0x12 + (+0x04 << 16 | +0x06)`
+and only the word at `+0x04` is written back; nothing ever writes `+0x06`, which stays 0. So
+the height moves by the whole part of the vertical speed, rounded down, and the speed's
+fraction never carries (read, `0x010B76` to `0x010B86`; observed by
+`tools/m5_observe.py fall`, which checks that rule for every tick of every bomb and torpedo in flight of five
+scripts and finds it held in every case, with `+0x06` always 0). **The type** is the
+`weapon_type` (`0x0253A4`) at the drop: rockets, bombs, torpedo in the weapon menu's order,
+0, 1, 2 (read, `0x01089C`; observed by the same command, every record carrying the weapon
+type of its drop in the bomb, rocket and torpedo scripts of `tools/m5_scripts.py`). The
+guns' rounds are no object record.
 
 ### The order of a tick
 
@@ -230,17 +241,26 @@ to the notes of M5 and M6.
   state, 0 free, 1 running, 2 dying, 3 dead; `+0x03` a frame; `+0x04` a frame timer; `+0x05`
   the island the soldier belongs to. `0x013EEE` runs them in the pass: it counts the timer
   down, advances the frame, and at frame 7 puts state 3 in, adds `0x19` to `player_score` and
-  takes one off `island_score`. Observed in the bombing run: a bomb on a barracks at tick 850
-  put six of the twenty into state 1 and the score rose by 200.
+  takes one off `island_score`. Observed in the bombing run: a bomb on a dug-out (slot 3) at
+  tick 850 put six of the twenty into state 1 and the score rose by 200, what a hit on a
+  dug-out with soldiers inside scores; a hit on a barracks (slot 4) scores 150
+  (`tools/m5_scripts.py`'s `bomb_a`, re/notes/porting-m5.md).
 - **`target_records_4`** and **`target_records_3`** (`0x10` bytes each, one per map record of
-  slot 4 and slot 3): `+0x00` the map offset as a long, `+0x04` and `+0x06` the world x, for
-  slot 3 as a span from x − 44 to x + 16, `+0x08` a state byte that starts at 5 and `+0x09`
-  the island number. The tick reads `+0x0A` and `+0x0B` in `0x011DE4` and the pass reads and
-  writes `+0x08` and `+0x0C`.
-- **Ricochet** (`0x011A14` in the tick) and **Balloons** (`0x01557C` in the pass, `0x011C5E`
-  in the tick) were **never written by any of the seven scripts**; they are listed here as
-  read, with the routines that would write them. Ricochet takes a `rand_beam` byte per
-  record, which suggests bullets glancing off a ship, and no script ever shot at one.
+  slot 4, a barracks, and slot 3, a dug-out): `+0x00` the draw record's byte offset in the
+  map as a long, `+0x04` and `+0x06` the world x of the ends soldiers come out at, for slot
+  3 x − 44 and x + 16, `+0x08` the soldiers inside, 5 at the start, `+0x09` the island
+  number, `+0x0A` the soldiers still to come out and `+0x0B` the timer that lets them out
+  (`0x011DE4`), `+0x0C` and `+0x0E` two counts: for a dug-out the passes it hides after a
+  soldier ran into it empty and the passes to its next soldier from a barracks, for a burnt
+  barracks its puffs of smoke and the passes between them. What each kind does is in
+  re/notes/porting-m5.md, "The targets and the soldiers".
+- **Ricochet** has one writer, `0x011A14`, and nothing in the executable calls it: its
+  far-call slot at `0x023054` is named by no instruction (read). None of the sixteen M5
+  scripts writes the pool (observed, `tools/m5_observe.py pools`). It is dead.
+- **Balloons** are released by `0x01557C` in the pass while `balloons_on` (`0x02535D`) is set,
+  and moved by `0x011C5E` in the tick. Only the promotion at the end of a rank's last mission
+  sets `balloons_on` (`0x0156CC`); of maps a to c only map c can give one, with all three of
+  its islands neutralised. No M5 script writes the pool (observed, the same command).
 
 ## The controls
 
@@ -296,10 +316,7 @@ about 150 bytes. Sizes of routines that only a kind's handler calls are counted 
 - `0x025AAA`, above.
 - The state words of `aircraft_records` and everything about an enemy aircraft beyond
   `aircraft_motion`: no script of this note brought one up.
-- Ricochet and Balloons, which no script filled.
 - What `+0x04` to `+0x0B` of the player's record hold; `0x01C378` writes all four words and
   the drawing reads them.
-- How `+0x12` of an object record moves `+0x04`, which the bomb's fall does not explain as a
-  plain sum.
-- Which kind each value of an object record's `+0x22` is: 0, 1 and 2 are tested, and a bomb
-  carries 1.
+- The Balloons pool in a run: only a promotion fills it, on map c the whole map
+  neutralised (re/notes/porting-m5.md, "The left-overs").

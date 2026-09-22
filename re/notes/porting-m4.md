@@ -917,7 +917,7 @@ records them (observed).
 | `weapon_marker` | `010344` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
 | `draw_player` | `0103a6` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
 | `draw_objects` | `0106be` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
-| `sub_010702` | `010702` | 0 | 0 | 105 | 112 | 266 | 0 | 0 | 0 | 0 | 0 | 112 | 0 |
+| `object_draw` | `010702` | 0 | 0 | 105 | 112 | 266 | 0 | 0 | 0 | 0 | 0 | 112 | 0 |
 | `draw_enemy_aircraft` | `010da6` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
 | `smoke_draw` | `010ee0` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
 | `snapshot_for_draw` | `010f88` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
@@ -946,10 +946,10 @@ records them (observed).
 | `target_range_frame` | `014db8` | 0 | 228 | 304 | 40 | 120 | 228 | 228 | 668 | 1070 | 228 | 228 | 0 |
 | `ride_on_ship` | `014eac` | 8406 | 5141 | 5446 | 9194 | 19612 | 5141 | 6480 | 14099 | 8989 | 11343 | 58081 | 17811 |
 | `target_fire` | `014f5c` | 0 | 698 | 524 | 0 | 0 | 698 | 220 | 1121 | 0 | 1483 | 10708 | 0 |
-| `sub_014fee` | `014fee` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 |
-| `sub_015034` | `015034` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 |
-| `sub_015078` | `015078` | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 46 |
-| `sub_015090` | `015090` | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 368 |
+| `target_refill` | `014fee` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 |
+| `nearest_barracks` | `015034` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 |
+| `format_to` | `015078` | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 46 |
+| `format_putch` | `015090` | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 16 | 368 |
 | `flip_view` | `0150b0` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
 | `draw_world_shape` | `015174` | 3736 | 5618 | 6779 | 5115 | 9647 | 5618 | 3876 | 8813 | 7537 | 9623 | 57916 | 25771 |
 | `sub_01520c` | `01520c` | 934 | 1134 | 1324 | 1224 | 2682 | 1134 | 818 | 1772 | 1532 | 1918 | 11545 | 1979 |
@@ -1328,8 +1328,8 @@ Written by
 | `draw_player` `0x0103A6` | `0x010642`-`0x0106B3` | `0x010642`, the guns' muzzle flash | M5 |
 | `draw_objects` `0x0106BE` | `0x0106CC`-`0x0106CF` | ported from reading: `0x02536C` cleared | |
 | `draw_objects` `0x0106BE` | `0x0106F6`-`0x0106F9` | ported from reading: the extra object record drawn | |
-| `sub_010702` `0x010702` | `0x010726`-`0x010779` | `0x010726`, an object of another type | M5 |
-| `sub_010702` `0x010702` | `0x0107C2`-`0x0107C5` | `0x0107C2`, an object in the eighth-scale view | M5 |
+| `object_draw` `0x010702` | `0x010726`-`0x010779` | `0x010726`, an object of another type | M5 |
+| `object_draw` `0x010702` | `0x0107C2`-`0x0107C5` | `0x0107C2`, an object in the eighth-scale view | M5 |
 | `object_spawn` `0x010820` | `0x010840`-`0x010841` | ported from reading: all fifteen object records in use, nothing is left | |
 | `object_spawn` `0x010820` | `0x01088E`-`0x010999` | another entry, the weapon's launch from `0x01107C`: M5's, behind the stand-in at `0x01B5E2` | |
 | `objects_step` `0x010A72` | `0x010A9E`-`0x010AA1` | ported from reading: the extra object record walked as the others are | |

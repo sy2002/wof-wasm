@@ -4,6 +4,7 @@
     .venv/bin/python tools/m5_observe.py pools       who writes Ricochet and Balloons
     .venv/bin/python tools/m5_observe.py flash       the sky's flash: who sets it, the rows
     .venv/bin/python tools/m5_observe.py couplings   the second coupling table of passes.md
+    .venv/bin/python tools/m5_observe.py mapwrites   who writes the map's records in a mission
 
 Each command runs the headless original over scripts of tools/m5_scripts.py with observers
 or write hooks and prints what it saw; re/notes/porting-m5.md, "The left-overs of section
@@ -159,9 +160,30 @@ def couplings(names=('island_a', 'guns_a', 'hit_a')):
         print('%-9s %s' % (name, {k: dict(v) for k, v in m.writers.items()}))
 
 
+# ------------------------------------------------------------------------------ the map
+
+def mapwrites(names=('bomb_a', 'crash_a', 'rockets_c')):
+    """Who writes the map's record list during a mission, and which records: re/notes/map.md
+    said nothing writes them after the load; a hit on a barracks or a pillbox does."""
+    for name in names:
+        probe = machine_for(name)
+        probe.run(until='inner')
+        base = probe.o.r32(0x024628)
+        length = probe.o.r16(0x0253C6)
+        m = machine_for(name, Writes, ranges={'map': (base, length)})
+        changed = {}
+        m.run()
+        for i in range(0, length, 2):
+            before, after = probe.o.r16(base + i), m.o.r16(base + i)
+            if before != after:
+                changed[i * 4] = (hex(before), hex(after))
+        print('%-10s writers %s' % (name, {k: dict(v) for k, v in m.writers.items()}))
+        print('           records changed (world x: before, after): %s' % changed)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('command', choices=['fall', 'pools', 'flash', 'couplings'])
+    parser.add_argument('command', choices=['fall', 'pools', 'flash', 'couplings', 'mapwrites'])
     parser.add_argument('names', nargs='*')
     args = parser.parse_args()
     function = globals()[args.command]

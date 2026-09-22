@@ -45,6 +45,11 @@ class Attack(m4_autopilot.Pilot):
     """The headless original flown by a plan (below), after the front end."""
 
     def __init__(self, plan, **options):
+        # A plan of several sorties flies one with each aircraft: when one is lost (or its
+        # sortie ends in a crash), the next aircraft takes the next sortie's weapon and legs.
+        self.base = plan
+        self.sortie = 0
+        plan = self.sortie_plan(0)
         self.plan = plan
         prefix = pass_observe.FRONT + [[40, '']]
         super().__init__(prefix, attack, **options)
@@ -59,6 +64,15 @@ class Attack(m4_autopilot.Pilot):
         self.done_flag = False
         self.open_tick = 0             # the tick the weapon menu opened
         self.lost_at = None
+
+    def sortie_plan(self, k):
+        sorties = self.base.get('sorties')
+        if not sorties:
+            return self.base
+        merged = dict(self.base)
+        merged.update(sorties[min(k, len(sorties) - 1)])
+        merged['more'] = k + 1 < len(sorties)
+        return merged
 
     def state(self):
         s = super().state()
@@ -88,6 +102,10 @@ class Attack(m4_autopilot.Pilot):
                 if inside and inside < 0x80:
                     full.append((o.r32(tb + 16 * i) * 4, inside))
         s['full'] = full
+        # The pillboxes still standing (target_records_f +8 clear), by world x.
+        tb, n = o.r32(0x025504), o.read(0x025385, 1)[0]
+        s['pills'] = [o.r16(tb + 0x0E * i) * 4 for i in range(n if tb else 0)
+                      if o.read(tb + 0x0E * i + 8, 1)[0] == 0]
         return s
 
 
@@ -144,11 +162,17 @@ def attack(m, s):
         m.go('hold')
         m.open_tick = max(0, m.ticks - 17)    # the menu is live from here on
     ph = m.phase
-    if ph in ('leg', 'turn') and s['deck'] == 1 and s['y'] <= 0 and s['menu'] and \
-            not plan.get('once'):
+    if (ph in ('leg', 'turn', 'land') or (ph == 'end' and plan.get('more'))) and \
+            s['deck'] == 1 and s['y'] <= 0 and s['menu'] and not plan.get('once'):
         m.go('hold')                          # the next aircraft, in the hold
         m.open_tick = m.ticks
         m.lost = getattr(m, 'lost', 0) + 1
+        if m.base.get('sorties'):
+            m.sortie += 1
+            m.plan = plan = m.sortie_plan(m.sortie)
+            m.leg = 0
+            m.fired = set()
+            m.rockets = {}
         ph = 'hold'
     if ph in ('leg', 'turn') and plan.get('until_clear') and s['left'] == 0:
         m.go('end')                           # the map's last island is neutralised
@@ -217,6 +241,10 @@ def attack(m, s):
             m.go('turn')
             return way
         ahead = (s['x'] - leg['to']) * want_face >= 0
+        if ahead and plan.get('climb_to_turn') and s['deck'] == 0 and \
+                s['y'] < min(leg.get('y', 400), 150) - 30:
+            # Too low to turn: a turn at this height dives into the ground; climb on first.
+            return way + 'U' + ('F' if m.tap else '')
         if ahead or s['deck'] != 0:
             m.leg += 1
             if m.leg >= len(plan['legs']):
@@ -326,6 +354,47 @@ def attack(m, s):
                     if s['sy'] >= 1:
                         stage = 'done'
                 done[key] = stage
+            elif kind == 'rocketfull':
+                # A rocket dive at every target of the stretch that still holds soldiers,
+                # and at every pillbox still standing: as 'rocket', aimed at the next one.
+                lo, hi = sorted(act[1:3])
+                aims = sorted([x for x, _ in s['full'] if lo <= x <= hi] +
+                              [x for x in s['pills'] if lo <= x <= hi],
+                              key=lambda x: (x - s['x']) * want_face)
+                aims = [x for x in aims if (x - s['x']) * want_face > 150]
+                done = m.__dict__.setdefault('rockets', {})
+                live = [k for k, v in done.items() if k[0] == 'rf' and v in ('dive', 'fire', 'pull')]
+                if live:
+                    target = live[0][2]
+                elif aims and s['wcount'] > 0:
+                    target = aims[0]
+                else:
+                    target = None
+                if target is not None:
+                    key = ('rf', m.leg, target)
+                    stage = done.get(key, 'wait')
+                    gap = (s['x'] - target) * want_face
+                    if stage == 'wait' and -245 <= gap < 0:
+                        stage = 'dive'
+                    if stage == 'dive':
+                        vertical = 'D'
+                        if s['y'] <= 115 and new_tick and not m.tap:
+                            m.tap = 3
+                            m.cool = 8
+                            button = 'F'
+                            stage = 'fire'
+                            m.fire_tick = m.ticks
+                    elif stage == 'fire':
+                        vertical = 'D'
+                        if new_tick and not m.tap and not m.cool and m.ticks >= m.fire_tick + 3:
+                            m.tap = 3
+                            button = 'F'
+                            stage = 'pull'
+                    elif stage == 'pull':
+                        vertical = 'U'
+                        if s['sy'] >= 1:
+                            stage = 'done'
+                    done[key] = stage
             elif kind == 'dive':
                 # A controlled descent towards `low` over the stretch.
                 lo, hi = sorted(act[1:3])
@@ -333,8 +402,14 @@ def attack(m, s):
                 if lo <= s['x'] <= hi:
                     vertical = hold_height(s, low, gain=6.0, limit=4)
         return way + vertical + button
+    if ph == 'end' and plan.get('more') and plan.get('land'):
+        m.go('land')
+        m.land = 'out'
+        ph = 'land'
+    if ph == 'land':
+        return land(m, s)
     if ph == 'end':
-        end = plan.get('end', 'level')
+        end = 'crash' if plan.get('more') else plan.get('end', 'level')
         if end == 'level':
             way = 'L' if s['face'] < 0 else 'R'
             return way + hold_height(s, plan['legs'][-1].get('y', 400))
@@ -348,7 +423,66 @@ def attack(m, s):
     return ''
 
 
+def land(m, s):
+    """Back to the carrier and down into the hold for the next sortie, as tools/m4_autopilot.py's
+    landing flies it: out past the bow to the east, back low from the east on a glide path to
+    the bow, the stick forward alone over it and after the touch-down (the hook needs
+    0x025A9C clear), then the taxi to the lift and the button.  The deck of any map lies
+    where its carrier does: the lift at player_start_x, the bow 312 pixels east of it."""
+    lift = s16(m.o.r16(0x025392))
+    bow = lift + 312
+    stage = m.land
+    if stage == 'out':
+        if s['face'] == 1 and s['x'] > bow + 1150:
+            m.land = 'turn'
+            return 'L'
+        way = 'R' if s['face'] == 1 else 'L'
+        if s['face'] == -1 and s['x'] < bow + 1150:
+            way = 'R'
+        return way + hold_height(s, 150, limit=2) + ('F' if 4 <= s['att'] <= 20 else '')
+    if stage == 'turn':
+        if s['face'] == -1 and s['att'] == 0:
+            m.land = 'approach'
+        return 'L' + hold_height(s, 150, limit=2) + ('F' if 4 <= s['att'] <= 20 else '')
+    if stage == 'approach':
+        dist = s['x'] - bow
+        target = 36 + max(dist, 0) * 0.08
+        if dist < 20:
+            m.land = 'stall'
+        want = max(min((target - s['y']) / 4.0, 3), -4)
+        if s['sy'] < want - 1:
+            return 'LU'
+        if s['sy'] > want + 1:
+            return 'LD'
+        return 'L'
+    if stage in ('stall', 'down'):
+        if s['deck'] == 7:
+            m.land = 'caught'
+            m.mark = m.ticks
+        elif s['deck'] != 0:
+            m.land = 'down'
+        return 'U'
+    if stage == 'caught':
+        if m.ticks - m.mark > 40:
+            m.land = 'taxi'
+        return ''
+    if stage == 'taxi':
+        dist = s['x'] - lift
+        if abs(dist) <= 2 and s['air'] == 0:
+            m.land = 'button'
+            m.mark = m.ticks
+            return ''
+        if abs(dist) <= s['air'] * s['air'] / 1600.0 + 2:
+            return ''
+        return 'L' if dist > 0 else 'R'
+    if stage == 'button':
+        return 'F' if m.ticks - m.mark < 1 else ''
+    return ''
+
+
 def attack_done(m, s):
+    if m.plan.get('more'):
+        return False
     return m.phase == 'end' and m.since() >= m.plan.get('tail', 60)
 
 
@@ -359,6 +493,23 @@ def attack_done(m, s):
 # is at 7032.  Map b (mission 2): islands 32-3944 and 10304-13936, the carrier at 6112.
 # Map c (mission 3): islands 32-3496, 8152-11432 and 12000-15536, slot-0x0F targets at 3432,
 # 3464, 8256 and 8288, the carrier at 5880.
+# The soldier hunts over map c's three islands, a leg each way: the guns at the running
+# soldiers, a bomb (or with rockets a dive) on every target that still holds soldiers.
+ISLAND1 = [
+    {'dir': 'R', 'y': 130, 'to': 3600, 'do': [('hunt', 1300, 3600, 25), ('bombfull', 1300, 3600)]},
+    {'dir': 'L', 'y': 130, 'to': 1300, 'do': [('hunt', 1300, 3600, 25), ('bombfull', 1300, 3600)]},
+]
+ISLAND2 = [
+    {'dir': 'R', 'y': 140, 'to': 11600, 'do': [('hunt', 8000, 11600, 25), ('bombfull', 8000, 11600),
+                                                ('rocketfull', 8000, 11600)]},
+    {'dir': 'L', 'y': 140, 'to': 8000, 'do': [('hunt', 8000, 11600, 25), ('bombfull', 8000, 11600),
+                                               ('rocketfull', 8000, 11600)]},
+]
+ISLAND3 = [
+    {'dir': 'L', 'y': 130, 'to': 11900, 'do': [('hunt', 11900, 15600, 25), ('bombfull', 11900, 15600)]},
+    {'dir': 'R', 'y': 130, 'to': 15700, 'do': [('hunt', 11900, 15600, 25), ('bombfull', 11900, 15600)]},
+]
+
 PLANS = {
     # One bomb on each target of map a from 150 pixels, flying left.
     'bomb_a': {'legs': [
@@ -424,6 +575,37 @@ PLANS = {
         {'dir': 'L', 'y': 420, 'to': 1400,
          'do': [('drop', 3224), ('drop', 2712), ('drop', 2392), ('drop', 1736)]},
     ], 'end': 'level', 'tail': 300},
+    # Map c neutralised to its last island, for the promotion's balloons (mission_won): the
+    # rockets on the four pillboxes and on island 2's targets with the first aircraft, the
+    # bombs on islands 3 and 1 with the second, and the soldiers hunted with the guns; each
+    # sortie ends in a crash, and the next aircraft takes the next sortie.
+    'balloons_c': {'mission': 3, 'until_clear': True, 'land': True, 'climb_to_turn': True,
+                   'end': 'level', 'tail': 900,
+                   'sorties': [
+        {'menu': 'U', 'legs': [
+            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3464, 245, 115)]},
+            {'dir': 'R', 'y': 150, 'to': 4300},
+            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3432, 245, 115)]},
+            {'dir': 'R', 'y': 150, 'to': 9100},
+            {'dir': 'L', 'y': 150, 'to': 7900, 'do': [('rocket', 8288, 245, 115)]},
+            {'dir': 'R', 'y': 150, 'to': 9100},
+            {'dir': 'L', 'y': 150, 'to': 7900, 'do': [('rocket', 8256, 245, 115)]},
+        ] + ISLAND2 * 2},
+        {'legs': [
+            {'dir': 'R', 'y': 150, 'to': 15700,
+             'do': [('drop', 13160), ('drop', 13448), ('drop', 13728), ('drop', 14240)]},
+        ] + ISLAND3 * 3},
+        {'legs': [
+            {'dir': 'L', 'y': 150, 'to': 1400,
+             'do': [('drop', 2808), ('drop', 2456), ('drop', 2368), ('drop', 2232),
+                    ('drop', 2088), ('drop', 1656)]},
+        ] + ISLAND1 * 3},
+        {'legs': ISLAND2 * 3 + ISLAND3 * 2},
+        {'legs': ISLAND1 * 3},
+        {'legs': ISLAND2 * 2 + ISLAND3 * 2},
+        {'legs': ISLAND1 * 2 + ISLAND2 * 2},
+        {'legs': ISLAND3 * 3},
+    ]},
     # The guns over the sea east of the carrier: three shallow dives with the button held.
     'guns_sea': {'legs': [
         {'dir': 'R', 'y': 90, 'to': 10400,

@@ -431,14 +431,28 @@ void wof_draw_dashboard(void)
             int16_t d2 = (int16_t)(0x50 - (int16_t)((n % 10u) << 3));
             int16_t d3 = (int16_t)(0x50 - (int16_t)((n / 10u) << 3));
 
-            if (n == 0xFF) {
-                WOF_STANDIN("M5 STAND-IN: 0x01F062, unlimited weapons");
-                d2 = d3 = 0x64;
-            }
-            if (wof_g.gauge_weapons_tens == d3 && wof_g.gauge_weapons_ones == d2)
+            if (n == 0xFF)
+                d2 = d3 = 0x64;                               /* 0x01F062: unlimited, the cheat's m */
+            if (wof_g.gauge_weapons_tens == d3 && wof_g.gauge_weapons_ones == d2) {
                 c->weapons = (int16_t)n;
-            else
-                WOF_STANDIN("M5 STAND-IN: 0x01F07A, the weapon counter's drums turning");
+            } else {
+                /* 0x01F07A: the drums turn one row a pass toward the count, the ones drum
+                 * always, round after 0x50 to 1 (unsigned); the tens drum only while the
+                 * ones drum passes its rows 0 to 8, which is the moment a real counter's
+                 * tens wheel moves on. */
+                uint16_t d1 = (uint16_t)(wof_g.gauge_weapons_ones + 1);
+                uint16_t d4 = (uint16_t)wof_g.gauge_weapons_tens;
+
+                if (d1 > 0x50)
+                    d1 = 1;
+                wof_g.gauge_weapons_ones = (int16_t)d1;
+                if ((int16_t)d4 != d3 && !((uint16_t)wof_g.gauge_weapons_ones > 8)) {
+                    d4 = (uint16_t)(d4 + 1);
+                    if (d4 > 0x50)
+                        d4 = 1;
+                    wof_g.gauge_weapons_tens = (int16_t)d4;
+                }
+            }
             wof_g.clip_top = 0x13;
             wof_g.clip_bottom = 0x1C;
             draw_hot(6, 0x2A, (int16_t)(0x1C + wof_g.gauge_weapons_tens));
@@ -484,7 +498,7 @@ void wof_draw_dashboard(void)
         uint16_t d3 = wof_g.g_02537f;
 
         if (d3 > 0x63) {
-            WOF_STANDIN("M5 STAND-IN: 0x01F186, the enemy plane counter above 99");
+            WOF_STANDIN("M6 STAND-IN: 0x01F186, the enemy plane counter above 99, which only enemy aircraft shot down raise");
             d3 = 0x63;
         }
         if ((int16_t)d3 != c->w0e) {
@@ -502,7 +516,7 @@ void wof_draw_dashboard(void)
             if (n2 > 0)
                 n1 = 7;
             if (n1 > 0 || n2 > 0)                             /* orig 0x01F200, a row of icons */
-                WOF_STANDIN("M5 STAND-IN: 0x01F206, the enemy plane counter's kill icons");
+                WOF_STANDIN("M6 STAND-IN: 0x01F206, the enemy plane counter's kill icons, which only enemy aircraft shot down raise");
         }
     }
 }
