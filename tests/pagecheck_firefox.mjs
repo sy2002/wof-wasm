@@ -434,7 +434,16 @@ try {
     await press(flightTab, KEY_ENTER);              /* the first rank */
     await sleep(3000);
     await holdIn(KEY_SPACE, 250);                   /* the briefing */
-    const flight = { hold: await until((p) => p.deck === 1 || p.deck === 11, 15000) };
+    /* The first press in the hold comes as soon as the mission scene is there, which is when
+       the player's x leaves 0 (step S): the tick does not run the weapon menu for its first
+       fifteen ticks, and the keyboard assist keeps the press until it does (src/assist.c). */
+    const early = { appeared: await until((p) => p.x !== 0, 15000, 40) };
+    const seenAt = Date.now();
+    await holdIn(KEY_UP, 100);
+    early.tapAfterMs = Date.now() - seenAt - 100;
+    await sleep(2500);
+    early.after = (await player()).weapon;
+    const flight = { hold: await player(), early };
     await sleep(1500);
     /* The weapon menu with the keyboard assist (src/assist.c): three quick taps of the up
        key, a tenth of a second each and a tenth apart, are three steps, which bring the

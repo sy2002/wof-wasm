@@ -282,10 +282,7 @@ try {
        chosen in the hold, the lift up, the roll along the deck and the take-off; the pause
        and the flip; then three aircraft lost to the sea, the game over and the high-score
        entry, where the name goes in.  The player's state is read off the overlay. */
-    await sleep(8000);
     await press(sessionId, 'backquote');            /* the overlay, for the readings */
-    await sleep(600);
-    const flight = { hold: await evaluate(PLAYER) };
     const until = async (test, limitMs, stepMs = 250) => {
         for (let waited = 0; waited < limitMs; waited += stepMs) {
             const now = await evaluate(PLAYER);
@@ -301,6 +298,16 @@ try {
         await sleep(ms);
         await cdp.release(sessionId, name);
     };
+    /* The first press in the hold comes as soon as the mission scene is there, which is when
+       the player's x leaves 0 (step S): the tick does not run the weapon menu for its first
+       fifteen ticks, and the keyboard assist keeps the press until it does (src/assist.c). */
+    const early = { appeared: await until((p) => p.x !== 0, 20000, 40) };
+    const seenAt = Date.now();
+    await holdFor('up', 100);
+    early.tapAfterMs = Date.now() - seenAt - 100;
+    await sleep(2500);
+    early.after = (await evaluate(PLAYER)).weapon;
+    const flight = { hold: await evaluate(PLAYER), early };
     /* The weapon menu with the keyboard assist (src/assist.c): three quick taps of the up
        key, a tenth of a second each and a tenth apart, are three steps, which bring the
        weapon type round to where it started, with a step seen on the way; with the flip on,

@@ -254,6 +254,17 @@ def assert_the_mission_is_flown_from_the_keyboard(flight):
     assert flight['flipped']['flip'], flight['flipped']
 
 
+def assert_a_tap_as_soon_as_the_hold_appears_steps_once(early):
+    """The first press in the hold, made at once when the mission scene is there, falls into
+    the fifteen ticks in which the tick does not run the weapon menu yet; the keyboard assist
+    keeps it, and it is one step up, the weapon type going down by one.  The press has to
+    start well inside that window, which is about a second at PAL."""
+    appeared = early['appeared']
+    assert appeared and appeared['x'] != 0, 'the mission scene never appeared: %s' % early
+    assert early['tapAfterMs'] < 400, 'the tap came too late to test the window: %s' % early
+    assert early['after'] == (appeared['weapon'] - 1) % 3, 'the early tap was lost: %s' % early
+
+
 def assert_the_weapon_menu_steps_once_per_tap(weapon):
     """The keyboard assist on the page (src/assist.c): three quick taps of the up key are
     three steps of the weapon type, which has three values, so they come round to where they

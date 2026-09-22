@@ -21,6 +21,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      big_enough_blocks)
 from conftest import (ROOT,
                       assert_the_mission_is_flown_from_the_keyboard,
+                      assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
@@ -242,6 +243,15 @@ def test_a_mission_is_flown_from_the_keyboard(loaded_firefox):
     assert_the_mission_is_flown_from_the_keyboard(flight)
     after = flight['afterReload']
     assert after['stored'] == '1' and after['player']['flip'], after
+
+
+def test_a_tap_as_soon_as_the_hold_appears_steps_once(loaded_firefox):
+    """The keyboard assist keeps a press made in the weapon menu's first fifteen ticks."""
+    assert_a_tap_as_soon_as_the_hold_appears_steps_once(loaded_firefox['flight']['early'])
+
+
+def test_a_tap_as_soon_as_the_hold_appears_steps_once_in_a_visible_window(loaded_firefox_visible):
+    assert_a_tap_as_soon_as_the_hold_appears_steps_once(loaded_firefox_visible['flight']['early'])
 
 
 def test_the_weapon_menu_steps_once_per_tap(loaded_firefox):

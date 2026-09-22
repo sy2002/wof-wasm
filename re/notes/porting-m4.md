@@ -563,8 +563,10 @@ pause stopping the tick count and the second press letting it run, the flip, and
 still on after a reload; in Chrome also a dive into the sea, the button for the next
 aircraft, two aircraft rolled off the bow, the game over and the high-score entry. The page
 switches the keyboard assist on at start (below), the overlay's player line shows the weapon
-type, and both browsers tap the up key three times in the hold, a tenth of a second each and
-a tenth apart, for three steps, and once more with the flip on, where up still steps up.
+type, and both browsers tap the up key in the hold as soon as the mission scene is there,
+inside the menu's first fifteen ticks, for one step; then three times, a tenth of a second
+each and a tenth apart, for three steps, and once more with the flip on, where up still
+steps up.
 
 ## The keyboard assist
 
@@ -582,8 +584,12 @@ is 0 it takes `last_key` instead, so the cursor keys `0x4C` and `0x4D` reach it 
 step it sets `weapon_menu_wait` (`0x02536E`) to 2 and counts that down only on ticks that carry
 input, sideways bits included, so one step costs three sampled inputs; the menu opens with 1
 there, so the first step falls on the second sample. The tick does not run the menu for the
-first 15 ticks after it opens (`0x026D3E`). Observed under the headless original, twelve taps
-of the stick forward, 20 VBlanks apart:
+first 15 ticks after it opens: `player_restart_state` (`0x013684`), the only writer of
+`0x026D3E`, sets it to 15 at each of its three callers, the mission's setup (`0x0100D6`), the
+lift reaching the hold (`0x0114D2`) and the next aircraft after a loss (`0x01362C`), and
+`logic_tick` runs the menu only once it has counted down (`0x011402`). A press in that window,
+about a second, is lost. Observed under the headless original, twelve taps of the stick
+forward, 20 VBlanks apart:
 
 | Tap | Steps |
 |---|---|
@@ -617,14 +623,22 @@ possession of their cursor keys. While the menu has the stick:
    starts one more push when the current one ends, so quick taps are one step each at the
    menu's own rate. With none remembered and the key still down when a push ends, the next
    push starts at once, which is the original's repeat of one step every three ticks.
-3. A key already held when the menu opens does nothing until it is pressed again.
-4. The push is not flipped: up on the key is up in the menu, `weapon_type` decreasing. The
+3. A press in the menu is never lost. The menu is live when the tick that takes the next
+   sample runs it, which is when `0x026D3E` less the bytes already waiting in the queue is at
+   most 1. In the first 15 ticks after every opening it is not, and a press made then is
+   remembered in the same queue, at most two; its push starts on the VBlank the menu becomes
+   live. A key held through the window therefore steps once when the menu becomes live and
+   then repeats. No push runs while the menu is not live.
+4. A key already held when the menu opens does nothing until it is pressed again.
+5. The push is not flipped: up on the key is up in the menu, `weapon_type` decreasing. The
    sample carries `WOF_RAW_UNFLIPPED` beside it, and `read_joy_bits` skips the flip for it.
-5. The push ends the moment the menu loses the stick, and on a sample that carries the button
-   (a tap or hold latch set), which gets the stick as it is: `weapon_menu` tests the button
-   before it steps, so the push could not step on that tick, and that tick's player update
-   already rides the lift. No synthetic bit reaches the lift or the deck.
-6. `wof_port_key` swallows `0x4C` and `0x4D`, because they reach the menu a second time
+6. The push ends the moment the menu loses the stick, and on a sample that carries the button
+   (a tap or hold latch set) to a live menu, which gets the stick as it is: `weapon_menu`
+   tests the button before it steps, so the push could not step on that tick, and that tick's
+   player update already rides the lift. No synthetic bit reaches the lift or the deck. In
+   the window the tick does not run the menu, so the button ends nothing there and the
+   remembered presses stay.
+7. `wof_port_key` swallows `0x4C` and `0x4D`, because they reach the menu a second time
    through `last_key`.
 
 **The never-lost tap.** Everywhere else, a direction that goes down arms itself; the next
@@ -662,8 +676,9 @@ behind. The lift, the roll and the climb that follow are the same to the byte.
   `weapon_menu_wait` stands at, which is why a push is one step also right after the menu
   opens with 1 there. A queue that dropped a sample of a push (more than six waiting, which
   only a long stall of the passes can cause) would break that.
-- A push during the menu's first 15 ticks steps nothing, as a tap does in the original; one
-  that straddles the end of that window can end on the pause count instead of a step.
+- The window's end is predicted at every VBlank from `0x026D3E` and the queue's count. A
+  queue that dropped a byte in a long stall of the passes would put it one tick early for
+  the push that starts there.
 - The swallow cannot be told from the push in steady play: the push covers every tick on which
   a cursor code's `last_key` is read, so a tap with its code steps once with or without the
   swallow. What the swallow stops is a key held when the menu opens, whose repeated codes would

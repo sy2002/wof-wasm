@@ -19,6 +19,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
 from conftest import (assert_the_mission_is_flown_from_the_keyboard,
+                      assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
                       assert_a_modifier_alone_starts_nothing,
                       assert_the_box_has_the_display_aspect,
@@ -365,6 +366,11 @@ def test_a_mission_is_flown_from_the_keyboard(loaded):
     assert flight['second']['deck'] in (1, 11), flight['second']
     for life in ('third', 'end'):
         assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
+
+
+def test_a_tap_as_soon_as_the_hold_appears_steps_once(loaded):
+    """The keyboard assist keeps a press made in the weapon menu's first fifteen ticks."""
+    assert_a_tap_as_soon_as_the_hold_appears_steps_once(loaded['flight']['early'])
 
 
 def test_the_weapon_menu_steps_once_per_tap(loaded):
