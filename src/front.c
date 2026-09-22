@@ -676,6 +676,7 @@ static wof_co_t mission(void)
     wof_sounds_load();
     if (!wof_g.loaded_game) {
         wof_mission_reset_tables();                           /* orig 0x0135A8 */
+        wof_test_poke_after_reset();
         wof_player_restart_state();                           /* orig 0x013684 */
         wof_g.loaded_game = 0;
         wof_g.pause_flag = 0;

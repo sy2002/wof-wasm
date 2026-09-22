@@ -6,9 +6,9 @@ Part 1 ports the pass, and the tick that drops and moves the weapons is part 2's
 pictures come from the open loop of tests/m4compare.py: every pass starts from the headless
 original's state before it, and the picture is what the port draws of that state - the
 bombs and rockets in the air, their explosions, the soldiers, the flags, the smoke, the
-muzzle flash, the weapon counter.  A picture is the port's framebuffer with each row's
-palette, rows doubled as in tests/m4_renders.py; the dashboard is also written alone, four
-times enlarged.  dist/ is not versioned, and neither are these.
+muzzle flash, the weapon counter, the balloons.  A picture is the port's framebuffer with
+each row's palette, rows doubled as in tests/m4_renders.py; the dashboard is also written
+alone, four times enlarged.  dist/ is not versioned, and neither are these.
 """
 import os
 import sys
@@ -119,6 +119,12 @@ def main():
     def high(m, k):
         return s16(m.u(0x024F36, 2)) == 1 and objects(m, None, {1})
     save(capture(ported, 'high_a', high)[0], 'eighth-scale-bombs.png', out=OUT)
+
+    def balloons(m, k):
+        base = m.u(0x026F66, 4)
+        up = sum(1 for i in range(20) if m.u(base + 0x12 * i + 0x11, 1))
+        return k > 300 and up >= 15 and 5750 <= s16(m.u(0x026E5C, 2)) <= 5950
+    save(capture(ported, 'balloons_c', balloons)[0], 'balloons.png', out=OUT)
 
 
 if __name__ == '__main__':

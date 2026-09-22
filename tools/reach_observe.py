@@ -221,7 +221,7 @@ def description_of(name, **more):
 
 
 def pokes_of(name):
-    """{address: (size, value)} poked at the rank selection's end for a script."""
+    """{address: (size, value[, point])} poked for a script (tools/m5_scripts.py, POKES)."""
     import m5_scripts
     if name == 'night':
         return {NIGHT_POKE[0]: (2, NIGHT_POKE[1])}
@@ -233,8 +233,8 @@ def observe(name, verbose=True, blocks=False, **more):
     machine = Reach(description_of(name, **more), blocks=blocks)
     pokes = pokes_of(name)
     if pokes:
-        machine.stop_at(0x01009E, lambda: [machine.o.write(a, v.to_bytes(s, 'big'))
-                                           for a, (s, v) in pokes.items()])
+        import m5_scripts
+        m5_scripts.install_pokes(machine, pokes)
     machine.run()
     if verbose:
         print('%-9s %5d VBlanks, %5d passes, %4d ticks, %d missions, %d entropy reads  (%.0f s)'
@@ -700,8 +700,6 @@ REGION_NOTES = {
               'message (0x015624)',
     0x0156B2: "ported from reading: the rank's last mission won, the promotion (map c)",
     0x01F0A4: "ported from reading: the weapon counter's tens drum round after 0x50",
-    0x015584: "ported from reading: the balloons, which only mission_won's promotion releases: "
-              "on maps a to c map c with its three islands neutralised (re/notes/porting-m5.md)",
     # M5 part 2: the tick's regions that part 2 ports (re/notes/porting-m5.md)
     0x010970: "M5 part 2: a rocket's frame from the pitch, clamped at 0 (object_spawn's "
               "second entry, behind the stand-in at 0x01B5E2)",

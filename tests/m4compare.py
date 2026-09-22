@@ -41,6 +41,7 @@ import map_decode                                     # noqa: E402
 import pass_observe                                   # noqa: E402
 import m4_scripts                                     # noqa: E402
 import m4state                                        # noqa: E402
+import m5_scripts                                     # noqa: E402
 
 DRAW_OBSERVERS = ['shape_draw', 'shape_blit', 'rect_fill', 'shape_draw_xor', 'clip_set',
                   'draw_set_target', 'line_draw']
@@ -99,8 +100,7 @@ class Recorder(headless.Headless):
             self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=begin, end=end - 1)
         for address in MISSION_WINDOW:
             self.uc.hook_add(UC_HOOK_CODE, self._window, begin=address, end=address)
-        if self.pokes:
-            self.stop_at(0x01009E, self._poke)
+        m5_scripts.install_pokes(self, self.pokes)
 
     def _window(self, uc, address, size, user):
         # A mission won goes on to the campaign's next one at 0x010132, which is M7's (the
@@ -135,11 +135,6 @@ class Recorder(headless.Headless):
             else:
                 slot.add(key)
 
-    def _poke(self):
-        """The run's pokes at the rank selection's end (the night mission's instrument)."""
-        for address, (size, value) in self.pokes.items():
-            self.o.write(address, value.to_bytes(size, 'big'))
-
     def _step(self, kind):
         super()._step(kind)
         self.t_writes.append(self._t)
@@ -150,7 +145,6 @@ class Recorder(headless.Headless):
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
     """One script under the headless original, dumped to `dump_path`."""
-    import m5_scripts
     description = m5_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
     machine = Recorder(description, pokes=pokes)
     machine.open_dump(dump_path)
@@ -195,6 +189,7 @@ class Replay:
                 ('wof_vblank_count', [], ctypes.c_uint32),
                 ('wt_pokes_clear', [], None),
                 ('wt_poke', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
+                ('wt_poke_reset', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
                 ('wt_standins_reset', [], None),
@@ -301,9 +296,12 @@ class Replay:
         self.lib.wt_set_vblanks_per_pass(self.rate)
         self.lib.wt_standins_reset()
         self.lib.wt_pokes_clear()
-        for address, (size, value) in self.pokes.items():
-            entry = next(e for e in self.layout.globals if e[1] == address)
-            self.lib.wt_poke(entry[4], size, value)
+        for at, items in m5_scripts.poke_points(self.pokes).items():
+            poke = self.lib.wt_poke if at == m5_scripts.RANK_END else self.lib.wt_poke_reset
+            assert at in (m5_scripts.RANK_END, m5_scripts.MISSION_RESET), hex(at)
+            for address, size, value in items:
+                entry = next(e for e in self.layout.globals if e[1] == address)
+                poke(entry[4], size, value)
 
         self.reader = dump.DumpReader(self.dump_path)
         self.current = None              # (memory, head) of the last step consumed

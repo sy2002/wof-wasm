@@ -11,7 +11,8 @@ flight again without the autopilot (tools/m5_scripts.py keeps them).
     .venv/bin/python tools/m5_autopilot.py PLAN --verbose
 
 A plan is a map (by its mission number, poked at the rank selection's end as the M4 setups
-do), the weapon menu's steps, and a list of legs.  What each plan reaches is in
+do; `balloons` also sets balloons_on after the mission's reset), the weapon menu's steps,
+and a list of legs.  What each plan reaches is in
 re/notes/porting-m5.md, "The scripts".
 """
 import argparse
@@ -28,6 +29,7 @@ import pass_observe                                          # noqa: E402
 
 PLAYER = 0x025078
 MISSION_NUMBER = 0x0253C0
+BALLOONS_ON = 0x02535D
 OBJECTS = 0x024CAE
 GRAVITY = 0x025350
 WEAPON_TYPE = 0x0253A4
@@ -56,6 +58,8 @@ class Attack(m4_autopilot.Pilot):
         if plan.get('mission'):
             self.stop_at(0x01009E, lambda: self.o.write(MISSION_NUMBER,
                                                          bytes([0, plan['mission']])))
+        if plan.get('balloons'):
+            self.stop_at(0x0100D6, lambda: self.o.write(BALLOONS_ON, b'\xff'))
         self.leg = 0
         self.tap = 0                   # VBlanks of the button still to hold for a tap
         self.cool = 0                  # VBlanks before the next tap may start
@@ -176,6 +180,10 @@ def attack(m, s):
         ph = 'hold'
     if ph in ('leg', 'turn') and plan.get('until_clear') and s['left'] == 0:
         m.go('end')                           # the map's last island is neutralised
+        ph = 'end'
+    if ph in ('leg', 'turn') and plan.get('land') and plan.get('more') and \
+            s['deck'] == 0 and s['oil'] < plan.get('land_oil', 0):
+        m.go('end')                           # the engine leaks: back to the carrier now
         ph = 'end'
     if ph in ('leg', 'turn') and plan.get('once') and s['deck'] != 0:
         m.go('end')                           # the aircraft is lost: the plan is over
@@ -575,22 +583,28 @@ PLANS = {
         {'dir': 'L', 'y': 420, 'to': 1400,
          'do': [('drop', 3224), ('drop', 2712), ('drop', 2392), ('drop', 1736)]},
     ], 'end': 'level', 'tail': 300},
-    # Map c neutralised to its last island, for the promotion's balloons (mission_won): the
+    # Map c with balloons_on set after the mission's reset (0x0100D6), as the promotion
+    # leaves it for the flight back to the carrier: out over the balloons and back.
+    'balloons_c': {'mission': 3, 'balloons': True, 'legs': [
+        {'dir': 'R', 'y': 120, 'to': 6700}, {'dir': 'L', 'y': 120, 'to': 5300},
+        {'dir': 'R', 'y': 100, 'to': 6400},
+    ], 'end': 'level', 'tail': 60},
+    # Map c neutralised to its last island, for the promotion itself (mission_won): the
     # rockets on the four pillboxes and on island 2's targets with the first aircraft, the
-    # bombs on islands 3 and 1 with the second, and the soldiers hunted with the guns; each
-    # sortie ends in a crash, and the next aircraft takes the next sortie.
-    'balloons_c': {'mission': 3, 'until_clear': True, 'land': True, 'climb_to_turn': True,
+    # bombs on islands 3 and 1 with the second, and the soldiers hunted with the guns; a
+    # sortie that loses oil lands on the carrier, and the next sortie takes off from it.
+    'win_c': {'mission': 3, 'until_clear': True, 'land': True, 'climb_to_turn': True,
+                   'land_oil': 110,
                    'end': 'level', 'tail': 900,
                    'sorties': [
         {'menu': 'U', 'legs': [
-            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3464, 245, 115)]},
+            {'dir': 'R', 'y': 160, 'to': 9000, 'do': [('rocket', 8256, 260, 140)]},
+        ] + ISLAND2 * 2 + [
+            {'dir': 'L', 'y': 160, 'to': 4300},
+            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3464, 235, 125)]},
             {'dir': 'R', 'y': 150, 'to': 4300},
-            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3432, 245, 115)]},
-            {'dir': 'R', 'y': 150, 'to': 9100},
-            {'dir': 'L', 'y': 150, 'to': 7900, 'do': [('rocket', 8288, 245, 115)]},
-            {'dir': 'R', 'y': 150, 'to': 9100},
-            {'dir': 'L', 'y': 150, 'to': 7900, 'do': [('rocket', 8256, 245, 115)]},
-        ] + ISLAND2 * 2},
+            {'dir': 'L', 'y': 150, 'to': 3100, 'do': [('rocket', 3432, 235, 125)]},
+        ]},
         {'legs': [
             {'dir': 'R', 'y': 150, 'to': 15700,
              'do': [('drop', 13160), ('drop', 13448), ('drop', 13728), ('drop', 14240)]},

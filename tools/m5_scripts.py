@@ -302,6 +302,18 @@ ROCKETS_C = PLANE + [
     [4, 'LU'], [4, 'L'], [4, 'LU'], [476, 'L'],
 ]
 
+# Map c with balloons_on set after the mission's reset, as the promotion after a rank's last
+# mission leaves it (0x0156CC) for the flight back to the carrier: out over the balloons,
+# back and out again (the autopilot's plan balloons_c).
+BALLOONS_C = PLANE + [
+    [20, ''], [3, 'F'], [126, ''], [415, 'R'], [157, 'RU'], [23, 'RD'], [40, 'R'],
+    [4, 'RU'], [4, 'R'], [28, 'L'], [4, 'LU'], [4, 'LUF'], [32, 'LF'], [4, 'LUF'],
+    [8, 'LF'], [4, 'LUF'], [24, 'LF'], [20, 'LUF'], [4, 'LF'], [32, 'LDF'], [4, 'LF'],
+    [24, 'L'], [16, 'LU'], [404, 'L'], [1, 'R'], [11, 'RD'], [20, 'R'], [20, 'RUF'],
+    [56, 'RF'], [8, 'RUF'], [28, 'RF'], [8, 'RUF'], [16, 'RF'], [16, 'R'], [4, 'RU'],
+    [8, 'R'], [16, 'RU'], [320, 'R'], [1, ''], [239, 'R'],
+]
+
 # The VBlank at which the key runs press their key: the first bomb of bomb_a is in the air.
 BOMB_KEYS_AT = 2377
 
@@ -338,6 +350,7 @@ RUNS = {name: (raw, length(raw) + 20) for name, raw in [
     ('guns_sea', GUNS_SEA), ('guns_a', GUNS_A), ('bomb_a', BOMB_A), ('high_a', HIGH_A),
     ('rockets_a', ROCKETS_A), ('torpedo_a', TORPEDO_A), ('hit_a', HIT_A), ('crash_a', CRASH_A),
     ('island_a', ISLAND_A), ('bomb_b', BOMB_B), ('bomb_c', BOMB_C), ('rockets_c', ROCKETS_C),
+    ('balloons_c', BALLOONS_C),
 ]}
 RUNS['bomb_pause'] = (with_keys(with_keys(BOMB_A, BOMB_KEYS_AT, [ESCAPE]), BOMB_KEYS_AT + 40,
                                 [ESCAPE]), length(BOMB_A) + 20)
@@ -351,9 +364,30 @@ RUNS['bomb_cheat'] = (with_keys(with_keys(with_keys(BOMB_A, 800, CHEAT), 900, [0
                                 BOMB_KEYS_AT + 200, [0x37]), length(BOMB_A) + 20)
 
 # The mission number each script is flown on, poked at the rank selection's end (0x01009E)
-# as {address: (size, value)} on both sides, as tests/test_mission.py's setups do.
+# as {address: (size, value)} on both sides, as tests/test_mission.py's setups do; a third
+# element names another point, here the one after the mission's reset of its tables
+# (0x0100D6, main's jsr to player_restart_state), where balloons_on stays as poked.
+RANK_END, MISSION_RESET = 0x01009E, 0x0100D6
+BALLOONS_ON = 0x02535D
 POKES = {'bomb_b': {MISSION_NUMBER: (2, 2)}, 'bomb_c': {MISSION_NUMBER: (2, 3)},
-         'rockets_c': {MISSION_NUMBER: (2, 3)}}
+         'rockets_c': {MISSION_NUMBER: (2, 3)},
+         'balloons_c': {MISSION_NUMBER: (2, 3), BALLOONS_ON: (1, 0xFF, MISSION_RESET)}}
+
+
+def poke_points(pokes):
+    """{point: [(address, size, value)]} of a script's pokes."""
+    out = {}
+    for address, entry in (pokes or {}).items():
+        at = entry[2] if len(entry) > 2 else RANK_END
+        out.setdefault(at, []).append((address, entry[0], entry[1]))
+    return out
+
+
+def install_pokes(machine, pokes):
+    """Make a script's pokes in a headless original at their points."""
+    for at, items in poke_points(pokes).items():
+        machine.stop_at(at, lambda items=items: [machine.o.write(a, v.to_bytes(s, 'big'))
+                                                 for a, s, v in items])
 
 SCRIPTS = list(RUNS)
 
@@ -395,9 +429,7 @@ def objects(o):
 def trace(name, every=1, start=0, out=sys.stdout):
     """Run a script and print the player, the weapons and the targets after every tick."""
     machine = headless.Headless(script(name))
-    for address, (size, value) in POKES.get(name, {}).items():
-        machine.stop_at(0x01009E, lambda a=address, s=size, v=value:
-                        machine.o.write(a, v.to_bytes(s, 'big')))
+    install_pokes(machine, POKES.get(name))
     started = time.time()
     print('tick  in   ' + ' '.join('%6s' % w[0] for w in WATCH) + '  objects', file=out)
     limit = script(name)['stop'].get('vblanks', 1 << 60)

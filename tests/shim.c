@@ -911,6 +911,7 @@ void wt_standins_reset(void) { wof_trace_standins_reset(); }
 /* The hooks of the M4 comparisons (src/trace.c). */
 void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
 void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
+void wt_poke_reset(unsigned offset, unsigned size, unsigned value) { wof_test_poke_reset(offset, size, value); }
 
 /* Port-side counters and settings the comparisons read. */
 unsigned wt_ticks_run(void)   { return wof_f.ticks_run; }
@@ -1028,6 +1029,10 @@ int wt_draw_op(int op, int slot, int index, int bytes_per_row, int rows, int dep
         wof_dash_digit((int16_t)a, (int16_t)b, (uint16_t)e);
     } else if (op == 4) {
         wof_line_draw((int16_t)a, (int16_t)b, (int16_t)c, (int16_t)d, (uint8_t)e);
+    } else if (op == 5) {
+        if (!con || index < 0 || index >= (int)con->count)
+            return -1;
+        wof_shape_draw_xor(&con->shapes[index], (int16_t)a, (int16_t)b);
     } else {
         return -1;
     }

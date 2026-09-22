@@ -197,21 +197,34 @@ void wof_test_step_s(uint32_t mission)
 }
 
 /* Pokes a run applies to the registered globals at the rank selection's end, which is how
- * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night").  The
- * headless original's run gets the same pokes at the same point (0x01009E). */
+ * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night"), or
+ * after the mission's reset of its tables, which is how a state the promotion leaves is
+ * reached (re/notes/porting-m5.md, "The scripts").  The headless original's run gets the
+ * same pokes at the same points (0x01009E, 0x0100D6). */
 #define POKES_MAX 8
 
-static struct { uint32_t offset, size, value; } pokes[POKES_MAX];
+static struct { uint32_t offset, size, value, reset; } pokes[POKES_MAX];
 static uint32_t poke_count;
 
-void wof_test_poke(uint32_t offset, uint32_t size, uint32_t value)
+static void poke_add(uint32_t offset, uint32_t size, uint32_t value, uint32_t reset)
 {
     if (poke_count < POKES_MAX) {
         pokes[poke_count].offset = offset;
         pokes[poke_count].size   = size;
         pokes[poke_count].value  = value;
+        pokes[poke_count].reset  = reset;
         poke_count++;
     }
+}
+
+void wof_test_poke(uint32_t offset, uint32_t size, uint32_t value)
+{
+    poke_add(offset, size, value, 0);
+}
+
+void wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value)
+{
+    poke_add(offset, size, value, 1);
 }
 
 void wof_test_pokes_clear(void)
@@ -219,14 +232,26 @@ void wof_test_pokes_clear(void)
     poke_count = 0;
 }
 
-void wof_test_poke_after_rank(void)
+static void pokes_apply(uint32_t reset)
 {
     for (uint32_t i = 0; i < poke_count; i++) {
         uint8_t *at = (uint8_t *)&wof_s.g + pokes[i].offset;
 
+        if (pokes[i].reset != reset)
+            continue;
         for (uint32_t b = 0; b < pokes[i].size; b++)
             at[b] = (uint8_t)(pokes[i].value >> (8 * b));
     }
+}
+
+void wof_test_poke_after_rank(void)
+{
+    pokes_apply(0);
+}
+
+void wof_test_poke_after_reset(void)
+{
+    pokes_apply(1);
 }
 
 #endif /* WOF_TRACE */

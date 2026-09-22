@@ -986,6 +986,8 @@ void     wof_test_poke(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_pokes_clear(void);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
+void     wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value);
+void     wof_test_poke_after_reset(void);         /* and after the mission's reset (0x0100D6) */
 int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
 int32_t  wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/targets.c */
 void     wof_trace_mission(void);                 /* the whole state at step S */
@@ -1003,6 +1005,7 @@ void     wof_test_step_s(uint32_t mission);
 #define wof_trace_pass_end() ((void)0)
 #define wof_test_tick_end(tick) ((void)0)
 #define wof_test_poke_after_rank() ((void)0)
+#define wof_test_poke_after_reset() ((void)0)
 #define wof_trace_mission() ((void)0)
 #endif
 

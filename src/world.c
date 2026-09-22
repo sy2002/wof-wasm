@@ -754,8 +754,8 @@ void wof_draw_game_over(void)
 }
 
 /* orig 0x01030C flip_buffers - COLOR01 of the back list poked with the sky colour, or with
- * flash_colour on odd counts while flash_count runs, then the back view shown.  No script
- * provokes the flash; its branch is ported from reading. */
+ * flash_colour on odd counts while flash_count runs, then the back view shown.  The flash
+ * is set in the tick by a rocket's or a crash's hit on land (0x0146DC, rockets_a). */
 void wof_flip_buffers(void)
 {
     wof_vport_t *v  = wof_back_vport();

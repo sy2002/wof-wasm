@@ -31,8 +31,7 @@ FLASH_COUNT, FLASH_COLOUR = 0x025416, 0x025418
 
 def machine_for(name, cls=headless.Headless, **options):
     m = cls(m5_scripts.script(name), **options)
-    for a, (s, v) in m5_scripts.POKES.get(name, {}).items():
-        m.stop_at(0x01009E, lambda a=a, s=s, v=v: m.o.write(a, v.to_bytes(s, 'big')))
+    m5_scripts.install_pokes(m, m5_scripts.POKES.get(name))
     return m
 
 
