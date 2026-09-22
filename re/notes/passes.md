@@ -156,11 +156,32 @@ changes only them.
 
 ## What this does not answer
 
-**How many VBlanks a pass takes on a real A500** is not answerable here and is not attempted:
-the harness has no cycle model. It sets the speed of the soldiers, of the game over countdown,
-of the object animation and of everything else in the table, so the port needs a measurement
-from the owner's machine or from a cycle-exact emulator. Until then the harness and the port
-use two VBlanks per pass, which is a setting, not a finding.
+**How many VBlanks a pass takes on a real machine** is not answerable here: the harness has
+no cycle model. It sets the speed of the soldiers, of the game over countdown, of the object
+animation and of everything else in the table. The owner's machine answered it, below.
+
+## What the film of the real machine shows
+
+The owner filmed their PAL Amiga's monitor (HDMI out) with a phone at 240 fps on 2026-09-22:
+the story scroller, and the hold with the lift, the flag and the aircraft accelerating on the
+deck. The export plays the slowed section at 30 fps, so inside it one video frame is 1/240 s
+and a 50 Hz refresh is 4.8 frames. `tools/film_rate.py` decodes the film to 480 x 270 grey,
+takes the mean absolute difference of consecutive frames in a crop of the game's picture,
+finds the frames where the picture changed as peaks above a moving average, and prints the
+histogram of the intervals between them; camera shake does not matter, because consecutive
+frames are 4 ms apart.
+
+- **Calibration.** The port's story scroller changes its picture every 2 VBlanks (571 of 585
+  intervals over VBlanks 200 to 1400), and its drawing is held to the original VBlank by
+  VBlank, so the real machine does the same. The scroller film shows intervals of 9 and 10
+  frames, two refreshes: the capture chain resolves every change (observed).
+- **The result.** In the sea band below the ship the picture changes every 9 or 10 frames (85
+  of 120 intervals are two refreshes), the rest at multiples of it, ten at one refresh and
+  four at three: **a pass takes 2 VBlanks on the real machine in this scene** (observed). The
+  harness's and the port's setting of 2 is therefore a measurement for a quiet scene.
+- **Not measured:** a busy scene, with many objects, soldiers and explosions, where the
+  original may need 3 VBlanks for a pass. The port's setting is fixed; if a film shows 3
+  there, the port would have to model the load.
 
 ## Open
 
