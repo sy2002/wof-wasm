@@ -194,21 +194,41 @@ PART2_SCRIPTS = (['deck', 'flight', 'climb', 'lost', 'gameover', 'night', 'selec
 NIGHT_POKE = (0x025390, 1)                     # night_flag, at the rank selection's end
 
 
+def m5_scripts_list():
+    """M5's scripts (tools/m5_scripts.py): the weapons, the targets, the soldiers, maps b
+    and c, and the key runs during a bombing run."""
+    import m5_scripts
+    return list(m5_scripts.SCRIPTS)
+
+
 def description_of(name, **more):
     import m4_scripts
+    import m5_scripts
     if name.startswith('run:'):
         with open(os.path.join(ROOT, 'tests', 'runs', name[4:] + '.json')) as handle:
             description = json.load(handle)
         description.update(more)
         return description
+    if name in m5_scripts.RUNS:
+        return m5_scripts.script(name, **more)
     return m4_scripts.script('flight' if name == 'night' else name, **more)
+
+
+def pokes_of(name):
+    """{address: (size, value)} poked at the rank selection's end for a script."""
+    import m5_scripts
+    if name == 'night':
+        return {NIGHT_POKE[0]: (2, NIGHT_POKE[1])}
+    return m5_scripts.POKES.get(name, {})
 
 
 def observe(name, verbose=True, blocks=False, **more):
     started = time.time()
     machine = Reach(description_of(name, **more), blocks=blocks)
-    if name == 'night':
-        machine.stop_at(0x01009E, lambda: machine.o.w16(NIGHT_POKE[0], NIGHT_POKE[1]))
+    pokes = pokes_of(name)
+    if pokes:
+        machine.stop_at(0x01009E, lambda: [machine.o.write(a, v.to_bytes(s, 'big'))
+                                           for a, (s, v) in pokes.items()])
     machine.run()
     if verbose:
         print('%-9s %5d VBlanks, %5d passes, %4d ticks, %d missions, %d entropy reads  (%.0f s)'
@@ -253,8 +273,43 @@ def observe_setup(letter, rank, mission, verbose=True, blocks=False):
     return machine
 
 
-def collect(names, verbose=True, blocks=False, setups=False):
+def _collect_one(job):
+    """One script or setup in a process of its own (collect with jobs > 1)."""
+    name, verbose, blocks, first = job
+    if name.startswith('setup-'):
+        letter = name[6:]
+        m = observe_setup(letter, *setup_runs()[letter], verbose=verbose, blocks=blocks)
+    else:
+        m = observe(name, verbose=verbose, blocks=blocks)
+    return name, record_of(m, first)
+
+
+def record_of(m, first):
+    return {
+        'entries': [[w, p, r, n] for (w, p, r), n in sorted(m.entries.items())],
+        'draws': [[w, p, r, n] for (w, p, r), n in sorted(m.draws.items())],
+        'line_calls': m.line_calls,
+        'view_step_writes': m.view_step_writes,
+        'night': m.night,
+        'counters': {'vblanks': m.vblanks, 'passes': m.passes, 'ticks': m.ticks,
+                     'missions': m.missions, 'entropy': len(m.entropy_log)},
+        'self_looping': self_looping(m, m.table) if first else None,
+        'blocks': [[w, p, a, size, n] for (w, p, a, size), n in sorted(m.blocks.items())],
+    }
+
+
+def collect(names, verbose=True, blocks=False, setups=False, jobs=1):
     out = {}
+    if jobs > 1:
+        import concurrent.futures
+        todo = [(name, verbose, blocks, bool(names) and name == names[0]) for name in names]
+        if setups:
+            todo += [('setup-' + letter, verbose, blocks, False)
+                     for letter in sorted(setup_runs())]
+        with concurrent.futures.ProcessPoolExecutor(max_workers=jobs) as pool:
+            for name, record in pool.map(_collect_one, todo):
+                out[name] = record
+        return out
     machines = [(name, lambda name=name: observe(name, verbose=verbose, blocks=blocks))
                 for name in names]
     if setups:
@@ -385,6 +440,11 @@ def main():
     parser.add_argument('--runs', nargs='*', default=M4_SCRIPTS)
     parser.add_argument('--part2', action='store_true',
                         help="part 2's scripts, the night mission and the key runs")
+    parser.add_argument('--m5', action='store_true',
+                        help="M5's scripts (tools/m5_scripts.py) beside every script of M4")
+    parser.add_argument('--m5-only', action='store_true', help="M5's scripts alone")
+    parser.add_argument('--jobs', type=int, default=1,
+                        help='run the scripts in this many processes')
     parser.add_argument('--markdown')
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
@@ -394,7 +454,11 @@ def main():
     args = parser.parse_args()
     if args.part2:
         args.runs = PART2_SCRIPTS
-    data = collect(args.runs, blocks=args.blocks, setups=args.setups)
+    if args.m5:
+        args.runs = PART2_SCRIPTS + m5_scripts_list()
+    if args.m5_only:
+        args.runs = m5_scripts_list()
+    data = collect(args.runs, blocks=args.blocks, setups=args.setups, jobs=args.jobs)
     report(data, args.runs)
     if args.markdown:
         with open(args.markdown, 'w') as f:
