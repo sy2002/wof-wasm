@@ -20,8 +20,9 @@ or from the constant BLTADAT.  That last point is what lets an unshifted opaque 
 with USEA and USEC both off, which the original does, and it is what keeps a shifted one
 from writing outside the shape's own box.
 
-Only what the shape blit uses is modelled.  Descending mode, the fill modes and line mode
-are asserted absent rather than implemented; if a caller ever needs them, this stops.
+Only what the drawing of the game uses is modelled: the ascending area mode, and the line
+mode for line_draw (execute_line).  Descending mode and the fill modes are asserted absent
+rather than implemented; if a caller ever needs them, this stops.
 """
 import struct
 
@@ -63,6 +64,7 @@ class Blit:
         # Each pointer is a register pair: the high word at the named offset, the low
         # word two bytes on.  Only 21 bits reach the chip.
         self.apt = ((r[BLTAPT] << 16) | r[BLTAPT + 2]) & 0x1FFFFE
+        self.aptl = r[BLTAPT + 2]                 # the line mode's accumulator, whole
         self.bpt = ((r[BLTBPT] << 16) | r[BLTBPT + 2]) & 0x1FFFFE
         self.cpt = ((r[BLTCPT] << 16) | r[BLTCPT + 2]) & 0x1FFFFE
         self.dpt = ((r[BLTDPT] << 16) | r[BLTDPT + 2]) & 0x1FFFFE
@@ -132,10 +134,57 @@ def minterm_word(lf, a, b, c):
     return d & 0xFFFF
 
 
+def execute_line(mem, blit):
+    """Run one line-mode blit: one pixel per row of BLTSIZE's height, from the word at
+    BLTCPT (BLTDPT is the same) and the bit BLTCON0's shift names.  A is BLTADAT (a single
+    bit) shifted to the pixel, B the texture BLTBDAT, C the word under it, D what the minterm
+    makes of them.  After a pixel the octant bits of BLTCON1 step the position: SUD set
+    means the major axis is x, SUL and AUL make the minor and the major step negative; the
+    minor step comes only while the accumulator's sign is clear, and the accumulator
+    (BLTAPTL) then adds BLTAMOD, else BLTBMOD.  ONEDOT is not modelled; the game never sets
+    it.  This is the documented behaviour of the line mode, not something derived from the
+    game."""
+    assert blit.words == 2, 'a line blit is two words wide: %r' % blit
+    assert not (blit.con1 & 0x02), 'ONEDOT is not modelled: con1=%04X' % blit.con1
+    sud, sul, aul = blit.con1 & 0x10, blit.con1 & 0x08, blit.con1 & 0x04
+    sign = bool(blit.con1 & 0x40)
+    acc = signed16(blit.aptl)
+    ptr = blit.cpt
+    bit = blit.ash
+    for _ in range(blit.rows):
+        a = (blit.adat >> bit) & 0xFFFF
+        c = mem.r16(ptr)
+        mem.w16(ptr, minterm_word(blit.minterm, a, blit.bdat, c))
+
+        def step_x(back):
+            nonlocal ptr, bit
+            if back:
+                bit -= 1
+                if bit < 0:
+                    bit, ptr = 15, ptr - 2
+            else:
+                bit += 1
+                if bit > 15:
+                    bit, ptr = 0, ptr + 2
+
+        def step_y(back):
+            nonlocal ptr
+            ptr += -blit.cmod if back else blit.cmod
+
+        if not sign:
+            (step_y if sud else step_x)(sul)
+        (step_x if sud else step_y)(aul)
+        acc = signed16((acc + (blit.amod if not sign else blit.bmod)) & 0xFFFF)
+        sign = acc < 0
+
+
 def execute(mem, blit):
-    """Run one blit against `mem`, an ascending area-mode blit and nothing else."""
+    """Run one blit against `mem`: an ascending area-mode blit, or a line."""
+    if blit.con1 & 0x01:
+        execute_line(mem, blit)
+        return
     assert not (blit.con1 & 0x02), 'descending mode is not modelled: con1=%04X' % blit.con1
-    assert not (blit.con1 & 0x1B), 'fill or line mode is not modelled: con1=%04X' % blit.con1
+    assert not (blit.con1 & 0x1A), 'fill mode is not modelled: con1=%04X' % blit.con1
 
     apt, bpt, cpt, dpt = blit.apt, blit.bpt, blit.cpt, blit.dpt
     a_hold = b_hold = 0

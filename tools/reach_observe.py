@@ -141,6 +141,8 @@ class Reach(headless.Headless):
         if blocks:
             uc.hook_add(UC_HOOK_BLOCK, self._block, begin=0x010000, end=0x022F4B)
 
+    _last_entry = None
+
     def _block(self, uc, address, size, user):
         self.blocks[(self.window, self.phase(), address, size)] += 1
 
@@ -148,6 +150,13 @@ class Reach(headless.Headless):
         self.window = WINDOW_MARKS[address]
 
     def _entry(self, uc, address, size, user):
+        # A slice that ran out of time can stop between this hook and its instruction; the
+        # next slice runs the hook again for the same entry (tools/headless.py, _observe).
+        stack = uc.reg_read(UC_M68K_REG_A7)
+        if self._refire == address and self._last_entry == (address, stack):
+            self._refire = None
+            return
+        self._last_entry = (address, stack)
         name = self.by_address[address]
         self.entries[(self.window, self.phase(), name)] += 1
         if name in LINE_DRAW:

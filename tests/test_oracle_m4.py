@@ -97,6 +97,45 @@ def test_rect_fill_matches_the_blitter(ported, target):
     assert changed >= 30, 'only %d of the fills drew anything' % changed
 
 
+# ------------------------------------------------------------------ V5: line_draw
+
+LINE_DRAW = 0x021318
+
+
+def test_line_draw_matches_the_blitter(ported):
+    """line_draw (0x021318), the landing's cable: random lines in every octant, short and
+    long, inside, across every edge and wholly outside the clip, in every colour, over an
+    empty and a noisy background, under the playfield's clips.  The original's clipping and
+    register programme are its own; the pixels come from the line mode of tests/blitter.py,
+    which is documented behaviour and PROVISIONAL with the port's line (SPEC 10, point 7)."""
+    bytes_per_row, rows, depth = PLAYFIELD
+    width = bytes_per_row * 8
+    reference = Reference('shapes/world.shp', bytes_per_row, rows, depth)
+    o = reference.original.o
+    rng = random.Random(0x21318)
+    noisy = background(width, rows, 11, depth)
+    drawn = 0
+    for n in range(400):
+        clip = rng.choice(CLIPS[PLAYFIELD])
+        x0, y0 = rng.randrange(-60, width + 60), rng.randrange(-40, rows + 40)
+        if n % 3:
+            x1, y1 = x0 + rng.randrange(-40, 41), y0 + rng.randrange(-40, 41)
+        else:
+            x1, y1 = rng.randrange(-60, width + 60), rng.randrange(-40, rows + 40)
+        colour = rng.randrange(1 << depth)
+        bg = noisy if n % 2 else bytes(width * rows)
+
+        def call():
+            o.call(LINE_DRAW, regs={'d0': x0 & 0xFFFF, 'd1': y0 & 0xFFFF, 'd2': x1 & 0xFFFF,
+                                    'd3': y1 & 0xFFFF, 'd4': colour, 'a6': CUSTOM})
+        want = reference.replay(clip, bg, call)
+        got = draw_op(ported, 4, PLAYFIELD, clip, bg, a=x0, b=y0, c=x1, d=y1, e=colour)
+        assert got == want, 'line (%d,%d)-(%d,%d) colour %d clip %s: %d pixels differ' % (
+            x0, y0, x1, y1, colour, clip, differ(got, want))
+        drawn += want != bg
+    assert drawn > 150, 'only %d of the lines drew anything' % drawn
+
+
 # ------------------------------------------------------- V5: shape_blit without a mask
 
 POSITIONS_5 = [(0, 0), (0xFA - 8, 0x3C - 4), (37, 40), (-9, -5), (300, 150)]

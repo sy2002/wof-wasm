@@ -52,9 +52,6 @@ EXCLUDED = [
      'vport_ticker: the ticker\'s ViewPort, RasInfo, BitMap and RastPort',
      'the port\'s screen model (src/screen.c) keeps a viewport as position, size and depth; '
      'its picture is compared as the palette of every row (V1 rows)', 'M4, SPEC 6.6'),
-    (0x026E3D, 0x026E3D, {'sub_01107c'},
-     'a flag the weapon drop (0x01107C) clears',
-     'the weapon drop is M5\'s stand-in at 0x01B5E2', 'M5'),
     (0x026F8A, 0x026F8B, {'object_draw_first'},
      'a count object_draw_first leaves for the debug view behind 0x02536D',
      'reached from the weapon drop, M5\'s stand-in at 0x01B5E2', 'M5'),

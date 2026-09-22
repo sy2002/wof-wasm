@@ -462,7 +462,7 @@ wof_co_t wof_logic_tick(void)
         if (--wof_g.g_0253ac < 0) {
             uint16_t d0;
 
-            wof_g.g_0253ac = (int16_t)wof_image16(0x0253E8u);
+            wof_g.g_0253ac = wof_g.g_0253e8;
             d0 = (uint16_t)((wof_g.g_02476a + 1) & 7);
             wof_g.g_02476a = (int16_t)d0;
             wof_g.g_0253ae = (int16_t)(wof_tbl_data_image[0x024C44u - 0x023000u + d0] + 1);

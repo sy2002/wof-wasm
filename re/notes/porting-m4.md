@@ -262,18 +262,25 @@ original's do.
 | T1, T2 | `test_the_night_mission_agrees_in_both_loops` | the flight script as a night mission |
 | T2 | `test_the_key_runs_agree_in_both_loops[...]` | 20 key runs of M3: pause and continue, the restart, the flip, the save refused in the air, the load dialog, the music, the high scores cleared while paused, the cheat sequence |
 | T1 by attribution | `test_the_island_flight_differs_only_where_a_stand_in_was_reached` | the flight over the island without the button: every differing pass or tick reached a marked stand-in in that same step |
-| T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[1, 3][lost, turns]` | the lost and the turns scripts at one and three VBlanks per pass, against the original run at the same rate |
+| T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[1, 3][lost, turns]` (slow) | the lost and the turns scripts at one and three VBlanks per pass, against the original run at the same rate |
 | flip | `test_the_flip_with_the_stick_turned_round_flies_the_same_flight` | the port with the flip on and the turns script's forward and back exchanged: every pass and tick agrees apart from the flip's byte |
 | setup | `test_the_setup_agrees_at_step_s` | everything the setup writes, its tick included, at S |
 | T3 | `test_every_address_a_mission_writes_is_compared_or_excluded` | see "The completeness list" |
 | V4 | `tests/test_mission.py` | the setup on thirteen maps laid over map a, on all fifteen under their own numbers, and for the first mission of every rank, with the map file the loader opens |
-| V5 | `tests/test_oracle_m4.py` | `rect_fill` on 5 and 4 planes under the pass's clips; `shape_blit` without a mask for every dashboard shape and every fifth world shape; the digit and drum slices |
+| V5 | `tests/test_oracle_m4.py` | `rect_fill` on 5 and 4 planes under the pass's clips; `shape_blit` without a mask for every dashboard shape and every fifth world shape; the digit and drum slices; `line_draw` for 400 random lines against the line mode of the model |
 | V6, T4 | `tests/test_oracle_m4.py` | the ticker, the game-over countdown, the gauge resets, `deck_span`, `ship_at_offset`, `clip_to_waterline`, the 3-D view's cursor; `player_motion` against the original and `tests/ffp_model.py`; thirteen routines of the player, a turn's step, the crash and the ground over random states; `ground_height`, `map_slot_at`, `record_at`, `on_water` and `record_on_ship` on five maps; whole state |
 | T5 | `tests/test_state_m4.py` | states saved flying left with the shapes mirrored, inside the restart's waits, and paused, loaded into the same core and a fresh one with another seed: state, picture and the next 400 VBlanks identical, native and wasm |
 | T7 | `tests/test_page.py`, `tests/test_firefox.py` | a mission flown on the page with the keys held in real time ("The page") |
 
 `shape_mirror_x` is held to the original over every shape of both containers, twice, by
 M1's `test_shape_mirror_x_matches_on_every_shape`.
+
+The tests marked slow - the fuel script and the pass rates - run only when asked for:
+
+```text
+.venv/bin/python -m pytest tests/            the suite without them, about 25 minutes
+.venv/bin/python -m pytest tests/ --slow     everything, about 35 minutes (or WOF_SLOW=1)
+```
 
 The controls, each run by changing the port and reverting it:
 
@@ -285,8 +292,9 @@ The controls, each run by changing the port and reverting it:
   value fewer than the original, named with its caller, and `rand_state` differs;
 - `player_motion`'s + 50 before the division by 100 made + 25: the oracle test's case 7
   leaves the player's x and horizontal speed one lower than the original's;
-- forward and back swapped where the tick takes its byte: the turns script parts from the
-  original at once, and the dump runs out before the port does;
+- forward and back swapped where the tick takes its byte: tick 151 of the turns script,
+  the first with the stick forward, reads 6 where the original reads 5, and the frame,
+  `0x025A9C` and the markers differ from there;
 - the restart's last `WaitTOF` removed: tick 324 of the lost script waits 20 VBlanks where
   the original waits 21, and the VBlank counters differ from there;
 - the mirror markers left out of a loaded state: the save state flying left, loaded into a
@@ -294,6 +302,8 @@ The controls, each run by changing the port and reverting it:
 - `player_reset`'s draw of `rand_mod` skipped: tick 324 of the lost script draws nothing
   where the original draws, and `rand_state` and the player's `+0x10` differ;
 - one row of the completeness list removed: the test names the range and its writer;
+- `line_draw`'s accumulator started one higher: two pixels of a line differ from the
+  original's programme replayed by the model;
 - the arena's clearing removed: `wof_alloc` after a reset hands out old bytes;
 - positively, the closed loop holds at one and three VBlanks per pass as it does at two,
   and the flip with the stick turned round flies the same flight.
@@ -364,9 +374,13 @@ it can: it skips what it stands for. The release core has no test hook
 - **`line_draw`'s pixels** (`SPEC.md` section 10, point 7): the clipping is the original's
   arithmetic, and the line itself is the blitter's line mode as documented, the Bresenham
   walk of `dmax + 1` pixels from the first end with the accumulator `2*dmin - dmax`. The
-  headless original draws no lines, so only the call and its arguments are compared (the
-  landing script's 26 calls agree); the pattern wants a comparison with a cycle-exact
-  emulator.
+  headless original draws no lines, so in the scripts only the call and its arguments are
+  compared (the landing script's 26 calls agree). `tests/blitter.py` models the line mode
+  from the same documentation, and `test_line_draw_matches_the_blitter` replays the
+  original's own register programme for 400 random lines in every octant and against every
+  edge: that holds the port's clipping, octant, accumulator, start and length to the
+  original's, but not the line mode's pattern itself, which wants a comparison with a
+  cycle-exact emulator.
 - **The ticker's message bytes** are read from `ticker_text` and `ticker_text_2` and from
   the constant DATA hunk; a message anywhere else is M7's stand-in.
 - **The ship-block reader** gives 0 for a word past the four lists; no map reaches that, and

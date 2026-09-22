@@ -1026,6 +1026,8 @@ int wt_draw_op(int op, int slot, int index, int bytes_per_row, int rows, int dep
     } else if (op == 3) {
         wof_f.dash_night = (uint8_t)(slot == WOF_C_NIGHTDASH);
         wof_dash_digit((int16_t)a, (int16_t)b, (uint16_t)e);
+    } else if (op == 4) {
+        wof_line_draw((int16_t)a, (int16_t)b, (int16_t)c, (int16_t)d, (uint8_t)e);
     } else {
         return -1;
     }

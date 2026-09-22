@@ -401,6 +401,7 @@ class Headless(AmigaOS):
         self._deadline = time.time() + 600.0
         self._fault = None
         self._skip = None
+        self._refire = None                   # where a slice that ran out of time stopped
         self._reason = None
         self._pause = None
         self.depth = 0
@@ -617,8 +618,15 @@ class Headless(AmigaOS):
 
     def _observe(self, uc, address, size, user):
         """An observer: record and let the program run on.  Nothing is written, so the run is
-        the same one it would be without it."""
+        the same one it would be without it.  A slice of emulation that runs out of time can
+        stop after an observer's hook has run and before its instruction; the slice after it
+        starts on that instruction and runs the hook again, which is not a second call."""
         stack = self.reg('a7')
+        if self._refire == address:
+            self._refire = None
+            last = self.observed[-1] if self.observed else None
+            if last is not None and last['address'] == address and last['a7'] == stack:
+                return
         record = {
             'routine': self.observing[address], 'address': address,
             'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
@@ -761,6 +769,7 @@ class Headless(AmigaOS):
             if self._fault:
                 raise HarnessError(self._fault)
             address = self._reason
+            self._refire = self.pc if address is None else None
             if address is None:
                 if self.pc == end:
                     if self.depth == 0:

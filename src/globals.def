@@ -178,6 +178,7 @@ WOF_GLOBAL(g_026e70,           int16_t,  0x026E70)
 WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
 WOF_GLOBAL(g_027348,           int16_t,  0x027348)  /* logic_tick counts it down to 0 */
 WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */
+WOF_GLOBAL(g_0253e8,           int16_t,  0x0253E8)  /* the swell's period, which logic_tick reloads 0x0253AC from */
 WOF_GLOBAL(g_026f80,           uint16_t, 0x026F80)  /* the cheat's q: main then ends the program (st.b) */
 WOF_GLOBAL(g_027de2,           int16_t,  0x027DE2)  /* the version Control-V shows: 1 and 0 (0x01AA50) */
 WOF_GLOBAL(g_027de4,           int16_t,  0x027DE4)
@@ -248,6 +249,7 @@ WOF_GLOBAL(g_025360,           uint8_t,  0x025360)
 WOF_GLOBAL(game_over,          uint8_t,  0x025362)  /* draw_game_over draws `gmov` while set */
 WOF_GLOBAL(g_025364,           uint8_t,  0x025364)  /* the weapon menu is up, in the hold */
 WOF_GLOBAL(g_025365,           uint8_t,  0x025365)  /* never written; the player update's tst.w reads it */
+WOF_GLOBAL(g_026e3d,           uint8_t,  0x026E3D)  /* the byte after frame_drawn; the weapon drop (0x01107C) clears it */
 WOF_GLOBAL(g_025366,           uint8_t,  0x025366)
 WOF_GLOBAL(g_025367,           uint8_t,  0x025367)
 WOF_GLOBAL(g_025368,           uint8_t,  0x025368)

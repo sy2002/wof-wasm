@@ -15,6 +15,7 @@ import collections
 import glob
 import os
 import sys
+import tempfile
 import types
 
 import pytest
@@ -187,10 +188,25 @@ def compare_attributed(replay, chart):
     return counts['steps'], counts['differing'], unattributed
 
 
+# Each script is recorded under the headless original once per session and shared by every
+# test that replays it; the dumps live in a directory of their own for the session.
+RECORDINGS = {}
+RECORDING_DIR = tempfile.mkdtemp(prefix='wof-m4-')
+
+
+def recorded(name, rate=2, pokes=None, more=None):
+    key = recording_key(name, rate, pokes, more)
+    if key not in RECORDINGS:
+        dump_path = os.path.join(RECORDING_DIR, '%s-%d-%d.dump' % (
+            name.replace(':', '_'), rate, len(RECORDINGS)))
+        machine = m4compare.record(name, dump_path, rate=rate, pokes=pokes, more=more)
+        keep_writes(key, machine)
+        RECORDINGS[key] = (machine, dump_path)
+    return RECORDINGS[key]
+
+
 def run_both_loops(ported, tmp_path, name, rate=2, pokes=None, more=None, loops=('open', 'closed')):
-    dump_path = str(tmp_path / ('%s-%d.dump' % (name, rate)))
-    machine = m4compare.record(name, dump_path, rate=rate, pokes=pokes, more=more)
-    keep_writes(recording_key(name, rate, pokes, more), machine)
+    machine, dump_path = recorded(name, rate, pokes, more)
     chart = map_decode.load('a')
     results = {}
     for mode in loops:
@@ -230,9 +246,7 @@ def test_the_island_flight_differs_only_where_a_stand_in_was_reached(ported, tmp
     reaches M5's stand-ins - the soldiers, the targets' guns - so it is judged by attribution:
     in the open loop every pass and every tick that differs from the original reached a
     marked stand-in in that same pass or tick."""
-    dump_path = str(tmp_path / 'island.dump')
-    machine = m4compare.record('island', dump_path)
-    keep_writes(recording_key('island'), machine)
+    machine, dump_path = recorded('island')
     replay = m4compare.Replay(ported, machine, dump_path, mode='open')
     steps, differing, unattributed = compare_attributed(replay, map_decode.load('a'))
     assert steps > 1000, 'only %d steps compared' % steps
@@ -267,8 +281,7 @@ def test_the_flip_with_the_stick_turned_round_flies_the_same_flight(ported, tmp_
     """The positive control: the port with the vertical flip on (wof_set_invert_vertical) and
     the turns script's forward and back exchanged flies the original's flight.  In the closed
     loop every pass and every tick agrees apart from the flip's own byte."""
-    dump_path = str(tmp_path / 'turns.dump')
-    machine = m4compare.record('turns', dump_path)
+    machine, dump_path = recorded('turns')
     replay = m4compare.Replay(ported, machine, dump_path, mode='closed')
     forward, back = headless.RAW_BITS['U'], headless.RAW_BITS['D']
     found = Findings()
@@ -295,6 +308,7 @@ def test_the_flip_with_the_stick_turned_round_flies_the_same_flight(ported, tmp_
     assert machine.o.read(0x0254F6, 1) == b'\0'
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize('name', ['lost', 'turns'])
 @pytest.mark.parametrize('rate', [1, 3])
 def test_the_closed_loop_holds_at_other_pass_rates(ported, tmp_path, name, rate):
