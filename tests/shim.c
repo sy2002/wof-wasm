@@ -912,6 +912,7 @@ void wt_standins_reset(void) { wof_trace_standins_reset(); }
 void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
 void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
 void wt_poke_reset(unsigned offset, unsigned size, unsigned value) { wof_test_poke_reset(offset, size, value); }
+void wt_map_addresses(const uint32_t *list, unsigned n) { wof_test_map_addresses(list, n); }
 
 /* Port-side counters and settings the comparisons read. */
 unsigned wt_ticks_run(void)   { return wof_f.ticks_run; }

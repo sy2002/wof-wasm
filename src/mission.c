@@ -98,6 +98,7 @@ static void free_map(void)
                                       SHIP_JAPCARRIER };
 
     CLEAR(map_records);
+    wof_g.map_list_address = 0;                   /* mem_free_var clears the pointer */
     CLEAR(target_records_4);
     CLEAR(target_records_f);
     CLEAR(target_records_3);
@@ -796,6 +797,7 @@ void wof_map_load(void)
     wof_g.player_start_x = (int16_t)(uint16_t)(start * 4u - 8u);
 
     CLEAR(map_records);                           /* mem_alloc: MEMF_CLEAR */
+    wof_g.map_list_address = wof_env_map_address();
     {
         uint32_t cap = (uint32_t)sizeof wof_m.map_records;
         uint32_t n   = length < cap ? length : cap;

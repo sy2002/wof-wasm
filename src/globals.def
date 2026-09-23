@@ -175,6 +175,10 @@ WOF_GLOBAL(g_026e6a,           int16_t,  0x026E6A)
 WOF_GLOBAL(g_026e6c,           int16_t,  0x026E6C)
 WOF_GLOBAL(g_026e6e,           int16_t,  0x026E6E)
 WOF_GLOBAL(g_026e70,           int16_t,  0x026E70)
+WOF_GLOBAL(g_026f8a,           int16_t,  0x026F8A)  /* 0x0107F2: 0x14 at a weapon's drop, for the debug view */
+/* The map list's address, map_records at 0x024628 as a value.  The machine's allocator
+ * chooses it; only the wreck's explosion at 0x01B304 reads it (re/notes/porting-m5.md). */
+WOF_GLOBAL(map_list_address,   uint32_t, 0x024628)
 WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
 WOF_GLOBAL(g_027348,           int16_t,  0x027348)  /* logic_tick counts it down to 0 */
 WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */

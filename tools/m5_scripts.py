@@ -302,6 +302,14 @@ ROCKETS_C = PLANE + [
     [4, 'LU'], [4, 'L'], [4, 'LU'], [476, 'L'],
 ]
 
+# The torpedo dropped at 24 pixels, low enough that it meets the sea slowly and runs there for
+# 200 ticks with a splash every tick, then goes out (the autopilot's plan torpedo_run).
+TORPEDO_RUN = PLANE + [
+    [4, ''], [8, 'D'], [48, ''], [3, 'F'], [126, ''], [415, 'R'], [157, 'RU'], [39, 'RD'],
+    [24, 'R'], [8, 'RU'], [56, 'R'], [8, 'RU'], [4, 'R'], [4, 'RU'], [124, 'R'], [4, 'RF'],
+    [428, 'R'], [1, ''], [1439, 'R'],
+]
+
 # Map c with balloons_on set after the mission's reset, as the promotion after a rank's last
 # mission leaves it (0x0156CC) for the flight back to the carrier: out over the balloons,
 # back and out again (the autopilot's plan balloons_c).
@@ -350,7 +358,7 @@ RUNS = {name: (raw, length(raw) + 20) for name, raw in [
     ('guns_sea', GUNS_SEA), ('guns_a', GUNS_A), ('bomb_a', BOMB_A), ('high_a', HIGH_A),
     ('rockets_a', ROCKETS_A), ('torpedo_a', TORPEDO_A), ('hit_a', HIT_A), ('crash_a', CRASH_A),
     ('island_a', ISLAND_A), ('bomb_b', BOMB_B), ('bomb_c', BOMB_C), ('rockets_c', ROCKETS_C),
-    ('balloons_c', BALLOONS_C),
+    ('balloons_c', BALLOONS_C), ('torpedo_run', TORPEDO_RUN),
 ]}
 RUNS['bomb_pause'] = (with_keys(with_keys(BOMB_A, BOMB_KEYS_AT, [ESCAPE]), BOMB_KEYS_AT + 40,
                                 [ESCAPE]), length(BOMB_A) + 20)

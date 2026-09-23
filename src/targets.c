@@ -275,6 +275,190 @@ void wof_soldiers_draw(void)
     }
 }
 
+/* -------------------------------------------------- 0x0146C6 to 0x014A4D, the hits */
+
+/* The four records of a target rewritten to slot `slot` with the low bits `low`, each
+ * keeping its draw bit. */
+static void rewrite(const uint16_t r[4], uint16_t value)
+{
+    for (int k = 0; k < 4; k++) {
+        wof_word_t *w = &wof_m.map_records[(r[k] >> 1) % 3576u];
+
+        w->v = (uint16_t)((w->v & 0x8000u) | value);
+    }
+}
+
+/* orig 0x014B40 target_release - a target hit lets its soldiers out: those inside (+0x08)
+ * are added to those still to come out (+0x0A), and the timer (+0x0B) starts at 60. */
+static void target_release(wof_gtarget_t *t)
+{
+    uint8_t left = (uint8_t)((uint8_t)((uint16_t)t->w0a >> 8) + t->state);
+
+    t->state = 0;
+    t->w0a = (int16_t)(((uint16_t)left << 8) | 0x3Cu);
+}
+
+/* The last pillbox or soldier of an island gone: its bonus (0x015AE8), one island fewer,
+ * and the ticker's message; with the map's last island and no ship left, the mission is
+ * won (0x015694).  0x014932 on, as 0x013FBE does it for a soldier. */
+static void island_done(uint16_t island)
+{
+    uint32_t bonus = (uint16_t)wof_island_bonus((uint8_t)island);
+
+    wof_g.player_score += bonus;
+    if ((int8_t)--wof_g.islands_left > 0 || wof_g.ships_left != 0) {
+        wof_ticker_say(0x0239FAu, bonus);
+        return;
+    }
+    wof_ticker_format(0x0239FAu, bonus, 0);
+    wof_mission_won();
+}
+
+/* orig 0x0146DC weapon_hit - what an object's impact (A0) does to the map record under its x.
+ * On land (low bits 2 or 3): a rocket flashes the sky white (5); slot 0x113 is untouched; a
+ * dug-out (slot 3) that holds soldiers is hit, flashing red for a rocket: +0x0E 200, 200
+ * points, its soldiers let out; a barracks (slot 4) burns: its four records become slot 5,
+ * 0x0C 0x32 and 0x0E 1, 150 points, its soldiers let out; a rocket at a pillbox (slots 0x0F
+ * to 0x1D) flashes red and sets the bit of the hit record in the four records' slot (the
+ * pillbox's picture), and one not yet destroyed is: +0x08 0xFFFF, 0x0A 0x32, 0x0C 1, 200
+ * points, one pillbox fewer on its island, which the last one with no soldier left
+ * neutralises.  In the sea or on a ship (low bits 0 or 1): on a ship (0x014A4E) a bomb does
+ * nothing; a running torpedo flashes red and sinks the ship by +0x0C, which at 0 starts its
+ * sinking (+0x18 20); anything else flashes white and destroys the first standing gun of
+ * the ship within 16 pixels, 200 points and red.  Registers are saved whole. */
+void wof_weapon_hit(const wof_object_t *o)
+{
+    int16_t   x = o->x;
+    uint16_t  slot, low;
+    uint16_t  r[4];
+
+    low = wof_map_slot_at(x, &slot);
+    if ((uint8_t)low == 0 || (uint8_t)low == 1) {
+        int                ship = wof_ship_at_offset(x);          /* 0x014986 */
+        wof_ship_t        *s;
+        wof_gun_t         *guns;
+
+        if (ship < 0 || o->type == 1)
+            return;
+        s = &wof_m.ship_records[ship];
+        if (o->type == 2) {
+            wof_g.flash_count = 5;
+            wof_g.flash_colour = 0x0FFF;
+            if (o->frame == 0x0A) {
+                wof_g.flash_colour = 0x0F00;
+                if (s->w0c > 0 && --s->w0c == 0)
+                    s->w18 = 0x14;
+                return;
+            }
+        }
+        wof_g.flash_count = 5;                                    /* 0x0149DC */
+        wof_g.flash_colour = 0x0FFF;
+        guns = wof_ship_guns(s);
+        if (!guns)
+            return;
+        for (int16_t n = 0; n < s->gun_count && n < 16; n++) {
+            int16_t d3;
+
+            if (guns[n].w[4] != 0)
+                continue;
+            d3 = (int16_t)(x - guns[n].w[2]);
+            if (d3 < 0)
+                d3 = (int16_t)-d3;
+            if (d3 < 0x10) {
+                guns[n].w[4] = -1;
+                guns[n].w[5] = 0x32;
+                guns[n].w[6] = 1;
+                wof_g.player_score += 0xC8;
+                wof_g.flash_colour = 0x0F00;
+                return;
+            }
+        }
+        return;
+    }
+    slot &= 0x1FFFu;
+    if (o->type == 0) {
+        wof_g.flash_count = 5;
+        wof_g.flash_colour = 0x0FFF;
+    }
+    if (slot == 0x113)
+        return;
+    if (slot == 3) {                                              /* 0x014726 */
+        wof_gtarget_t *t = wof_target_of(x);
+
+        if (!t)
+            return;
+        if (o->type == 0)
+            wof_g.flash_colour = 0x0F00;
+        if (t->state == 0)
+            return;
+        t->w0e = 0xC8;
+        wof_g.player_score += 0xC8;
+        target_release(t);
+        return;
+    }
+    if (slot == 4) {                                              /* 0x014768 */
+        wof_gtarget_t *t;
+
+        wof_target_records(x, r);
+        rewrite(r, 0x16);
+        t = wof_target_of(x);
+        if (!t)
+            return;
+        if (o->type == 0)
+            wof_g.flash_colour = 0x0F00;
+        t->w0c = 0x32;
+        t->w0e = 1;
+        wof_g.player_score += 0x96;
+        target_release(t);
+        return;
+    }
+    if (slot < 0x0F || slot > 0x1D || o->type != 0)               /* 0x014834 */
+        return;
+    {
+        wof_gtarget_f_t *t = wof_target_of(x);
+        uint16_t         d6 = slot, d0, cnt;
+
+        if (!t)
+            return;
+        wof_g.flash_colour = 0x0F00;
+        d6 = (uint16_t)(d6 - 0x0F);
+        d0 = (uint16_t)((uint16_t)((uint16_t)x >> 2) - (uint16_t)t->map_offset);
+        d0 = (uint16_t)((int16_t)d0 >> 1);
+        d0 = (uint16_t)(d0 + 3u);
+        cnt = (uint16_t)(4u - d0) & 63u;                              /* lsl.w d1: modulo 64 */
+        d6 |= cnt >= 16 ? 0 : (uint16_t)(1u << cnt);
+        wof_target_records(x, r);
+        d6 = (uint16_t)(d6 + 0x0F);
+        rewrite(r, (uint16_t)((uint16_t)(d6 << 2) | 2u));
+        if ((int16_t)(uint16_t)(((uint16_t)t->state << 8) | t->b09) < 0)
+            return;                                               /* destroyed before */
+        t->state = 0xFF;
+        t->b09 = 0xFF;
+        t->w0a = 0x32;
+        t->w0c = 1;
+        wof_g.player_score += 0xC8;
+        {
+            uint16_t *pills = &wof_g.island_score[((uint16_t)t->island * 2u + 1u) & 7u];
+
+            if (--*pills != 0 || wof_g.island_score[((uint16_t)t->island * 2u) & 7u] != 0)
+                return;
+        }
+        island_done((uint16_t)t->island);
+    }
+}
+
+/* orig 0x0146C6 crash_hit - a crash on land hits as a rocket would: crash_object (0x027700)
+ * takes the x of the map record `at` (its byte offset times four) and type 0, and goes to
+ * weapon_hit. */
+void wof_crash_hit(uint32_t at)
+{
+    wof_object_t *o = &wof_m.crash_object[0];
+
+    o->x = (int16_t)(uint16_t)(at << 2);
+    o->type = 0;
+    wof_weapon_hit(o);
+}
+
 /* ------------------------------------------------ 0x014AE4 to 0x014B54, a target found */
 
 /* orig 0x014AE4 - the four map records of the target at world x D0: the first of the
@@ -663,6 +847,25 @@ int32_t wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t
     case 0x015460: return (int32_t)wof_smoke_claim(a, b, (int16_t)c);
     case 0x0152B0: wof_splash_spawn((int16_t)a); return 0;
     case 0x0154E0: wof_smoke_at_player((int16_t)a, (uint16_t)b); return 0;
+    /* part 2, the tick */
+    case 0x010A72: wof_objects_step((uint32_t)a); return 0;
+    case 0x01107C: wof_drop(); return 0;
+    case 0x011126: return wof_airfield_at((int16_t)a);
+    case 0x01115C: return wof_pillbox_between((int16_t)a, (int16_t)b);
+    case 0x0111A6: return (int32_t)wof_ship_gun_between((int16_t)a, (int16_t)b);
+    case 0x011A46: return wof_guns_ground_x((int16_t)a);
+    case 0x011A8C: wof_soldiers_hit((int16_t)a, (int16_t)b); return 0;
+    case 0x011AE2: wof_torpedoes_hit((uint16_t)a, (uint16_t)b); return 0;
+    case 0x0146C6: wof_crash_hit((uint32_t)a); return 0;
+    case 0x0146DC: wof_weapon_hit(a < 15 ? &wof_m.object_records[a] :
+                                  a == 15 ? &wof_m.object_record_extra[0] : &wof_m.crash_object[0]);
+                   return 0;
+    case 0x015104: return wof_cosine((int16_t)a);
+    case 0x015108: return wof_sine((int16_t)a);
+    case 0x01514C: return wof_tangent((int16_t)a);
+    case 0x015CA6: return wof_bearing_of((int16_t)a, (int16_t)b, (uint16_t)c);
+    case 0x0119BC: case 0x011BFC: case 0x011DE4: case 0x011C5E:
+        return wof_test_tick_part(orig);
     default:       return -1000;
     }
 }

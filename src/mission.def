@@ -22,6 +22,8 @@
 
 WOF_TABLE(object_records,      object,   15, 0x024CAE)
 WOF_TABLE(object_record_extra, object,    1, 0x025594)
+/* crash_object: the record 0x0146C6 makes up for a crash on land (x and type 0). */
+WOF_TABLE(crash_object,        object,    1, 0x027700)
 WOF_TABLE(player,              player,    1, 0x025078)
 WOF_TABLE(aircraft_records,    aircraft,  4, 0x02522A)
 WOF_TABLE(airfield_records,    airfield,  4, 0x0252FA)

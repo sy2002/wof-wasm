@@ -254,4 +254,27 @@ void wof_test_poke_after_reset(void)
     pokes_apply(1);
 }
 
+/* The address the machine's allocator gives the map list at each map load, which the tests
+ * take from the headless original's run as they take its entropy: the harness's bump
+ * allocator gives another address at each load (re/notes/porting-m5.md, "The wreck"). */
+#define MAP_ADDRESSES_MAX 8
+
+static uint32_t map_addresses[MAP_ADDRESSES_MAX];
+static uint32_t map_address_count, map_address_next;
+
+void wof_test_map_addresses(const uint32_t *list, uint32_t n)
+{
+    map_address_count = n < MAP_ADDRESSES_MAX ? n : MAP_ADDRESSES_MAX;
+    for (uint32_t i = 0; i < map_address_count; i++)
+        map_addresses[i] = list[i];
+    map_address_next = 0;
+}
+
+uint32_t wof_env_map_address(void)
+{
+    if (map_address_next < map_address_count)
+        return map_addresses[map_address_next++];
+    return WOF_MAP_LIST_ADDRESS;
+}
+
 #endif /* WOF_TRACE */

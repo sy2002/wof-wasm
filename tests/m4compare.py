@@ -75,6 +75,7 @@ def entropy_state(seed, n):
 # Where main is when a mission's setup begins (the briefing has returned, for the first
 # mission of a campaign and for the next ones), where its inner loop begins (step S), and
 # where a mission is over (tools/reach_observe.py, WINDOW_MARKS).
+MAP_LIST_POINTER = 0x024628
 MISSION_WINDOW = {0x0100B2: 'setup', 0x010170: 'setup', 0x01010A: 'mission',
                   0x010132: None, 0x0101C6: None}
 
@@ -100,17 +101,26 @@ class Recorder(headless.Headless):
             self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=begin, end=end - 1)
         for address in MISSION_WINDOW:
             self.uc.hook_add(UC_HOOK_CODE, self._window, begin=address, end=address)
+        self.map_addresses = []                   # the map list's address at every map load
+        self.uc.hook_add(UC_HOOK_MEM_WRITE, self._map_pointer, begin=MAP_LIST_POINTER,
+                         end=MAP_LIST_POINTER + 3)
         m5_scripts.install_pokes(self, self.pokes)
 
     def _window(self, uc, address, size, user):
         # A mission won goes on to the campaign's next one at 0x010132, which is M7's (the
         # port's stand-in ends the campaign there); nothing after it is recorded as a mission.
         if address == 0x010132:
+            if not getattr(self, 'won', False):
+                self.next_mission_pass = self.passes      # the last pass of the won mission
             self.won = True
         self.window = None if getattr(self, 'won', False) else MISSION_WINDOW[address]
         if self.window == 'mission':
             self.at_s.append(bytes(self.o.read(headless.DATA_START,
                                                headless.DATA_END - headless.DATA_START)))
+
+    def _map_pointer(self, uc, access, address, size, value, user):
+        if address == MAP_LIST_POINTER and size == 4 and value:
+            self.map_addresses.append(value)
 
     def _beam_read(self, uc, access, address, size, value, user):
         before = len(self.entropy_log)
@@ -190,6 +200,7 @@ class Replay:
                 ('wt_pokes_clear', [], None),
                 ('wt_poke', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_poke_reset', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
+                ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
                 ('wt_standins_reset', [], None),
@@ -199,6 +210,10 @@ class Replay:
             f.argtypes = args
             f.restype = res
         self._hook = None
+
+    def map_addresses(self):
+        """The map list's address (the pointer at 0x024628) at every map load of the run."""
+        return list(getattr(self.machine, 'map_addresses', []))
 
     # ------------------------------------------------------------------ the schedule
 
@@ -302,6 +317,11 @@ class Replay:
             for address, size, value in items:
                 entry = next(e for e in self.layout.globals if e[1] == address)
                 poke(entry[4], size, value)
+        # The address the harness's allocator gave the map list at every map load, which the
+        # port takes as it takes the entropy stream (re/notes/porting-m5.md, "The wreck").
+        addresses = self.map_addresses()
+        self._addresses = (ctypes.c_uint32 * max(len(addresses), 1))(*addresses)
+        self.lib.wt_map_addresses(self._addresses, len(addresses))
 
         self.reader = dump.DumpReader(self.dump_path)
         self.current = None              # (memory, head) of the last step consumed
@@ -312,6 +332,7 @@ class Replay:
         self.missions = 0
         self.waits = self.inside_tick_waits()
         self.vblank_mark = None
+        self.stopped = None              # a reason a comparison gives for ending the replay
 
         one = ctypes.CFUNCTYPE(None, ctypes.c_uint32)
         two = ctypes.CFUNCTYPE(None, ctypes.c_uint32, ctypes.c_uint32)
@@ -390,6 +411,8 @@ class Replay:
                 if self.errors:
                     raise self.errors[0]
                 if self.passes >= last_pass and last_pass:
+                    break
+                if self.stopped:
                     break
         finally:
             self.lib.wt_set_tick_hook(None)
@@ -697,6 +720,25 @@ class Replay:
         found = map_decode.draw_list(chart, px, step, shift, split,
                                      lambda slot: memory.u(table + 4 * slot, 4) != 0, ride)
         return [(index, slot, signed(x), signed(y)) for index, slot, x, y, _ in found]
+
+    def live_chart(self, memory):
+        """The map as the original holds it at this step, for tools/map_decode.py's draw list:
+        the record list read from the original's allocation (the pointer at 0x024628) with
+        the length of map_length (0x0253C6, in bytes), which the hits rewrite during a
+        mission."""
+        pointer = memory.u(MAP_LIST_POINTER, 4)
+        length = memory.u(0x0253C6, 2)
+        if getattr(self, '_chart_key', None) != (pointer, length):
+            chart = object.__new__(map_decode.Map)
+            chart.name = 'live'
+            chart.length = length
+            chart.on_disk = length // 2
+            chart.padding = 0
+            chart.extent = (length * 4) & 0xFFFF
+            self._chart_key, self._chart = (pointer, length), chart
+        chart = self._chart
+        chart.words = list(struct.unpack('>%dH' % (length // 2), memory.read(pointer, length & ~1)))
+        return chart
 
     def port_map_draws(self):
         return [(t['a'], t['b'], t['c'], t['d']) for t in self.ported.traces('map_draw')]

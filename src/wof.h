@@ -979,6 +979,27 @@ void     wof_balloons_draw(void);                          /* orig 0x01557C */
 void     wof_draw_objects(void);                           /* orig 0x0106BE */
 uint32_t wof_rand_upper(void);                             /* rand_beam's constant upper word */
 
+/* The weapons in the tick (M5 part 2). */
+int16_t  wof_sine(int16_t angle);                /* orig 0x015108 */
+int16_t  wof_cosine(int16_t angle);              /* orig 0x015104 */
+int16_t  wof_tangent(int16_t angle);             /* orig 0x01514C */
+int16_t  wof_bearing_of(int16_t x, int16_t y, uint16_t high);   /* orig 0x015CA6 */
+int16_t  wof_guns_ground_x(int16_t bearing);     /* orig 0x011A46 */
+void     wof_soldiers_hit(int16_t x, int16_t w); /* orig 0x011A8C */
+void     wof_torpedoes_hit(uint16_t d0, uint16_t d1);   /* orig 0x011AE2 */
+void     wof_objects_step(uint32_t d4);          /* orig 0x010A72 */
+void     wof_drop(void);                         /* orig 0x01107C */
+int      wof_airfield_at(int16_t x);             /* orig 0x011126 */
+int16_t  wof_pillbox_between(int16_t a, int16_t b);        /* orig 0x01115C */
+uint32_t wof_ship_gun_between(int16_t a, int16_t b);       /* orig 0x0111A6 */
+wof_gun_t *wof_ship_guns(const wof_ship_t *s);
+void     wof_weapon_hit(const wof_object_t *o);  /* orig 0x0146DC */
+void     wof_crash_hit(uint32_t at);             /* orig 0x0146C6 */
+
+/* The map list's address where the machine's allocator gives none (the release build): the
+ * headless original's for the first mission of a game. */
+#define WOF_MAP_LIST_ADDRESS 0x0024F404u
+
 /* Test-build hooks of the M4 comparisons (tests/shim.c); in the release build they are
  * constants, so dist/core.wasm has neither the table nor the pokes. */
 #ifdef WOF_TRACE
@@ -988,8 +1009,11 @@ const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
 void     wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_poke_after_reset(void);         /* and after the mission's reset (0x0100D6) */
+void     wof_test_map_addresses(const uint32_t *list, uint32_t n);   /* the machine's, per map load */
+uint32_t wof_env_map_address(void);
 int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
 int32_t  wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/targets.c */
+int32_t  wof_test_tick_part(uint32_t orig);     /* src/tick.c */
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);
@@ -1006,6 +1030,7 @@ void     wof_test_step_s(uint32_t mission);
 #define wof_test_tick_end(tick) ((void)0)
 #define wof_test_poke_after_rank() ((void)0)
 #define wof_test_poke_after_reset() ((void)0)
+#define wof_env_map_address() WOF_MAP_LIST_ADDRESS
 #define wof_trace_mission() ((void)0)
 #endif
 

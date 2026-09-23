@@ -547,6 +547,10 @@ PLANS = {
     'torpedo_a': {'menu': 'D', 'legs': [
         {'dir': 'R', 'y': 40, 'to': 10000, 'do': [('drop', 8600)]},
     ], 'end': 'level', 'tail': 200},
+    # The same at 24 pixels: the torpedo meets the sea slowly and runs in it.
+    'torpedo_run': {'menu': 'D', 'legs': [
+        {'dir': 'R', 'y': 24, 'to': 10000, 'do': [('drop', 8600)]},
+    ], 'end': 'level', 'tail': 360},
     # Low passes over map a's island without firing until the targets' fire has taken the
     # oil below 0x60 and the engine seizes.
     'hit_a': {'legs': [

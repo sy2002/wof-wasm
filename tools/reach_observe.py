@@ -700,17 +700,75 @@ REGION_NOTES = {
               'message (0x015624)',
     0x0156B2: "ported from reading: the rank's last mission won, the promotion (map c)",
     0x01F0A4: "ported from reading: the weapon counter's tens drum round after 0x50",
-    # M5 part 2: the tick's regions that part 2 ports (re/notes/porting-m5.md)
-    0x010970: "M5 part 2: a rocket's frame from the pitch, clamped at 0 (object_spawn's "
-              "second entry, behind the stand-in at 0x01B5E2)",
+    # M5 part 2: the tick's regions no script reaches, held by tests/test_oracle_m5.py
+    0x01081A: 'ported from reading: no weapon left or every object record in use, nothing '
+              'is dropped; tests/test_oracle_m5.py, the drop',
+    0x010970: "ported from reading: a rocket's frame from the bearing, clamped at 0; "
+              'tests/test_oracle_m5.py, the drop',
+    0x010A16: 'ported from reading: a rocket aimed at a pillbox or a ship\'s gun under its '
+              "bearing, which no script's rocket found; tests/test_oracle_m5.py, the objects' step",
+    0x010B1E: "ported from reading: a rocket's reach in the eighth-scale view; "
+              "tests/test_oracle_m5.py, the objects' step",
+    0x010B3C: "ported from reading: a rocket out of reach is freed; tests/test_oracle_m5.py, "
+              "the objects' step",
+    0x010B94: "ported from reading: a weapon over an airfield, which no script's weapon came "
+              "down on; tests/test_oracle_m5.py, the objects' step",
+    0x010C12: 'ported from reading: a weapon over a record of low bits 3; '
+              "tests/test_oracle_m5.py, the objects' step",
+    0x010C36: "ported from reading: a weapon over a ship's deck (low bits 1); 0x010C36 to "
+              '0x010C53, the test of low bits 2 for 3 and 4, is unreachable; '
+              "tests/test_oracle_m5.py, the objects' step",
+    0x010D26: 'ported from reading: a torpedo that meets the sea slowly flying left runs '
+              "left; tests/test_oracle_m5.py, the objects' step",
+    0x010D46: 'unreachable: +0x1A was set from pass_counter a few instructions before, so the '
+              'splash at the start of a run is never made',
+    0x010D7C: "ported from reading: a running torpedo meets land or a ship; "
+              "tests/test_oracle_m5.py, the objects' step",
+    0x011138: "ported from reading: an airfield record with a span, which maps a to c have none "
+              "of; tests/test_oracle_m5.py, the objects' step",
+    0x01119E: "ported from reading: a standing pillbox found under a rocket's bearing; "
+              "tests/test_oracle_m5.py, the objects' step",
+    0x0111C8: "ported from reading: a ship afloat with guns under a rocket's bearing (M6's "
+              "ships); tests/test_oracle_m5.py, the objects' step",
+    0x011A58: "ported from reading: a bearing of 0xFF01, taken as 0xFF02; "
+              "tests/test_oracle_m5.py, the guns' reach",
+    0x011A7C: "ported from reading: a level or upward bearing reaches no ground; "
+              "tests/test_oracle_m5.py, the guns' reach",
+    0x011B08: "ported from reading: a torpedo west of the span; tests/test_oracle_m5.py, the "
+              "soldiers' and torpedoes' hits",
+    0x011B30: "ported from reading: the extra object record hit; tests/test_oracle_m5.py, the "
+              "soldiers' and torpedoes' hits",
     0x011218: 'ported from reading; reached only between two missions, M7\'s next mission',
-    0x011E6E: 'M5 part 2: the release timer from vblank_total, 0 counting as 3',
-    0x01B00A: 'M5 part 2: ported from reading (M4), the crash on land or a ship',
-    0x01B0E2: 'M5 part 2: ported from reading (M4), a wreck sliding along a ship',
-    0x01B41A: 'M5 part 2: ported from reading (M4), a wreck at rest on a ship',
-    0x01B5DA: 'M5 part 2: the other weapon not dropped inside a turn (attitude 6 to 16)',
-    0x01BBBA: 'M5 part 2: ported from reading (M4), a crash on a deck',
-    0x01C80C: 'M5 part 2: ported from reading (M4), the burning wreck on a ship',
+    0x011E6E: "ported from reading: a barracks' next soldier's timer from vblank_total, 0 "
+              "counting as 3; tests/test_oracle_m5.py, the tick's routines",
+    0x014722: "ported from reading: a hit on slot 0x113, which it leaves alone; "
+              'tests/test_oracle_m5.py, the hits',
+    0x014788: "ported from reading: the draw bit on another of the barracks' records than the "
+              'third (D1, which nothing reads); tests/test_oracle_m5.py, the hits',
+    0x0147A8: "ported from reading: the draw bit on another of the barracks' records than the "
+              'third (D1, which nothing reads); tests/test_oracle_m5.py, the hits',
+    0x0147E8: "ported from reading: the draw bit on another of the barracks' records than the "
+              'third (D1, which nothing reads); tests/test_oracle_m5.py, the hits',
+    0x01493A: "ported from reading: an island's last pillbox destroyed with no soldier left; "
+              'tests/test_oracle_m5.py, the hits',
+    0x014992: "ported from reading: a weapon's hit on a ship (M6's ships); "
+              'tests/test_oracle_m5.py, the hits',
+    0x015122: 'ported from reading: an angle in the second quarter; tests/test_oracle_m5.py, '
+              'the angles',
+    0x015156: 'ported from reading: a negative angle; tests/test_oracle_m5.py, the angles',
+    0x01516C: 'ported from reading: a negative angle; tests/test_oracle_m5.py, the angles',
+    0x015CA6: 'ported from reading: the angle of a vector, which only an aimed rocket asks '
+              'for; tests/test_oracle_m5.py, the angles',
+    0x01B00A: 'ported from reading (M4): the crash on a ship; tests/test_oracle_m4.py, the '
+              'crash and the ground',
+    0x01B0E2: 'ported from reading (M4): a wreck sliding along a ship; tests/test_oracle_m4.py, '
+              'the crash and the ground',
+    0x01B41A: 'ported from reading (M4): a wreck at rest on a ship; tests/test_oracle_m4.py, '
+              'the crash and the ground',
+    0x01B5DA: 'ported from reading: the click inside a turn (attitude 6 to 16) drops nothing',
+    0x01BBBA: 'ported from reading (M4): a crash on a deck; tests/test_oracle_m4.py, the crash '
+              'and the ground',
+    0x01C80C: 'ported from reading (M4): the burning wreck on a ship; tests/test_oracle_m4.py',
 }
 
 

@@ -91,37 +91,94 @@ int16_t wof_ground_height(uint32_t at)
     return (int16_t)((int16_t)wof_image16(0x0257C2u + 2u * (uint32_t)row) - (int16_t)((rec >> 11) & 7u));
 }
 
-/* ------------------------------------------------------------------ the pools' claims */
+/* ------------------------------------------------------------------ the angles */
 
-/* orig 0x010820 object_spawn - a free object record (+0x20 zero) for something left at a
- * map record: at the record's world x, 0x0C above `y`, kind 8, type 1; `flag` 0 marks it
- * (+0x1F 2) and makes the sound engine's noise (0x012324, M8).  With all fifteen in use
- * nothing happens. */
-void wof_object_spawn(uint32_t at, int16_t y, int16_t flag)
+/* orig 0x015108 - the sine of an angle in 0x400 steps a turn, from the quarter wave of 0x101
+ * words at 0x02496C (0 to 0x7FFF), mirrored and negated for the other quarters. */
+int16_t wof_sine(int16_t angle)
 {
-    wof_object_t *o = 0;
+    uint16_t d0 = (uint16_t)angle & 0x3FFu;
 
-    for (int i = 0; i < 15; i++) {
-        if (wof_m.object_records[i].kind == 0) {
-            o = &wof_m.object_records[i];
-            break;
-        }
+    if (d0 < 0x100)
+        return (int16_t)wof_image16(0x02496Cu + 2u * d0);
+    if (d0 < 0x200)
+        return (int16_t)wof_image16(0x02496Cu + 2u * (uint32_t)(uint16_t)(0x200u - d0));
+    d0 = (uint16_t)(d0 - 0x200u);
+    if (d0 >= 0x100)
+        d0 = (uint16_t)(0x200u - d0);
+    return (int16_t)-(int16_t)wof_image16(0x02496Cu + 2u * d0);
+}
+
+/* orig 0x015104 - the cosine: the sine a quarter turn on. */
+int16_t wof_cosine(int16_t angle)
+{
+    return wof_sine((int16_t)(angle + 0x100));
+}
+
+/* orig 0x01514C - the tangent of the low byte of an angle's size, from the 0x100 words at
+ * 0x02476C, with the angle's sign. */
+int16_t wof_tangent(int16_t angle)
+{
+    uint16_t d0 = (uint16_t)(angle < 0 ? -angle : angle) & 0xFFu;
+    int16_t  v  = (int16_t)wof_image16(0x02476Cu + 2u * d0);
+
+    return angle < 0 ? (int16_t)-v : v;
+}
+
+/* orig 0x015CA6 - the angle of the vector (x, y) in 0x400 steps a turn: the smaller of the
+ * two sizes over the larger, as a 16-bit fraction by divu, rounded to 8 bits, looked up in
+ * the arctangent bytes at 0x0257EE (0 to 0x80), and placed in its octant by the signs and
+ * the exchange (the jump table at 0x0257CE: 0x015D12, 0x015D0C, 0x015D1E, 0x015D18,
+ * 0x015D26, 0x015D2A, 0x015D38, 0x015D30).  The dividend's low word is the upper word D1
+ * held beside y (`swap`), which the caller says: `high`. */
+int16_t wof_bearing_of(int16_t x, int16_t y, uint16_t high)
+{
+    uint32_t d1 = ((uint32_t)high << 16) | (uint16_t)y;
+    uint32_t d2 = (uint16_t)x;
+    uint16_t d4 = 0;
+    int16_t  d0 = 0;
+
+    if ((int16_t)(uint16_t)d1 < 0) {
+        d4 |= 0x10u;
+        d1 = (d1 & 0xFFFF0000u) | (uint16_t)-(int16_t)(uint16_t)d1;
     }
-    if (!o)
-        return;
-    o->l12     = 0;
-    o->speed_x = 0;
-    o->w10     = 0;
-    o->x       = (int16_t)(uint16_t)(at << 2);
-    o->y       = (int16_t)(0x0C + y);
-    o->frame   = 0;
-    o->b1f     = 0;
-    o->kind    = 8;
-    o->b21     = 1;
-    o->type    = 1;
-    o->b1f     = 0;
-    if (flag == 0)
-        o->b1f = 2;
+    if ((int16_t)(uint16_t)d2 < 0) {
+        d4 |= 0x08u;
+        d2 = (uint16_t)-(int16_t)(uint16_t)d2;
+    }
+    if ((int16_t)(uint16_t)d1 == (int16_t)(uint16_t)d2) {
+        if ((uint16_t)d1 == 0)
+            return 0;
+        d0 = 0x80;
+    } else {
+        uint32_t q;
+        uint16_t w;
+
+        if ((int16_t)(uint16_t)d1 > (int16_t)(uint16_t)d2) {
+            uint32_t tmp = d1;                                     /* exg.l */
+
+            d1 = d2;
+            d2 = tmp;
+            d4 |= 0x04u;
+        }
+        d1 = (d1 << 16) | (d1 >> 16);                             /* swap */
+        if ((uint16_t)d2 == 0)
+            return 0;                        /* y of -0x8000 over a zero x: a trap on a 68000 */
+        q = d1 / (uint16_t)d2;
+        w = q > 0xFFFFu ? (uint16_t)d1 : (uint16_t)q;             /* divu.w; V leaves D1 */
+        w = (uint16_t)((w >> 8) + ((w >> 7) & 1u));               /* lsr.w #8, addx */
+        d0 = (int16_t)wof_image8(0x0257EEu + w);
+    }
+    switch (d4) {
+    case 0x00: return d0;
+    case 0x04: return (int16_t)(0x100 - d0);
+    case 0x08: return (int16_t)(0x200 - d0);
+    case 0x0C: return (int16_t)(d0 + 0x100);
+    case 0x10: return (int16_t)-d0;
+    case 0x14: return (int16_t)(d0 - 0x100);
+    case 0x18: return (int16_t)(d0 - 0x200);
+    default:   return (int16_t)-(int16_t)(d0 + 0x100);
+    }
 }
 
 /* ----------------------------------------------------------------- logic_tick's calls */
@@ -264,41 +321,140 @@ static void shot_origin(void)
     wof_g.g_025404 = (int16_t)(((int32_t)(int16_t)(wof_g.pitch_angle + wof_g.pitch_angle) * 0x200) / 0x4650);
 }
 
-/* orig 0x011BFC - smoke from a damaged engine, every second tick in the air: the oil below
- * 0x80 decides how often (M6 brings the damage). */
+/* orig 0x011BFC - smoke from a damaged engine, every second tick in the air: always once the
+ * oil is more than 0x13 below full, and below that by chance, a bit of the table at 0x0255CA
+ * (by how much oil is gone) against a draw of rand_beam.  smoke_at_player's D2 comes with an
+ * upper word of 0 (observed at every call). */
 static void engine_smoke(void)
 {
+    uint16_t d0;
+
     if (!wof_g.g_027346 || P.on_deck == 6 || P.on_deck == 8)
         return;
-    if ((uint16_t)(0x80 - P.oil) != 0)
-        WOF_STANDIN("M6 STAND-IN: 0x011C24, smoke from a damaged engine");
-}
-
-/* orig 0x010AA6 - one object record: a record of kind 8 lies where it was left; the others
- * are weapons and shots in flight (M5). */
-static void object_step(wof_object_t *o)
-{
-    if (o->kind == 8)
+    d0 = (uint16_t)(0x80 - P.oil);
+    if (d0 == 0)
         return;
-    WOF_STANDIN("M5 PART 2 STAND-IN: 0x010AB6-0x010DA5, a weapon or a shot in flight");
+    if (d0 <= 0x13) {
+        uint16_t d1;
+
+        d0 = (uint16_t)((uint16_t)(d0 << 3) & 0xF0u);
+        d0 = (uint16_t)(((uint16_t)wof_rand_beam(0x011BFC) & 0x0Fu) + d0);
+        d1 = d0;
+        d0 = (uint16_t)(d0 >> 3);
+        if (!(wof_image8(0x0255CAu + d0) & (1u << (d1 & 7u))))       /* btst.l on memory: a byte */
+            return;
+    }
+    wof_smoke_at_player(5, 0);
 }
 
-/* orig 0x010A72 - the object records: 0x010AA6 for every one in use, then the extra one. */
-static void objects(void)
-{
-    for (int i = 0; i < 15; i++)
-        if (wof_m.object_records[i].kind)
-            object_step(&wof_m.object_records[i]);
-    wof_g.frame_drawn = 0;
-    if (wof_m.object_record_extra[0].kind)
-        object_step(&wof_m.object_record_extra[0]);
-}
-
-/* orig 0x0119BC - the guns' bullets in the water (M5). */
+/* orig 0x0119BC - the guns' bullets: while they fire, the aircraft sinks (0x026E62 below 0)
+ * below y 0xA0 and is not stalling, the first free record of the Splashes pool takes the
+ * ground the bullets reach (0x011A46): the soldiers within 0x10 of it start dying and a
+ * splash, or the dust on land, is made there. */
 static void gun_splashes(void)
 {
-    if (wof_g.g_02536a)
-        WOF_STANDIN("M5 PART 2 STAND-IN: 0x0119C4, the guns' bullets in the water");
+    if (!wof_g.g_02536a || wof_g.g_026e62 >= 0 || P.y >= 0xA0 || wof_g.landing_stall)
+        return;
+    for (int i = 0; i < 20; i++) {
+        wof_splash_t *s = &wof_m.splash_records[i];
+        int16_t       x;
+        uint16_t      slot;
+
+        if (s->count)
+            continue;
+        x = wof_guns_ground_x(wof_g.g_025404);
+        wof_soldiers_hit(x, 0x10);
+        s->x = x;
+        wof_splash_spawn(x);
+        s->kind = (uint8_t)wof_map_slot_at(x, &slot);
+        return;
+    }
+}
+
+/* orig 0x011A46 guns_ground_x - where a shot along a bearing below the level (D0 negative)
+ * reaches the ground: the height (the long at 0x026E6E / 0x100) over the tangent of the
+ * bearing (0x01514C), by divu, ahead of the drawing's x; 0 for a bearing of 0 or up.  On a
+ * quotient above 0xFFFF divu leaves the dividend, whose low word is taken then. */
+int16_t wof_guns_ground_x(int16_t d0)
+{
+    uint32_t d1;
+    uint16_t t;
+    int16_t  w;
+
+    if (d0 >= 0)
+        return 0;
+    if ((uint16_t)d0 == 0xFF01u)
+        d0++;
+    d1 = (uint32_t)((int32_t)(((uint32_t)(uint16_t)wof_g.g_026e6e << 16) | (uint16_t)wof_g.g_026e70) >> 8);
+    t = (uint16_t)wof_tangent((int16_t)-d0);
+    if (t != 0 && d1 / t <= 0xFFFFu)
+        d1 = ((d1 % t) << 16) | (d1 / t);
+    w = (int16_t)(uint16_t)d1;
+    if (P.facing >= 0)
+        w = (int16_t)-w;
+    return (int16_t)(wof_g.draw_player_x - w);
+}
+
+/* The arithmetic 0x0123AC (a soldier's scream, M8) does through 0x012306 and 0x0122F6 on
+ * D0 and D1 and leaves in them: the loudness by the distance from the aircraft, halved, and
+ * the height's distance from 0x14. */
+static void scream_registers(uint16_t *d0, uint16_t *d1)
+{
+    uint16_t a = (uint16_t)(*d0 - (uint16_t)P.x);
+    uint16_t b = (uint16_t)(0x14u - (uint16_t)P.y);
+
+    if ((int16_t)a < 0)
+        a = (uint16_t)-(int16_t)a;
+    if ((int16_t)b < 0)
+        b = (uint16_t)-(int16_t)b;
+    a = (uint16_t)((uint16_t)(a + b) >> 5);
+    a = a > 0x40 ? 0 : (uint16_t)(0x40u - a);
+    *d0 = (uint16_t)(a >> 1);
+    *d1 = b;
+}
+
+/* orig 0x011A8C soldiers_hit - the running soldiers from x - w to x + w start dying (state 2,
+ * frame 5, timer 2) with a scream; then 0x011AE2 over the same span.  The scream's sound
+ * code (0x0123AC) leaves its own values in D0 and D1 and the walk goes on with them, so after
+ * the first soldier hit the span is the scream's (scream_registers). */
+void wof_soldiers_hit(int16_t x, int16_t w)
+{
+    uint16_t d0 = (uint16_t)(x - w);
+    uint16_t d1 = (uint16_t)(w + w);
+
+    for (uint16_t n = 0; n < wof_g.soldier_count && n < 160; n++) {
+        wof_soldier_t *s = &wof_m.soldier_records[n];
+
+        if (s->state != 1)
+            continue;
+        if ((uint16_t)(s->x - d0) > d1)
+            continue;
+        s->state = 2;
+        s->frame = 5;
+        s->timer = 2;
+        scream_registers(&d0, &d1);
+    }
+    wof_torpedoes_hit(d0, d1);
+}
+
+/* orig 0x011AE2 torpedoes_hit - a torpedo in the water (drawn, type 2) whose drawing x is
+ * within D1 of D0 goes out (kind 8); the extra record whatever its type. */
+void wof_torpedoes_hit(uint16_t d0, uint16_t d1)
+{
+    for (int i = 0; i < 16; i++) {
+        wof_object_t *o = i < 15 ? &wof_m.object_records[i] : &wof_m.object_record_extra[0];
+        uint16_t      d2;
+
+        if (o->draw_kind == 0 || (i < 15 && o->type != 2))
+            continue;
+        d2 = (uint16_t)(o->draw_x - d0);
+        if ((int16_t)d2 < 0)
+            d2 = (uint16_t)-(int16_t)d2;
+        if (d2 > d1)
+            continue;
+        o->kind = 8;
+        o->b21 = 1;
+    }
 }
 
 /* orig 0x011622 - the enemy's airfields: an aircraft taking off, and the player near one
@@ -320,7 +476,9 @@ static void airfields(void)
             continue;
         if (wof_g.g_026e6a > (int16_t)(a->w[1] + 0x1E0))
             continue;
-        WOF_STANDIN("M6 STAND-IN: 0x0116BE-0x011709, the player near an enemy airfield");
+        if (wof_g.g_0251d6 >= (int16_t)a->w[2] || a->w[3] <= 0)
+            return;                                              /* 0x0116BE, 0x0116CA */
+        WOF_STANDIN("M6 STAND-IN: 0x0116D2-0x011709, an enemy airfield sends an aircraft up");
         return;
     }
 }
@@ -372,23 +530,69 @@ static void ships_sinking(void)
     }
 }
 
-/* orig 0x011DE4 - the timers of the slot-3 and slot-4 targets (+0x0B), which fire (M5). */
+/* orig 0x011DE4 target_timers - the slot-3 and slot-4 targets that let their soldiers out
+ * (+0x0A of them, one each time the timer +0x0B runs out, through 0x011E82 in mode 2 for a
+ * dug-out and 1 for a barracks): the timer starts again from bits 4 to 8 of vblank_total,
+ * 3 in place of 0, until the count is spent. */
 static void target_timers(void)
 {
-    for (int i = 0; i < wof_g.target_count_3; i++)
-        if (wof_m.target_records_3[i].w0a & 0xFF)
-            WOF_STANDIN("M5 PART 2 STAND-IN: 0x011DFE, a slot-3 target's timer");
-    for (int i = 0; i < wof_g.target_count_4; i++)
-        if (wof_m.target_records_4[i].w0a & 0xFF)
-            WOF_STANDIN("M5 PART 2 STAND-IN: 0x011E48, a slot-4 target's timer");
+    for (int k = 0; k < 2; k++) {
+        wof_gtarget_t *list  = k == 0 ? wof_m.target_records_3 : wof_m.target_records_4;
+        uint8_t        count = k == 0 ? wof_g.target_count_3 : wof_g.target_count_4;
+
+        for (uint16_t i = 0; i < count && i < 16; i++) {
+            wof_gtarget_t *t = &list[i];
+            uint8_t        timer = (uint8_t)t->w0a;                        /* +0x0B */
+            uint16_t       d0;
+
+            if (timer == 0)
+                continue;
+            t->w0a = (int16_t)(((uint16_t)t->w0a & 0xFF00u) | (uint8_t)--timer);
+            if (timer != 0)
+                continue;
+            wof_soldier_out(t, (uint8_t)(k == 0 ? 2 : 1), 0);
+            t->w0a = (int16_t)(uint16_t)((uint16_t)t->w0a - 0x100u);          /* +0x0A */
+            if (((uint16_t)t->w0a >> 8) == 0)
+                continue;
+            d0 = (uint16_t)((uint16_t)((uint16_t)wof_g.vblank_total >> 4) & 0x1Fu);
+            if (d0 == 0)
+                d0 = 3;
+            t->w0a = (int16_t)(((uint16_t)t->w0a & 0xFF00u) | (uint8_t)d0);
+        }
+    }
 }
 
-/* orig 0x011C5E - the balloons (M5). */
+/* orig 0x011C5E balloons_step - while balloons_on is set, every balloon in use drifts by its
+ * speeds and is free once its height reaches 0xAA. */
 static void balloons(void)
 {
-    if (wof_g.balloons_on)
-        WOF_STANDIN("M5 PART 2 STAND-IN: 0x011C66, the balloons");
+    if (!wof_g.balloons_on)
+        return;
+    for (int i = 0; i < 20; i++) {
+        wof_balloon_t *b = &wof_m.balloon_records[i];
+
+        if (!b->in_use)
+            continue;
+        b->x = (int32_t)((uint32_t)b->x + (uint32_t)b->dx);
+        b->y = (int32_t)((uint32_t)b->y + (uint32_t)b->dy);
+        if ((int16_t)(uint16_t)((uint32_t)b->y >> 16) >= 0xAA)
+            b->in_use = 0;
+    }
 }
+
+#ifdef WOF_TRACE
+/* The oracle tests' entry to the tick's own routines (tests/test_oracle_m5.py). */
+int32_t wof_test_tick_part(uint32_t orig)
+{
+    switch (orig) {
+    case 0x0119BC: gun_splashes();  return 0;
+    case 0x011BFC: engine_smoke();  return 0;
+    case 0x011DE4: target_timers(); return 0;
+    case 0x011C5E: balloons();      return 0;
+    default:       return -1000;
+    }
+}
+#endif
 
 /* ------------------------------------------------------------------------ logic_tick */
 
@@ -406,8 +610,10 @@ wof_co_t wof_logic_tick(void)
     wof_f.ticks_run++;
     if (!wof_g.pause_flag) {
         if (P.on_deck == 0) {
-            if (P.oil != 0x80)
-                WOF_STANDIN("M6 STAND-IN: 0x0113A2, the oil leaking from a damaged engine");
+            if (P.oil != 0x80 && --wof_g.g_027350 <= 0) {         /* 0x0113A2: the oil leaks */
+                wof_g.g_027350 = 0x50;
+                P.oil--;
+            }
             if (--wof_g.g_02734e <= 0) {
                 P.fuel--;
                 wof_g.g_02734e = wof_g.g_027168;
@@ -434,7 +640,7 @@ wof_co_t wof_logic_tick(void)
         /* 0x012066: the sound engine's slots (M8) */
         shot_origin();
         engine_smoke();
-        objects();
+        wof_objects_step(0);        /* D4's upper word is 0 there (observed at every tick) */
         gun_splashes();
         if (--wof_g.g_027348 < 0)
             wof_g.g_027348 = 0;

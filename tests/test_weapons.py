@@ -1,14 +1,16 @@
-"""M5 part 1, the weapons and the ground targets as the pass draws them, against the headless
-original (re/notes/porting-m5.md).
+"""M5, the weapons and the ground targets, against the headless original
+(re/notes/porting-m5.md).
 
 Every script of tools/m5_scripts.py is recorded under the headless original and replayed
-through the port in the open loop of tests/m4compare.py: every pass and every tick starts
-from the original's state before it.  The pass - the targets, their fire, the soldiers, the
-flags, the pools, the objects, the muzzle flash, the weapon counter, the sky's flash - is
-part 1's and must agree; the tick is part 2's, so a step may differ only where it reached a
-stand-in of part 2 or of a later milestone in that same step.  Beside it: every address the
-M5 scripts write accounted for (tests/m4complete.py), and the controls of the note, run by
-changing the port and reverting it.
+through the port by tests/m4compare.py.  In the closed loop (T2) the port runs on its own
+from the program's start and every tick and every pass must agree, with no stand-in
+reached; island_a alone runs into a campaign's next mission, M7's, at its end, and is
+compared up to it.  In the open loop (T1) every step starts from the original's state
+before it, and a step may differ only where it reached a stand-in of M6 or M7.  Both loops
+also compare the map's draws with tools/map_decode.py's prediction from the original's
+live record list, which the hits rewrite.  Beside them: the closed loop at one and three
+VBlanks per pass, and every address the M5 scripts write accounted for
+(tests/m4complete.py).
 """
 import collections
 import os
@@ -32,11 +34,13 @@ SCRIPTS = list(m5_scripts.SCRIPTS)
 # The long ones run with --slow: the island cleared of its soldiers, and the low passes
 # until the engine seizes.
 SLOW = {'island_a', 'hit_a'}
-LATER = (' PART 2 STAND-IN', 'M6 STAND-IN', 'M7 STAND-IN', 'M8 STAND-IN')
+LATER = ('M6 STAND-IN', 'M7 STAND-IN')
+# Where island_a's won mission goes on to the next one, which the port ends there.
+NEXT_MISSION = 'M7 STAND-IN: 0x010132-0x01018D, the next mission of a campaign'
 
 
 def later(marker):
-    """A stand-in of part 2 or of a later milestone: a difference there is owed, not a fault."""
+    """A stand-in of M6 or M7: a difference there is owed, not a fault."""
     return any(tag in marker for tag in LATER)
 
 
@@ -46,8 +50,8 @@ def recorded(name):
 
 def attribute(replay):
     """The open loop with every differing step judged: it must have reached a stand-in of
-    part 2 or later in that same step.  Returns (steps, differing, [unattributed], the
-    stand-ins reached with their counts)."""
+    M6 or M7 in that same step, and no step may reach another.  Returns (steps, differing,
+    [unattributed], the stand-ins reached with their counts)."""
     state = {'hits': {}}
     counts = collections.Counter()
     bad = []
@@ -64,7 +68,7 @@ def attribute(replay):
             if not any(later(m) for m in new):
                 bad.append((kind, k, new, str(found)[:500]))
         elif any(not later(m) for m in new):
-            bad.append((kind, k, new, 'a part-1 stand-in reached'))
+            bad.append((kind, k, new, 'a stand-in of M5 reached'))
         state['hits'] = now
 
     def on_pass(r, memory, head, k):
@@ -84,6 +88,9 @@ def attribute(replay):
         rows = r.row_differences(memory)
         if rows:
             found.add('rows', k, rows[:1])
+        om, pm = r.predicted_map_draws(memory, r.live_chart(memory)), r.port_map_draws()
+        if om != pm:
+            found.add('map', k, ('decoder', om[:3], 'port', pm[:3]))
         judge(r, 'pass', k, found)
 
     def on_tick(r, memory, head, k, waited):
@@ -111,12 +118,65 @@ def open_loop(ported, name):
     return attribute(replay)
 
 
+def closed_loop(ported, name, rate=2):
+    """The closed loop over a script with the live map; returns (machine, passes, findings,
+    stand-ins, the reason it stopped early or None)."""
+    machine, dump_path = test_world.recorded(name, rate, pokes=m5_scripts.POKES.get(name))
+    replay = m4compare.Replay(ported, machine, dump_path, mode='closed', rate=rate,
+                              pokes=m5_scripts.POKES.get(name))
+
+    def stop(r):
+        if NEXT_MISSION in dict(r.standins()):
+            return 'the port reached the next mission of a campaign (M7) in tick %d' % r.ticks
+        return None
+
+    passes, found = test_world.compare_passes(replay, replay.live_chart, stop=stop)
+    return machine, passes, found, replay.standins(), replay.stopped
+
+
+def assert_closed(machine, name, passes, found, standins, stopped):
+    want = max(h[2] for h in machine.step_hashes if h[0] == 'P')
+    assert not found, 'closed loop:\n%s' % found
+    if name == 'island_a':
+        # The mission is won, the aircraft comes down, and back in the hold main goes on to
+        # the next mission (0x010132), which is M7's: the port reaches its stand-in there, and
+        # a step after it would end the loop (`stopped`); the recording ends with it.
+        assert dict(standins) == {NEXT_MISSION: 1}, (stopped, standins)
+        end = machine.next_mission_pass
+        assert passes >= end, 'compared up to pass %d, the next mission at %d' % (passes, end)
+    else:
+        assert stopped is None and standins == [], 'the closed loop reached %s' % standins
+        assert passes >= want - 1, 'only %d of %d passes compared' % (passes, want)
+
+
+@pytest.mark.parametrize('name', [n if n not in SLOW else
+                                  pytest.param(n, marks=pytest.mark.slow) for n in SCRIPTS])
+def test_every_tick_and_pass_agrees_in_the_closed_loop(ported, name):
+    """T2 over an M5 script: the port runs on its own from the program's start - the front
+    end, the setup, the flight, the drops, the hits, the guns, the soldiers, the crash - and
+    after every tick and every pass its registered state, its drawing calls, its entropy,
+    its view, its rows, its markers and its map draws are the original's."""
+    machine, passes, found, standins, stopped = closed_loop(ported, name)
+    assert_closed(machine, name, passes, found, standins, stopped)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('name', ['bomb_a', 'hit_a'])
+@pytest.mark.parametrize('rate', [1, 3])
+def test_the_closed_loop_holds_at_other_pass_rates(ported, name, rate):
+    """The closed loop at one and three VBlanks per pass against the original run at the
+    same rate: bombs in flight between passes, and the targets' fire until the engine
+    seizes."""
+    machine, passes, found, standins, stopped = closed_loop(ported, name, rate)
+    assert_closed(machine, name, passes, found, standins, stopped)
+
+
 @pytest.mark.parametrize('name', [n if n not in SLOW else
                                   pytest.param(n, marks=pytest.mark.slow) for n in SCRIPTS])
 def test_every_pass_agrees_and_every_other_difference_is_owed(ported, name):
     """The open loop over an M5 script: a pass or a tick that differs from the original must
-    have reached a stand-in of part 2 or later in that same step, and no step may reach a
-    stand-in of part 1."""
+    have reached a stand-in of M6 or M7 in that same step, and no step may reach any other
+    stand-in."""
     steps, differing, bad, reached = open_loop(ported, name)
     assert steps > 800, 'only %d steps compared' % steps
     assert bad == [], '%d of %d differing steps are not owed to a later stand-in: %s' % (
@@ -146,3 +206,37 @@ def test_every_address_the_m5_scripts_write_is_compared_or_excluded(ported, requ
     uncovered = coverage.ranges()
     assert not uncovered, 'written during a mission and neither compared nor excluded:\n' + \
         m4complete.describe(uncovered)
+
+
+# ------------------------------------------- the value marker of soldier_out (0x011E82)
+
+def test_a_soldier_always_finds_a_free_record():
+    """soldier_out's walk (0x011E82) has no end: with every soldier record in use it would run
+    past the table, which the port marks as a value stand-in.  It cannot happen: the soldiers
+    inside the slot-3 and slot-4 targets (+0x08), those a hit let out that are still to come
+    (+0x0A) and the records in use (running, dying or dead) always add up to soldier_count,
+    so while a soldier is to come out a record is free.  Held in the original's state at
+    every step of every M5 script but the two long ones."""
+    import headless_dump as dump
+    checked = 0
+    for name in SCRIPTS:
+        if name in SLOW:
+            continue
+        machine, dump_path = recorded(name)
+        reader = dump.DumpReader(dump_path)
+        for head in reader:
+            memory = m4state.Memory(reader.regions, copy=False)
+            count = memory.u(0x0253C4, 2)
+            soldiers = memory.u(0x025500, 4)
+            if not count or not soldiers:
+                continue
+            inside = 0
+            for table, n in ((0x0254FC, memory.u(0x025386, 1)), (0x0254F8, memory.u(0x025387, 1))):
+                block = memory.read(memory.u(table, 4), 0x10 * n)
+                inside += sum(block[0x10 * i + 8] + block[0x10 * i + 0x0A] for i in range(n))
+            block = memory.read(soldiers, 8 * count)
+            used = sum(1 for i in range(count) if block[8 * i + 6] or block[8 * i + 7])
+            assert inside + used == count, '%s step %s: %d inside, %d in use, %d records' % (
+                name, head.get('pass') or head.get('tick'), inside, used, count)
+            checked += 1
+    assert checked > 20000

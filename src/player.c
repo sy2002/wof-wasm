@@ -232,8 +232,8 @@ static wof_co_t lost_wait(void)
  * record of low bits 0, or outside the list), a ship (record_on_ship), or land.  In the
  * sea it floats and sinks, on land or a deck it burns; the attitude levels out two steps a
  * tick and, once the aircraft rests, the record goes to state 6 (in the water) or 8
- * (burning).  What a wreck at rest on land or a deck does to the island's targets and the
- * object it leaves are M5's. */
+ * (burning).  Resting on land or a deck, the wreck leaves an explosion every tick, and on
+ * land it hits the record under it as a rocket would (0x0146C6) and the soldiers within 8. */
 void wof_crash(void)
 {
     int16_t  where = 1;            /* -2(a5): 1 land, 2 the sea, 3 a ship */
@@ -323,10 +323,19 @@ void wof_crash(void)
         wof_g.airspeed = (int16_t)(wof_g.airspeed - 0x55);
         if (wof_g.airspeed < 0x64)
             wof_g.airspeed = 0;
-        if (where == 2)
+        if (where == 2) {
             wof_splash_spawn((int16_t)(P.x + (int16_t)(P.facing << 3)));
-        else
-            WOF_STANDIN("M5 PART 2 STAND-IN: 0x01B304, a wreck at rest on land or a deck");
+        } else {
+            /* 0x01B304: the C call to object_spawn passes the aircraft's x and y words where
+             * the map pointer belongs and nothing where the height does: the record is the
+             * long (x << 16 | y) less the map list's address, and the height 0. */
+            wof_object_spawn((uint32_t)((((uint32_t)(uint16_t)P.x << 16) | (uint16_t)P.y) -
+                                        wof_g.map_list_address), 0, 0);
+            if (where == 1) {
+                wof_crash_hit(at);
+                wof_soldiers_hit(P.x, 8);                         /* 0x011A84 */
+            }
+        }
     } else {                                                      /* 0x01B340 */
         wof_g.pitch_target = (int16_t)(wof_g.pitch_target - wof_g.pitch_step);
         if (wof_g.pitch_target < (int16_t)0xF3E4)
@@ -411,7 +420,7 @@ static int16_t on_the_lift(void)
     return r;
 }
 
-/* orig 0x01B5B0 - the button: in the air a click drops the other weapon (M5) and holding it
+/* orig 0x01B5B0 - the button: in the air a click drops the other weapon and holding it
  * fires the guns while the aircraft flies level and has rounds (0x025F14); on the deck, on
  * the lift, stopped and with the carrier afloat, it takes the aircraft down (state 11). */
 static void button(void)
@@ -423,7 +432,7 @@ static void button(void)
     if (P.on_deck == 0) {
         if (INPUT & 0x20u) {
             if (wof_g.attitude_index < 6 || wof_g.attitude_index > 0x10)
-                WOF_STANDIN("M5 PART 2 STAND-IN: 0x01B5E2, the other weapon dropped");
+                wof_drop();                                        /* 0x01B5E2 */
         } else if (wof_g.attitude_index == 0 && wof_g.g_025f14 > 0) {
             wof_g.g_02536a = 1;
         } else {
@@ -533,7 +542,7 @@ static void ground(void)
     wof_g.airspeed = (int16_t)(P.speed_x * 100);
     if (!wof_on_water(at) && !(wof_record_on_ship(at) && P.y < 0x14)) {    /* 0x01BBC4 */
         wof_object_spawn(wof_record_at((int16_t)((int16_t)(P.facing << 4) + P.x)), P.y, 0);
-        WOF_STANDIN("M5 PART 2 STAND-IN: 0x01BBF4, what a crash on land does to the island's targets");
+        wof_crash_hit(at);                                        /* 0x01BBF4 */
     }
     wof_crash();
 }

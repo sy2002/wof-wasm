@@ -764,3 +764,22 @@
 025383 islands_left          ; the islands not yet neutralised
 025388 muzzle_frame          ; the guns' muzzle flash, counted 0 to 3 while they fire
 026d3c soldiers_killed       ; one more for every soldier soldiers_draw lets die
+
+# ---- M5 part 2: the weapons and the targets in the tick  (see re/notes/porting-m5.md)
+01099a rocket_homing         ; asm. a rocket's fall ends: aimed at a ship's gun or a pillbox under its bearing
+01107c weapon_drop           ; asm. the button's click in the air: 0x02536c set, object_draw_first, 0x026e3d cleared
+011126 airfield_at           ; asm. D0 = world x: the airfield record whose span holds it, or 0
+01115c pillbox_between       ; asm. D0, D1 = map offsets: the first standing pillbox between them, or 0
+0111a6 ship_gun_between      ; asm. D0, D1 = world x: the first gun of a ship afloat between them, or 0
+011a84 soldiers_hit_c        ; asm. soldiers_hit for the C code: x and the half width on the stack
+0152ac splash_spawn_c        ; asm. splash_spawn for the C code: x on the stack
+015104 cosine                ; asm. D0 = angle in 0x400 steps a turn: the cosine, 0x7FFF for 1
+015108 sine                  ; asm. the sine, from sine_table's quarter wave
+01514c tangent               ; asm. the tangent of the angle's low byte, with its sign
+015ca6 bearing_of            ; asm. D1 = x, D0 = y: the angle of the vector, by the arctangent bytes
+02476c tangent_table         ; 0x100 words: the tangent by angle
+02496c sine_table            ; 0x101 words: a quarter wave of the sine, 0 to 0x7FFF
+0255ca smoke_chance          ; bits by oil lost: how often a damaged engine smokes
+0257ce bearing_octants       ; eight code pointers: bearing_of's octant fix-ups
+0257ee arctan_table          ; 0x101 bytes: the arctangent of a ratio in 0x100ths, 0 to 0x80
+026f8a drop_debug            ; word: 0x14 at a weapon's drop, for the debug view behind 0x02536d

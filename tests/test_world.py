@@ -71,11 +71,20 @@ class Findings:
         return '\n'.join(lines)
 
 
-def compare_passes(replay, chart):
-    """Run a replay and compare every pass; returns (passes, findings)."""
+def compare_passes(replay, chart, stop=None):
+    """Run a replay and compare every pass; returns (passes, findings).  `chart` is the map
+    the draws are predicted from, or a function of the step's memory giving it; `stop(r)`,
+    when given, may end the replay before a step with a reason (m4compare.Replay.stopped)."""
     found = Findings()
 
+    def stopping(r):
+        if stop and not r.stopped:
+            r.stopped = stop(r)
+        return r.stopped
+
     def on_pass(r, memory, head, k):
+        if stopping(r):
+            return
         d = r.state_differences(memory)
         if d:
             found.add('state', k, d[:8])
@@ -92,11 +101,14 @@ def compare_passes(replay, chart):
         rows = r.row_differences(memory)
         if rows:
             found.add('rows', k, rows[:2])
-        om, pm = r.predicted_map_draws(memory, chart), r.port_map_draws()
+        om, pm = r.predicted_map_draws(memory, chart(memory) if callable(chart) else chart), \
+            r.port_map_draws()
         if om != pm:
             found.add('map', k, ('decoder', om[:3], 'port', pm[:3]))
 
     def on_tick(r, memory, head, k, waited):
+        if stopping(r):
+            return
         d = r.state_differences(memory, live=True)
         if d:
             found.add('tick state', k, d[:8])

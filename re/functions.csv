@@ -9,27 +9,27 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0106be,draw_objects,asm,68,,,,1,object_draw blit_begin blit_end,,3,,ported
 010702,object_draw,asm,210,,,,1,draw_world_shape,,4,,ported
 0107d4,object_free_unused,asm,30,,,,0,,,1,,todo
-0107f2,object_draw_first,asm,46,,,,1,,,3,,todo
-010820,object_spawn,asm,378,,,-32736,3,sub_012324 sub_015104 sub_015108 rand_beam,,12,,partial
-01099a,sub_01099a,asm,216,,,,1,sub_01115c sub_0111a6 guns_ground_x sub_015104 sub_015108 sub_015ca6,,0,,todo
-010a72,objects_step,asm,52,,,-32730,1,object_step,,3,,ported
-010aa6,object_step,asm,768,,,,1,sub_01099a sub_011126 soldiers_hit sub_012324 sub_01233e weapon_hit map_slot_at splash_spawn ground_height,,7,,partial
+0107f2,object_draw_first,asm,46,,,,1,,,3,,verified
+010820,object_spawn,asm,378,,,-32736,3,sub_012324 cosine sine rand_beam,,12,,verified
+01099a,rocket_homing,asm,216,,,,1,pillbox_between ship_gun_between guns_ground_x cosine sine bearing_of,,0,,verified
+010a72,objects_step,asm,52,,,-32730,1,object_step,,3,,verified
+010aa6,object_step,asm,768,,,,1,rocket_homing airfield_at soldiers_hit sub_012324 sub_01233e weapon_hit map_slot_at splash_spawn ground_height,,7,,verified
 010da6,draw_enemy_aircraft,asm,314,,,-32724,1,shape_draw shape_draw_xor,,10,,partial
 010ee0,smoke_draw,asm,166,,,,1,draw_world_shape blit_begin blit_end,,8,,ported
 010f86,sub_010f86,asm,2,,,,0,,,0,,todo
 010f88,snapshot_for_draw,asm,244,,,,1,,exec.Forbid exec.Permit,24,,ported
-01107c,sub_01107c,asm,22,,,-32718,1,object_draw_first,,2,,todo
+01107c,weapon_drop,asm,22,,,-32718,1,object_draw_first,,2,,verified
 011092,sub_011092,asm,48,,,-32712,0,,,0,,todo
 0110c2,draw_game_over,asm,100,,,,1,clip_playfield shape_find shape_draw draw_set_target blit_begin blit_end,,6,,verified
-011126,sub_011126,asm,54,,,,1,,,1,,todo
-01115c,sub_01115c,asm,74,,,,1,,,2,,todo
-0111a6,sub_0111a6,asm,86,,,,1,,,1,,todo
+011126,airfield_at,asm,54,,,,1,,,1,,verified
+01115c,pillbox_between,asm,74,,,,1,,,2,,verified
+0111a6,ship_gun_between,asm,86,,,,1,,,1,,verified
 0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,ported
 011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sub_01346c sub_0134ae,exec.AllocMem,2,,ported
 011256,sub_011256,asm,30,,,-32706,1,mem_free_var sub_01346c sub_0134ae,exec.AllocMem,2,,todo
 011274,shot_origin,asm,60,,,,1,,,14,,ported
 0112b0,weapon_menu,asm,214,,,,1,weapon_gauge_reset,,10,,ported
-011386,logic_tick,asm,218,,,-32700,3,objects_step shot_origin weapon_menu lift_step ship_launches airfields_step input_queue_pop gun_splashes engine_smoke balloons_step ships_sinking target_timers sound_channels engine_sound guns player_update enemy_aircraft_step,,16,,partial
+011386,logic_tick,asm,218,,,-32700,3,objects_step shot_origin weapon_menu lift_step ship_launches airfields_step input_queue_pop gun_splashes engine_smoke balloons_step ships_sinking target_timers sound_channels engine_sound guns player_update enemy_aircraft_step,,16,,ported
 011460,lift_step,asm,120,,,,1,sound_slots_clear sub_012354 player_restart_state engine_idle,,4,,ported
 0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,partial
 011510,ship_launches,asm,274,,,,1,sub_01e4d0,,8,,partial
@@ -38,21 +38,21 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01174a,input_queue_clear,asm,10,,,-32694,2,,,2,,ported
 011754,vblank_server,asm,530,,,-32688,0,input_queue_pop vblank_every_frame read_joystick,,25,,ported
 011966,sub_011966,asm,86,,,,0,,,5,,todo
-0119bc,gun_splashes,asm,88,,,,1,guns_ground_x soldiers_hit map_slot_at splash_spawn,,6,,partial
+0119bc,gun_splashes,asm,88,,,,1,guns_ground_x soldiers_hit map_slot_at splash_spawn,,6,,verified
 011a14,ricochet_spawn,asm,46,,,-32682,0,map_slot_at,,1,,todo
 011a42,sub_011a42,asm,4,,,,0,,,0,,todo
-011a46,guns_ground_x,asm,62,,,,2,sub_01514c,,3,,todo
-011a84,sub_011a84,asm,8,,,-32676,2,,,0,,todo
-011a8c,soldiers_hit,asm,78,,,,2,torpedoes_hit sub_0123ac,,2,,todo
+011a46,guns_ground_x,asm,62,,,,2,tangent,,3,,verified
+011a84,soldiers_hit_c,asm,8,,,-32676,2,,,0,,ported
+011a8c,soldiers_hit,asm,78,,,,2,torpedoes_hit sub_0123ac,,2,,verified
 011ada,sub_011ada,asm,8,,,,0,,,0,,todo
-011ae2,torpedoes_hit,asm,112,,,,2,,,2,,todo
+011ae2,torpedoes_hit,asm,112,,,,2,,,2,,verified
 011b52,sub_011b52,asm,2,,,,0,,,0,,todo
 011b54,sub_011b54,asm,168,,,,0,smoke_claim rand_beam,,1,,todo
-011bfc,engine_smoke,asm,98,,,,1,smoke_at_player rand_beam,,4,,partial
-011c5e,balloons_step,asm,80,,,,1,,,2,,partial
+011bfc,engine_smoke,asm,98,,,,1,smoke_at_player rand_beam,,4,,verified
+011c5e,balloons_step,asm,80,,,,1,,,2,,verified
 011cae,ships_sinking,asm,42,,,,1,ship_sinking,,1,,partial
 011cd8,ship_sinking,asm,268,,,,1,ticker_offer sub_015640 mission_won,,14,,todo
-011de4,target_timers,asm,158,,,,1,soldier_out,,5,,partial
+011de4,target_timers,asm,158,,,,1,soldier_out,,5,,verified
 011e82,soldier_out,asm,204,,,,2,rand_beam,,4,,verified
 011f4e,sound_slots_clear,asm,22,,,-32670,4,sound_channels,,1,,todo
 011f64,sub_011f64,asm,18,,,,0,,,1,,todo
@@ -129,12 +129,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 014430,window_ship,asm,308,,,,1,shape_draw,,14,,ported
 014564,window_background,asm,66,,,,1,rect_fill draw_set_target,,3,,ported
 0145a6,window_shape,asm,288,,,,1,ship_at_span,,6,,ported
-0146c6,crash_hit,asm,22,,,-32562,3,,,2,,todo
-0146dc,weapon_hit,asm,882,,,-32550,1,ship_at_offset target_records target_release target_of format_to map_slot_at ticker_say mission_won island_bonus,,9,,todo
+0146c6,crash_hit,asm,22,,,-32562,3,,,2,,verified
+0146dc,weapon_hit,asm,882,,,-32550,1,ship_at_offset target_records target_release target_of format_to map_slot_at ticker_say mission_won island_bonus,,9,,verified
 014a4e,ship_at_offset,asm,4,,,,2,,,0,,verified
 014a52,ship_at_span,asm,146,,,,2,,,9,,verified
 014ae4,target_records,asm,92,,,,2,,,1,,verified
-014b40,target_release,asm,20,,,,1,,,0,,todo
+014b40,target_release,asm,20,,,,1,,,0,,verified
 014b54,target_of,asm,234,,,,2,target_records map_slot_at,,7,,verified
 014c3e,ship_guns_draw,asm,274,,,,1,target_range_frame sub_014efc target_fire draw_world_shape smoke_claim rand_beam,,6,,partial
 014d50,target_frame,asm,104,,,,2,target_range_frame rand_beam,,4,,verified
@@ -153,9 +153,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0150b0,flip_view,asm,24,,,-32526,1,sub_01520c view_show,,1,,todo
 0150c8,map_slot_at,asm,58,,,-32520,7,,,2,,verified
 015102,sub_015102,asm,2,,,-32514,0,,,0,,todo
-015104,sub_015104,asm,4,,,-32508,2,,,0,,todo
-015108,sub_015108,asm,68,,,-32502,2,,,1,,todo
-01514c,sub_01514c,asm,40,,,-32496,1,,,1,,todo
+015104,cosine,asm,4,,,-32508,2,,,0,,verified
+015108,sine,asm,68,,,-32502,2,,,1,,verified
+01514c,tangent,asm,40,,,-32496,1,,,1,,verified
 015174,draw_world_shape,asm,78,,,-32490,12,shape_draw,,4,,ported
 0151c2,draw_world_shape_xor,asm,74,,,-32484,0,shape_draw_xor,,4,,todo
 01520c,sub_01520c,asm,2,,,,1,,,0,,todo
@@ -163,7 +163,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01524a,clip_playfield,asm,18,,,-32472,5,clip_set,,0,,ported
 01525c,clip_dash_window,asm,18,,,-32466,1,clip_set,,0,,todo
 01526e,clip_to_waterline,asm,62,,,-32460,2,clip_set,,6,,verified
-0152ac,sub_0152ac,asm,4,,,-32454,2,,,0,,partial
+0152ac,splash_spawn_c,asm,4,,,-32454,2,,,0,,ported
 0152b0,splash_spawn,asm,72,,,-32448,3,map_slot_at,,1,,verified
 0152f8,splashes_draw,asm,98,,,-32442,1,draw_world_shape blit_begin blit_end,,4,,ported
 01535a,build_master_lists,asm,262,,,-32436,2,shape_find,,14,,ported
@@ -192,14 +192,14 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015bc6,shapes_load,asm,150,,,-32394,3,load_file_chip_asm,dos.IoErr exec.RawDoFmt,2,"""--Problem reading file '%s', DOS error:%d--\n\r""",verified
 015c5c,shapes_resolve,asm,66,,,-32388,0,mem_alloc_asm shape_find,,0,,verified
 015c9e,sub_015c9e,asm,8,,,,0,,,0,,todo
-015ca6,sub_015ca6,asm,102,,,,1,,,2,,todo
-015d0c,sub_015d0c,asm,12,,,,0,,,0,,todo
-015d18,sub_015d18,asm,6,,,,0,,,0,,todo
-015d1e,sub_015d1e,asm,8,,,,0,,,0,,todo
-015d26,sub_015d26,asm,4,,,,0,,,0,,todo
-015d2a,sub_015d2a,asm,6,,,,0,,,0,,todo
-015d30,sub_015d30,asm,8,,,,0,,,0,,todo
-015d38,sub_015d38,asm,6,,,,0,,,0,,todo
+015ca6,bearing_of,asm,102,,,,1,,,2,,verified
+015d0c,sub_015d0c,asm,12,,,,0,,,0,,verified
+015d18,sub_015d18,asm,6,,,,0,,,0,,verified
+015d1e,sub_015d1e,asm,8,,,,0,,,0,,verified
+015d26,sub_015d26,asm,4,,,,0,,,0,,verified
+015d2a,sub_015d2a,asm,6,,,,0,,,0,,verified
+015d30,sub_015d30,asm,8,,,,0,,,0,,verified
+015d38,sub_015d38,asm,6,,,,0,,,0,,verified
 015d3e,load_file_public_asm,asm,14,,,,4,load_file_public,,0,,ported
 015d4c,sub_015d4c,asm,4,,,,1,,,0,,todo
 015d50,load_file_chip_asm,asm,10,,,,3,load_file_chip,,0,,ported
@@ -312,10 +312,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01abde,aircraft_frame,C,762,12,8 10 12,,3,shape_mirror_x sub_01cb30,,13,,ported
 01aed8,wreck_smoke,C,164,10,,,1,object_spawn wheel_height record_at sub_021e24,,4,,ported
 01af7c,lost_wait,C,62,0,,,1,next_aircraft,,4,,ported
-01afba,crash,C,1184,16,,,2,object_spawn sub_011a84 crash_hit sub_0152ac sub_015710 wheel_height aircraft_frame record_at flash_set record_on_ship on_water,,12,,partial
+01afba,crash,C,1184,16,,,2,object_spawn soldiers_hit_c crash_hit splash_spawn_c sub_015710 wheel_height aircraft_frame record_at flash_set record_on_ship on_water,,12,,ported
 01b45a,hook_state,C,132,2,,,1,,,6,,verified
 01b4de,on_the_lift,C,210,6,,,2,,,6,,verified
-01b5b0,button,C,210,0,,,1,sub_01107c sub_015710 wheel_height on_the_lift record_at,,11,,partial
+01b5b0,button,C,210,0,,,1,weapon_drop sub_015710 wheel_height on_the_lift record_at,,11,,ported
 01b682,guns,C,314,12,,-32280,1,rand_mod burn_smoke sub_01d35a,,6,,partial
 01b7bc,deck_span,C,48,0,,,1,,,6,,verified
 01b7ec,player_reset,C,216,0,,-32274,1,aircraft_frame deck_span rand_mod sub_01cb30,,13,,ported
@@ -325,7 +325,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01b9cc,engine_idle,C,36,0,,-32262,1,,,5,,ported
 01b9f0,sub_01b9f0,C,16,4,,,1,,,0,,todo
 01ba00,sub_01ba00,asm,128,,,,0,sub_015710 record_at,,6,,todo
-01ba80,ground_contact,C,386,10,,,1,object_spawn sub_012380 crash_hit sub_015710 wheel_height crash touches_ground record_at record_on_ship on_water,,9,,partial
+01ba80,ground_contact,C,386,10,,,1,object_spawn sub_012380 crash_hit sub_015710 wheel_height crash touches_ground record_at record_on_ship on_water,,9,,ported
 01bc02,enemy_countdown_step,C,204,2,,,1,sub_01e4d0 rand_beam,,7,,partial
 01bcce,deck_state,C,236,0,,,1,on_the_lift,,9,,verified
 01bdba,deck_roll,C,64,0,,,1,,,2,,verified
@@ -364,7 +364,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01dccc,sub_01dccc,C,472,8,8,,1,rand_mod,,5,,todo
 01dea4,sub_01dea4,C,726,10,8,,1,rand_mod,,6,,todo
 01e17a,sub_01e17a,C,202,0,8,,1,rand_mod sub_01d18c,,0,,todo
-01e244,sub_01e244,C,420,4,8,,1,sub_011a84 crash_hit sub_0152ac record_at burn_smoke on_water sub_01cbb2 rand_beam,,5,,todo
+01e244,sub_01e244,C,420,4,8,,1,soldiers_hit_c crash_hit splash_spawn_c record_at burn_smoke on_water sub_01cbb2 rand_beam,,5,,todo
 01e3e8,sub_01e3e8,C,224,0,8,,1,burn_smoke,,3,,todo
 01e4c8,sub_01e4c8,C,8,0,,,1,,,0,,todo
 01e4d0,sub_01e4d0,C,312,4,8 10 12 14,-32220,3,rand_mod,,4,,todo

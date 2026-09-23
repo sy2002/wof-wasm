@@ -52,9 +52,6 @@ EXCLUDED = [
      'vport_ticker: the ticker\'s ViewPort, RasInfo, BitMap and RastPort',
      'the port\'s screen model (src/screen.c) keeps a viewport as position, size and depth; '
      'its picture is compared as the palette of every row (V1 rows)', 'M4, SPEC 6.6'),
-    (0x026F8A, 0x026F8B, {'object_draw_first'},
-     'a count object_draw_first leaves for the debug view behind 0x02536D',
-     'reached from the weapon drop, M5\'s stand-in at 0x01B5E2', 'M5'),
     (0x027368, 0x027427, {'sub_011f76', 'sound_slots_clear', 'sound_channels', 'engine_sound', 'sub_012324',
                           'sub_01233e', 'sub_012354', 'sub_012380', 'sub_0123ac'},
      'the eight sound slots of 0x18 bytes: what sounds_load builds, and the sounds the tick '
@@ -139,10 +136,6 @@ HEAP = [
 # M4 scripts need (tests/test_weapons.py takes both):
 # (first, last, writers, what it is, why the port does not keep it, milestone).
 M5_EXCLUDED = [
-    (0x027700, 0x027723, {'crash_hit'},
-     'g_027700: the object record 0x0146C6 makes up for a crash on land (x at +0, type 0 at '
-     '+0x22) and hands to 0x0146DC',
-     'the crash on land is the tick\'s, behind the stand-in at 0x01BBF4', 'M5 part 2'),
     # A restart in flight (Control-R, bomb_restart) fades both views to black in the
     # mission's inner loop (fade_out_pair, re/notes/keys.md) before the mission ends.
     (0x027A08, 0x027A0B, {'fade_to_pair'},
