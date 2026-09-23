@@ -497,7 +497,7 @@ a memory-form shift is arithmetic or logical from bit 3 of the opcode, which in 
 form belongs to the effective address's mode, so `asr.w d16(An)` runs as a logical shift
 (`0xFFFD` to `0x7FFE`) and `lsr.w (An)` as an arithmetic one. The executable has three
 `asr.w d16(An)`, at `0x010BB8` and `0x010BE0` in `object_step` and `0x019D5E` in
-`cop_vport_planes`, and one `lsr.w d16(A4)`, which the fault gets right. `tools/m68k_fix.py`
+`cop_vport_planes`, and one `lsr.w d16(A4)`, which the fault gets right; its two `asl.w d16(A5)` at `0x019E7A` and `0x019E7E` get the right result and a wrong overflow flag, which the instructions after them overwrite before anything reads it, and the 42 `roxl.w -(A0)` of the ticker's scroll are executed right in result and flags (observed with raw Unicorn, the controller's check at the review). `tools/m68k_fix.py`
 puts a code hook on the three in the oracle, which the headless original runs on, that
 shifts as the 68000 does, flags included; `tests/test_headless.py` holds the fault, the
 correction and the list against the listing. No script reaches the bounce, and the tests of
