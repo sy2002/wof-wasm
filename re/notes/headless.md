@@ -316,6 +316,15 @@ Stick right against stick left on the deck, 85 ticks after the scripts part, dif
 - The condition codes cannot be read out of the emulator. Unicorn keeps them lazily, and `reg_read(UC_M68K_REG_SR)` hands back whatever was last materialised, both after `emu_start` stops and inside a code hook: `addq.w #1` on `0x7FFF` reports N without V, and `tst.w` on `0x00010000` reports nothing at all. `Oracle.call(ccr=True)` and the return observers read them by running a move from SR inside the emulation, which costs no register and no flag. Anything that wants flags out of a run has to go the same way.
 - The watchdog is wall-clock time and only ever ends a run with an error; it does not influence one. The emulation runs in slices of two seconds of wall time, though, and a slice that runs out can stop after a code hook has run and before its instruction: the next slice starts on that instruction and runs the hook again. A machine that is busy with other work meets this; it once put a draw call twice into the observed list of a pass. The observers and the reach's entry counter therefore ignore a hook that fires again at the address a timed-out slice stopped on, with the same stack pointer as the entry before it. Run with slices of 3 ms, the observed calls of a key run are the unhurried run's exactly; without the guard the same run records 95 calls too many.
 
+- A memory-form shift is arithmetic or logical by bit 3 of the opcode instead of by its type
+  field (Unicorn 2.1.4): `asr.w d16(An)` shifts logically (`0xFFFD` to `0x7FFE`) and
+  `lsr.w (An)` arithmetically. The executable's three `asr.w d16(An)` (`0x010BB8`,
+  `0x010BE0`, `0x019D5E`) are corrected by a code hook that shifts as the 68000 does and
+  steps over the instruction (`tools/m68k_fix.py`, installed by the oracle, so in the
+  headless original too); a hook that moves the program counter takes its register writes
+  with it, flags included, and `tests/test_headless.py` holds that. Found by the oracle test
+  of `object_step` (`re/notes/porting-m5.md`).
+
 ## Speed
 
 On the development machine: the front end with fire presses 0.4 s, without any input 4 s; 1000 ticks of flight (2000 passes, 4000 VBlanks) 6.4 s, 7.3 s with the dump, about twice that with the change report.

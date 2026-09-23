@@ -443,3 +443,75 @@ def test_a_long_flight_twice(dumps):
     runs = [run(flight(ticks=1500)) for _ in range(2)]
     assert runs[0].step_hashes == runs[1].step_hashes
     assert len(runs[0].entropy_log) > 1000
+
+
+# ------------------------------------------------ the emulator's memory-form shifts
+
+def _shift_once(code, word, register=2, fix=None):
+    """Run one shift on a word at 0x2000 in a bare Unicorn 68000, optionally corrected."""
+    from unicorn import Uc, UC_ARCH_M68K, UC_MODE_BIG_ENDIAN
+    from unicorn.m68k_const import UC_CPU_M68K_M68000, UC_M68K_REG_A0, UC_M68K_REG_SR
+    uc = Uc(UC_ARCH_M68K, UC_MODE_BIG_ENDIAN)
+    uc.ctl_set_cpu_model(UC_CPU_M68K_M68000)
+    uc.mem_map(0, 0x10000)
+    uc.mem_write(0x1000, code + bytes.fromhex('4e71'))
+    uc.mem_write(0x2000, word.to_bytes(2, 'big'))
+    uc.reg_write(UC_M68K_REG_A0 + register, 0x2000)
+    if fix:
+        fix(uc)
+    uc.emu_start(0x1000, 0x1000 + len(code))
+    return int.from_bytes(uc.mem_read(0x2000, 2), 'big'), uc.reg_read(UC_M68K_REG_SR) & 0x1F
+
+
+def test_the_memory_form_asr_is_corrected_where_the_emulator_gets_it_wrong():
+    """Unicorn runs `asr.w d16(An)` as a logical shift (tools/m68k_fix.py): 0xFFFD becomes
+    0x7FFE where a 68000 makes it 0xFFFE.  The correction performs the shift as the 68000
+    does, with its flags; its list holds every `asr.w d16(An)` of the listing, and the
+    executable's other memory-form right shift, `lsr.w d16(A4)`, the emulator gets right."""
+    import m68k_fix
+    code = bytes.fromhex('e0ea0000')                              # asr.w 0(a2)
+    assert _shift_once(code, 0xFFFD)[0] == 0x7FFE, 'the emulator is fixed: drop the correction'
+
+    def fix(uc):
+        saved = m68k_fix.ARITHMETIC_SHIFTS[:]
+        m68k_fix.ARITHMETIC_SHIFTS[:] = [(0x1000, 2)]
+        try:
+            m68k_fix.install(uc)
+        finally:
+            m68k_fix.ARITHMETIC_SHIFTS[:] = saved
+    for word in (0xFFFD, 0x8001, 0x4001, 0x0001, 0x0000, 0xFFFF):
+        result, ccr = _shift_once(code, word, fix=fix)
+        want = ((word >> 1) | (word & 0x8000)) & 0xFFFF
+        want_ccr = (0x11 if word & 1 else 0) | (0x08 if want & 0x8000 else 0) | (0x04 if want == 0 else 0)
+        assert (result, ccr) == (want, want_ccr), (hex(word), hex(result), hex(ccr))
+    assert _shift_once(bytes.fromhex('e2ec0000'), 0xFFFD, register=4)[0] == 0x7FFE   # lsr.w 0(a4)
+    # The flags the correction writes reach the next branch whatever they were before: a
+    # moveq setting Z or clearing it, the corrected asr, then bne over a moveq #1,d1.
+    from unicorn import Uc, UC_ARCH_M68K, UC_MODE_BIG_ENDIAN
+    from unicorn.m68k_const import UC_CPU_M68K_M68000, UC_M68K_REG_A2, UC_M68K_REG_D1
+    for pre in ('7400', '7401'):
+        for word, branched in ((0x0002, True), (0x0001, False), (0xFFFD, True)):
+            uc = Uc(UC_ARCH_M68K, UC_MODE_BIG_ENDIAN)
+            uc.ctl_set_cpu_model(UC_CPU_M68K_M68000)
+            uc.mem_map(0, 0x10000)
+            code = bytes.fromhex(pre + 'e0ea0000' + '6602' + '7201' + '4e71')
+            uc.mem_write(0x1000, code)
+            uc.mem_write(0x2000, word.to_bytes(2, 'big'))
+            uc.reg_write(UC_M68K_REG_A2, 0x2000)
+            saved = m68k_fix.ARITHMETIC_SHIFTS[:]
+            m68k_fix.ARITHMETIC_SHIFTS[:] = [(0x1002, 2)]
+            try:
+                m68k_fix.install(uc)
+            finally:
+                m68k_fix.ARITHMETIC_SHIFTS[:] = saved
+            uc.emu_start(0x1000, 0x1000 + len(code))
+            assert (uc.reg_read(UC_M68K_REG_D1) == 0) == branched, (pre, hex(word))
+    listed = set()
+    with open(os.path.join(ROOT, 're', 'Wings.lst')) as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) >= 4 and parts[2] == 'asr.w' and '(a' in parts[3]:
+                listed.add(int(parts[0], 16))
+            if len(parts) >= 4 and parts[2] == 'lsr.w' and '(a' in parts[3]:
+                assert '$' in parts[3] and not parts[3].startswith('('), line   # d16(An) only
+    assert listed == {a for a, _ in m68k_fix.ARITHMETIC_SHIFTS}, sorted(map(hex, listed))

@@ -26,6 +26,7 @@ from unicorn.m68k_const import (
 )
 
 import hunk
+import m68k_fix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXE = os.path.join(HERE, '..', 'original', 'disk', 'Wings_of_Fury', 'Wings')
@@ -72,6 +73,8 @@ class Oracle:
         self.trace = None
         self.ccr = None
         self.uc.hook_add(UC_HOOK_MEM_UNMAPPED, self._unmapped)
+        if exe == EXE:
+            m68k_fix.install(self.uc)               # Unicorn's memory-form asr (tools/m68k_fix.py)
 
     # ---- memory helpers -------------------------------------------------
     def alloc(self, n, fill=0):
