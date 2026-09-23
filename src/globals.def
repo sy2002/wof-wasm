@@ -37,6 +37,9 @@ WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next charact
 /* the tick (M4 part 2) */
 WOF_GLOBAL(crand_seed,         uint32_t, 0x026A16)  /* the C library's rand() (0x021E24), not the entropy */
 WOF_GLOBAL(g_025422,           uint32_t, 0x025422)  /* the name of the shape 0x02541A, 0x01C378 */
+/* The map list's address, map_records at 0x024628 as a value.  The machine's allocator
+ * chooses it; only the wreck's explosion at 0x01B304 reads it (re/notes/porting-m5.md). */
+WOF_GLOBAL(map_list_address,   uint32_t, 0x024628)
 
 /* ------------------------------------------------------------------------------ words */
 
@@ -81,6 +84,9 @@ WOF_GLOBAL(split_row,          int16_t,  0x0253A0)
 WOF_GLOBAL(pass_counter,       uint16_t, 0x0253C8)  /* 0..99, draw_world */
 WOF_GLOBAL(g_026e56,           int16_t,  0x026E56)  /* snapshot of 0x0253AE */
 WOF_GLOBAL(draw_player_x,      int16_t,  0x026E5C)  /* snapshot of the player's x */
+WOF_GLOBAL(draw_player_x_frac, int16_t,  0x026E5E)  /* the word behind it, which the long reads
+                                                        * of 0x026E5C take as its fraction (0x0154E0,
+                                                        * 0x010B04); nothing writes it */
 WOF_GLOBAL(draw_player_y,      int16_t,  0x026E60)  /* snapshot of the player's y */
 WOF_GLOBAL(g_026e62,           int16_t,  0x026E62)
 WOF_GLOBAL(draw_facing,        int16_t,  0x026F7A)  /* snapshot of the player's facing */
@@ -176,9 +182,6 @@ WOF_GLOBAL(g_026e6c,           int16_t,  0x026E6C)
 WOF_GLOBAL(g_026e6e,           int16_t,  0x026E6E)
 WOF_GLOBAL(g_026e70,           int16_t,  0x026E70)
 WOF_GLOBAL(g_026f8a,           int16_t,  0x026F8A)  /* 0x0107F2: 0x14 at a weapon's drop, for the debug view */
-/* The map list's address, map_records at 0x024628 as a value.  The machine's allocator
- * chooses it; only the wreck's explosion at 0x01B304 reads it (re/notes/porting-m5.md). */
-WOF_GLOBAL(map_list_address,   uint32_t, 0x024628)
 WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
 WOF_GLOBAL(g_027348,           int16_t,  0x027348)  /* logic_tick counts it down to 0 */
 WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */

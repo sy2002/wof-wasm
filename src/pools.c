@@ -125,7 +125,7 @@ uint32_t wof_smoke_claim(int32_t x, int32_t y, int16_t kind)
 void wof_smoke_at_player(int16_t kind, uint16_t d2_high)
 {
     uint32_t d0 = ((uint32_t)(uint16_t)wof_g.draw_player_x << 16) |
-                  (uint16_t)wof_image16(0x026E5Eu);
+                  (uint16_t)wof_g.draw_player_x_frac;
     uint32_t d1 = 0xA0000u;
     int16_t  a = wof_g.attitude_index;
 

@@ -575,7 +575,9 @@ held to the original by M3's `test_the_fades_agree_with_the_original`; and the t
 plane, which `vblank_server` scrolls by CPU and which the port scrolls in its own plane,
 held to the original under the oracle by M4's `test_the_ticker_matches_the_original`.
 Part 2 registers what the tick writes beside the tables: `crash_object` (`0x027700`, a
-table of one object record), `drop_debug` (`0x026F8A`) and `map_list_address` (`0x024628`);
+table of one object record), `drop_debug` (`0x026F8A`), `map_list_address` (`0x024628`) and
+`draw_player_x_frac` (`0x026E5E`), the word behind `draw_player_x` that the long reads of
+it take as its fraction (`0x0154E0`, `0x010B04`) and that nothing writes;
 M4's row for `0x026F8A` and part 1's for `0x027700` are gone. A mission won goes on to the
 campaign's next mission at `0x010132`, M7's; the recorder of `tests/m4compare.py` records
 nothing after it.

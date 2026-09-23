@@ -345,7 +345,7 @@ static void object_step(wof_object_t *o, uint32_t *d4)
 moved:
         x = long_0e(o) + long_x(o);
         set_long_x(o, x);
-        d1 = (((uint32_t)(uint16_t)wof_g.draw_player_x << 16) | wof_image16(0x026E5Eu)) - x;
+        d1 = (((uint32_t)(uint16_t)wof_g.draw_player_x << 16) | (uint16_t)wof_g.draw_player_x_frac) - x;
         if ((int32_t)d1 < 0)
             d1 = (uint32_t)-(int32_t)d1;
         w = (uint16_t)((d1 >> 16) - 0x280u);                      /* swap, sub.w */
