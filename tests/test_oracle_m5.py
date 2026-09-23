@@ -639,6 +639,13 @@ def test_the_tick_routines_match_the_original(tick):
         for i in range(count):                                         # records to come out into
             if rng.random() < 0.3:
                 w(o, d.soldiers + 8 * i + 6, 0)
+        if orig == 0x0119BC and count:
+            # running soldiers around the ground the bullets reach, the span's edges among them
+            ground = o.call(0x011A46, regs={'d0': o.r16(0x025404)}) & 0xFFFF
+            for i in rng.sample(range(count), min(count, 6)):
+                w(o, d.soldiers + 8 * i, ground + rng.choice([-17, -16, -15, 15, 16, 17,
+                                                              rng.randrange(-20, 21)]))
+                w(o, d.soldiers + 8 * i + 6, 1)
         d.load_port()
         o.call(orig, regs={'d2': rng.randrange(0x10000)})
         d.port(orig)

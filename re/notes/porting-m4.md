@@ -498,11 +498,12 @@ state found that case.
   The crash (`0x01AFBA`) finds the sea under it, floats the aircraft to rest with a splash,
   and state 6 follows. Observed in lost, gameover, fuel and on the page.
 - **Out of fuel or oil**: in the air with the fuel below 0 or the oil below `0x60` the
-  update makes state 4 and the crash follows (the fuel script, into the sea). Only enemy
-  fire lowers the oil (M6).
-- **On land**: the crash burns the wreck at rest (state 8, with smoke); what it does to the
-  island's targets is M5's stand-in (`0x01BBF4`). Read, and held to the original by the
-  oracle test of the crash and the ground; no script crashes on land.
+  update makes state 4 and the crash follows (the fuel script, into the sea). The oil
+  falls by the targets' fire and the leak it starts (M5's `hit_a`, `re/notes/porting-m5.md`)
+  and by enemy fire (M6).
+- **On land**: the crash burns the wreck at rest (state 8, with smoke), hits the record under
+  it as a rocket would and kills the soldiers within 8 (M5's `crash_a` and `hit_a`,
+  `re/notes/porting-m5.md`, "The tick: the hits").
 - **On a ship**: on its deck the wreck comes to rest (6 below y `0x14`, else 8); against its
   side it slides back with the sky's flash (`0x01B0E2`). Read and held by the same test.
 - **Shot down, or the carrier sunk**: M6's. With the carrier sunk (`+0x0C` of its record
@@ -1209,7 +1210,7 @@ records them (observed).
 | `sub_01520c` | `01520c` | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
 | `read_joy_bits` | `01520e` | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
 | `clip_playfield` | `01524a` | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| `sub_0152ac` | `0152ac` | 0 | 0 | 22 | 16 | 48 | 0 | 0 | 0 | 0 | 0 | 32 | 0 |
+| `splash_spawn_c` | `0152ac` | 0 | 0 | 22 | 16 | 48 | 0 | 0 | 0 | 0 | 0 | 32 | 0 |
 | `splash_spawn` | `0152b0` | 0 | 0 | 22 | 16 | 48 | 0 | 0 | 0 | 0 | 0 | 32 | 0 |
 | `sub_015710` | `015710` | 0 | 547 | 480 | 145 | 435 | 547 | 309 | 931 | 708 | 1011 | 5538 | 333 |
 | `ground_height` | `015714` | 0 | 547 | 480 | 145 | 435 | 547 | 309 | 931 | 708 | 1011 | 5538 | 333 |

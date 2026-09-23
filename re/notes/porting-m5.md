@@ -1,32 +1,37 @@
 # M5: the weapons and the ground targets
 
 Milestone M5 of `SPEC.md` section 9: the guns, the bombs, the rockets, the torpedo, the
-islands with their targets and soldiers, and the effects, on the first three maps. Part 1,
-this note's subject so far, is everything the M5 scripts execute in a pass
-(`frame_update`'s tree, phase F) and in a VBlank (phase V). Part 2 is what they execute in
-the tick (phase T): the weapons' launch and flight, their hits, the guns' bullets, the
-targets' timers, the crash on land. Addresses use the standard load layout.
+islands with their targets and soldiers, and the effects, on the first three maps. It was
+done in two parts: part 1 is everything the M5 scripts execute in a pass (`frame_update`'s
+tree, phase F) and in a VBlank (phase V); part 2 is what they execute in the tick (phase T):
+the drop, the weapons in flight and their hits, the guns' bullets, the targets' timers,
+the balloons and the crash on land. Addresses use the standard load layout.
 
 Every statement is either **observed**, with the tool or test that shows it, or **read**,
 which means it comes from the listing alone.
 
 ```text
-src/targets.c            the targets, the soldiers, their fire and the ticker's messages
+src/targets.c            the targets, the soldiers, their fire, the hits and the ticker's messages
 src/pools.c              the Smoke, Splashes and Balloons pools and their claims
-src/objects.c            the object records as the pass draws them
+src/objects.c            the object records: drawn in the pass, dropped, flown and aimed in the tick
+src/tick.c               logic_tick: the guns' bullets, the soldiers hit, the timers, the balloons,
+                         the engine's oil and smoke, and the angles
+src/player.c             the drop, the wreck at rest and the crash on land
 src/world.c              the pass: the island's flag and the burnt barracks wired in, the muzzle flash
 src/dash.c               the weapon counter's drums
 tools/m5_autopilot.py    the autopilot that flew the scripts: attacks by plan
 tools/m5_scripts.py      the M5 scripts, and the weapons tick by tick while one runs
 tools/m5_observe.py      the left-overs of SPEC 10 answered by observation
-tools/reach_observe.py   the reach map, now with --m5, --m5-only, --load and a joined --cold
-tests/test_weapons.py    the open loop over every M5 script, attributed; the completeness list
-tests/test_oracle_m5.py  the pure routines of part 1 against the original
+tools/m68k_fix.py        the emulator's memory-form asr, corrected in both instruments
+tools/reach_observe.py   the reach map, with --m5, --m5-only, --load and a joined --cold
+tests/test_weapons.py    both loops over every M5 script; the completeness list; the soldiers' balance
+tests/test_oracle_m5.py  the pure routines of both parts against the original
+tests/m5_renders.py      pictures of both parts, dist/m5-part1/ and dist/m5-part2/
 ```
 
 ## What decides what is ported: the reach map
 
-The M5 scripts are the seventeen of `tools/m5_scripts.py` ("The scripts" below). The reach
+The M5 scripts are the eighteen of `tools/m5_scripts.py` ("The scripts" below). The reach
 map runs them beside every run of M4 and joins the two for the cold regions (observed):
 
 ```text
@@ -100,7 +105,7 @@ carrier, and winning map c is out of the autopilot's reach (below).
 | `bomb_a` | a bomb on each of map a's four targets from 150 pixels: the slot-3 targets at 3224 and 1736, the slot-4 targets at 2712 and 2392 (score 700) | 911 |
 | `high_a` | the same from 420 pixels, in the eighth-scale view | 1,099 |
 | `rockets_a` | the rockets, two in a dive at the dug-out at 3224 (hit) and two at the barracks at 2712; the sky's flash | 1,166 |
-| `torpedo_a` | the torpedo, dropped at 40 pixels into the sea east of the carrier, where it runs | 590 |
+| `torpedo_a` | the torpedo, dropped at 40 pixels into the sea east of the carrier: it meets the water faster than 5 pixels a tick and goes out there | 590 |
 | `hit_a` | low passes over map a's island until the targets' fire has taken the oil below `0x60`; the engine seizes and the aircraft comes down on the island | 2,184 |
 | `crash_a` | straight down into the island next to the eastern barracks: the crash destroys it (score 150), the wreck burns at rest, the next aircraft | 998 |
 | `island_a` | map a's four targets bombed, then pass after pass the guns at the soldiers that come out and a bomb on every target that still holds soldiers, until all twenty are dead: the island neutralised, its bonus and message, the mission won (`0x015694`); then into the ground, and in the hold the next mission begins (M7's) | 4,779 |
@@ -108,6 +113,7 @@ carrier, and winning map c is out of the autopilot's reach (below).
 | `bomb_c` | map c: the same on its western island | 934 |
 | `rockets_c` | map c: a rocket dive at each of the western island's two pillboxes (slot `0x0F`), both destroyed, their smoke | 1,003 |
 | `balloons_c` | map c with `balloons_on` set: out over the balloons rising from the carrier, back and out again | 569 |
+| `torpedo_run` | the torpedo dropped at 24 pixels: it meets the sea gently, runs in it 200 ticks with a splash every tick, and goes out | 750 |
 | `bomb_pause` | `bomb_a` with Escape while the first bomb falls and again 40 VBlanks later | 902 |
 | `bomb_flip` | `bomb_a` with Control-F while the first bomb falls | 911 |
 | `bomb_restart` | `bomb_a` with Control-R while the first bomb falls, and the rank selection after it | 611 |
@@ -206,7 +212,7 @@ player's `+0x12` and `0x024F24` over `island_a`, `guns_a` and `hit_a`:
   and **the velocity's fraction never carries**: the height moves by the whole part of the
   velocity, rounded down, every tick (read, `0x010B76` to `0x010B86`).
   `tools/m5_observe.py fall` checks the rule for every tick of every bomb and torpedo in
-  flight (a rocket's own flight is part 2's, and so is the torpedo's run in the water): it
+  flight (a rocket flies on its thrust and a running torpedo on a fixed speed instead): it
   held in all 411 cases of `bomb_a`, `high_a`, `torpedo_a` and `bomb_b`, with `+0x06` always
   0 (observed).
 - The horizontal long `+0x0E` loses a tenth of its whole part every tick, as the division
@@ -253,11 +259,10 @@ byte, a frame, a timer, the island, and the state: 0 free, 1 running, 2 dying, 3
 
 - **Out**: `0x011E82` puts a soldier into the first free record at the target's east or
   west end by the sign of its direction, from the barracks' release timers in the tick
-  (`target_timers`, part 2) and from `0x014FEE` in the pass. The walk over the records has no
-  end (`addq.l #8,a1; bra` passes a record in use without counting): it would run past the
-  table if every record were in use, which cannot happen, because the soldiers inside the
-  targets and the records in use always add up to the table's size (read); the port marks
-  that case as a stand-in.
+  (`target_timers`) and from `0x014FEE` in the pass. The walk over the records has no end
+  (`addq.l #8,a1; bra` passes a record in use without counting): it would run past the
+  table if every record were in use, which cannot happen (below, "What stands in, and
+  where"); the port marks that case as a value stand-in.
 - **Running** (`soldiers_draw`, in the pass): three pixels a pass, the frame 0 to 4, turning
   round at the water; a soldier that reaches a dug-out's records goes in.
 - **Dying** (the guns, or any weapon's impact within 16 pixels, `0x011A8C` in the tick):
@@ -332,18 +337,187 @@ freed (read).
   tens drum only while the ones drum passes its rows 0 to 8; both wrap from `0x50` to 1.
   With unlimited weapons (the cheat's `m`, `weapon_count` `0xFF`) both go to `0x64`.
 
+## The tick: the drop
+
+The button's click in the air (`0x01B5B0`), unless the aircraft is inside a turn (attitude
+6 to 16), drops the other weapon (`0x01107C`, read, and held by the oracle and both loops):
+
+- `0x02536C` is set for the pass (`draw_objects` clears it) and `0x026E3D` cleared;
+  `object_draw_first` (`0x0107F2`) writes `0x14` to `drop_debug` (`0x026F8A`, for the debug
+  view behind `0x02536D`) and, while a weapon is left, gives the first free of the fifteen
+  object records (never the extra one) to the launch at `0x01088E`.
+- The launch takes one weapon (not while they are unlimited, `0xFF`), the weapon type, the
+  aircraft's speeds and x from `shot_origin`'s longs (the horizontal speed turned with the
+  facing), y the drawing's plus `0x0B`, and the frame 3 or 9 by the speed's sign. A bomb
+  flies at once; the torpedo keeps the facing's low byte in `+0x1F`, the side it is drawn
+  facing. A rocket also takes half the bearing (`+0x26`), the airspeed (`+0x28`), a thrust
+  of the bearing's sine and cosine, twice each (`+0x1A`, `+0x16`, the cosine turned with the
+  speed), a fall of 4, 8 or 12 ticks before it fires (`+0x24`, bits 2 and 3 of the last of
+  four draws of `rand_beam` after `rol.w #1`, 0 counting as 8), and a frame from the bearing,
+  0 to 9, ten more flying left.
+
+## The tick: a weapon in flight
+
+`object_step` (`0x010AA6`) moves every object record in use (read, held by the oracle over
+random records and by both loops over the scripts):
+
+- **A rocket** falls a pixel back and a pixel down each tick while `+0x24` counts, is aimed
+  when it ends (below), and then flies on its thrust, which adds to its speeds each tick. It
+  is freed once it is more than `0x500` pixels from the drawing's player (`0x1680` in the
+  eighth-scale view).
+- **A bomb, and the torpedo while it falls,** lose a tenth of the whole part of their
+  horizontal speed a tick (`divs.w`, so below ten pixels a tick nothing), and gravity's
+  `0x6000` (`0x025350`) of their vertical speed; the height moves by its whole part.
+- **Where it comes down.** Over an airfield (`0x011126`; maps a to c have none) a rocket goes
+  out and the others bounce on the runway at height `0x1E`, the vertical speed turned and
+  halved (at most 9) and the horizontal halved. Elsewhere the ground is `0x0C` above the sea,
+  the land and the targets, and a ship's deck plus `0x0B` over a ship (low bits 1): the
+  listing's test of low bits 2 for the slots 3 and 4 never holds. At the ground the record
+  keeps the low bits in `+0x1F` (the pass draws the explosion over land and a ship, the
+  splash over the sea), makes the impact's sound (M8), notes the pass in `+0x1A`, hits
+  (`0x0146DC`, below), goes out as kind 8, and the soldiers within `0x10` start dying.
+- **The torpedo** that comes down into the sea no faster than 5 pixels a tick runs there:
+  `0x45000` a tick the way it flew, frame `0x0A` (which the pass does not draw), 200 ticks
+  in `+0x12`, a splash at its x every tick, and it hits the first record that is not sea. A
+  faster one hits the water (observed: `torpedo_a` drops from 40 pixels and its torpedo goes
+  out at once; `torpedo_run` drops from 24 and it runs its 200 ticks into open sea and goes
+  out). Its splash at the start of a run is unreachable: `+0x1A` was set from `pass_counter`
+  a few instructions before the compare.
+- **A bomb's frame** steps on every other pass that drew it, 0 to 11.
+
+### The rocket's aim (read, and the oracle)
+
+When a rocket's fall ends and its bearing points down (`+0x26` halved below 0), `0x01099A`
+takes the ground the guns' formula gives for that bearing and for `0x14` either side
+(`guns_ground_x`, none of them 0), looks for the first gun of a ship afloat between the
+middle and either side (`0x0111A6`, through `ship_order`), else for the first standing
+pillbox between them by map offset (`0x01115C`), and aims at what it found: the bearing
+becomes the angle (`0x015CA6`) of its distance and the rocket's height, turned downward,
+and the speeds the airspeed / 100 along it, the horizontal one keeping its old sign. No
+script's rocket found anything to aim at: the pillboxes of `rockets_c` fell to rockets
+fired straight at them. The angles are tables: the sine's quarter wave at `0x02496C`, the
+tangent at `0x02476C`, the arctangent bytes at `0x0257EE` with the octants' fix-ups behind
+the jump table at `0x0257CE`.
+
+## The tick: the hits
+
+`weapon_hit` (`0x0146DC`) is what an impact does to the map record under the object's x
+(read, held by the oracle with the record list compared as touched memory, observed in
+`bomb_a`, `bomb_b`, `bomb_c`, `rockets_a`, `rockets_c`, `crash_a`, `hit_a` and
+`island_a`):
+
+- **On land** (low bits 2 or 3) a rocket flashes the sky white; slot `0x113` is left alone.
+  A dug-out (slot 3) holding soldiers takes the hit (red for a rocket): `+0x0E` 200, 200
+  points, its soldiers let out (`0x014B40`: those inside join those still to come, `+0x0A`,
+  and the timer `+0x0B` starts at 60). A barracks (slot 4) burns: its four map records
+  become slot 5 with low bits 2, keeping their draw bits, `+0x0C` `0x32`, `+0x0E` 1, 150
+  points, its soldiers let out. A rocket at a pillbox (slots `0x0F` to `0x1D`) flashes red
+  and sets in the four records' slot the bit of the record it hit (the pillbox's picture
+  of its damage); one not yet destroyed is (`+0x08` `0xFFFF`, `+0x0A` `0x32`, `+0x0C` 1),
+  200 points, one pillbox fewer on its island, and the last one with no soldier left
+  neutralises the island as a soldier's death does.
+- **In the sea or on a ship** (low bits 0 or 1) nothing happens but on a ship (`0x014A4E`):
+  a bomb does nothing there; a running torpedo flashes red and takes one from the ship's
+  `+0x0C`, which at 0 starts its sinking (`+0x18` 20, M6's); anything else flashes white and
+  destroys the ship's first standing gun within 16 pixels, 200 points and red.
+
+**The crash on land** hits as a rocket does: `crash_hit` (`0x0146C6`) gives `crash_object`
+(`0x027700`, now registered) the x of the record under the wreck and type 0, and goes on
+into `weapon_hit`; the crash (`0x01BBF4` from the ground's contact, `0x01B326` from the wreck
+at rest) then kills the soldiers within 8 through `0x011A84`.
+
+### The wreck's explosion and the map list's address (observed)
+
+While the wreck rests on land or a deck, the crash leaves an explosion every tick
+(`0x01B304`). Its C call passes the aircraft's x and y words where `object_spawn` wants the
+map pointer, and nothing where it wants the height, so the record is at the x of the long
+`(x << 16 | y)` less the map list's address (as a word, times four) and at height `0x0C`:
+in `crash_a` at x 12280, from y 2 and the list at `0x24F404`. The address is the machine's:
+the headless original's allocator gives the map list `0x24F404` in a game's first mission,
+another after a restart (`0x2750C4` in `bomb_restart`) and in the next mission (`0x25D4BC` in
+`island_a`), and an Amiga gives what exec's AllocMem gives. The port keeps it as registered
+state, `map_list_address` at `0x024628`: the map loader takes it from the environment, which
+the tests fill with the harness's address at every map load (`tests/m4compare.py`, as they
+fill the entropy stream), and the release build with `0x24F404`. Nothing else reads it.
+
+## The tick: the guns' bullets, the timers, the balloons, the engine
+
+- **The guns' bullets** (`0x0119BC`): while the guns fire, the aircraft sinks (its vertical
+  speed at `0x026E62` below 0), flies below y `0xA0` and is not stalling, the first free
+  record of the Splashes pool takes the ground the bullets reach, one a tick:
+  `guns_ground_x` (`0x011A46`) is the height (the long at `0x026E6E` / `0x100`) over the
+  tangent of the bearing, ahead of the drawing's x, and a quotient above `0xFFFF` leaves
+  `divu` the dividend, whose low word counts then. The splash or the dust is made there
+  and the running soldiers within `0x10` start dying.
+- **Soldiers hit** (`0x011A8C`): a running soldier within `x - w` to `x + w` starts dying
+  (state 2, frame 5, timer 2) and screams (`0x0123AC`, M8). The scream's sound code leaves
+  its loudness and the height's distance from `0x14` in D0 and D1, and the walk goes on
+  with them as its span (read, and the oracle): after the first soldier hit, only a soldier
+  near world x 0 could be hit by the same call. Then `0x011AE2` over the same registers: a
+  drawn torpedo within the span goes out (the extra record whatever its type).
+- **The targets' timers** (`0x011DE4`): a target with soldiers to come out (`+0x0A`) lets
+  one out each time `+0x0B` runs out (`0x011E82`, mode 2 for a dug-out, 1 for a barracks),
+  and starts it again from bits 4 to 8 of `vblank_total`, 3 in place of 0, until none is
+  left.
+- **The balloons** (`0x011C5E`): while `balloons_on` is set every balloon drifts by its
+  speeds and is free at height `0xAA` (observed in `balloons_c`).
+- **The engine**: in the air with the oil below full, `logic_tick` takes one oil every `0x50`
+  ticks (`0x0113A2`, `0x027350`); `0x011BFC` makes smoke every second tick, always once
+  more than `0x13` of the oil is gone and before that by a bit of `smoke_chance`
+  (`0x0255CA`) against a draw of `rand_beam` (observed in every script in which the targets'
+  fire takes the oil: `guns_a`, `bomb_a`, `rockets_a`, `hit_a`, `crash_a`, `island_a`,
+  `bomb_b`, `bomb_c` and `rockets_c`).
+- **The enemy's airfields** (`0x011622`): the player within `0x1E0` of an airfield record's
+  span with `0x0251D6` not below its `+0x04`, or none left in `+0x06`, sends nothing up
+  (`0x0116BE`, reached on map a west of x 480 through its empty records); an aircraft sent
+  up is M6's.
+
+## Registers that cross a call in the tick
+
+- **D4 at `objects_step`**: a running torpedo keeps its position in D4 (`0x010D6C`), which
+  `object_step` does not save, and a torpedo whose time runs out splashes at D4's upper
+  word (`0x010D9A`): the position of a torpedo that ran earlier in the same walk, or what
+  `logic_tick` left. `logic_tick` leaves D4's upper word 0: observed at every call of
+  `objects_step` in every tick of the M5 scripts. `torpedo_run`'s torpedo is the only
+  record in its walk, so it goes out with D4's upper word 0 and its last splash is at world
+  x 0, the map's west end (observed).
+- **D2 at the engine's smoke**: `smoke_at_player` takes D2's upper word into a turn's smoke
+  (part 1, "Registers that cross a call"); from `0x011BFC` it is 0 at every call (observed).
+- **D1 in the angle** (`0x015CA6`): `divu` divides the smaller size, shifted up, with the
+  upper word D1 held beside y in its low word. From the aim that is 0 for a pillbox, whose
+  search returns through `moveq`, and the ship record's address's upper word, 2, for a gun
+  of a ship (read, and the oracle over both).
+- **D0 and D1 after a scream**, above.
+
+## The emulator's memory-form shift (observed)
+
+The oracle test of `object_step` found the headless original bouncing a bomb on an airfield
+into a vertical speed of `+9` where it should have gone `-2`: Unicorn 2.1.4 decides whether
+a memory-form shift is arithmetic or logical from bit 3 of the opcode, which in the memory
+form belongs to the effective address's mode, so `asr.w d16(An)` runs as a logical shift
+(`0xFFFD` to `0x7FFE`) and `lsr.w (An)` as an arithmetic one. The executable has three
+`asr.w d16(An)`, at `0x010BB8` and `0x010BE0` in `object_step` and `0x019D5E` in
+`cop_vport_planes`, and one `lsr.w d16(A4)`, which the fault gets right. `tools/m68k_fix.py`
+puts a code hook on the three in the oracle, which the headless original runs on, that
+shifts as the 68000 does, flags included; `tests/test_headless.py` holds the fault, the
+correction and the list against the listing. No script reaches the bounce, and the tests of
+M4 and M5 pass with the correction as they did without it.
+
 ## How the port is held to the original
 
 | Check | Test | What it covers |
 |---|---|---|
-| T1, attributed | `tests/test_weapons.py::test_every_pass_agrees_and_every_other_difference_is_owed[...]` | the open loop over every M5 script: every pass and every tick that differs from the original reached a stand-in of part 2 or later in that same step, and no step reached one of part 1 (`island_a` and `hit_a` with `--slow`) |
-| T3 | `tests/test_weapons.py::test_every_address_the_m5_scripts_write_is_compared_or_excluded` | the completeness list over the M5 scripts, below |
+| T2 | `tests/test_weapons.py::test_every_tick_and_pass_agrees_in_the_closed_loop[...]` | every M5 script in the closed loop, from the program's start with nothing handed over but the entropy and the map list's address: after every tick and every pass the registered state, the drawing calls, the entropy with its callers, the view, the palette of every row, the markers and the map draws agree, and no stand-in is reached; `island_a` runs into the next mission of a campaign (M7's stand-in at `0x010132`) after its last compared step, which the test states (`island_a` and `hit_a` with `--slow`) |
+| T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[1, 3][bomb_a, hit_a]` (slow) | the closed loop at one and three VBlanks per pass against the original run at the same rate |
+| T1, attributed | `test_every_pass_agrees_and_every_other_difference_is_owed[...]` | the open loop over every M5 script: a step that differs must have reached a stand-in of M6 or M7 in that same step, and no other stand-in may be reached (none differs) |
+| map | both loops | the map draws against `tools/map_decode.py`'s prediction from the original's live record list (`Replay.live_chart`: the allocation behind `0x024628`, `map_length` long), which the hits rewrite |
+| T3 | `test_every_address_the_m5_scripts_write_is_compared_or_excluded` | the completeness list over the M5 scripts, below |
+| value | `test_a_soldier_always_finds_a_free_record` | the balance that keeps `0x011E82`'s value stand-in unreachable, below |
 | V5 | `tests/test_oracle_m5.py::test_the_exclusive_or_blit_matches_the_blitter` | `shape_draw_xor` (`0x020E24`), the muzzle flash's blit: every shape of `hellcat.shp` on the 5-plane playfield at aligned, shifted and hanging-off positions under two clips, against the original's register programme on `tests/blitter.py` |
-| V6 | `tests/test_oracle_m5.py` | `0x014AE4` and `0x014B54` at every record of map c; `target_range_frame` at both scales; `0x015AE8` for every rank, mission and island; `0x011E82` in both modes; `0x014FEE` with `0x015034`; `smoke_claim`, `splash_spawn`, `smoke_at_player`; `target_frame` and `target_fire`, with `rand_beam` served on both sides from the port's stream |
+| V6, part 1 | `tests/test_oracle_m5.py` | `0x014AE4` and `0x014B54` at every record of map c; `target_range_frame` at both scales; `0x015AE8` for every rank, mission and island; `0x011E82` in both modes; `0x014FEE` with `0x015034`; `smoke_claim`, `splash_spawn`, `smoke_at_player`; `target_frame` and `target_fire`, with `rand_beam` served on both sides from the port's stream |
+| V6, part 2 | `tests/test_oracle_m5.py` | the angles (the sine and cosine of every angle, the tangent of every byte, the bearing of 6,000 vectors with D1's upper word); `guns_ground_x` over 4,000 states; `soldiers_hit` and `torpedoes_hit` with the scream's registers; `gun_splashes` (with running soldiers at the edges of its span), `engine_smoke`, `target_timers` with `0x011E82` from the tick, `balloons_step`; `objects_step` over 2,500 states of sixteen random records each (every type and kind, the aim, the hits, an island done and the mission won with the ticker's message); `weapon_hit` and `crash_hit` over 3,000; the drop over 1,500; touched memory compared, the record list among it |
 | T1, T2 | `tests/test_world.py` | every M4 script in both loops, unchanged |
-
-The closed loop over an M5 script is part 2's: it holds only once the tick drops and moves
-the weapons.
+| T7 | `tests/test_page.py`, `tests/test_firefox.py` | the keyboard flight drops the weapon chosen in the hold just after take-off and holds the button: on the framebuffer the weapon counter turns, a burst is drawn in the water (pure white in the rows just above the sea, which nothing else there is), and the guns leave the counter alone; Chrome, Firefox and the visible Firefox window |
 
 The controls, each run by changing the port, rebuilding and running the open loop of one
 script with its attribution, then reverting; every one leaves steps that differ without a
@@ -365,44 +539,71 @@ later stand-in reached:
 - `muzzle_frames` read one byte on, `guns_sea`: from pass 450 the exclusive-or draw of the
   muzzle flash comes a pass early or late (126 steps).
 
+The controls of the tick, each run by changing the port, rebuilding and running the closed
+loop of one script, then reverting; the closed loop catches every one:
+
+- gravity one more (`0x6001`) in `object_step`, `bomb_a`: from pass 1116 the falling bomb's
+  vertical speed differs (`0xFFFF9FFF` against `0xFFFFA000`), and from pass 1130 it is
+  drawn a pixel lower;
+- a rocket's fall two pixels back a tick instead of one, `rockets_a`: from pass 1158 the
+  falling rocket is drawn a pixel further back, and later the smoke's draws differ;
+- the guns' reach from the height over `0x80` instead of `0x100`, `guns_a`: from pass 1120
+  the dust lies elsewhere (`splash_records[0].x` `0xAD3` against `0xBFA`) and is drawn
+  there;
+- the release timer of a target hit 61 instead of 60, `bomb_a`: from pass 1286 the draws of
+  `rand_beam` for the smoke differ, and from pass 1288 the drawing;
+- a barracks rewritten to slot 6 instead of 5, `bomb_a`: from pass 1240 the burnt barracks is
+  drawn with another shape and its smoke is not made;
+- the map list's address not taken from the environment, `crash_a`: `map_list_address`
+  differs from the first step.
+
+Two controls the closed loop does not catch, because no script puts a running soldier at the
+edge of a kill span: a bomb's span one pixel wider (`0x11`, `bomb_b` and `island_a` run
+through unchanged) and the guns' one narrower (`0x0F`, `bomb_b`). The oracle catches both:
+`test_the_objects_step_matches_the_original` (case 461, a torpedo within the wider span goes
+out) and `test_the_tick_routines_match_the_original`, which places running soldiers at the
+edges of the guns' span (case 72).
+
 ## The completeness list
 
 `tests/test_weapons.py` sorts every address the original writes during an M5 script's
 mission with `tests/m4complete.py`'s lists and the rows M5 adds there (`M5_EXCLUDED`,
-`M5_HEAP`): the object record `0x0146C6` makes up for a crash on land at `0x027700`, part
-2's; the fade of a restart in flight (`bomb_restart`, Control-R: `fade_out_pair` in the
-mission's inner loop), which takes both views' colour tables to black and swaps the second
-view's copper buffer with `cop_spare` in every step, held to the original by M3's
-`test_the_fades_agree_with_the_original`; and the ticker's plane, which `vblank_server`
-scrolls by CPU and which the port scrolls in its own plane, held to the original under the
-oracle by M4's `test_the_ticker_matches_the_original`. A mission won
-goes on to the campaign's next mission at `0x010132`, M7's; the recorder of
-`tests/m4compare.py` records nothing after it.
+`M5_HEAP`), none of which is owed to M5: the fade of a restart in flight (`bomb_restart`,
+Control-R: `fade_out_pair` in the mission's inner loop), which takes both views' colour
+tables to black and swaps the second view's copper buffer with `cop_spare` in every step,
+held to the original by M3's `test_the_fades_agree_with_the_original`; and the ticker's
+plane, which `vblank_server` scrolls by CPU and which the port scrolls in its own plane,
+held to the original under the oracle by M4's `test_the_ticker_matches_the_original`.
+Part 2 registers what the tick writes beside the tables: `crash_object` (`0x027700`, a
+table of one object record), `drop_debug` (`0x026F8A`) and `map_list_address` (`0x024628`);
+M4's row for `0x026F8A` and part 1's for `0x027700` are gone. A mission won goes on to the
+campaign's next mission at `0x010132`, M7's; the recorder of `tests/m4compare.py` records
+nothing after it.
 
-Part 1 adds no table to the state: the targets, the soldiers, the pools and the object
-records it draws are M4's, at the capacities `test_the_pools_hold_every_map` holds against
-all fifteen maps (`re/notes/porting-m4.md`, "Where mission memory lives").
+Neither part adds a table of its own beside `crash_object`: the targets, the soldiers, the
+pools and the object records are M4's, at the capacities `test_the_pools_hold_every_map`
+holds against all fifteen maps (`re/notes/porting-m4.md`, "Where mission memory lives").
 
 ## What stands in, and where
 
-- **Part 2's**, all in the tick, marked `M5 PART 2 STAND-IN` with the address: the drop
-  (`0x01B5E2`), a weapon or a shot in flight (`0x010AB6` to `0x010DA5`), the guns' bullets
-  (`0x0119C4`), the targets' timers (`0x011DFE`, `0x011E48`), the balloons' step
-  (`0x011C66`), the crash on land (`0x01B304`, `0x01BBF4`); and the three regions M4 marked
-  M6 that the M5 scripts reach (`0x0113A2`, `0x011C24`, `0x0116BE`).
-- **M6's**: the enemy plane counter above 99 (`0x01F186`) and its kill icons (`0x01F206`),
-  which only an enemy aircraft shot down raises (`0x01E36E` in `0x01E244`, read); M4 had
-  marked them M5.
-- **A value**: every soldier record in use when a soldier comes out (`0x011E82`), which the
-  balance of soldiers and records rules out.
+No stand-in of M5 is left. The regions the scripts do not reach are ported from reading and
+held by the oracle tests (the appendix names each with its test), or belong to M6: the
+enemy airfield's aircraft sent up (`0x0116D2` to `0x011709`), the ships' launches and
+sinking, the enemy aircraft and the guns at them, and in the pass the enemy plane counter
+above 99 (`0x01F186`) and its kill icons (`0x01F206`), which only an enemy aircraft shot
+down raises (`0x01E36E` in `0x01E244`, read).
 
-Part 1 ported two small regions of shared routines that only the tick reaches, because they
-complete a routine the oracle tests take whole: the dust on land in `splash_spawn`
-(`0x0152D8`) and the floor of 16 in `smoke_claim` (`0x01548A`).
+One marker stands for a value: every soldier record in use when a soldier comes out
+(`0x011E82`), whose walk would then run past the table. The soldiers inside the targets,
+those a hit let out that are still to come (`+0x0A`) and the records in use (running,
+dying or dead) always add up to `soldier_count`, so while a soldier is to come out a record
+is free: `test_a_soldier_always_finds_a_free_record` holds the balance in the original's
+state at every step of the M5 scripts (observed; read in `0x011E82`, `0x013EEE`, `0x014B40`
+and `0x014FEE`, which move soldiers between the three).
 
 ## Appendix: the reach map
 
-Entries per routine and phase during an M5 script's mission, for the seventeen scripts,
+Entries per routine and phase during an M5 script's mission, for the eighteen scripts,
 written from the joined run above (observed) with
 
 ```text
@@ -414,310 +615,310 @@ reach map").
 
 ### A pass during a mission: `frame_update`'s tree (phase F)
 
-| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `frame_update` | `010228` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `flip_buffers` | `01030c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `weapon_marker` | `010344` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `draw_player` | `0103a6` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `draw_objects` | `0106be` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `object_draw` | `010702` | 0 | 0 | 236 | 388 | 96 | 33 | 336 | 280 | 1292 | 354 | 354 | 98 | 0 | 237 | 236 | 9 | 236 |
-| `draw_enemy_aircraft` | `010da6` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `smoke_draw` | `010ee0` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `snapshot_for_draw` | `010f88` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `draw_game_over` | `0110c2` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `soldier_out` | `011e82` | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
-| `draw_world` | `013772` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `ship_planes` | `01391e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `airfields_draw` | `013a18` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `deck_aircraft` | `013abc` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `record_extras` | `013b1c` | 28417 | 104465 | 109643 | 676783 | 153151 | 29891 | 312853 | 137769 | 685048 | 150549 | 137669 | 147515 | 83503 | 109717 | 109643 | 80385 | 109643 |
-| `targets_3_draw` | `013d78` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `targets_f_draw` | `013de8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `ocean` | `013e6c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `soldiers_draw` | `013eee` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `lift_aircraft` | `01409c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `islands_draw` | `0140e8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `map_window` | `01417e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `window_height` | `0141b4` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `window_strip` | `014206` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `window_ship` | `014430` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `window_background` | `014564` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `window_shape` | `0145a6` | 0 | 8074 | 8348 | 0 | 12422 | 0 | 32436 | 6208 | 70192 | 13110 | 11287 | 12228 | 1747 | 8352 | 8348 | 3144 | 8348 |
-| `ship_at_offset` | `014a4e` | 2899 | 3747 | 3743 | 9735 | 3923 | 3079 | 5115 | 7725 | 11354 | 3743 | 3743 | 3923 | 4585 | 3743 | 3743 | 4571 | 3743 |
-| `ship_at_span` | `014a52` | 3222 | 4686 | 4698 | 10058 | 4894 | 3422 | 6204 | 9108 | 13694 | 4873 | 4892 | 5040 | 6136 | 4698 | 4698 | 5618 | 4698 |
-| `target_records` | `014ae4` | 0 | 0 | 13 | 16 | 6 | 0 | 0 | 5 | 16 | 25 | 25 | 0 | 0 | 3 | 13 | 0 | 13 |
-| `target_of` | `014b54` | 0 | 0 | 13 | 16 | 6 | 0 | 0 | 5 | 16 | 25 | 25 | 0 | 0 | 3 | 13 | 0 | 13 |
-| `ship_guns_draw` | `014c3e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `target_frame` | `014d50` | 1872 | 3056 | 2546 | 3003 | 3934 | 2352 | 8710 | 3966 | 7990 | 8174 | 18778 | 20544 | 12474 | 2968 | 2546 | 2432 | 2546 |
-| `target_range_frame` | `014db8` | 1234 | 2418 | 1908 | 228 | 3256 | 1674 | 7072 | 1796 | 5142 | 6579 | 15269 | 16815 | 8965 | 2330 | 1908 | 1610 | 1908 |
-| `ride_on_ship` | `014eac` | 2899 | 3747 | 3743 | 9735 | 3923 | 3079 | 5115 | 7725 | 11354 | 3743 | 3743 | 3923 | 4585 | 3743 | 3743 | 4571 | 3743 |
-| `target_fire` | `014f5c` | 0 | 294 | 182 | 1063 | 224 | 0 | 1598 | 150 | 1072 | 272 | 858 | 1072 | 0 | 239 | 182 | 49 | 182 |
-| `target_refill` | `014fee` | 0 | 0 | 2 | 3 | 1 | 0 | 0 | 0 | 48 | 4 | 1 | 0 | 0 | 1 | 2 | 0 | 2 |
-| `nearest_barracks` | `015034` | 0 | 0 | 2 | 3 | 1 | 0 | 0 | 0 | 48 | 4 | 1 | 0 | 0 | 1 | 2 | 0 | 2 |
-| `format_to` | `015078` | 2 | 2 | 10 | 10 | 4 | 2 | 2 | 4 | 66 | 24 | 24 | 6 | 2 | 4 | 10 | 4 | 10 |
-| `format_putch` | `015090` | 16 | 16 | 80 | 80 | 32 | 16 | 16 | 32 | 680 | 192 | 192 | 48 | 16 | 32 | 80 | 32 | 80 |
-| `flip_view` | `0150b0` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `map_slot_at` | `0150c8` | 0 | 0 | 12325 | 14508 | 5194 | 0 | 0 | 2247 | 19388 | 10169 | 7921 | 0 | 0 | 4975 | 12325 | 0 | 12325 |
-| `draw_world_shape` | `015174` | 5063 | 9934 | 18779 | 19729 | 18819 | 5843 | 47446 | 13543 | 233105 | 28470 | 32373 | 29625 | 32837 | 15024 | 18779 | 6026 | 18779 |
-| `sub_01520c` | `01520c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `clip_playfield` | `01524a` | 2808 | 4584 | 5454 | 4821 | 6984 | 3528 | 13065 | 5949 | 28596 | 6114 | 5592 | 6006 | 3402 | 5400 | 5454 | 3648 | 5454 |
-| `clip_dash_window` | `01525c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `clip_to_waterline` | `01526e` | 1823 | 3007 | 3587 | 2578 | 4587 | 2283 | 8509 | 3475 | 18536 | 4027 | 3679 | 3935 | 2219 | 3551 | 3587 | 2291 | 3587 |
-| `splashes_draw` | `0152f8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `smoke_claim` | `015460` | 0 | 20 | 33 | 53 | 15 | 0 | 132 | 36 | 186 | 71 | 120 | 167 | 0 | 18 | 33 | 3 | 33 |
-| `smoke_at_player` | `0154e0` | 0 | 20 | 19 | 3 | 15 | 0 | 132 | 11 | 88 | 26 | 75 | 92 | 0 | 18 | 19 | 3 | 19 |
-| `balloons_draw` | `01557c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `mission_won` | `015694` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `island_bonus` | `015ae8` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `view_show` | `016f20` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `cop_set_split_line` | `01876e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `cop_wait` | `019a9c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `cop_install` | `01aa0e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `wait_vblank` | `01aa3e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `record_on_ship` | `01cb34` | 4 | 112 | 112 | 4 | 112 | 4 | 114 | 112 | 224 | 112 | 112 | 112 | 222 | 112 | 112 | 112 | 112 |
-| `ship_of_record` | `01cbf2` | 4 | 112 | 112 | 4 | 112 | 4 | 114 | 112 | 224 | 112 | 112 | 112 | 222 | 112 | 112 | 112 | 112 |
-| `draw_dashboard` | `01ee16` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `kill_icons` | `01f200` | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 8 | 4 | 4 | 4 | 4 | 4 | 4 | 8 | 4 |
-| `enemy_arrows` | `01f21a` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `draw_score` | `01f26a` | 2 | 2 | 10 | 10 | 4 | 2 | 2 | 4 | 64 | 24 | 24 | 6 | 2 | 4 | 10 | 4 | 10 |
-| `dash_digit` | `01f2b0` | 18 | 18 | 74 | 74 | 32 | 18 | 18 | 32 | 456 | 172 | 172 | 46 | 18 | 32 | 74 | 36 | 74 |
-| `clip_dashboard` | `01f2dc` | 1872 | 3056 | 3636 | 4388 | 4656 | 2352 | 8710 | 3966 | 19064 | 4076 | 3728 | 4004 | 2268 | 3600 | 3636 | 2432 | 3636 |
-| `rand_beam` | `0203be` | 0 | 746 | 505 | 2353 | 558 | 0 | 4051 | 425 | 2879 | 792 | 2237 | 2865 | 576 | 590 | 505 | 108 | 505 |
-| `blit_clip_setup` | `0209bc` | 13744 | 31955 | 36507 | 78796 | 48786 | 16088 | 116319 | 42036 | 273413 | 48424 | 47031 | 49911 | 29185 | 36617 | 36507 | 22596 | 38149 |
-| `shape_blit` | `020b0c` | 13660 | 31876 | 36507 | 78796 | 48786 | 16088 | 116319 | 42036 | 273270 | 48373 | 47002 | 49911 | 29185 | 36617 | 36507 | 22596 | 38149 |
-| `shape_draw` | `020ce2` | 13542 | 31758 | 36333 | 78622 | 48612 | 15928 | 115897 | 41020 | 271754 | 48101 | 46730 | 49723 | 29067 | 36485 | 36333 | 22274 | 37975 |
-| `shape_draw_xor` | `020e24` | 84 | 79 | 0 | 0 | 0 | 0 | 0 | 0 | 143 | 51 | 29 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `rect_fill` | `021010` | 3744 | 12363 | 13682 | 10537 | 19974 | 4704 | 49348 | 14618 | 110126 | 20966 | 19552 | 20576 | 7068 | 13621 | 13682 | 6835 | 13682 |
-| `draw_set_target` | `02124a` | 2808 | 4584 | 5454 | 6582 | 6984 | 3528 | 13065 | 5949 | 28596 | 6114 | 5592 | 6006 | 3402 | 5400 | 5454 | 3648 | 5454 |
-| `clip_set` | `02129c` | 7439 | 12175 | 14495 | 13981 | 18555 | 9339 | 34639 | 15373 | 75728 | 16255 | 14863 | 15947 | 9023 | 14351 | 14495 | 9587 | 14495 |
-| `blit_begin` | `0212ce` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 12649 | 12775 | 8653 | 12775 |
-| `blit_end` | `0212d4` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 12649 | 12775 | 8653 | 12775 |
-| `sub_022e40` | `022e40` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 12649 | 12775 | 8653 | 12775 |
-| `sub_022e8a` | `022e8a` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 12649 | 12775 | 8653 | 12775 |
+| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `torpedo_run` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `frame_update` | `010228` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `flip_buffers` | `01030c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `weapon_marker` | `010344` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `draw_player` | `0103a6` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `draw_objects` | `0106be` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `object_draw` | `010702` | 0 | 0 | 236 | 388 | 96 | 33 | 336 | 280 | 1292 | 354 | 354 | 98 | 0 | 418 | 237 | 236 | 9 | 236 |
+| `draw_enemy_aircraft` | `010da6` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `smoke_draw` | `010ee0` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `snapshot_for_draw` | `010f88` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `draw_game_over` | `0110c2` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `soldier_out` | `011e82` | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| `draw_world` | `013772` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `ship_planes` | `01391e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `airfields_draw` | `013a18` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `deck_aircraft` | `013abc` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `record_extras` | `013b1c` | 28417 | 104465 | 109643 | 676783 | 153151 | 29891 | 312853 | 137769 | 685048 | 150549 | 137669 | 147515 | 83503 | 29891 | 109717 | 109643 | 80385 | 109643 |
+| `targets_3_draw` | `013d78` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `targets_f_draw` | `013de8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `ocean` | `013e6c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `soldiers_draw` | `013eee` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `lift_aircraft` | `01409c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `islands_draw` | `0140e8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `map_window` | `01417e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `window_height` | `0141b4` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `window_strip` | `014206` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `window_ship` | `014430` | 936 | 1528 | 1818 | 433 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `window_background` | `014564` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `window_shape` | `0145a6` | 0 | 8074 | 8348 | 0 | 12422 | 0 | 32436 | 6208 | 70192 | 13110 | 11287 | 12228 | 1747 | 0 | 8352 | 8348 | 3144 | 8348 |
+| `ship_at_offset` | `014a4e` | 2899 | 3747 | 3743 | 9735 | 3923 | 3079 | 5115 | 7725 | 11354 | 3743 | 3743 | 3923 | 4585 | 3079 | 3743 | 3743 | 4571 | 3743 |
+| `ship_at_span` | `014a52` | 3222 | 4686 | 4698 | 10058 | 4894 | 3422 | 6204 | 9108 | 13694 | 4873 | 4892 | 5040 | 6136 | 3422 | 4698 | 4698 | 5618 | 4698 |
+| `target_records` | `014ae4` | 0 | 0 | 13 | 16 | 6 | 0 | 0 | 5 | 16 | 25 | 25 | 0 | 0 | 0 | 3 | 13 | 0 | 13 |
+| `target_of` | `014b54` | 0 | 0 | 13 | 16 | 6 | 0 | 0 | 5 | 16 | 25 | 25 | 0 | 0 | 0 | 3 | 13 | 0 | 13 |
+| `ship_guns_draw` | `014c3e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `target_frame` | `014d50` | 1872 | 3056 | 2546 | 3003 | 3934 | 2352 | 8710 | 3966 | 7990 | 8174 | 18778 | 20544 | 12474 | 2992 | 2968 | 2546 | 2432 | 2546 |
+| `target_range_frame` | `014db8` | 1234 | 2418 | 1908 | 228 | 3256 | 1674 | 7072 | 1796 | 5142 | 6579 | 15269 | 16815 | 8965 | 2314 | 2330 | 1908 | 1610 | 1908 |
+| `ride_on_ship` | `014eac` | 2899 | 3747 | 3743 | 9735 | 3923 | 3079 | 5115 | 7725 | 11354 | 3743 | 3743 | 3923 | 4585 | 3079 | 3743 | 3743 | 4571 | 3743 |
+| `target_fire` | `014f5c` | 0 | 294 | 182 | 1063 | 224 | 0 | 1598 | 150 | 1072 | 272 | 858 | 1072 | 0 | 0 | 239 | 182 | 49 | 182 |
+| `target_refill` | `014fee` | 0 | 0 | 2 | 3 | 1 | 0 | 0 | 0 | 48 | 4 | 1 | 0 | 0 | 0 | 1 | 2 | 0 | 2 |
+| `nearest_barracks` | `015034` | 0 | 0 | 2 | 3 | 1 | 0 | 0 | 0 | 48 | 4 | 1 | 0 | 0 | 0 | 1 | 2 | 0 | 2 |
+| `format_to` | `015078` | 2 | 2 | 10 | 10 | 4 | 2 | 2 | 4 | 66 | 24 | 24 | 6 | 2 | 2 | 4 | 10 | 4 | 10 |
+| `format_putch` | `015090` | 16 | 16 | 80 | 80 | 32 | 16 | 16 | 32 | 680 | 192 | 192 | 48 | 16 | 16 | 32 | 80 | 32 | 80 |
+| `flip_view` | `0150b0` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `map_slot_at` | `0150c8` | 0 | 0 | 12325 | 14508 | 5194 | 0 | 0 | 2247 | 19388 | 10169 | 7921 | 0 | 0 | 0 | 4975 | 12325 | 0 | 12325 |
+| `draw_world_shape` | `015174` | 5063 | 9934 | 18779 | 19729 | 18819 | 5843 | 47446 | 13543 | 233105 | 28470 | 32373 | 29625 | 32837 | 8631 | 15024 | 18779 | 6026 | 18779 |
+| `sub_01520c` | `01520c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `clip_playfield` | `01524a` | 2808 | 4584 | 5454 | 4821 | 6984 | 3528 | 13065 | 5949 | 28596 | 6114 | 5592 | 6006 | 3402 | 4488 | 5400 | 5454 | 3648 | 5454 |
+| `clip_dash_window` | `01525c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `clip_to_waterline` | `01526e` | 1823 | 3007 | 3587 | 2578 | 4587 | 2283 | 8509 | 3475 | 18536 | 4027 | 3679 | 3935 | 2219 | 2923 | 3551 | 3587 | 2291 | 3587 |
+| `splashes_draw` | `0152f8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `smoke_claim` | `015460` | 0 | 20 | 33 | 53 | 15 | 0 | 132 | 36 | 186 | 71 | 120 | 167 | 0 | 0 | 18 | 33 | 3 | 33 |
+| `smoke_at_player` | `0154e0` | 0 | 20 | 19 | 3 | 15 | 0 | 132 | 11 | 88 | 26 | 75 | 92 | 0 | 0 | 18 | 19 | 3 | 19 |
+| `balloons_draw` | `01557c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `mission_won` | `015694` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `island_bonus` | `015ae8` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `view_show` | `016f20` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `cop_set_split_line` | `01876e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `cop_wait` | `019a9c` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `cop_install` | `01aa0e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `wait_vblank` | `01aa3e` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `record_on_ship` | `01cb34` | 4 | 112 | 112 | 4 | 112 | 4 | 114 | 112 | 224 | 112 | 112 | 112 | 222 | 4 | 112 | 112 | 112 | 112 |
+| `ship_of_record` | `01cbf2` | 4 | 112 | 112 | 4 | 112 | 4 | 114 | 112 | 224 | 112 | 112 | 112 | 222 | 4 | 112 | 112 | 112 | 112 |
+| `draw_dashboard` | `01ee16` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `kill_icons` | `01f200` | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 8 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 8 | 4 |
+| `enemy_arrows` | `01f21a` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `draw_score` | `01f26a` | 2 | 2 | 10 | 10 | 4 | 2 | 2 | 4 | 64 | 24 | 24 | 6 | 2 | 2 | 4 | 10 | 4 | 10 |
+| `dash_digit` | `01f2b0` | 18 | 18 | 74 | 74 | 32 | 18 | 18 | 32 | 456 | 172 | 172 | 46 | 18 | 18 | 32 | 74 | 36 | 74 |
+| `clip_dashboard` | `01f2dc` | 1872 | 3056 | 3636 | 4388 | 4656 | 2352 | 8710 | 3966 | 19064 | 4076 | 3728 | 4004 | 2268 | 2992 | 3600 | 3636 | 2432 | 3636 |
+| `rand_beam` | `0203be` | 0 | 746 | 505 | 2353 | 558 | 0 | 4051 | 425 | 2879 | 792 | 2237 | 2865 | 576 | 0 | 590 | 505 | 108 | 505 |
+| `blit_clip_setup` | `0209bc` | 13744 | 31955 | 36507 | 78796 | 48786 | 16088 | 116319 | 42036 | 273413 | 48424 | 47031 | 49911 | 29185 | 18796 | 36617 | 36507 | 22596 | 38149 |
+| `shape_blit` | `020b0c` | 13660 | 31876 | 36507 | 78796 | 48786 | 16088 | 116319 | 42036 | 273270 | 48373 | 47002 | 49911 | 29185 | 18796 | 36617 | 36507 | 22596 | 38149 |
+| `shape_draw` | `020ce2` | 13542 | 31758 | 36333 | 78622 | 48612 | 15928 | 115897 | 41020 | 271754 | 48101 | 46730 | 49723 | 29067 | 18636 | 36485 | 36333 | 22274 | 37975 |
+| `shape_draw_xor` | `020e24` | 84 | 79 | 0 | 0 | 0 | 0 | 0 | 0 | 143 | 51 | 29 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `rect_fill` | `021010` | 3744 | 12363 | 13682 | 10537 | 19974 | 4704 | 49348 | 14618 | 110126 | 20966 | 19552 | 20576 | 7068 | 5984 | 13621 | 13682 | 6835 | 13682 |
+| `draw_set_target` | `02124a` | 2808 | 4584 | 5454 | 6582 | 6984 | 3528 | 13065 | 5949 | 28596 | 6114 | 5592 | 6006 | 3402 | 4488 | 5400 | 5454 | 3648 | 5454 |
+| `clip_set` | `02129c` | 7439 | 12175 | 14495 | 13981 | 18555 | 9339 | 34639 | 15373 | 75728 | 16255 | 14863 | 15947 | 9023 | 11899 | 14351 | 14495 | 9587 | 14495 |
+| `blit_begin` | `0212ce` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 10541 | 12649 | 12775 | 8653 | 12775 |
+| `blit_end` | `0212d4` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 10541 | 12649 | 12775 | 8653 | 12775 |
+| `sub_022e40` | `022e40` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 10541 | 12649 | 12775 | 8653 | 12775 |
+| `sub_022e8a` | `022e8a` | 6601 | 10745 | 12775 | 15407 | 16365 | 8301 | 30686 | 14372 | 67252 | 14315 | 13097 | 14083 | 9121 | 10541 | 12649 | 12775 | 8653 | 12775 |
 
 ### A VBlank during a mission (phase V)
 
-| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `vblank_server` | `011754` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 3638 | 3637 | 2432 | 3637 |
-| `vblank_server:ticker_glyph` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 60 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `vblank_server:ticker_message` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 60 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `vblank_server:ticker_scroll` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 705 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `read_joy_bits` | `01520e` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 900 | 910 | 609 | 910 |
-| `vblank_every_frame` | `01c9ca` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 3599 | 3637 | 2432 | 3637 |
-| `read_joystick` | `01ca32` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 900 | 910 | 609 | 910 |
-| `read_joy_dispatch` | `01cb20` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 900 | 910 | 609 | 910 |
-| `soundfx_vblank` | `01ec64` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 3638 | 3637 | 2432 | 3637 |
-| `poll_fire` | `02044c` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 3599 | 3637 | 2432 | 3637 |
-| `read_fire_button` | `02046a` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 3599 | 3637 | 2432 | 3637 |
-| `input_handler` | `02075a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `torpedo_run` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `vblank_server` | `011754` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 2993 | 3638 | 3637 | 2432 | 3637 |
+| `vblank_server:ticker_glyph` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 60 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server:ticker_message` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 60 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server:ticker_scroll` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 705 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `read_joy_bits` | `01520e` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 749 | 900 | 910 | 609 | 910 |
+| `vblank_every_frame` | `01c9ca` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 2993 | 3599 | 3637 | 2432 | 3637 |
+| `read_joystick` | `01ca32` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 749 | 900 | 910 | 609 | 910 |
+| `read_joy_dispatch` | `01cb20` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2178 | 992 | 4767 | 1020 | 933 | 1002 | 568 | 749 | 900 | 910 | 609 | 910 |
+| `soundfx_vblank` | `01ec64` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 2993 | 3638 | 3637 | 2432 | 3637 |
+| `poll_fire` | `02044c` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 2993 | 3599 | 3637 | 2432 | 3637 |
+| `read_fire_button` | `02046a` | 1873 | 3057 | 3637 | 4389 | 4657 | 2353 | 8709 | 3965 | 19062 | 4077 | 3729 | 4005 | 2269 | 2993 | 3599 | 3637 | 2432 | 3637 |
+| `input_handler` | `02075a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
 
 ### The inner loop beside `frame_update` during a mission (phase M)
 
-| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `run_queued_ticks` | `0114d8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1800 | 1818 | 1216 | 1818 |
-| `sound_slots_clear` | `011f4e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
-| `sound_channels` | `012066` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
-| `ticker_clear` | `016bbc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| `view_show` | `016f20` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `colour_lerp` | `016ff6` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1536 | 0 |
-| `fade_to_pair` | `0171f2` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| `fade_out_pair` | `0173e6` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| `cop_reset` | `019958` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `cop_move` | `0199bc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 958 | 0 |
-| `cop_move_ptr` | `019a08` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 288 | 0 |
-| `cop_wait` | `019a9c` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 192 | 0 |
-| `cop_colours` | `019b5a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
-| `cop_vport_colours` | `019c0a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
-| `cop_vport_split` | `019c80` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `cop_vport_planes` | `019d18` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
-| `cop_sprites_off` | `01a06c` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `view_build_copper` | `01a0d4` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `cop_install` | `01aa0e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
-| `wait_next_vblank` | `01aa32` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 39 | 0 | 0 | 0 |
-| `ingame_keys` | `01ccf6` | 937 | 1529 | 1819 | 2195 | 2329 | 1177 | 4356 | 1984 | 9534 | 2039 | 1865 | 2003 | 1135 | 1840 | 1819 | 1218 | 1819 |
-| `sub_01eac0` | `01eac0` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 |
-| `weapon_gauge_reset` | `01edbc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
-| `key_to_char` | `020700` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
-| `key_available` | `0207d8` | 937 | 1529 | 1819 | 2195 | 2329 | 1177 | 4356 | 1984 | 9534 | 2039 | 1865 | 2003 | 1135 | 1844 | 1821 | 1220 | 1833 |
-| `key_get` | `0207e4` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
-| `sub_0223cc` | `0223cc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1440 | 0 |
-| `sub_022424` | `022424` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1440 | 0 |
-| `os_disable` | `022d48` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
-| `os_enable` | `022d66` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
-| `gfx_BltClear` | `022e2e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| `os_console_raw_key_convert` | `022f30` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `torpedo_run` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `run_queued_ticks` | `0114d8` | 936 | 1528 | 1818 | 2194 | 2328 | 1176 | 4355 | 1983 | 9532 | 2038 | 1864 | 2002 | 1134 | 1496 | 1800 | 1818 | 1216 | 1818 |
+| `sound_slots_clear` | `011f4e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| `sound_channels` | `012066` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| `ticker_clear` | `016bbc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `view_show` | `016f20` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `colour_lerp` | `016ff6` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1536 | 0 |
+| `fade_to_pair` | `0171f2` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `fade_out_pair` | `0173e6` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `cop_reset` | `019958` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `cop_move` | `0199bc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 958 | 0 |
+| `cop_move_ptr` | `019a08` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 288 | 0 |
+| `cop_wait` | `019a9c` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 192 | 0 |
+| `cop_colours` | `019b5a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
+| `cop_vport_colours` | `019c0a` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
+| `cop_vport_split` | `019c80` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `cop_vport_planes` | `019d18` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 0 |
+| `cop_sprites_off` | `01a06c` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `view_build_copper` | `01a0d4` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `cop_install` | `01aa0e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 |
+| `wait_next_vblank` | `01aa32` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 39 | 0 | 0 | 0 |
+| `ingame_keys` | `01ccf6` | 937 | 1529 | 1819 | 2195 | 2329 | 1177 | 4356 | 1984 | 9534 | 2039 | 1865 | 2003 | 1135 | 1497 | 1840 | 1819 | 1218 | 1819 |
+| `sub_01eac0` | `01eac0` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 0 |
+| `weapon_gauge_reset` | `01edbc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| `key_to_char` | `020700` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| `key_available` | `0207d8` | 937 | 1529 | 1819 | 2195 | 2329 | 1177 | 4356 | 1984 | 9534 | 2039 | 1865 | 2003 | 1135 | 1497 | 1844 | 1821 | 1220 | 1833 |
+| `key_get` | `0207e4` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| `sub_0223cc` | `0223cc` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1440 | 0 |
+| `sub_022424` | `022424` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1440 | 0 |
+| `os_disable` | `022d48` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| `os_enable` | `022d66` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
+| `gfx_BltClear` | `022e2e` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `os_console_raw_key_convert` | `022f30` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 1 | 1 | 7 |
 
 ### The tick during a mission (phase T)
 
-| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `flip_buffers` | `01030c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `object_draw_first` | `0107f2` | 0 | 0 | 4 | 4 | 4 | 1 | 0 | 0 | 13 | 6 | 6 | 4 | 0 | 4 | 4 | 1 | 4 |
-| `object_spawn` | `010820` | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 40 | 83 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_01099a` | `01099a` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
-| `objects_step` | `010a72` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `object_step` | `010aa6` | 0 | 0 | 120 | 196 | 50 | 17 | 192 | 160 | 694 | 180 | 180 | 51 | 0 | 120 | 120 | 5 | 120 |
-| `sub_01107c` | `01107c` | 0 | 0 | 4 | 4 | 4 | 1 | 0 | 0 | 13 | 6 | 6 | 4 | 0 | 4 | 4 | 1 | 4 |
-| `sub_011126` | `011126` | 0 | 0 | 108 | 184 | 38 | 14 | 0 | 0 | 323 | 162 | 162 | 39 | 0 | 108 | 108 | 5 | 108 |
-| `sub_01115c` | `01115c` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| `sub_0111a6` | `0111a6` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| `shot_origin` | `011274` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `weapon_menu` | `0112b0` | 455 | 751 | 896 | 1084 | 1151 | 575 | 2155 | 969 | 4731 | 1006 | 919 | 988 | 554 | 887 | 896 | 582 | 896 |
-| `logic_tick` | `011386` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `lift_step` | `011460` | 455 | 751 | 896 | 1084 | 1151 | 575 | 2155 | 969 | 4731 | 1006 | 919 | 988 | 554 | 887 | 896 | 582 | 896 |
-| `ship_launches` | `011510` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `airfields_step` | `011622` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `input_queue_pop` | `011714` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `vblank_server` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `vblank_server:ticker_glyph` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `vblank_server:ticker_message` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `vblank_server:ticker_scroll` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `gun_splashes` | `0119bc` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `guns_ground_x` | `011a46` | 72 | 49 | 0 | 0 | 12 | 0 | 0 | 0 | 125 | 36 | 29 | 6 | 0 | 0 | 0 | 0 | 0 |
-| `sub_011a84` | `011a84` | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 11 | 27 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `soldiers_hit` | `011a8c` | 72 | 49 | 4 | 4 | 4 | 1 | 16 | 11 | 165 | 42 | 35 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `torpedoes_hit` | `011ae2` | 72 | 49 | 4 | 4 | 4 | 1 | 16 | 11 | 165 | 42 | 35 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `engine_smoke` | `011bfc` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `balloons_step` | `011c5e` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `ships_sinking` | `011cae` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `target_timers` | `011de4` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `soldier_out` | `011e82` | 0 | 0 | 20 | 20 | 5 | 0 | 0 | 5 | 36 | 30 | 30 | 0 | 0 | 5 | 20 | 0 | 20 |
-| `sound_slots_clear` | `011f4e` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
-| `sound_channels` | `012066` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2183 | 997 | 4778 | 1020 | 933 | 1002 | 568 | 901 | 910 | 609 | 910 |
-| `engine_sound` | `012132` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `sub_0122ce` | `0122ce` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `sub_0122f6` | `0122f6` | 0 | 0 | 4 | 4 | 4 | 1 | 48 | 40 | 116 | 11 | 11 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `sub_012306` | `012306` | 0 | 0 | 4 | 4 | 4 | 1 | 48 | 40 | 116 | 11 | 11 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `sub_012324` | `012324` | 0 | 0 | 4 | 4 | 4 | 0 | 48 | 40 | 96 | 6 | 6 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `sub_01233e` | `01233e` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_012354` | `012354` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
-| `sub_0123ac` | `0123ac` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 20 | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `next_aircraft` | `0135ce` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `player_lost_restart` | `0135d8` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `player_restart_state` | `013684` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_013756` | `013756` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `crash_hit` | `0146c6` | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 12 | 28 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `weapon_hit` | `0146dc` | 0 | 0 | 4 | 4 | 4 | 1 | 16 | 12 | 41 | 6 | 6 | 4 | 0 | 4 | 4 | 0 | 4 |
-| `ship_at_offset` | `014a4e` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `ship_at_span` | `014a52` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `target_records` | `014ae4` | 0 | 0 | 6 | 6 | 2 | 0 | 0 | 2 | 16 | 9 | 9 | 8 | 0 | 1 | 6 | 0 | 6 |
-| `target_release` | `014b40` | 0 | 0 | 4 | 4 | 1 | 0 | 0 | 1 | 10 | 6 | 6 | 0 | 0 | 1 | 4 | 0 | 4 |
-| `target_of` | `014b54` | 0 | 0 | 4 | 4 | 2 | 0 | 0 | 1 | 14 | 6 | 6 | 4 | 0 | 1 | 4 | 0 | 4 |
-| `flip_view` | `0150b0` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `map_slot_at` | `0150c8` | 144 | 98 | 116 | 192 | 44 | 15 | 16 | 13 | 628 | 246 | 232 | 47 | 0 | 113 | 116 | 5 | 116 |
-| `sub_015104` | `015104` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
-| `sub_015108` | `015108` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 |
-| `sub_01514c` | `01514c` | 72 | 49 | 0 | 0 | 12 | 0 | 0 | 0 | 125 | 36 | 29 | 6 | 0 | 0 | 0 | 0 | 0 |
-| `sub_01520c` | `01520c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `read_joy_bits` | `01520e` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `clip_playfield` | `01524a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `splash_spawn` | `0152b0` | 72 | 49 | 0 | 0 | 0 | 0 | 0 | 0 | 125 | 36 | 29 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `smoke_claim` | `015460` | 0 | 31 | 56 | 0 | 106 | 0 | 527 | 45 | 1079 | 95 | 100 | 118 | 0 | 69 | 56 | 0 | 56 |
-| `sub_0154cc` | `0154cc` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `smoke_at_player` | `0154e0` | 0 | 31 | 56 | 0 | 106 | 0 | 490 | 8 | 1004 | 95 | 100 | 118 | 0 | 69 | 56 | 0 | 56 |
-| `sub_015710` | `015710` | 443 | 792 | 936 | 1124 | 1182 | 553 | 1955 | 637 | 4263 | 1046 | 959 | 1019 | 648 | 927 | 936 | 589 | 936 |
-| `ground_height` | `015714` | 443 | 792 | 936 | 1124 | 1182 | 553 | 1955 | 637 | 4263 | 1046 | 959 | 1019 | 648 | 927 | 936 | 589 | 936 |
-| `shape_mirror_x` | `015b58` | 24 | 38 | 28 | 26 | 54 | 24 | 88 | 40 | 112 | 32 | 32 | 54 | 34 | 28 | 28 | 28 | 28 |
-| `view_show` | `016f20` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `cop_install` | `01aa0e` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `turn_allowed` | `01aa6e` | 0 | 52 | 52 | 52 | 156 | 0 | 312 | 52 | 780 | 104 | 104 | 156 | 104 | 52 | 52 | 52 | 52 |
-| `wheel_height` | `01aaea` | 751 | 1396 | 1685 | 2061 | 2176 | 971 | 4098 | 1427 | 8885 | 1905 | 1731 | 1850 | 1055 | 1667 | 1685 | 991 | 1685 |
-| `turn_step` | `01ab80` | 0 | 52 | 52 | 52 | 156 | 0 | 312 | 52 | 780 | 104 | 104 | 156 | 104 | 52 | 52 | 52 | 52 |
-| `aircraft_frame` | `01abde` | 444 | 790 | 935 | 1123 | 1280 | 554 | 2245 | 659 | 4983 | 1095 | 1008 | 1117 | 643 | 926 | 935 | 588 | 935 |
-| `wreck_smoke` | `01aed8` | 0 | 0 | 0 | 0 | 0 | 0 | 150 | 150 | 300 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `lost_wait` | `01af7c` | 0 | 0 | 0 | 0 | 0 | 0 | 150 | 150 | 300 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `crash` | `01afba` | 0 | 0 | 0 | 0 | 0 | 0 | 25 | 13 | 44 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `hook_state` | `01b45a` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 876 | 885 | 538 | 885 |
-| `on_the_lift` | `01b4de` | 309 | 605 | 750 | 938 | 995 | 419 | 1768 | 450 | 3891 | 860 | 773 | 832 | 408 | 741 | 750 | 403 | 750 |
-| `button` | `01b5b0` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `guns` | `01b682` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `deck_span` | `01b7bc` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `player_reset` | `01b7ec` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `touches_ground` | `01b8c4` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `cable_hook` | `01b92e` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
-| `sub_01b9bc` | `01b9bc` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `engine_idle` | `01b9cc` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
-| `sub_01b9f0` | `01b9f0` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `ground_contact` | `01ba80` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `enemy_countdown_step` | `01bc02` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `deck_state` | `01bcce` | 412 | 708 | 853 | 1041 | 1098 | 522 | 1871 | 553 | 4097 | 963 | 876 | 935 | 511 | 844 | 853 | 506 | 853 |
-| `deck_roll` | `01bdba` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
-| `player_motion` | `01bdfa` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `flight_controls` | `01bff4` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `frame_select` | `01c378` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 876 | 885 | 538 | 885 |
-| `deck_controls` | `01c4e8` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
-| `deck_edge` | `01c5f4` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
-| `player_update` | `01c660` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `record_at` | `01c982` | 751 | 1343 | 1633 | 2009 | 2123 | 971 | 4033 | 1374 | 8762 | 1853 | 1679 | 1797 | 949 | 1615 | 1633 | 939 | 1633 |
-| `vblank_every_frame` | `01c9ca` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `read_joystick` | `01ca32` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `rand_mod` | `01cac8` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `burn_smoke` | `01cae0` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `read_joy_dispatch` | `01cb20` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_01cb30` | `01cb30` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 4108 | 4153 | 2418 | 4153 |
-| `record_on_ship` | `01cb34` | 0 | 0 | 0 | 0 | 0 | 0 | 176 | 165 | 347 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `on_water` | `01cb74` | 0 | 0 | 0 | 0 | 0 | 0 | 26 | 15 | 47 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `enemy_aircraft_step` | `01e7d6` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `sub_01ea28` | `01ea28` | 27 | 33 | 27 | 87 | 21 | 12 | 138 | 96 | 366 | 63 | 60 | 27 | 9 | 33 | 27 | 12 | 27 |
-| `sub_01eac0` | `01eac0` | 30 | 41 | 34 | 134 | 28 | 14 | 166 | 104 | 397 | 71 | 71 | 36 | 12 | 38 | 34 | 18 | 34 |
-| `sub_01eb2e` | `01eb2e` | 27 | 33 | 27 | 87 | 21 | 12 | 138 | 96 | 366 | 63 | 60 | 27 | 9 | 33 | 27 | 12 | 27 |
-| `sub_01eb4c` | `01eb4c` | 212 | 330 | 208 | 175 | 531 | 97 | 1493 | 238 | 1871 | 390 | 488 | 772 | 192 | 231 | 208 | 143 | 208 |
-| `soundfx_vblank` | `01ec64` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `weapon_gauge_reset` | `01edbc` | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
-| `rand_beam` | `0203be` | 0 | 161 | 324 | 40 | 540 | 0 | 1496 | 159 | 3395 | 495 | 496 | 516 | 0 | 323 | 324 | 0 | 324 |
-| `poll_fire` | `02044c` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `read_fire_button` | `02046a` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_0204e4` | `0204e4` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 876 | 885 | 538 | 885 |
-| `sub_0204ec` | `0204ec` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 876 | 885 | 538 | 885 |
-| `shape_find_c` | `0204f4` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 4108 | 4153 | 2418 | 4153 |
-| `shape_find` | `020560` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 4108 | 4153 | 2418 | 4153 |
-| `rect_fill` | `021010` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `draw_set_target` | `02124a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `clip_set` | `02129c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `blit_begin` | `0212ce` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `blit_end` | `0212d4` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `ffp_add` | `021c9c` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 740 | 749 | 402 | 749 |
-| `ffp_neg` | `021cb0` | 107 | 430 | 682 | 833 | 575 | 372 | 1174 | 381 | 2975 | 587 | 525 | 427 | 195 | 673 | 682 | 335 | 682 |
-| `ffp_fix` | `021cc4` | 924 | 1812 | 2247 | 2811 | 2982 | 1254 | 5301 | 1347 | 11667 | 2577 | 2316 | 2493 | 1221 | 2220 | 2247 | 1206 | 2247 |
-| `ffp_div` | `021cd8` | 616 | 1208 | 1498 | 1874 | 1988 | 836 | 3534 | 898 | 7778 | 1718 | 1544 | 1662 | 814 | 1480 | 1498 | 804 | 1498 |
-| `ffp_flt` | `021ce2` | 616 | 1208 | 1498 | 1874 | 1988 | 836 | 3534 | 898 | 7778 | 1718 | 1544 | 1662 | 814 | 1480 | 1498 | 804 | 1498 |
-| `ffp_mul` | `021cec` | 924 | 1812 | 2247 | 2811 | 2982 | 1254 | 5301 | 1347 | 11667 | 2577 | 2316 | 2493 | 1221 | 2220 | 2247 | 1206 | 2247 |
-| `sub_021d7c` | `021d7c` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
-| `sub_021e24` | `021e24` | 0 | 0 | 0 | 0 | 0 | 0 | 30 | 30 | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_0222f4` | `0222f4` | 0 | 0 | 0 | 0 | 0 | 0 | 30 | 30 | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `os_disable` | `022d48` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `os_enable` | `022d66` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 900 | 909 | 608 | 909 |
-| `sub_022e40` | `022e40` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `sub_022e8a` | `022e8a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `gfx_WaitTOF` | `022eee` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Routine | Address | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `torpedo_run` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `flip_buffers` | `01030c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `object_draw_first` | `0107f2` | 0 | 0 | 4 | 4 | 4 | 1 | 0 | 0 | 13 | 6 | 6 | 4 | 0 | 1 | 4 | 4 | 1 | 4 |
+| `object_spawn` | `010820` | 0 | 0 | 0 | 0 | 0 | 0 | 48 | 40 | 83 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `rocket_homing` | `01099a` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `objects_step` | `010a72` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `object_step` | `010aa6` | 0 | 0 | 120 | 196 | 50 | 17 | 192 | 160 | 694 | 180 | 180 | 51 | 0 | 210 | 120 | 120 | 5 | 120 |
+| `weapon_drop` | `01107c` | 0 | 0 | 4 | 4 | 4 | 1 | 0 | 0 | 13 | 6 | 6 | 4 | 0 | 1 | 4 | 4 | 1 | 4 |
+| `airfield_at` | `011126` | 0 | 0 | 108 | 184 | 38 | 14 | 0 | 0 | 323 | 162 | 162 | 39 | 0 | 11 | 108 | 108 | 5 | 108 |
+| `pillbox_between` | `01115c` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ship_gun_between` | `0111a6` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shot_origin` | `011274` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `weapon_menu` | `0112b0` | 455 | 751 | 896 | 1084 | 1151 | 575 | 2155 | 969 | 4731 | 1006 | 919 | 988 | 554 | 735 | 887 | 896 | 582 | 896 |
+| `logic_tick` | `011386` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `lift_step` | `011460` | 455 | 751 | 896 | 1084 | 1151 | 575 | 2155 | 969 | 4731 | 1006 | 919 | 988 | 554 | 735 | 887 | 896 | 582 | 896 |
+| `ship_launches` | `011510` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `airfields_step` | `011622` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `input_queue_pop` | `011714` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `vblank_server` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server:ticker_glyph` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server:ticker_message` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server:ticker_scroll` | `011754` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `gun_splashes` | `0119bc` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `guns_ground_x` | `011a46` | 72 | 49 | 0 | 0 | 12 | 0 | 0 | 0 | 125 | 36 | 29 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `soldiers_hit_c` | `011a84` | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 11 | 27 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `soldiers_hit` | `011a8c` | 72 | 49 | 4 | 4 | 4 | 1 | 16 | 11 | 165 | 42 | 35 | 4 | 0 | 0 | 4 | 4 | 0 | 4 |
+| `torpedoes_hit` | `011ae2` | 72 | 49 | 4 | 4 | 4 | 1 | 16 | 11 | 165 | 42 | 35 | 4 | 0 | 0 | 4 | 4 | 0 | 4 |
+| `engine_smoke` | `011bfc` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `balloons_step` | `011c5e` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `ships_sinking` | `011cae` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `target_timers` | `011de4` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `soldier_out` | `011e82` | 0 | 0 | 20 | 20 | 5 | 0 | 0 | 5 | 36 | 30 | 30 | 0 | 0 | 0 | 5 | 20 | 0 | 20 |
+| `sound_slots_clear` | `011f4e` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `sound_channels` | `012066` | 469 | 765 | 910 | 1098 | 1165 | 589 | 2183 | 997 | 4778 | 1020 | 933 | 1002 | 568 | 749 | 901 | 910 | 609 | 910 |
+| `engine_sound` | `012132` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `sub_0122ce` | `0122ce` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `sub_0122f6` | `0122f6` | 0 | 0 | 4 | 4 | 4 | 1 | 48 | 40 | 116 | 11 | 11 | 4 | 0 | 1 | 4 | 4 | 0 | 4 |
+| `sub_012306` | `012306` | 0 | 0 | 4 | 4 | 4 | 1 | 48 | 40 | 116 | 11 | 11 | 4 | 0 | 1 | 4 | 4 | 0 | 4 |
+| `sub_012324` | `012324` | 0 | 0 | 4 | 4 | 4 | 0 | 48 | 40 | 96 | 6 | 6 | 4 | 0 | 0 | 4 | 4 | 0 | 4 |
+| `sub_01233e` | `01233e` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+| `sub_012354` | `012354` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `sub_0123ac` | `0123ac` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 20 | 5 | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `next_aircraft` | `0135ce` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `player_lost_restart` | `0135d8` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `player_restart_state` | `013684` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_013756` | `013756` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `crash_hit` | `0146c6` | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 12 | 28 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `weapon_hit` | `0146dc` | 0 | 0 | 4 | 4 | 4 | 1 | 16 | 12 | 41 | 6 | 6 | 4 | 0 | 0 | 4 | 4 | 0 | 4 |
+| `ship_at_offset` | `014a4e` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ship_at_span` | `014a52` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `target_records` | `014ae4` | 0 | 0 | 6 | 6 | 2 | 0 | 0 | 2 | 16 | 9 | 9 | 8 | 0 | 0 | 1 | 6 | 0 | 6 |
+| `target_release` | `014b40` | 0 | 0 | 4 | 4 | 1 | 0 | 0 | 1 | 10 | 6 | 6 | 0 | 0 | 0 | 1 | 4 | 0 | 4 |
+| `target_of` | `014b54` | 0 | 0 | 4 | 4 | 2 | 0 | 0 | 1 | 14 | 6 | 6 | 4 | 0 | 0 | 1 | 4 | 0 | 4 |
+| `flip_view` | `0150b0` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `map_slot_at` | `0150c8` | 144 | 98 | 116 | 192 | 44 | 15 | 16 | 13 | 628 | 246 | 232 | 47 | 0 | 410 | 113 | 116 | 5 | 116 |
+| `cosine` | `015104` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sine` | `015108` | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `tangent` | `01514c` | 72 | 49 | 0 | 0 | 12 | 0 | 0 | 0 | 125 | 36 | 29 | 6 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_01520c` | `01520c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `read_joy_bits` | `01520e` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `clip_playfield` | `01524a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `splash_spawn` | `0152b0` | 72 | 49 | 0 | 0 | 0 | 0 | 0 | 0 | 125 | 36 | 29 | 0 | 0 | 200 | 0 | 0 | 0 | 0 |
+| `smoke_claim` | `015460` | 0 | 31 | 56 | 0 | 106 | 0 | 527 | 45 | 1079 | 95 | 100 | 118 | 0 | 0 | 69 | 56 | 0 | 56 |
+| `sub_0154cc` | `0154cc` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `smoke_at_player` | `0154e0` | 0 | 31 | 56 | 0 | 106 | 0 | 490 | 8 | 1004 | 95 | 100 | 118 | 0 | 0 | 69 | 56 | 0 | 56 |
+| `sub_015710` | `015710` | 443 | 792 | 936 | 1124 | 1182 | 553 | 1955 | 637 | 4263 | 1046 | 959 | 1019 | 648 | 713 | 927 | 936 | 589 | 936 |
+| `ground_height` | `015714` | 443 | 792 | 936 | 1124 | 1182 | 553 | 1955 | 637 | 4263 | 1046 | 959 | 1019 | 648 | 713 | 927 | 936 | 589 | 936 |
+| `shape_mirror_x` | `015b58` | 24 | 38 | 28 | 26 | 54 | 24 | 88 | 40 | 112 | 32 | 32 | 54 | 34 | 24 | 28 | 28 | 28 | 28 |
+| `view_show` | `016f20` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `cop_install` | `01aa0e` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `turn_allowed` | `01aa6e` | 0 | 52 | 52 | 52 | 156 | 0 | 312 | 52 | 780 | 104 | 104 | 156 | 104 | 0 | 52 | 52 | 52 | 52 |
+| `wheel_height` | `01aaea` | 751 | 1396 | 1685 | 2061 | 2176 | 971 | 4098 | 1427 | 8885 | 1905 | 1731 | 1850 | 1055 | 1291 | 1667 | 1685 | 991 | 1685 |
+| `turn_step` | `01ab80` | 0 | 52 | 52 | 52 | 156 | 0 | 312 | 52 | 780 | 104 | 104 | 156 | 104 | 0 | 52 | 52 | 52 | 52 |
+| `aircraft_frame` | `01abde` | 444 | 790 | 935 | 1123 | 1280 | 554 | 2245 | 659 | 4983 | 1095 | 1008 | 1117 | 643 | 714 | 926 | 935 | 588 | 935 |
+| `wreck_smoke` | `01aed8` | 0 | 0 | 0 | 0 | 0 | 0 | 150 | 150 | 300 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `lost_wait` | `01af7c` | 0 | 0 | 0 | 0 | 0 | 0 | 150 | 150 | 300 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `crash` | `01afba` | 0 | 0 | 0 | 0 | 0 | 0 | 25 | 13 | 44 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `hook_state` | `01b45a` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 714 | 876 | 885 | 538 | 885 |
+| `on_the_lift` | `01b4de` | 309 | 605 | 750 | 938 | 995 | 419 | 1768 | 450 | 3891 | 860 | 773 | 832 | 408 | 579 | 741 | 750 | 403 | 750 |
+| `button` | `01b5b0` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `guns` | `01b682` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `deck_span` | `01b7bc` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `player_reset` | `01b7ec` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `touches_ground` | `01b8c4` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `cable_hook` | `01b92e` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
+| `sub_01b9bc` | `01b9bc` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `engine_idle` | `01b9cc` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `sub_01b9f0` | `01b9f0` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `ground_contact` | `01ba80` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `enemy_countdown_step` | `01bc02` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `deck_state` | `01bcce` | 412 | 708 | 853 | 1041 | 1098 | 522 | 1871 | 553 | 4097 | 963 | 876 | 935 | 511 | 682 | 844 | 853 | 506 | 853 |
+| `deck_roll` | `01bdba` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
+| `player_motion` | `01bdfa` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `flight_controls` | `01bff4` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `frame_select` | `01c378` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 714 | 876 | 885 | 538 | 885 |
+| `deck_controls` | `01c4e8` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
+| `deck_edge` | `01c5f4` | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 208 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 | 104 |
+| `player_update` | `01c660` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `record_at` | `01c982` | 751 | 1343 | 1633 | 2009 | 2123 | 971 | 4033 | 1374 | 8762 | 1853 | 1679 | 1797 | 949 | 1291 | 1615 | 1633 | 939 | 1633 |
+| `vblank_every_frame` | `01c9ca` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `read_joystick` | `01ca32` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `rand_mod` | `01cac8` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `burn_smoke` | `01cae0` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `read_joy_dispatch` | `01cb20` | 0 | 0 | 0 | 0 | 0 | 0 | 5 | 5 | 10 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_01cb30` | `01cb30` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 3448 | 4108 | 4153 | 2418 | 4153 |
+| `record_on_ship` | `01cb34` | 0 | 0 | 0 | 0 | 0 | 0 | 176 | 165 | 347 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `on_water` | `01cb74` | 0 | 0 | 0 | 0 | 0 | 0 | 26 | 15 | 47 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `enemy_aircraft_step` | `01e7d6` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `sub_01ea28` | `01ea28` | 27 | 33 | 27 | 87 | 21 | 12 | 138 | 96 | 366 | 63 | 60 | 27 | 9 | 12 | 33 | 27 | 12 | 27 |
+| `sub_01eac0` | `01eac0` | 30 | 41 | 34 | 134 | 28 | 14 | 166 | 104 | 397 | 71 | 71 | 36 | 12 | 14 | 38 | 34 | 18 | 34 |
+| `sub_01eb2e` | `01eb2e` | 27 | 33 | 27 | 87 | 21 | 12 | 138 | 96 | 366 | 63 | 60 | 27 | 9 | 12 | 33 | 27 | 12 | 27 |
+| `sub_01eb4c` | `01eb4c` | 212 | 330 | 208 | 175 | 531 | 97 | 1493 | 238 | 1871 | 390 | 488 | 772 | 192 | 97 | 231 | 208 | 143 | 208 |
+| `soundfx_vblank` | `01ec64` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `weapon_gauge_reset` | `01edbc` | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 2 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 |
+| `rand_beam` | `0203be` | 0 | 161 | 324 | 40 | 540 | 0 | 1496 | 159 | 3395 | 495 | 496 | 516 | 0 | 0 | 323 | 324 | 0 | 324 |
+| `poll_fire` | `02044c` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `read_fire_button` | `02046a` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0204e4` | `0204e4` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 714 | 876 | 885 | 538 | 885 |
+| `sub_0204ec` | `0204ec` | 444 | 740 | 885 | 1073 | 1130 | 554 | 2078 | 747 | 4504 | 995 | 908 | 967 | 543 | 714 | 876 | 885 | 538 | 885 |
+| `shape_find_c` | `0204f4` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 3448 | 4108 | 4153 | 2418 | 4153 |
+| `shape_find` | `020560` | 2098 | 3428 | 4153 | 5093 | 5078 | 2648 | 9103 | 3188 | 19486 | 4553 | 4118 | 4263 | 2293 | 3448 | 4108 | 4153 | 2418 | 4153 |
+| `rect_fill` | `021010` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `draw_set_target` | `02124a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `clip_set` | `02129c` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `blit_begin` | `0212ce` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `blit_end` | `0212d4` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ffp_add` | `021c9c` | 308 | 604 | 749 | 937 | 994 | 418 | 1767 | 449 | 3889 | 859 | 772 | 831 | 407 | 578 | 740 | 749 | 402 | 749 |
+| `ffp_neg` | `021cb0` | 107 | 430 | 682 | 833 | 575 | 372 | 1174 | 381 | 2975 | 587 | 525 | 427 | 195 | 532 | 673 | 682 | 335 | 682 |
+| `ffp_fix` | `021cc4` | 924 | 1812 | 2247 | 2811 | 2982 | 1254 | 5301 | 1347 | 11667 | 2577 | 2316 | 2493 | 1221 | 1734 | 2220 | 2247 | 1206 | 2247 |
+| `ffp_div` | `021cd8` | 616 | 1208 | 1498 | 1874 | 1988 | 836 | 3534 | 898 | 7778 | 1718 | 1544 | 1662 | 814 | 1156 | 1480 | 1498 | 804 | 1498 |
+| `ffp_flt` | `021ce2` | 616 | 1208 | 1498 | 1874 | 1988 | 836 | 3534 | 898 | 7778 | 1718 | 1544 | 1662 | 814 | 1156 | 1480 | 1498 | 804 | 1498 |
+| `ffp_mul` | `021cec` | 924 | 1812 | 2247 | 2811 | 2982 | 1254 | 5301 | 1347 | 11667 | 2577 | 2316 | 2493 | 1221 | 1734 | 2220 | 2247 | 1206 | 2247 |
+| `sub_021d7c` | `021d7c` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `sub_021e24` | `021e24` | 0 | 0 | 0 | 0 | 0 | 0 | 30 | 30 | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0222f4` | `0222f4` | 0 | 0 | 0 | 0 | 0 | 0 | 30 | 30 | 54 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `os_disable` | `022d48` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `os_enable` | `022d66` | 468 | 764 | 909 | 1097 | 1164 | 588 | 2182 | 996 | 4776 | 1019 | 932 | 1001 | 567 | 748 | 900 | 909 | 608 | 909 |
+| `sub_022e40` | `022e40` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022e8a` | `022e8a` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_WaitTOF` | `022eee` | 0 | 0 | 0 | 0 | 0 | 0 | 21 | 21 | 42 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 ### Entropy reads, by the routine that called `rand_beam`
 
-| Window | Phase | Caller | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| outer | M | `rand_mod` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 |
-| setup | M | `rand_mod` | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 | 2 | 4 | 2 |
-| mission | F | `balloons_draw` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 576 | 0 | 0 | 0 | 0 |
-| mission | F | `smoke_claim` | 0 | 40 | 66 | 106 | 30 | 0 | 264 | 72 | 372 | 142 | 240 | 334 | 0 | 36 | 66 | 6 | 66 |
-| mission | F | `target_fire` | 0 | 412 | 257 | 110 | 304 | 0 | 2189 | 203 | 1435 | 378 | 1139 | 1459 | 0 | 315 | 257 | 53 | 257 |
-| mission | F | `target_frame` | 0 | 294 | 182 | 2137 | 224 | 0 | 1598 | 150 | 1072 | 272 | 858 | 1072 | 0 | 239 | 182 | 49 | 182 |
-| mission | T | `burn_smoke` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| mission | T | `engine_smoke` | 0 | 99 | 172 | 0 | 292 | 0 | 404 | 31 | 1056 | 245 | 236 | 264 | 0 | 165 | 172 | 0 | 172 |
-| mission | T | `object_spawn` | 0 | 0 | 0 | 0 | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 | 0 | 0 | 0 | 0 |
-| mission | T | `rand_mod` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| mission | T | `smoke_claim` | 0 | 62 | 112 | 0 | 212 | 0 | 1054 | 90 | 2158 | 190 | 200 | 236 | 0 | 138 | 112 | 0 | 112 |
-| mission | T | `soldier_out` | 0 | 0 | 40 | 40 | 20 | 0 | 0 | 0 | 104 | 60 | 60 | 0 | 0 | 20 | 40 | 0 | 40 |
+| Window | Phase | Caller | `guns_sea` | `guns_a` | `bomb_a` | `high_a` | `rockets_a` | `torpedo_a` | `hit_a` | `crash_a` | `island_a` | `bomb_b` | `bomb_c` | `rockets_c` | `balloons_c` | `torpedo_run` | `bomb_pause` | `bomb_flip` | `bomb_restart` | `bomb_cheat` |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| outer | M | `rand_mod` | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 1 |
+| setup | M | `rand_mod` | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 4 | 2 |
+| mission | F | `balloons_draw` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 576 | 0 | 0 | 0 | 0 | 0 |
+| mission | F | `smoke_claim` | 0 | 40 | 66 | 106 | 30 | 0 | 264 | 72 | 372 | 142 | 240 | 334 | 0 | 0 | 36 | 66 | 6 | 66 |
+| mission | F | `target_fire` | 0 | 412 | 257 | 110 | 304 | 0 | 2189 | 203 | 1435 | 378 | 1139 | 1459 | 0 | 0 | 315 | 257 | 53 | 257 |
+| mission | F | `target_frame` | 0 | 294 | 182 | 2137 | 224 | 0 | 1598 | 150 | 1072 | 272 | 858 | 1072 | 0 | 0 | 239 | 182 | 49 | 182 |
+| mission | T | `burn_smoke` | 0 | 0 | 0 | 0 | 0 | 0 | 37 | 37 | 75 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `engine_smoke` | 0 | 99 | 172 | 0 | 292 | 0 | 404 | 31 | 1056 | 245 | 236 | 264 | 0 | 0 | 165 | 172 | 0 | 172 |
+| mission | T | `object_spawn` | 0 | 0 | 0 | 0 | 16 | 0 | 0 | 0 | 0 | 0 | 0 | 16 | 0 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `rand_mod` | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `smoke_claim` | 0 | 62 | 112 | 0 | 212 | 0 | 1054 | 90 | 2158 | 190 | 200 | 236 | 0 | 0 | 138 | 112 | 0 | 112 |
+| mission | T | `soldier_out` | 0 | 0 | 40 | 40 | 20 | 0 | 0 | 0 | 104 | 60 | 60 | 0 | 0 | 0 | 20 | 40 | 0 | 40 |
 
 ## Appendix: the regions no run executed
 
 Every region of a ported routine that no run of either milestone executed - M4's scripts, the
-night mission, the key runs, the fifteen setups and the seventeen M5 scripts - with the
+night mission, the key runs, the fifteen setups and the eighteen M5 scripts - with the
 stand-in marker that covers it or what it is otherwise; below them, the markers whose region
-the original did run (all in the tick, part 2's, or M6's and M7's) and the markers that stand
-for a value rather than a region. Written by
+the original did run (M7's) and the markers that stand for a value rather than a region.
+Written by
 
 ```text
 .venv/bin/python tools/reach_observe.py --m5 --blocks --setups --jobs 12 --json REACH.json
@@ -736,18 +937,25 @@ for a value rather than a region. Written by
 | `draw_player` `0x0103A6` | `0x0105F0`-`0x0105F1` | ported from reading: the cable's end when the aircraft faces right | |
 | `draw_objects` `0x0106BE` | `0x0106F6`-`0x0106F9` | ported from reading: the extra object record drawn | |
 | `object_draw` `0x010702` | `0x010752`-`0x010755` | ported from reading: the torpedo drawn facing the other way (+`0x1F` negative) | |
+| `object_draw_first` `0x0107F2` | `0x01081A`-`0x01081F` | ported from reading: no weapon left or every object record in use, nothing is dropped; tests/`test_oracle_m5.py`, the drop | |
 | `object_spawn` `0x010820` | `0x010840`-`0x010841` | ported from reading: all fifteen object records in use, nothing is left | |
-| `object_spawn` `0x010820` | `0x010970`-`0x010971` | M5 part 2: a rocket's frame from the pitch, clamped at 0 (`object_spawn`'s second entry, behind the stand-in at `0x01B5E2`) | |
+| `object_spawn` `0x010820` | `0x010970`-`0x010971` | ported from reading: a rocket's frame from the bearing, clamped at 0; tests/`test_oracle_m5.py`, the drop | |
+| `rocket_homing` `0x01099A` | `0x010A16`-`0x010A67` | ported from reading: a rocket aimed at a pillbox or a ship's gun under its bearing, which no script's rocket found; tests/`test_oracle_m5.py`, the objects' step | |
 | `objects_step` `0x010A72` | `0x010A9E`-`0x010AA1` | ported from reading: the extra object record walked as the others are | |
-| `object_step` `0x010AA6` | `0x010B1E`-`0x010B21` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
-| `object_step` `0x010AA6` | `0x010B3C`-`0x010B43` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
-| `object_step` `0x010AA6` | `0x010B94`-`0x010BEF` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
-| `object_step` `0x010AA6` | `0x010C12`-`0x010C1F` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
-| `object_step` `0x010AA6` | `0x010C36`-`0x010C6F` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
-| `object_step` `0x010AA6` | `0x010D18`-`0x010DA5` | `0x010AB6`-`0x010DA5`, a weapon or a shot in flight | M5 PART 2 |
+| `object_step` `0x010AA6` | `0x010B1E`-`0x010B21` | ported from reading: a rocket's reach in the eighth-scale view; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010B3C`-`0x010B43` | ported from reading: a rocket out of reach is freed; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010B94`-`0x010BEF` | ported from reading: a weapon over an airfield, which no script's weapon came down on; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010C12`-`0x010C1F` | ported from reading: a weapon over a record of low bits 3; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010C36`-`0x010C6F` | ported from reading: a weapon over a ship's deck (low bits 1); `0x010C36` to `0x010C53`, the test of low bits 2 for 3 and 4, is unreachable; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010D26`-`0x010D27` | ported from reading: a torpedo that meets the sea slowly flying left runs left; tests/`test_oracle_m5.py`, the objects' step | |
+| `object_step` `0x010AA6` | `0x010D46`-`0x010D4F` | unreachable: +`0x1A` was set from `pass_counter` a few instructions before, so the splash at the start of a run is never made | |
+| `object_step` `0x010AA6` | `0x010D7C`-`0x010D99` | ported from reading: a running torpedo meets land or a ship; tests/`test_oracle_m5.py`, the objects' step | |
 | `draw_enemy_aircraft` `0x010DA6` | `0x010DBA`-`0x010E15` | `0x010DBA`, the formation words of `0x0251D8` | M6 |
 | `draw_enemy_aircraft` `0x010DA6` | `0x010E26`-`0x010ED1` | `0x010E26`, an enemy aircraft | M6 |
 | `draw_game_over` `0x0110C2` | `0x011118`-`0x011123` | ported from reading; tests/`test_oracle_m4.py`, every count | |
+| `airfield_at` `0x011126` | `0x011138`-`0x011153` | ported from reading: an airfield record with a span, which maps a to c have none of; tests/`test_oracle_m5.py`, the objects' step | |
+| `pillbox_between` `0x01115C` | `0x01119E`-`0x01119F` | ported from reading: a standing pillbox found under a rocket's bearing; tests/`test_oracle_m5.py`, the objects' step | |
+| `ship_gun_between` `0x0111A6` | `0x0111C8`-`0x0111F3` | ported from reading: a ship afloat with guns under a rocket's bearing (M6's ships); tests/`test_oracle_m5.py`, the objects' step | |
 | `choose_night` `0x0111FC` | `0x011218`-`0x01122D` | ported from reading; reached only between two missions, M7's next mission | |
 | `weapon_menu` `0x0112B0` | `0x0112D4`-`0x0112D5` | ported from reading: the cursor keys and Return in the weapon menu | |
 | `weapon_menu` `0x0112B0` | `0x0112DE`-`0x0112DF` | ported from reading: the cursor keys and Return in the weapon menu | |
@@ -761,12 +969,16 @@ for a value rather than a region. Written by
 | `ship_launches` `0x011510` | `0x0115AC`-`0x0115E9` | `0x0115C4`-`0x0115E9`, a ship launching an aircraft | M6 |
 | `ship_launches` `0x011510` | `0x0115F4`-`0x011621` | `0x0115F4`-`0x011621`, the last ship's aircraft readied | M6 |
 | `airfields_step` `0x011622` | `0x011630`-`0x011689` | `0x011630`, an enemy aircraft taking off | M6 |
-| `airfields_step` `0x011622` | `0x0116CA`-`0x011709` | `0x0116BE`-`0x011709`, the player near an enemy airfield | M6 |
+| `airfields_step` `0x011622` | `0x0116CA`-`0x011709` | `0x0116D2`-`0x011709`, an enemy airfield sends an aircraft up | M6 |
 | `vblank_server` `0x011754` | `0x011790`-`0x0117D3` | M3's input half: demo playback (M7) | |
 | `vblank_server` `0x011754` | `0x01180A`-`0x011841` | M3's input half: demo recording (M7) | |
 | `vblank_server` `0x011754` | `0x0118EC`-`0x0118F7` | ported from reading; tests/`test_oracle_m4.py`, the ticker: a message's end | |
+| `guns_ground_x` `0x011A46` | `0x011A58`-`0x011A59` | ported from reading: a bearing of `0xFF01`, taken as `0xFF02`; tests/`test_oracle_m5.py`, the guns' reach | |
+| `guns_ground_x` `0x011A46` | `0x011A7C`-`0x011A7D` | ported from reading: a level or upward bearing reaches no ground; tests/`test_oracle_m5.py`, the guns' reach | |
+| `torpedoes_hit` `0x011AE2` | `0x011B08`-`0x011B09` | ported from reading: a torpedo west of the span; tests/`test_oracle_m5.py`, the soldiers' and torpedoes' hits | |
+| `torpedoes_hit` `0x011AE2` | `0x011B30`-`0x011B4B` | ported from reading: the extra object record hit; tests/`test_oracle_m5.py`, the soldiers' and torpedoes' hits | |
 | `ships_sinking` `0x011CAE` | `0x011CCA`-`0x011CCD` | `0x011CCA`, a ship sinking (`0x011CD8`) | M6 |
-| `target_timers` `0x011DE4` | `0x011E6E`-`0x011E6F` | M5 part 2: the release timer from `vblank_total`, 0 counting as 3 | |
+| `target_timers` `0x011DE4` | `0x011E6E`-`0x011E6F` | ported from reading: a barracks' next soldier's timer from `vblank_total`, 0 counting as 3; tests/`test_oracle_m5.py`, the tick's routines | |
 | `soldier_out` `0x011E82` | `0x011EF2`-`0x011EF5` | ported from reading: every soldier record in use, nobody comes out | |
 | `soldier_out` `0x011E82` | `0x011F42`-`0x011F47` | ported from reading: a dug-out's soldier turned round by `rand_beam` | |
 | `engine_sound` `0x012132` | `0x0121D8`-`0x012207` | the sound slots (M8): an enemy aircraft's distance for its engine | |
@@ -796,6 +1008,12 @@ for a value rather than a region. Written by
 | `window_shape` `0x0145A6` | `0x01464C`-`0x014655` | ported from reading: an enemy ship's own shapes in the 3-D view | |
 | `window_shape` `0x0145A6` | `0x014662`-`0x014665` | ported from reading: an enemy ship's own shapes in the 3-D view | |
 | `window_shape` `0x0145A6` | `0x014694`-`0x0146AD` | ported from reading: the shape of a record in the 3-D view | |
+| `weapon_hit` `0x0146DC` | `0x014722`-`0x014725` | ported from reading: a hit on slot `0x113`, which it leaves alone; tests/`test_oracle_m5.py`, the hits | |
+| `weapon_hit` `0x0146DC` | `0x014788`-`0x01478F` | ported from reading: the draw bit on another of the barracks' records than the third (D1, which nothing reads); tests/`test_oracle_m5.py`, the hits | |
+| `weapon_hit` `0x0146DC` | `0x0147A8`-`0x0147AF` | ported from reading: the draw bit on another of the barracks' records than the third (D1, which nothing reads); tests/`test_oracle_m5.py`, the hits | |
+| `weapon_hit` `0x0146DC` | `0x0147E8`-`0x0147EF` | ported from reading: the draw bit on another of the barracks' records than the third (D1, which nothing reads); tests/`test_oracle_m5.py`, the hits | |
+| `weapon_hit` `0x0146DC` | `0x01493A`-`0x014981` | ported from reading: an island's last pillbox destroyed with no soldier left; tests/`test_oracle_m5.py`, the hits | |
+| `weapon_hit` `0x0146DC` | `0x014992`-`0x014A47` | ported from reading: a weapon's hit on a ship (M6's ships); tests/`test_oracle_m5.py`, the hits | |
 | `ship_at_span` `0x014A52` | `0x014A5A`-`0x014A6F` | ported from reading; tests/`test_oracle_m4.py`, `ship_at_offset` | |
 | `ship_at_span` `0x014A52` | `0x014A78`-`0x014A8D` | ported from reading; tests/`test_oracle_m4.py`, `ship_at_offset` | |
 | `ship_at_span` `0x014A52` | `0x014A96`-`0x014AAB` | ported from reading; tests/`test_oracle_m4.py`, `ship_at_offset` | |
@@ -809,27 +1027,31 @@ for a value rather than a region. Written by
 | `target_range_frame` `0x014DB8` | `0x014DCA`-`0x014DCF` | unreachable from `target_frame`, which takes the eighth-scale view itself; `ship_guns_draw` (M6) is its other caller | |
 | `target_refill` `0x014FEE` | `0x01501E`-`0x01501F` | ported from reading: the barracks east of the dug-out, its soldier runs west | |
 | `nearest_barracks` `0x015034` | `0x015060`-`0x015061` | ported from reading: the barracks west of the dug-out, the distance negated | |
+| `sine` `0x015108` | `0x015122`-`0x015127` | ported from reading: an angle in the second quarter; tests/`test_oracle_m5.py`, the angles | |
+| `tangent` `0x01514C` | `0x015156`-`0x015157` | ported from reading: a negative angle; tests/`test_oracle_m5.py`, the angles | |
+| `tangent` `0x01514C` | `0x01516C`-`0x01516D` | ported from reading: a negative angle; tests/`test_oracle_m5.py`, the angles | |
 | `smoke_claim` `0x015460` | `0x01547A`-`0x01547D` | ported from reading: all forty smoke records in use, nothing is left | |
 | `ticker_say` `0x015624` | `0x015624`-`0x01563F` | ported from reading: an island neutralised that is not the map's last, its message (`0x015624`) | |
 | `mission_won` `0x015694` | `0x0156B2`-`0x0156E7` | ported from reading: the rank's last mission won, the promotion (map c) | |
 | `ground_height` `0x015714` | `0x015866`-`0x015877` | ported from reading; tests/`test_oracle_m4.py`, every record of five maps | |
+| `bearing_of` `0x015CA6` | `0x015CA6`-`0x015D0B` | ported from reading: the angle of a vector, which only an aimed rocket asks for; tests/`test_oracle_m5.py`, the angles | |
 | `load_dash_assets` `0x01653C` | `0x016568`-`0x01656B` | dash.shp missing, fatal; the port loads every container at start-up | |
 | `screen_game_restore` `0x016D32` | `0x016D32`-`0x016D79` | ported from reading: the play screen back after the save or the load dialog | |
 | `demo_end` `0x01852A` | `0x018536`-`0x01855D` | `0x018536`, saving a recorded demo | M7 |
 | `turn_allowed` `0x01AA6E` | `0x01AA9A`-`0x01AACD` | ported from reading; tests/`test_oracle_m4.py`, an enemy aircraft that stops a turn | |
-| `crash` `0x01AFBA` | `0x01B00A`-`0x01B00F` | M5 part 2: ported from reading (M4), the crash on land or a ship | |
-| `crash` `0x01AFBA` | `0x01B0E2`-`0x01B1A7` | M5 part 2: ported from reading (M4), a wreck sliding along a ship | |
+| `crash` `0x01AFBA` | `0x01B00A`-`0x01B00F` | ported from reading (M4): the crash on a ship; tests/`test_oracle_m4.py`, the crash and the ground | |
+| `crash` `0x01AFBA` | `0x01B0E2`-`0x01B1A7` | ported from reading (M4): a wreck sliding along a ship; tests/`test_oracle_m4.py`, the crash and the ground | |
 | `crash` `0x01AFBA` | `0x01B1B4`-`0x01B1BB` | ported from reading; tests/`test_oracle_m4.py`, the aircraft down on a ship | |
 | `crash` `0x01AFBA` | `0x01B1D4`-`0x01B1F7` | ported from reading; tests/`test_oracle_m4.py`, the attitude levelling out | |
 | `crash` `0x01AFBA` | `0x01B200`-`0x01B2A1` | ported from reading; tests/`test_oracle_m4.py`, a wreck sliding along a ship | |
-| `crash` `0x01AFBA` | `0x01B41A`-`0x01B423` | M5 part 2: ported from reading (M4), a wreck at rest on a ship | |
+| `crash` `0x01AFBA` | `0x01B41A`-`0x01B423` | ported from reading (M4): a wreck at rest on a ship; tests/`test_oracle_m4.py`, the crash and the ground | |
 | `hook_state` `0x01B45A` | `0x01B4A8`-`0x01B4AB` | ported from reading; tests/`test_oracle_m4.py`, the hook with the carrier sunk | |
 | `on_the_lift` `0x01B4DE` | `0x01B538`-`0x01B56F` | ported from reading; tests/`test_oracle_m4.py`, on the lift facing right | |
 | `on_the_lift` `0x01B4DE` | `0x01B582`-`0x01B589` | ported from reading; tests/`test_oracle_m4.py`, short of the lift | |
-| `button` `0x01B5B0` | `0x01B5DA`-`0x01B5E1` | M5 part 2: the other weapon not dropped inside a turn (attitude 6 to 16) | |
+| `button` `0x01B5B0` | `0x01B5DA`-`0x01B5E1` | ported from reading: the click inside a turn (attitude 6 to 16) drops nothing | |
 | `guns` `0x01B682` | `0x01B6B0`-`0x01B79D` | `0x01B6B0`, the guns at an enemy aircraft | M6 |
 | `ground_contact` `0x01BA80` | `0x01BB68`-`0x01BB81` | ported from reading; tests/`test_oracle_m4.py`, a bounce off the deck | |
-| `ground_contact` `0x01BA80` | `0x01BBBA`-`0x01BBC3` | M5 part 2: ported from reading (M4), a crash on a deck | |
+| `ground_contact` `0x01BA80` | `0x01BBBA`-`0x01BBC3` | ported from reading (M4): a crash on a deck; tests/`test_oracle_m4.py`, the crash and the ground | |
 | `enemy_countdown_step` `0x01BC02` | `0x01BC5E`-`0x01BCC9` | `0x01BC66`, the enemy aircraft come | M6 |
 | `deck_state` `0x01BCCE` | `0x01BCEA`-`0x01BCF9` | ported from reading; tests/`test_oracle_m4.py`, the deck state | |
 | `deck_state` `0x01BCCE` | `0x01BD7A`-`0x01BD91` | ported from reading; tests/`test_oracle_m4.py`, the deck state | |
@@ -843,7 +1065,7 @@ for a value rather than a region. Written by
 | `flight_controls` `0x01BFF4` | `0x01C326`-`0x01C34F` | ported from reading; tests/`test_oracle_m4.py`, the stick in the air | |
 | `deck_controls` `0x01C4E8` | `0x01C5E6`-`0x01C5EB` | ported from reading; tests/`test_oracle_m4.py`, the stick on the deck | |
 | `player_update` `0x01C660` | `0x01C6E8`-`0x01C705` | ported from reading: the aircraft below the sea without a crash | |
-| `player_update` `0x01C660` | `0x01C80C`-`0x01C82F` | M5 part 2: ported from reading (M4), the burning wreck on a ship | |
+| `player_update` `0x01C660` | `0x01C80C`-`0x01C82F` | ported from reading (M4): the burning wreck on a ship; tests/`test_oracle_m4.py` | |
 | `player_update` `0x01C660` | `0x01C8EE`-`0x01C8EF` | ported from reading: state 9 does nothing | |
 | `player_update` `0x01C660` | `0x01C934`-`0x01C94B` | the player update's jump table: data | |
 | `flash_set` `0x01CAB4` | `0x01CAB4`-`0x01CAC7` | ported from reading: the sky's flash, which a crash on a ship sets | |
@@ -872,16 +1094,7 @@ for a value rather than a region. Written by
 | `line_draw` `0x021318` | `0x02138E`-`0x0214EB` | ported from reading, PROVISIONAL: the clipping of `line_draw` | |
 | `line_draw` `0x021318` | `0x021556`-`0x021561` | the blitter's busy wait, which the port's line has none of | |
 | `line_draw` `0x021318` | `0x0215D0`-`0x0215D7` | ported from reading, PROVISIONAL: a line wholly outside the clip | |
-| | run by the original | `0x0113A2`, the oil leaking from a damaged engine | M6 |
-| | run by the original | `0x0119C4`, the guns' bullets in the water | M5 PART 2 |
-| | run by the original | `0x011C24`, smoke from a damaged engine | M6 |
-| | run by the original | `0x011C66`, the balloons | M5 PART 2 |
-| | run by the original | `0x011DFE`, a slot-3 target's timer | M5 PART 2 |
-| | run by the original | `0x011E48`, a slot-4 target's timer | M5 PART 2 |
 | | run by the original | `0x019152`, `save_game_read`: a saved game loaded | M7 |
-| | run by the original | `0x01B304`, a wreck at rest on land or a deck | M5 PART 2 |
-| | run by the original | `0x01B5E2`, the other weapon dropped | M5 PART 2 |
-| | run by the original | `0x01BBF4`, what a crash on land does to the island's targets | M5 PART 2 |
 | | run by the original | `0x01CDD4`, a loaded game: the briefing and the mission again | M7 |
 | | no region: a value | more than four islands, in `0x0140E8` | M6 |
 | | no region: a value | a negative score, in `0x01F26A` | M7 |

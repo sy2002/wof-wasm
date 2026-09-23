@@ -110,9 +110,16 @@ dropped to the tick it went out, and read from `object_step`, `0x010AA6`):
 | `+0x08`, `+0x0A` | words, the drawing's copy of the position, which `snapshot_for_draw` takes |
 | `+0x0E` | long, the horizontal speed in 16.16, `-9` for a bomb dropped while flying left at 10; it loses a tenth of its whole part every tick |
 | `+0x12` | long, the vertical speed in 16.16: `0xFFFFA000` at the drop and `g_025350` (`0x6000`) less every tick, three eighths of a pixel per tick |
-| `+0x1E` | byte, the animation frame, counting 0 to 11 |
+| `+0x16`, `+0x1A` | longs, a rocket's thrust, twice the cosine and the sine of its bearing, which it adds to its speeds every tick once it fires; `+0x1A` also takes the pass a weapon comes down in |
+| `+0x1E` | byte, the animation frame, counting 0 to 11; `0x0A` for a torpedo running in the water, which is not drawn |
+| `+0x1F` | byte, the torpedo's facing at the drop, and the low bits of the map record a weapon comes down on, which choose the explosion or the splash |
 | `+0x20` | byte, the kind: `0xFF`, then 8, then 0 |
+| `+0x21` | byte, the frames counted while it goes out |
 | `+0x22` | word, the type: 0 a rocket, 1 a bomb, 2 the torpedo |
+| `+0x24` | word, a rocket's fall in ticks before it fires, 4, 8 or 12 |
+| `+0x26`, `+0x28` | words, a rocket's half bearing and the airspeed at the drop, which its aim uses |
+
+The launch, the flight, the aim and the hits are in `re/notes/porting-m5.md`, "The tick".
 
 **The fall.** Every tick the height becomes the high word of `+0x12 + (+0x04 << 16 | +0x06)`
 and only the word at `+0x04` is written back; nothing ever writes `+0x06`, which stays 0. So

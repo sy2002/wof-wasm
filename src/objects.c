@@ -308,7 +308,7 @@ static void homing(wof_object_t *o)
 /* orig 0x010AA6 object_step - one record in the tick.  Kind 8 lies where it was left.  A
  * rocket (type 0) falls its first ticks a pixel back and down (+0x24), is aimed as the fall
  * ends (0x01099A), and then flies on its thrust; it is freed once it is more than 0x500
- * pixels from the drawing's player (0x1900 in the eighth-scale view).  A bomb or a falling
+ * pixels from the drawing's player (0x1680 in the eighth-scale view).  A bomb or a falling
  * torpedo loses a tenth of its horizontal speed and gravity's 0x6000 (0x025350) of its
  * vertical every tick.  Over an airfield (0x011126) a rocket goes out and anything else
  * bounces on its runway at height 0x1E; elsewhere it comes down at 0x0C above the sea, land
