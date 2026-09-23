@@ -17,7 +17,8 @@ import { resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, STORED_FILES } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, STORED_FILES, WEAPON_VIEW,
+         weaponRun } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -356,7 +357,10 @@ try {
     flight.rolling = await until((p) => p.deck === 1 && p.x >= 7295, 20000, 60);
     await cdp.hold(sessionId, 'up');
     flight.air = await until((p) => p.deck === 0, 10000);
-    await sleep(2500);
+    await sleep(200);                               /* low, so that the burst is in view */
+    flight.drop = await weaponRun(() => evaluate(WEAPON_VIEW), () => evaluate(PLAYER),
+                                  () => holdFor('space', 80), () => holdFor('space', 1500),
+                                  sleep);
     flight.climb1 = await evaluate(PLAYER);
     await sleep(1500);
     flight.climb2 = await evaluate(PLAYER);

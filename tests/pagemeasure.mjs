@@ -180,3 +180,59 @@ export const PLAYER = `(() => {
     return m ? { x: +m[1], y: +m[2], deck: +m[3], weapon: +m[4], paused: !!m[5], flip: !!m[6],
                  vblanks: c ? +c[1] : null, ticks: c ? +c[2] : null } : null;
 })()`;
+
+/* The weapons as the framebuffer shows them (M5): a hash of the dashboard's weapon counter
+   (the two drums at x 32 to 79, rows 180 to 192 of the source canvas) and the number of
+   pure white pixels in the rows just above the sea (140 to 159), where nothing is white but
+   a burst in the water, the splash of a weapon (the native pictures of a drop show none
+   there in any other pass). */
+export const WEAPON_VIEW = `(() => {
+    const ctx = window.__wofVideo.source.getContext('2d');
+    const counter = ctx.getImageData(32, 180, 48, 13).data;
+    let hash = 0;
+    for (let i = 0; i < counter.length; i++) {
+        hash = (Math.imul(hash, 31) + counter[i]) >>> 0;
+    }
+    const band = ctx.getImageData(0, 140, 640, 20).data;
+    let white = 0;
+    for (let i = 0; i < band.length; i += 4) {
+        if (band[i] === 255 && band[i + 1] === 255 && band[i + 2] === 255) {
+            white++;
+        }
+    }
+    return { counter: hash, white };
+})()`;
+
+/* M5 on the page: a click of the button in the climb drops the weapon chosen in the hold,
+   and holding it fires the guns.  Read off the framebuffer (WEAPON_VIEW): the counter
+   steady before the click, turned after it, and a burst drawn in the water; the guns, which
+   the weapon counter does not count, leave it alone.  `view` reads the framebuffer, `player`
+   the overlay. */
+export async function weaponRun(view, player, click, hold, sleep) {
+    const before = [];
+    for (let i = 0; i < 15; i++) {
+        before.push(await view());
+        await sleep(50);
+    }
+    await click();
+    const after = [];
+    const until = Date.now() + 4000;
+    while (Date.now() < until) {
+        after.push(await view());
+        await sleep(30);
+    }
+    const settled = await view();
+    const air = await player();
+    await hold();
+    const guns = await view();
+    return {
+        counterBefore: [...new Set(before.map((v) => v.counter))],
+        whiteBefore: Math.max(...before.map((v) => v.white)),
+        counterAfter: settled.counter,
+        whiteAfter: Math.max(...after.map((v) => v.white)),
+        samples: after.length,
+        player: air,
+        counterGuns: guns.counter,
+        playerGuns: await player(),
+    };
+}

@@ -252,6 +252,21 @@ def assert_the_mission_is_flown_from_the_keyboard(flight):
     first, second = flight['running1'], flight['running2']
     assert not first['paused'] and second['ticks'] > first['ticks'], (first, second)
     assert flight['flipped']['flip'], flight['flipped']
+    assert_a_weapon_is_dropped_and_the_guns_fire(flight['drop'])
+
+
+def assert_a_weapon_is_dropped_and_the_guns_fire(drop):
+    """M5 on the page, read off the framebuffer: before the click the weapon counter is
+    steady and nothing is white just above the sea; after it the counter has turned and a
+    burst was drawn in the water (pure white in the rows just above the sea); the guns held
+    for a second and a half leave the counter alone, and the aircraft flies on."""
+    assert len(drop['counterBefore']) == 1, 'the counter moved before the click: %s' % drop
+    assert drop['whiteBefore'] == 0, 'white above the sea before the click: %s' % drop
+    assert drop['counterAfter'] != drop['counterBefore'][0], 'the counter did not turn: %s' % drop
+    assert drop['whiteAfter'] >= 8, 'no burst drawn in the water: %s' % drop
+    assert drop['samples'] >= 40, drop
+    assert drop['counterGuns'] == drop['counterAfter'], 'the guns turned the counter: %s' % drop
+    assert drop['player']['deck'] == 0 and drop['playerGuns']['deck'] == 0, drop
 
 
 def assert_a_tap_as_soon_as_the_hold_appears_steps_once(early):

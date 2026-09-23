@@ -22,7 +22,8 @@ import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SOURCE_PNG } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SOURCE_PNG, WEAPON_VIEW,
+         weaponRun } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -484,7 +485,10 @@ try {
     flight.rolling = await until((p) => p.deck === 1 && p.x >= 7295, 20000, 60);
     await keyAction(flightTab, 'keyDown', KEY_UP);
     flight.air = await until((p) => p.deck === 0, 10000);
-    await sleep(2500);
+    await sleep(200);                               /* low, so that the burst is in view */
+    flight.drop = await weaponRun(() => evaluateIn(flightTab, WEAPON_VIEW), player,
+                                  () => holdIn(KEY_SPACE, 80), () => holdIn(KEY_SPACE, 1500),
+                                  sleep);
     flight.climb1 = await player();
     await sleep(1500);
     flight.climb2 = await player();
