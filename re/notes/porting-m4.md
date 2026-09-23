@@ -318,7 +318,7 @@ the palette of every row); or state the port does not keep, with the reason and 
 milestone. Each row names the routines that write its range, and a write by any other one
 makes the address uncovered again. The runs are the eight scripts of T2, the night mission,
 the island flight, and the `guns` and `bomb` scripts of `re/notes/passes.md`, which reach
-the ricochets, the soldiers and the targets.
+the soldiers and the targets (the Ricochet pool is dead, `re/notes/porting-m5.md`).
 
 What is not kept, by reason: the graphics library's structures (the views, the
 viewports, their RastPorts and BitMaps, the drawing target, the plane pointers), which the
