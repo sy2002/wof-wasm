@@ -808,3 +808,5 @@
 01e64e aircraft_speed        ; C. +0x1C eased towards +0x1E within 0x025F52 and 0x025F54
 01e728 aircraft_fly          ; C. state 2: smoke by damage, then the flight of its mode
 026c96 skid_count            ; word: aircraft_falling counts to 2, then a skidding aircraft's want_y falls by one
+027348 launch_cooldown       ; word: ticks after a ship's or an airfield's launch in which nothing else is sent up (100)
+02734a japcarrier_roll       ; word: the speed, in sixteenths of a pixel a tick, of the aircraft the Japanese carrier rolls west; eased towards 128

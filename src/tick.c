@@ -467,7 +467,7 @@ static void airfields(void)
             return;
         }
     }
-    if (wof_g.g_027348)
+    if (wof_g.launch_cooldown)
         return;
     for (int i = 0; i < 4; i++) {
         const wof_airfield_t *a = &wof_m.airfield_records[i];
@@ -496,7 +496,7 @@ static void ship_launches(void)
         if (last < 160u && (int16_t)wof_m.ship_blocks[last].v > 0)
             WOF_STANDIN("M6 PART 2 STAND-IN: 0x01152A, the Japanese carrier's aircraft");
     }
-    if (wof_g.g_027348)
+    if (wof_g.launch_cooldown)
         return;
     /* 0x011574: each ship in ship_order beside the block of the same place from 0x025096:
      * a ship afloat that has aircraft (+0x12) and is not sunk (+0x0C), the player within its
@@ -642,8 +642,8 @@ wof_co_t wof_logic_tick(void)
         engine_smoke();
         wof_objects_step(0);        /* D4's upper word is 0 there (observed at every tick) */
         gun_splashes();
-        if (--wof_g.g_027348 < 0)
-            wof_g.g_027348 = 0;
+        if (--wof_g.launch_cooldown < 0)
+            wof_g.launch_cooldown = 0;
         airfields();
         ship_launches();
         ships_sinking();

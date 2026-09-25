@@ -162,10 +162,32 @@ M5_HEAP = [
      'M4'),
 ]
 
-# M6 adds nothing yet; rows found by the completeness test over the M6 scripts go here, each
-# with its writers, the reason and the milestone that owes it.
-M6_EXCLUDED = []
-M6_HEAP = []
+# What the M6 scripts write beside the rows above (tests/test_enemy.py takes all three sets):
+# the ships' containers, which the mission setup loads on maps d to o, and the roll of the
+# Japanese carrier's aircraft, which the tick's launch writes.
+M6_EXCLUDED = [
+    (0x0256A2, 0x0256A5, {'shapes_load'},
+     'shapes_load_name: the file name shapes_load is working on, for its error text',
+     'the port loads every container at start-up (src/assets.c); a missing file is M1\'s '
+     'loader\'s', 'M1'),
+    (0x026F34, 0x026F53, {'load_ship_shapes'},
+     'battleship_container ... cruiseship_shapes: the four ships\' containers and their '
+     'tables of record pointers',
+     'the port holds every container from start-up and keeps which ships the mission loaded '
+     'in ship_loaded; what the tables hand on is MasterList\'s slots 0xB8 on, which are '
+     'registered and compared after every step', 'M4'),
+    (0x02734A, 0x02734B, {'ship_launches'},
+     'japcarrier_roll: the speed of the aircraft the Japanese carrier rolls west to take off',
+     'written only by the tick\'s launch (0x01152A), which the port holds as a stand-in of '
+     'M6 part 2; part 2 registers it', 'M6 part 2'),
+]
+M6_HEAP = [
+    ('shapes_resolve', {'shapes_resolve'},
+     'a ship container\'s table of record pointers, which shapes_resolve allocates and fills '
+     'when load_ship_shapes loads the container in the mission setup',
+     'the port resolves the names into shape handles at start-up (src/shapes.c); MasterList\'s '
+     'slots, which the tables fill, are registered and compared after every step', 'M4'),
+]
 
 
 def _owner(label):

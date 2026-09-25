@@ -167,17 +167,18 @@ Every launch: state 2, health `0xF0`, speed and want speed `0x025F52` (900), bur
 - **An airfield** (`airfields_step`, `0x011622`): with the player within `0x1E0` of its
   span, fewer fighters up than its most and an aircraft parked, one rolls from its end
   (`+0x08`), a pixel a tick faster every eight ticks up to 7, and at the far end takes off
-  as a fighter at height 0; its roll starts a cooldown of 100 ticks (`0x027348`), as a
-  ship's launch does, in which nothing else rolls or is sent up (read; observed in `oil_d`,
-  `tools/m6_observe.py states`: `aircraft_launch` makes a fighter at tick 612 at x 3196,
-  height 0, which goes onto the player's tail, mode 2, the tick after, and turns with him,
-  modes 9 and `0x0A`).
+  as a fighter at height 0; its roll starts a cooldown of 100 ticks (`launch_cooldown`,
+  `0x027348`), as a ship's launch does, in which nothing else rolls or is sent up (read;
+  observed in `oil_d`, `tools/m6_observe.py states`: `aircraft_launch` makes a fighter at
+  tick 612 at x 3196, height 0, which goes onto the player's tail, mode 2, the tick after,
+  and turns with him, modes 9 and `0x0A`).
 - **A ship** (`ship_launches`, `0x011510`): a ship afloat, not sunk, with the player within
   its block's range and fewer fighters up than its most sends up the aircraft of its last
   block entry at its x and height. The Japanese carrier instead readies one at a time: the
   entry goes on its deck at `0x17C` past its first map offset and height `0x21`, rolls
-  west faster and faster, and takes off at the ship's west end (read; observed in
-  `japcarrier_m` and `japcarrier_o`).
+  west faster and faster (`japcarrier_roll`, `0x02734A`, in sixteenths of a pixel: 8 more
+  a tick less a sixteenth of itself, so towards 8 pixels a tick), and takes off at the
+  ship's west end (read; observed in `japcarrier_m` and `japcarrier_o`).
 
 ### Shot down, and what it scores
 
