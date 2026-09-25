@@ -601,7 +601,7 @@
 0106be draw_objects          ; asm. the fifteen object records and the extra one
 010da6 draw_enemy_aircraft   ; asm. the four enemy-aircraft records (M6)
 010ee0 smoke_draw            ; asm. the Smoke pool
-01391e ship_planes           ; asm. the enemy ships' deck aircraft and cranes (M6)
+01391e ship_planes           ; asm. the enemy ships' deck aircraft (M6)
 013a18 airfields_draw        ; asm. the airfields' aircraft rows (M6)
 013abc deck_aircraft         ; asm. the spare aircraft on the carrier's deck, one per life above one
 013b1c record_extras         ; asm. what a map record carries besides its shape: the lift, the flag, an island's flag

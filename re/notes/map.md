@@ -220,8 +220,12 @@ else the map feeds is drawing.
 - What the individual terrain slots are is in `re/notes/shapes.md`, "The slots of the islands";
   the targets among them in re/notes/porting-m5.md.
 - The lists at `0x025430` and `0x025438`, which take the map offsets of the slot-1 and slot-2
-  records, are filled but no reader of them was looked for.
-- `0x012C84` reads the map a second time for the airfield markers `0x114` and `0x115`, which
-  only the later maps carry; the records it builds at `0x0252FA` were not followed further.
+  records, are read by `islands_draw` (`0x0140E8`), which draws each island's two ends and a
+  fill of colour `0x11` between them, and by the island lookups of the targets
+  (`re/notes/porting-m5.md`); no map has more than four islands (`re/notes/enemy.md`).
+- `0x012C84` (`airfields_scan`) reads the map a second time for the airfield markers `0x114`
+  and `0x115`: a pair of them is an airfield record at `0x0252FA`, its parked aircraft and
+  most in the air from the table at `0x0234F4`; what an airfield does is in
+  `re/notes/enemy.md`.
 - Why the loader asks for eight bytes more than the file holds is not established; the
   records it gets are zero and harmless, so nothing depends on the answer.

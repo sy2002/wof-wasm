@@ -577,9 +577,10 @@ static void airfields_draw(void)
  * full scale); in the eighth-scale view entries 0xA0 and 0xA3 of eighth_shapes under a clip
  * at row 0x96.  The last ship of the order, the Japanese carrier, clips its aircraft at its
  * waterline, 0x8E below its row.  After the walk, with that carrier's block holding
- * aircraft and at full scale, its crane, MasterList entry 0xF7, 0x199 east of its first
- * map offset and 0x15 above the row the walk left in D6 (the last ship afloat's, else the
- * swell draw_world handed on, d6_in), drawn without its hotspot under the caller's clip. */
+ * aircraft and at full scale, MasterList entry 0xF7, 0x199 east of its first map offset
+ * and 0x15 above the row the walk left in D6 (the last ship afloat's, else the swell
+ * draw_world handed on, d6_in), drawn without a hotspot under the caller's clip.  The entry
+ * is empty on both maps with that carrier, so the call draws nothing (re/notes/porting-m6.md). */
 static void ship_planes(int16_t d6_in)
 {
     int16_t saved_bottom = wof_g.clip_bottom;

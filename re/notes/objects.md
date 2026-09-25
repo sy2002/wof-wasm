@@ -53,7 +53,7 @@ use, and a spawn walks the table for the first one that is free (read):
 | Balloons | `+0x11` | `0x01557C` | `0x011C5E`, by clearing `+0x11` |
 | Splashes, Ricochet | `+0x02` | `0x0152F8`, `0x011A14` | their walkers |
 | `soldier_records` | `+0x06`, the state word | `0x011E82` | `0x013EEE`, by putting state 3 in |
-| `aircraft_records` | the state word at `+0x00` | `0x01E608` | `0x01E7D6` |
+| `aircraft_records` | the state word at `+0x00` | `aircraft_launch` `0x01E4D0`, which takes the last free record | `aircraft_falling`, `aircraft_burning`, `aircraft_gone_far` in `0x01E7D6`'s walk; `aircraft_clear` `0x01E608` at the mission's start (observed, `tools/m6_observe.py fields`, `re/notes/enemy.md`) |
 
 `object_spawn` simply returns when all fifteen records are in use, so the game silently
 drops a shot when its table is full. It has more than one entry: the one at `0x010820` leaves
@@ -234,10 +234,11 @@ to the notes of M5 and M6.
 - **`aircraft_records`** (`0x02522A`, four records of `0x34`): `0x01E608` clears them at the
   mission's start, `0x01E7D6` walks them every tick and calls `aircraft_motion` for every
   record whose state word is neither 0 nor `0x10` (`re/notes/ffp.md`), and
-  `snapshot_for_draw` writes `+0x2E` of each. The state words `1`, `2`, `4`, `8` and `0x10`
-  are still only read. No script brought an enemy aircraft up: the countdown at the player's
-  `+0x1C` needs about 1,350 ticks without the button, which only `tools/ffp_observe.py`'s
-  `zeros` script reaches.
+  `snapshot_for_draw` writes `+0x2E` of each. What the state words mean (2 flying, 4 shot
+  down, `0x10` burning on land; 1 and 8 are set by nothing), every field with its writers,
+  and what launches an aircraft are in `re/notes/enemy.md`, observed over the M6 scripts of
+  `tools/m6_scripts.py`; the countdown at the player's `+0x1C` needs 1,350 ticks without the
+  button.
 - **`ship_records`** (`0x025460`, five records of `0x1E`): `map_scan` fills them from the map,
   `+0x00` and `+0x02` are the span of map offsets the ship covers, `+0x0E` and `+0x14` give
   its deck height to `ground_height`, and `+0x1A` is the row every map record of low bits 1
@@ -324,8 +325,6 @@ about 150 bytes. Sizes of routines that only a kind's handler calls are counted 
 ## Open
 
 - `0x025AAA`, above.
-- The state words of `aircraft_records` and everything about an enemy aircraft beyond
-  `aircraft_motion`: no script of this note brought one up.
 - What `+0x04` to `+0x0B` of the player's record hold; `0x01C378` writes all four words and
   the drawing reads them.
 - The promotion in a run: only map c with its three islands neutralised gives one on

@@ -228,7 +228,8 @@ if not state and 0x14 and not record[+0x03] bit 2:
 ```
 
 The rest of the routine steers `+0x22` and `+0x26` towards `+0x24` and takes values from
-the entropy stream through `0x01CAC8`; that belongs to the object system, not here.
+the entropy stream through `0x01CAC8`; that belongs to the enemy aircraft, whose record and
+states are in `re/notes/enemy.md`.
 
 ### `format_float` `0x021A40` is dead
 
@@ -316,8 +317,6 @@ numbers.
 
 - `0x025AAA`, which `player_motion` reads and which no flight of `re/notes/objects.md` ever
   saw set.
-- `aircraft_records` `0x02522A`: what the state words 1, 2, 4, 8 and `0x10` mean, and the
-  rest of the record. That is point 3, the object system.
 - The condition codes cannot be read out of the emulator at a hook: Unicorn keeps them
   lazily and hands back whatever was last materialised. Both the oracle and the observers
   read them by running a move from SR inside the emulation, which is exact; anything that

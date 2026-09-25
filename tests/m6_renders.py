@@ -6,7 +6,7 @@ Part 1 ports the pass, and the tick that flies the enemy aircraft and sinks the 
 2's, so these pictures come from the open loop of tests/m4compare.py: every pass starts
 from the headless original's state before it, and the picture is what the port draws of
 that state - the enemy aircraft and their guns' flash, the wrecks on the water, the ships'
-guns and the aircraft on their decks, the Japanese carrier's crane, the airfields, the
+guns and the aircraft on their decks, the Japanese carrier, the airfields, the
 arrow to a torpedo plane, the enemy plane counter with its kill icons and the 3-D view with
 an enemy in it.  A picture is the port's framebuffer with each row's palette, rows doubled
 as in tests/m4_renders.py; the dashboard is also written alone, four times enlarged.  dist/

@@ -62,8 +62,8 @@ def test_every_pass_agrees_and_every_other_difference_is_owed(ported, name):
     """T1 over an M6 script: a pass or a tick that differs from the original must have reached
     a stand-in of part 2, M7 or M8 in that same step, and no step may reach any other
     stand-in.  The passes carry the enemy aircraft, their wrecks and their guns' flash, the
-    ships' guns and their shells, the aircraft on the ships' decks and the Japanese carrier's
-    crane, the airfields, the arrows, the enemy plane counter and the 3-D view."""
+    ships' guns and their shells, the aircraft on the ships' decks, the airfields, the
+    arrows, the enemy plane counter and the 3-D view."""
     steps, differing, bad, reached = open_loop(ported, name)
     assert steps > 800, 'only %d steps compared' % steps
     assert bad == [], '%d of %d differing steps are not owed to a later stand-in: %s' % (

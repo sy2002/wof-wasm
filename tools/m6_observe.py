@@ -243,7 +243,8 @@ def events(names):
         watched[SHIPS + SHIP_SIZE * i + 0x0C] = sname + ' hits'
         watched[SHIPS + SHIP_SIZE * i + 0x18] = sname + ' sinking'
     for name in names:
-        m = run_logged(name, [(a, 4 if n == 'score' else 2) for a, n in watched.items()])
+        sizes = {'score': 4, 'kills': 1}
+        m = run_logged(name, [(a, sizes.get(n, 2)) for a, n in watched.items()])
         seen = collections.defaultdict(collections.Counter)
         firsts = {}
         for address, size, value, routine, phase, tick, npass in m.log:
