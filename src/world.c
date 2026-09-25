@@ -603,11 +603,19 @@ static void ship_planes(int16_t d6_in)
                     wof_g.clip_bottom = d1;
             }
         }
+        /* The entries follow the block's header of eight bytes and are read as far as the
+         * count says, on into the next block as the original's (a3)+ would; no map puts
+         * more than seven in a block (tests/test_enemy.py). */
         count = wof_m.ship_blocks_draw[k * 0x20].v;
-        for (uint16_t n = 0; (int16_t)(count - 1 - n) >= 0 && n < 7; n++) {
-            const wof_word_t *e = &wof_m.ship_blocks_draw[k * 0x20 + 4 + 4 * n];
-            int16_t d2;
-            int     table = T_JAPPLANE;
+        for (uint16_t n = 0; (int16_t)(count - 1 - n) >= 0; n++) {
+            uint32_t          at = (uint32_t)k * 0x20u + 4u + 4u * n;
+            const wof_word_t *e;
+            int16_t           d2;
+            int               table = T_JAPPLANE;
+
+            if (at + 3u >= 160u)
+                break;                           /* past the drawing's copy: the player's record */
+            e = &wof_m.ship_blocks_draw[at];
 
             if (e[0].v == 0)
                 continue;
