@@ -102,6 +102,18 @@ writes over `island_a`, `guns_a` and `hit_a` (observed):
 | `0x02508A`, the player's record `+0x12` | `0x014F5C`, `target_fire`, under `draw_world` | `logic_tick`, `0x011BFC` (both observed as readers) | **the oil falls in a pass**: `target_fire` writes it 2 times in `guns_a`, 15 in `hit_a`, 11 in `island_a`. A target's hit counts `+0x10` down every time; the oil falls only when that count runs out, which is why the seven runs saw `+0x10` written and never `+0x12` |
 | whatever `player_lost_restart` writes when `frame_update` calls it | `frame_update`, guarded by `0x024F24` | the readers of the restart's own state | **still unreachable**: nothing writes `0x024F24` in the three scripts, and no instruction of the executable writes it (read) |
 
+The scripts of M6 (`tools/m6_scripts.py`) add one more: **a ship's shell ends a torpedo in a
+pass.** `ship_guns_draw` (`0x014C3E`) runs in `draw_world`'s tree and calls `ship_gun_shell`
+(`0x014EFC`) for every standing gun of an enemy ship; when a gun shells, it spawns a splash
+(the pools' row above) and calls `torpedoes_hit` (`0x011AE2`), which sets `+0x20` to 8 and
+`+0x21` to 1 in every torpedo record in the water within ten pixels of the splash, the
+object records' and `object_record_extra`'s (`0x025594`) alike, and the tick's object walkers
+read `+0x20` (read). Observed: 4,465 entries of `splash_spawn` and as many of
+`torpedoes_hit` in phase F over the fourteen ship scripts, with
+`tools/reach_observe.py --m6-only`; a torpedo ended that way is read, not observed. The same routine sets
+`ship_shell` (`0x026D4A`), which nothing reads, and the ships' guns fire through
+`target_fire`, so over a ship the oil falls in a pass as it does over a target.
+
 ### What a pass reads of the tick
 
 The other direction is the one `re/notes/drawing.md` already described and this run confirms:
