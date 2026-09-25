@@ -233,7 +233,8 @@ def attack(m, s):
         # guns nor drops a weapon (0x01B5B0) but keeps the enemy's countdown from running out
         # (0x01BC02): left alone for 1,349 ticks it brings the enemy aircraft, which are
         # M6's.  Released before the turn ends, after more than ten VBlanks, it is no tap.
-        if 4 <= s['att'] <= 20:
+        # A plan with `countdown` leaves the button alone, so that the enemy aircraft come.
+        if 4 <= s['att'] <= 20 and not plan.get('countdown'):
             m.button = True
         elif s['att'] > 20 or s['att'] == 0:
             m.button = False
@@ -431,6 +432,12 @@ def attack(m, s):
     return ''
 
 
+def turn_button(m, s):
+    """The button inside a turn, where it keeps the enemy's countdown up (0x01BC02), unless
+    the plan wants the enemy aircraft to come (`countdown`)."""
+    return 'F' if 4 <= s['att'] <= 20 and not m.plan.get('countdown') else ''
+
+
 def land(m, s):
     """Back to the carrier and down into the hold for the next sortie, as tools/m4_autopilot.py's
     landing flies it: out past the bow to the east, back low from the east on a glide path to
@@ -447,11 +454,11 @@ def land(m, s):
         way = 'R' if s['face'] == 1 else 'L'
         if s['face'] == -1 and s['x'] < bow + 1150:
             way = 'R'
-        return way + hold_height(s, 150, limit=2) + ('F' if 4 <= s['att'] <= 20 else '')
+        return way + hold_height(s, 150, limit=2) + turn_button(m, s)
     if stage == 'turn':
         if s['face'] == -1 and s['att'] == 0:
             m.land = 'approach'
-        return 'L' + hold_height(s, 150, limit=2) + ('F' if 4 <= s['att'] <= 20 else '')
+        return 'L' + hold_height(s, 150, limit=2) + turn_button(m, s)
     if stage == 'approach':
         dist = s['x'] - bow
         target = 36 + max(dist, 0) * 0.08

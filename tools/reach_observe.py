@@ -34,6 +34,9 @@ choose_night decides, who writes view_step, and where ingame_keys is entered fro
                                             M5's tables from a saved run
     .venv/bin/python tools/reach_observe.py --cold REACH4.json REACH5.json
                                             the cold regions over the union of the runs
+    .venv/bin/python tools/reach_observe.py --m6 --blocks --setups --jobs 12 --json REACH.json
+                                            every script of M4, M5 and M6 (tools/m6_scripts.py)
+    .venv/bin/python tools/reach_observe.py --m6-only --load REACH.json --markdown TABLE.md
 
 An entry is the execution of a routine's first instruction.  A routine that branches back
 to its own first instruction would count each round; the tool finds those statically and
@@ -207,9 +210,19 @@ def m5_scripts_list():
     return list(m5_scripts.SCRIPTS)
 
 
+def m6_scripts_list():
+    """M6's scripts (tools/m6_scripts.py): the enemy aircraft, the ships, the carrier's
+    defence, on all fifteen maps."""
+    import m6_scripts
+    return list(m6_scripts.SCRIPTS)
+
+
 def description_of(name, **more):
     import m4_scripts
     import m5_scripts
+    import m6_scripts
+    if name in m6_scripts.RUNS:
+        return m6_scripts.script(name, **more)
     if name.startswith('run:'):
         with open(os.path.join(ROOT, 'tests', 'runs', name[4:] + '.json')) as handle:
             description = json.load(handle)
@@ -223,9 +236,10 @@ def description_of(name, **more):
 def pokes_of(name):
     """{address: (size, value[, point])} poked for a script (tools/m5_scripts.py, POKES)."""
     import m5_scripts
+    import m6_scripts
     if name == 'night':
         return {NIGHT_POKE[0]: (2, NIGHT_POKE[1])}
-    return m5_scripts.POKES.get(name, {})
+    return m6_scripts.POKES.get(name) or m5_scripts.POKES.get(name, {})
 
 
 def observe(name, verbose=True, blocks=False, **more):
@@ -449,6 +463,9 @@ def main():
     parser.add_argument('--m5', action='store_true',
                         help="M5's scripts (tools/m5_scripts.py) beside every script of M4")
     parser.add_argument('--m5-only', action='store_true', help="M5's scripts alone")
+    parser.add_argument('--m6', action='store_true',
+                        help="M6's scripts (tools/m6_scripts.py) beside every script of M4 and M5")
+    parser.add_argument('--m6-only', action='store_true', help="M6's scripts alone")
     parser.add_argument('--jobs', type=int, default=1,
                         help='run the scripts in this many processes')
     parser.add_argument('--load', nargs='+',
@@ -466,12 +483,17 @@ def main():
         args.runs = PART2_SCRIPTS + m5_scripts_list()
     if args.m5_only:
         args.runs = m5_scripts_list()
+    if args.m6:
+        args.runs = PART2_SCRIPTS + m5_scripts_list() + m6_scripts_list()
+    if args.m6_only:
+        args.runs = m6_scripts_list()
     if args.load:
         data = {}
         for path in args.load:
             with open(path) as handle:
                 data.update(json.load(handle))
-        wanted = args.runs if (args.m5 or args.m5_only or args.part2) else list(data)
+        wanted = args.runs if (args.m5 or args.m5_only or args.m6 or args.m6_only or
+                               args.part2) else list(data)
         data = {name: data[name] for name in wanted if name in data}
         args.runs = list(data)
     else:
@@ -769,6 +791,18 @@ REGION_NOTES = {
     0x01BBBA: 'ported from reading (M4): a crash on a deck; tests/test_oracle_m4.py, the crash '
               'and the ground',
     0x01C80C: 'ported from reading (M4): the burning wreck on a ship; tests/test_oracle_m4.py',
+    # M6 part 1: sub-regions of code M4 and M5 ported from reading, which the M6 scripts
+    # reached in part (the rest is held by the oracle tests named and by part 2's closed loop)
+    0x010C1A: 'ported from reading: a weapon over a record of low bits 3; '
+              "tests/test_oracle_m5.py, the objects' step",
+    0x01AABE: 'ported from reading; tests/test_oracle_m4.py, an enemy aircraft that stops a turn',
+    0x01B134: 'ported from reading (M4): a wreck sliding along a ship; tests/test_oracle_m4.py, '
+              'the crash and the ground',
+    0x01B1A6: 'ported from reading (M4): a wreck sliding along a ship; tests/test_oracle_m4.py, '
+              'the crash and the ground',
+    0x01B1BA: 'ported from reading; tests/test_oracle_m4.py, the aircraft down on a ship',
+    0x01B1DC: 'ported from reading; tests/test_oracle_m4.py, the attitude levelling out',
+    0x01BD86: 'ported from reading; tests/test_oracle_m4.py, the deck state',
 }
 
 

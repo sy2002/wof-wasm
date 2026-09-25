@@ -205,7 +205,7 @@
 0257c2 ground_class_heights  ; six words: the ground height of terrain classes 0 to 5, before the record's own height
 014a4e ship_at_offset        ; asm. D0 = world x: the ship record whose span of map offsets holds it, or D0 negative
 014eac ride_on_ship          ; asm. moves a map record of low bits 1 down with the ship it stands on
-025460 ship_records          ; five records of 0x1e bytes: japanese carrier, cruise ship, destroyer, battleship, carrier
+025460 ship_records          ; five records of 0x1e bytes: destroyer, battleship, cruise ship, japanese carrier, carrier
 0254d8 carrier_record        ; the player's own carrier, the fifth of ship_records, always tested
 024cae object_records        ; fifteen records of 0x2a bytes: the projectiles and what they turn into
 025594 object_record_extra   ; a sixteenth record of the same shape, walked after the fifteen
@@ -545,7 +545,7 @@
 02508e player_speed_x        ; word: pixels per tick along the world, record +0x16
 025090 player_speed_y        ; word: pixels per tick upward, record +0x18
 025094 enemy_countdown       ; word: one less per tick, but only while neither fire bit is in the input byte, record +0x1c
-025096 player_trail          ; five words 4 apart that snapshot_for_draw reads, record +0x1e
+025096 ship_blocks           ; five blocks of 0x40 bytes: a ship's deck aircraft (count, most up, player x range, entries of 8)
 02536d weapon_count          ; byte: 30 bombs at the mission's start, one less for every one dropped
 01cab4 flash_set             ; C. (count, colour) the sky flash of flip_buffers
 
@@ -783,3 +783,28 @@
 0257ce bearing_octants       ; eight code pointers: bearing_of's octant fix-ups
 0257ee arctan_table          ; 0x101 bytes: the arctangent of a ratio in 0x100ths, 0 to 0x80
 026f8a drop_debug            ; word: 0x14 at a weapon's drop, for the debug view behind 0x02536d
+0251d6 fighters_up           ; word: the enemy fighters in the air, which a ship or an airfield counts against its most
+0251d8 wreck_count           ; word: the wrecks of enemy aircraft shot down over land, lying on the water
+0251da wrecks                ; forty words: each wreck's x, negative when it faced west; draw_enemy_aircraft draws them
+026d4a ship_shell            ; byte: set when a ship's gun shells the aircraft (st.b); nothing reads it
+0234f4 airfield_table        ; bytes by map number times 4: each airfield's most up and parked aircraft
+02555a ship_order            ; six longs: the ship records in the order the walks take them, then -1
+014efc ship_gun_shell        ; asm. D0 = a gun's x: shells splash near the aircraft and take out its torpedo
+01cbb2 record_is_land        ; C. whether a map record in the list has low bits 2
+01d18c aircraft_gone_far     ; C. a torpedo plane that has dropped, more than 0xA28 away, is freed
+01d35a aircraft_frame_index  ; C. +0x30 from the attitude +0x16 and the facing
+01d3b4 aircraft_relation     ; C. +0x04, where the aircraft is against the player, and the distance +0x28
+01d476 aircraft_order        ; C. +0x0C, the order of the aircraft that tail the player
+01d530 aircraft_turn_step    ; C. in a turn the attitude +0x16 moves on every third tick
+01d562 aircraft_turn         ; C. an aircraft's turn: the facing turned at attitude 0x0E, ended at 0x19
+01d9c6 fighter_cruise        ; C. a fighter's flight (mode 1) by where it is against the player
+01dccc fighter_attack        ; C. a fighter on the player's tail (mode 2): its speed, height and guns
+01dea4 torpedo_plane         ; C. a torpedo plane (mode 4): at the carrier, down to 0x14 and the torpedo dropped
+01e17a torpedo_plane_away    ; C. a torpedo plane that has dropped (mode 0x10)
+01e244 aircraft_falling      ; C. an aircraft shot down (state 4): down, the kill counted, a wreck on land
+01e3e8 aircraft_burning      ; C. a wreck burning on land (state 0x10), then one of the wrecks' words
+01e4c8 aircraft_idle         ; C. state 1: nothing
+01e4d0 aircraft_launch       ; C. (kind, x, height, facing): a torpedo plane (kind 1) or a fighter (0) into the last free record
+01e64e aircraft_speed        ; C. +0x1C eased towards +0x1E within 0x025F52 and 0x025F54
+01e728 aircraft_fly          ; C. state 2: smoke by damage, then the flight of its mode
+026c96 skid_count            ; word: aircraft_falling counts to 2, then a skidding aircraft's want_y falls by one
