@@ -232,11 +232,27 @@ static void window_strip(void)
             d3 = d4;
             d4 = t;
         }
+        /* 0x0142A0: an enemy aircraft whose drawing's map offset (+0x2E) lies in the row's
+         * span is drawn on the row at the window's right edge, dash_frames by its frame
+         * (+0x30) turned to the player's live facing (0x1C on facing east, round within
+         * the 0x38 of one set), the row's set added as a byte (window_rows, 0x024692), and
+         * a quarter of its height above the row. */
         for (int i = 0; i < 4; i++) {
             const wof_aircraft_t *a = &wof_m.aircraft_records[i];
+            uint16_t d2;
+            int16_t  d1;
 
-            if (a->w[0] != 0 && !(d3 > a->w[0x17]) && !(d4 < a->w[0x17]))
-                WOF_STANDIN("M6 STAND-IN: 0x0142BC, an enemy aircraft in the 3-D view");
+            if (a->state == 0 || d3 > a->draw_x || d4 < a->draw_x)
+                continue;
+            d2 = (uint16_t)a->frame;
+            if (wof_m.player[0].facing >= 0) {
+                d2 = (uint16_t)(d2 + 0x1C);
+                if (d2 >= 0x38)
+                    d2 = (uint16_t)(d2 - 0x38);
+            }
+            d2 = (uint16_t)((d2 & 0xFF00u) | ((d2 + wof_tbl_window_rows[k - 1]) & 0xFFu));   /* add.b */
+            d1 = (int16_t)(-(int16_t)((a->y >> 2) + 4) + wof_g.g_0253e2);
+            wof_draw_at(d2 < 168 ? wof_m.dash_frames[d2].s : WOF_SHAPE_NONE, 0x13F, d1);
         }
 
         land = 0;
@@ -322,12 +338,28 @@ static void score(void)
         wof_dash_digit(x, 0x0B, (uint16_t)(text[i] - '0'));
 }
 
-/* orig 0x01F21A - the arrows that point to an enemy aircraft (M6). */
+/* orig 0x01F21A enemy_arrows - the first enemy aircraft in use that is a torpedo plane
+ * (+0x02 low three bits 4) gets the arrow of the 3-D view (the manual, page 11): dash
+ * shape 8 when it is west of the player's live x or level with it, 9 when east, at the
+ * window's top centre. */
 static void enemy_arrows(void)
 {
-    for (int i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].w[0] != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x01F226-0x01F269, an arrow to an enemy aircraft");
+    for (int i = 0; i < 4; i++) {
+        const wof_aircraft_t *a = &wof_m.aircraft_records[i];
+
+        if (a->state == 0 || (a->mode & 7) != 4)
+            continue;
+        draw_hot((int16_t)(wof_m.player[0].x - a->x) >= 0 ? 8 : 9, 0x140, 0x0A);
+        return;
+    }
+}
+
+/* orig 0x01F200 kill_icons - a row of D2 kill icons (dash shape 116), 13 apart from D0,
+ * at row D1, drawn without the hotspot taken off. */
+static void kill_icons(int16_t count, int16_t x, int16_t y)
+{
+    for (; count > 0; count--, x = (int16_t)(x + 0x0D))
+        draw_raw(116, x, y);
 }
 
 /* orig 0x01EE16 draw_dashboard.  Oil and fuel are needle gauges that move four steps a pass
@@ -493,16 +525,15 @@ void wof_draw_dashboard(void)
         score();
     }
 
-    /* The enemy plane counter of 0x02537F: two digits and its kill icons. */
+    /* The enemy plane counter of 0x02537F: two digits, at most 99, and its kill icons,
+     * seven a row in two rows (the manual, page 9). */
     {
         uint16_t d3 = wof_g.g_02537f;
 
-        if (d3 > 0x63) {
-            WOF_STANDIN("M6 STAND-IN: 0x01F186, the enemy plane counter above 99, which only enemy aircraft shot down raise");
-            d3 = 0x63;
-        }
+        if (d3 > 0x63)
+            d3 = 0x63;                                        /* 0x01F186 */
         if ((int16_t)d3 != c->w0e) {
-            int16_t n1, n2;
+            int16_t n;
 
             c->w0e = (int16_t)d3;
             wof_g.clip_top = 0x14;
@@ -511,12 +542,10 @@ void wof_draw_dashboard(void)
             wof_dash_digit(0x20A, 0x15, (uint16_t)(d3 % 10u));
             wof_g.clip_top = 0x13;
             wof_g.clip_bottom = 0x1F;
-            n1 = c->w0e;
-            n2 = (int16_t)(n1 - 7);
-            if (n2 > 0)
-                n1 = 7;
-            if (n1 > 0 || n2 > 0)                             /* orig 0x01F200, a row of icons */
-                WOF_STANDIN("M6 STAND-IN: 0x01F206, the enemy plane counter's kill icons, which only enemy aircraft shot down raise");
+            n = c->w0e;
+            kill_icons((int16_t)(n - 7) > 0 ? 7 : n, 0x216, 0x13);
+            n = (int16_t)(n - 7);
+            kill_icons((int16_t)(n - 7) > 0 ? 7 : n, 0x216, 0x19);
         }
     }
 }

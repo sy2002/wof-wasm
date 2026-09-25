@@ -444,7 +444,7 @@ typedef struct {
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 6u
+#define WOF_STATE_VERSION 7u
 
 extern wof_state_t wof_s;
 
@@ -966,7 +966,7 @@ void    *wof_target_of(int16_t x);                         /* orig 0x014B54 */
 int16_t  wof_target_frame(int16_t x);                      /* orig 0x014D50 */
 int16_t  wof_target_range_frame(int16_t d0, int16_t d1, int16_t d2);   /* orig 0x014DB8 */
 void     wof_burnt_barracks(int16_t d4);                   /* orig 0x014E18 */
-void     wof_target_fire(int16_t x);                       /* orig 0x014F5C */
+void     wof_target_fire(int16_t x, uint16_t d1_high, uint16_t d2_high);                       /* orig 0x014F5C */
 void     wof_target_refill(wof_gtarget_t *a0);             /* orig 0x014FEE */
 void     wof_ticker_format(uint32_t format, uint32_t value, uint16_t at);   /* orig 0x015078 */
 void     wof_ticker_say(uint32_t format, uint32_t value);  /* orig 0x015624 */
@@ -1013,6 +1013,7 @@ void     wof_test_map_addresses(const uint32_t *list, uint32_t n);   /* the mach
 uint32_t wof_env_map_address(void);
 int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
 int32_t  wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/targets.c */
+int32_t  wof_test_m6_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/world.c */
 int32_t  wof_test_tick_part(uint32_t orig);     /* src/tick.c */
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */

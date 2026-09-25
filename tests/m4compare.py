@@ -155,7 +155,8 @@ class Recorder(headless.Headless):
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
     """One script under the headless original, dumped to `dump_path`."""
-    description = m5_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
+    import m6_scripts
+    description = m6_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
     machine = Recorder(description, pokes=pokes)
     machine.open_dump(dump_path)
     try:
@@ -315,8 +316,11 @@ class Replay:
             poke = self.lib.wt_poke if at == m5_scripts.RANK_END else self.lib.wt_poke_reset
             assert at in (m5_scripts.RANK_END, m5_scripts.MISSION_RESET), hex(at)
             for address, size, value in items:
-                entry = next(e for e in self.layout.globals if e[1] == address)
-                poke(entry[4], size, value)
+                # A global, or an element of a global array (the wrecks' words of
+                # tools/m6_scripts.py's wrecks_a): the element's offset in the port's struct.
+                entry = next(e for e in self.layout.globals
+                             if e[1] <= address < e[1] + e[2] * e[3])
+                poke(entry[4] + (address - entry[1]), size, value)
         # The address the harness's allocator gave the map list at every map load, which the
         # port takes as it takes the entropy stream (re/notes/porting-m5.md, "The wreck").
         addresses = self.map_addresses()

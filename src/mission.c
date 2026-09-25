@@ -338,9 +338,9 @@ void wof_mission_reset_tables(void)
 {
     wof_g.balloons_on = 0;
     for (int i = 0; i < 4; i++)
-        wof_m.aircraft_records[i].w[0] = 0;
-    wof_g.g_0251d6 = 0;
-    wof_g.g_0251d8 = 0;
+        wof_m.aircraft_records[i].state = 0;
+    wof_g.fighters_up = 0;
+    wof_g.wreck_count = 0;
     wof_g.pause_flag = 0;
     wof_player_lost_restart_now();
 }

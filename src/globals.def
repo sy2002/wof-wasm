@@ -99,9 +99,10 @@ WOF_GLOBAL_ARRAY(island_slot1, uint16_t, 4, 0x025430)  /* map offsets of the slo
 WOF_GLOBAL_ARRAY(island_slot2, uint16_t, 4, 0x025438)  /* map offsets of the slot-2 records */
 WOF_GLOBAL_ARRAY(island_span,  uint16_t, 8, 0x025440)  /* first and last target offset per island */
 WOF_GLOBAL_ARRAY(island_score, uint16_t, 8, 0x025450)  /* five per target, and a second word */
-WOF_GLOBAL(g_0251d6,           int16_t,  0x0251D6)
-WOF_GLOBAL(g_0251d8,           int16_t,  0x0251D8)  /* count of the words that follow */
-WOF_GLOBAL_ARRAY(g_0251da,     int16_t, 40, 0x0251DA)
+WOF_GLOBAL(fighters_up,        int16_t,  0x0251D6)  /* the fighters in the air, which a ship or an
+                                                     * airfield counts against its most (M6) */
+WOF_GLOBAL(wreck_count,        int16_t,  0x0251D8)  /* the wrecks of enemy aircraft on the water */
+WOF_GLOBAL_ARRAY(wrecks,       int16_t, 40, 0x0251DA) /* each its x, negative facing west */
 
 /* the mission (M4): the player's reset, sub_013684 and sub_01b7ec (re/notes/objects.md) */
 WOF_GLOBAL(g_02534a,           int16_t,  0x02534A)
@@ -202,6 +203,10 @@ WOF_GLOBAL(g_0253e4,           int16_t,  0x0253E4)
 WOF_GLOBAL(g_0253e6,           int16_t,  0x0253E6)  /* the horizon row of the dashboard's map window */
 WOF_GLOBAL(g_027452,           int16_t,  0x027452)
 WOF_GLOBAL(g_027454,           uint16_t, 0x027454)  /* draw_world: a target is near (st.b high byte) */
+WOF_GLOBAL(ship_shell,         uint16_t, 0x026D4A)  /* 0x014EFC: st.b when a ship's gun shells the
+                                                     * aircraft; nothing reads it (M6) */
+WOF_GLOBAL(skid_count,         int16_t,  0x026C96)  /* aircraft_falling: every second tick a shot-down
+                                                     * aircraft skidding on the water drops (M6) */
 WOF_GLOBAL(g_027456,           int16_t,  0x027456)  /* draw_world: the nearest target's distance */
 WOF_GLOBAL(g_02745a,           int16_t,  0x02745A)
 WOF_GLOBAL(g_0276fe,           int16_t,  0x0276FE)

@@ -343,7 +343,7 @@ def test_a_targets_frame_and_fire_match_the_original(targets):
             upper = (0x1FCCD + s16(o.r16(0x026912)) * 0x1AFB) >> 16 & 0xFFFF
             o.call(0x014F5C, regs={'d0': x, 'd1': rng.randrange(0x10000),
                                    'd2': (upper << 16) | rng.randrange(0x10000)})
-            d.port(0x014F5C, s16(x))
+            d.port(0x014F5C, s16(x), 0, upper)
             check(d, 'target_fire %d' % n)
 
 

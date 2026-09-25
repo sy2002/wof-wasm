@@ -148,7 +148,9 @@ void wof_targets_3_draw(int table)
         if (frame < 0)
             continue;
         wof_draw_world_shape(table, frame, x, 0x14);
-        wof_target_fire(x);
+        /* D2 comes to target_fire with rand_beam's upper word (the exg of 0x013DB4) and
+         * D1's upper word is 0 (observed at every entry, re/notes/porting-m5.md). */
+        wof_target_fire(x, 0, (uint16_t)(wof_rand_upper() >> 16));
     }
 }
 
@@ -178,7 +180,7 @@ void wof_targets_f_draw(int table)
         if (frame < 0)
             continue;
         wof_draw_world_shape(table, frame, x, 0x16);
-        wof_target_fire(x);
+        wof_target_fire(x, 0, (uint16_t)(wof_rand_upper() >> 16));
     }
 }
 
@@ -630,12 +632,14 @@ void wof_burnt_barracks(int16_t d4)
  * the cheat's 0x026F72 is set, a draw of rand_beam modulo 512 at least the distance-and-
  * height d2 and a second modulo 2048 at most 0x199 hit: smoke from the engine (6), and at
  * the end of the hit count 0x025088 the oil falls by one, the fuel by a draw modulo 4, and
- * the count starts again at 6 plus a draw modulo 8. */
-void wof_target_fire(int16_t x)
+ * the count starts again at 6 plus a draw modulo 8.  The smoke's x takes D2's upper word
+ * as its fraction (0x0154E0), and D2 is either the caller's D2 or, when the distance is no
+ * more than the height and the two longs are exchanged, the caller's D1: their upper words
+ * come in as d1_high and d2_high. */
+void wof_target_fire(int16_t x, uint16_t d1_high, uint16_t d2_high)
 {
     int16_t  d0 = (int16_t)(x - wof_g.draw_player_x);
     int16_t  d1, d2;
-    uint16_t d2_high;
 
     if (d0 < 0)
         d0 = (int16_t)-d0;
@@ -643,18 +647,14 @@ void wof_target_fire(int16_t x)
         return;
     if (d0 <= wof_g.g_027456)
         wof_g.g_027456 = d0;
-    /* D2 comes from the caller with rand_beam's upper word (targets_3_draw's exg); D1's
-     * upper word is 0 there (observed at every entry, re/notes/porting-m5.md).  The exg
-     * of the two longs takes the upper words along. */
     d2 = d0;
-    d2_high = (uint16_t)(wof_rand_upper() >> 16);
     d1 = wof_m.player[0].y;
     if (!(d2 > d1)) {
         int16_t tmp = d1;
 
         d1 = d2;
         d2 = tmp;
-        d2_high = 0;
+        d2_high = d1_high;
     }
     d2 = (int16_t)(d2 + (int16_t)((uint16_t)d1 >> 2));
     wof_g.g_027454 = (uint16_t)((wof_g.g_027454 & 0x00FFu) | 0xFF00u);
@@ -834,7 +834,7 @@ int32_t wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t
     }
     case 0x014DB8: return wof_target_range_frame((int16_t)a, (int16_t)b, (int16_t)c);
     case 0x014D50: return wof_target_frame((int16_t)a);
-    case 0x014F5C: wof_target_fire((int16_t)a); return 0;
+    case 0x014F5C: wof_target_fire((int16_t)a, (uint16_t)b, (uint16_t)c); return 0;
     case 0x015AE8: return wof_island_bonus((uint8_t)a);
     case 0x011E82: {
         const wof_gtarget_t *t = (a >> 8) == 3 ? &wof_m.target_records_3[a & 0xFF]

@@ -261,8 +261,8 @@ static void enemy_aircraft(void)
 {
     wof_g.g_027e66 = 0;
     for (int i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].w[0] != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x01E7FC, an enemy aircraft");
+        if (wof_m.aircraft_records[i].state != 0)
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01E7FC-0x01E8A7, an enemy aircraft");
 }
 
 /* orig 0x012132 - the engine's sound, as far as the port keeps it: the volume 0x02542C eases
@@ -463,7 +463,7 @@ static void airfields(void)
 {
     for (int i = 0; i < 4; i++) {
         if (wof_m.airfield_records[i].w[4] != 0) {
-            WOF_STANDIN("M6 STAND-IN: 0x011630, an enemy aircraft taking off");
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x011630, an enemy aircraft taking off");
             return;
         }
     }
@@ -476,9 +476,9 @@ static void airfields(void)
             continue;
         if (wof_g.g_026e6a > (int16_t)(a->w[1] + 0x1E0))
             continue;
-        if (wof_g.g_0251d6 >= (int16_t)a->w[2] || a->w[3] <= 0)
+        if (wof_g.fighters_up >= (int16_t)a->w[2] || a->w[3] <= 0)
             return;                                              /* 0x0116BE, 0x0116CA */
-        WOF_STANDIN("M6 STAND-IN: 0x0116D2-0x011709, an enemy airfield sends an aircraft up");
+        WOF_STANDIN("M6 PART 2 STAND-IN: 0x0116D2-0x011709, an enemy airfield sends an aircraft up");
         return;
     }
 }
@@ -494,7 +494,7 @@ static void ship_launches(void)
         uint32_t last = 0x80u + 4u * (uint32_t)count;     /* 8 bytes in, (count - 1) * 8 on */
 
         if (last < 160u && (int16_t)wof_m.ship_blocks[last].v > 0)
-            WOF_STANDIN("M6 STAND-IN: 0x01152A, the Japanese carrier's aircraft");
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01152A, the Japanese carrier's aircraft");
     }
     if (wof_g.g_027348)
         return;
@@ -509,12 +509,12 @@ static void ship_launches(void)
             continue;
         if (wof_g.g_026e6a < (int16_t)blk[2].v || wof_g.g_026e6a > (int16_t)blk[3].v)
             continue;
-        if (wof_g.g_0251d6 >= (int16_t)blk[1].v || blk[0].v == 0)
+        if (wof_g.fighters_up >= (int16_t)blk[1].v || blk[0].v == 0)
             continue;
         if (i == 4)
-            WOF_STANDIN("M6 STAND-IN: 0x0115F4-0x011621, the last ship's aircraft readied");
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x0115F4-0x011621, the last ship's aircraft readied");
         else
-            WOF_STANDIN("M6 STAND-IN: 0x0115C4-0x0115E9, a ship launching an aircraft");
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x0115C4-0x0115E9, a ship launching an aircraft");
         return;
     }
 }
@@ -526,7 +526,7 @@ static void ships_sinking(void)
         const wof_ship_t *s = ship_in_order(i);
 
         if (s->present != 0 && s->w0c == 0)
-            WOF_STANDIN("M6 STAND-IN: 0x011CCA, a ship sinking (0x011CD8)");
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x011CCA, a ship sinking (0x011CD8)");
     }
 }
 

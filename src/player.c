@@ -91,7 +91,7 @@ static int16_t turn_allowed(void)
         for (int16_t i = 0; i < 4; i++) {
             const wof_aircraft_t *a = &wof_m.aircraft_records[i];
 
-            if (a->w[0] == 2 && a->w[1] == 1 && a->w[2] == 3 && a->w[11] > 12 && a->w[11] < 14)
+            if (a->state == 2 && a->mode == 1 && a->relation == 3 && a->attitude > 12 && a->attitude < 14)
                 r = 0;
         }
     }
@@ -456,8 +456,8 @@ void wof_guns(void)
     if (!wof_g.g_02536a)
         return;
     for (int16_t i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].w[2] == 3)
-            WOF_STANDIN("M6 STAND-IN: 0x01B6B0, the guns at an enemy aircraft");
+        if (wof_m.aircraft_records[i].relation == 3)
+            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01B6B0-0x01B79D, the guns at an enemy aircraft");
 }
 
 /* orig 0x01B8C4 - whether the aircraft touches what is below it: its wheels at or below the
@@ -564,7 +564,7 @@ static void enemy_countdown(void)
         return;
     if (--P.enemy_countdown != 0 || far <= 0x1A00)
         return;
-    WOF_STANDIN("M6 STAND-IN: 0x01BC66, the enemy aircraft come");
+    WOF_STANDIN("M6 PART 2 STAND-IN: 0x01BC66, the enemy aircraft come");
 }
 
 /* orig 0x01BCCE - on the deck, the carrier's state (0x02535F) and the touch-down: at the

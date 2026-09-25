@@ -162,6 +162,11 @@ M5_HEAP = [
      'M4'),
 ]
 
+# M6 adds nothing yet; rows found by the completeness test over the M6 scripts go here, each
+# with its writers, the reason and the milestone that owes it.
+M6_EXCLUDED = []
+M6_HEAP = []
+
 
 def _owner(label):
     """'alloc 57 (load_file shapes/wingspalette)' -> 'load_file'."""

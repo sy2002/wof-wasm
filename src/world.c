@@ -52,6 +52,30 @@ void wof_draw_at(uint16_t handle, int16_t x, int16_t y)
     wof_shape_draw(s, (int16_t)(x - s->hot_x), (int16_t)(y - s->hot_y));
 }
 
+/* shape_draw at a position the caller has not taken the hotspot off: suba.l a1,a1; jsr
+ * shape_draw straight after the position is computed.  A null record is drawn as nothing,
+ * as in wof_draw_at. */
+static void draw_raw(uint16_t handle, int16_t x, int16_t y)
+{
+    const wof_shape_t *s = wof_shape_of(handle);
+
+    if (!s) {
+        wof_trace_add("shape_draw", 0, 0, 0, 1, 0, 0);
+        return;
+    }
+    wof_shape_draw(s, x, y);
+}
+
+/* The exclusive-or blit of a shape, recorded as the original's shape_draw_xor call. */
+static void draw_xor(uint16_t handle, int16_t x, int16_t y)
+{
+    const wof_shape_t *s = wof_shape_of(handle);
+
+    wof_trace_add("shape_draw_xor", s ? x : 0, s ? y : 0, handle, s ? 0 : 1, 0, 0);
+    if (s)
+        wof_shape_draw_xor(s, x, y);
+}
+
 /* orig 0x015174 draw_world_shape - A0 = table, D2 = slot, D0 = world x, D1 = world y: to
  * the screen with view_x, view_y and view_shift, dropped outside -128 to 448, then drawn
  * less its hotspot (re/notes/map.md). */
@@ -114,7 +138,7 @@ static void snapshot_for_draw(void)
     for (int i = 0; i < 4; i++) {
         wof_aircraft_t *a = &wof_m.aircraft_records[i];
 
-        a->w[0x17] = (int16_t)(uint16_t)((uint16_t)(int16_t)(a->w[0x10] >> 3) * 2u);
+        a->draw_x = (int16_t)(uint16_t)((uint16_t)(int16_t)(a->x >> 3) * 2u);
     }
     for (int i = 0; i < 4; i++) {
         wof_m.airfield_records[i].w[8] = wof_m.airfield_records[i].w[3];
@@ -361,9 +385,12 @@ static void islands(int16_t d1_in)
 
     if (wof_g.view_step == 8)
         d3 = (int16_t)(d3 + 4);
-    for (uint16_t i = 0; (int16_t)(n - 1 - (int16_t)i) >= 0 && i < 4; i++) {
-        int16_t x1 = (int16_t)(uint16_t)(wof_g.island_slot1[i] << 2);
-        int16_t x2 = (int16_t)(uint16_t)(wof_g.island_slot2[i] << 2);
+    /* The two lists (0x025430, 0x025438) hold four words each and the walk takes as many as
+     * island_count says, reading on into what follows them for a fifth: the words are read
+     * by address.  No map carries more than four islands (re/notes/enemy.md, the maps). */
+    for (uint16_t i = 0; (int16_t)(n - 1 - (int16_t)i) >= 0; i++) {
+        int16_t x1 = (int16_t)(uint16_t)(wof_image16(0x025430u + 2u * i) << 2);
+        int16_t x2 = (int16_t)(uint16_t)(wof_image16(0x025438u + 2u * i) << 2);
         int16_t d0, d2;
 
         wof_draw_world_shape(table, 1, x1, 0x0B);
@@ -376,62 +403,232 @@ static void islands(int16_t d1_in)
         }
         wof_rect_fill(d0, wof_g.split_row, d2, d3, 0x11);
     }
-    if (n > 4)
-        WOF_STANDIN("M6 STAND-IN: more than four islands, in 0x0140E8");
 }
 
-/* orig 0x014C3E - the enemy ships' guns, while the aircraft is off the deck: the ship list
- * walked, the player's carrier skipped; the five scripts met no enemy ship (M6). */
-static void ship_guns(void)
+/* The ship record at an address of ship_order (0x02555A). */
+static wof_ship_t *ship_at(uint32_t addr)
 {
+    return &wof_m.ship_records[(addr - 0x025460u) / 0x1Eu];
+}
+
+/* A ship's gun list, the allocation behind its +0x06 (src/mission.def). */
+static wof_gun_t *guns_of(const wof_ship_t *s)
+{
+    switch (s - wof_m.ship_records) {
+    case 0:  return wof_m.guns_destroyer;
+    case 1:  return wof_m.guns_battleship;
+    case 2:  return wof_m.guns_cruiseship;
+    case 3:  return wof_m.guns_japcarrier;
+    default: return 0;
+    }
+}
+
+/* orig 0x014EFC - a ship's gun at world x D0 shells the aircraft: when a draw of rand_beam
+ * modulo 512 exceeds its distance from the player's live x (unsigned), it notes the shot
+ * (0x026D4A, which nothing reads) and, with the aircraft no higher than 0xC8 and a second
+ * draw's low nibble below 6, a third puts a splash in the water within 32 pixels of the
+ * drawing's x (0x0152B0), where a torpedo of the player's within ten pixels goes out
+ * (0x011AE2).  D0 to D2 are kept. */
+static void ship_gun_shell(int16_t x)
+{
+    int16_t  d0 = (int16_t)(x - wof_m.player[0].x);
+    uint16_t d2;
+
+    if (d0 < 0)
+        d0 = (int16_t)-d0;
+    d2 = (uint16_t)d0;
+    if (d2 >= (uint16_t)(wof_rand_beam(0x014EFC) & 0x1FFu))
+        return;
+    wof_g.ship_shell = (uint16_t)((wof_g.ship_shell & 0x00FFu) | 0xFF00u);   /* st.b */
+    if (wof_m.player[0].y > 0xC8)
+        return;
+    if ((int16_t)((wof_rand_beam(0x014EFC) & 0x0Fu) - 6) >= 0)
+        return;
+    d2 = (uint16_t)((wof_rand_beam(0x014EFC) & 0x3Fu) - 0x20u + (uint16_t)wof_g.draw_player_x);
+    wof_splash_spawn((int16_t)d2);
+    wof_torpedoes_hit(d2, 0x0A);
+}
+
+/* orig 0x014C3E ship_guns_draw - the enemy ships' guns while the aircraft is off the deck:
+ * every ship of ship_order to its negative end but the player's carrier, afloat (+0x04) and
+ * not yet sunk (+0x0C above 0), every gun of its list.  A standing gun (+0x08 clear) shells
+ * the aircraft (0x014EFC), and within reach shows the frame of target_range_frame for its
+ * distance and the drawing's height, plus 0x81 and seven more on bit 15 of a draw of
+ * rand_beam, at the ship's deck less its row and the swell plus the gun's own height and
+ * 0x0D; in the eighth-scale view the frame 0x5A, drawn on a clear bit 15 of a further draw;
+ * then it may hit the aircraft (0x014F5C).  A destroyed gun smokes while +0x0A runs, a puff
+ * every 0x32 - +0x0A passes as +0x0A counts down, at its x and, as a 16.16 long, the ship's
+ * deck less its row with D1's old upper word plus 0x0D as the fraction (the swap comes
+ * before the add); smoke_claim raises a height below 16 to 16.  D1's upper word is 0 at
+ * the entry (observed at every entry over the M6 scripts, re/notes/porting-m6.md) and is
+ * what the smoke's long left it after one; target_fire takes it with D2's, which is 0. */
+static void ship_guns_draw(int table)
+{
+    uint16_t d1_high = 0;
+
     if (wof_m.player[0].on_deck != 0)
         return;
-    for (int i = 0; i < 6; i++) {
-        uint32_t at   = wof_tbl_ship_order[i];
-        int      ship = (int)((at - 0x025460u) / 0x1Eu);
+    for (int i = 0;; i++) {
+        uint32_t    at = wof_tbl_ship_order[i];
+        wof_ship_t *s;
+        wof_gun_t  *g;
 
         if ((int32_t)at < 0)
             break;
-        if (at == 0x0254D8u || ship < 0 || ship > 4)
+        if (at == 0x0254D8u)
             continue;
-        if (wof_m.ship_records[ship].present != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x014C66, an enemy ship's guns");
+        s = ship_at(at);
+        if (s->present == 0 || s->w0c <= 0)
+            continue;
+        g = guns_of(s);
+        for (uint16_t n = 0; (int16_t)(s->gun_count - 1 - (int16_t)n) >= 0 && n < 16; n++, g++) {
+            int16_t *w = g->w;                 /* +0x04 x, +0x06 height, +0x08 destroyed,
+                                                * +0x0A puffs left, +0x0C passes to the next */
+            int16_t  d1, d2;
+
+            if (w[4] != 0) {
+                int32_t y;
+
+                if (w[5] == 0)
+                    continue;
+                if (--w[6] > 0)
+                    continue;
+                if (--w[5] == 0)
+                    continue;
+                w[6] = (int16_t)(0x32 - w[5]);
+                y = (int32_t)(((uint32_t)(uint16_t)(s->w0e - s->row) << 16) |
+                              (uint16_t)(d1_high + 0x0D));
+                wof_smoke_claim((int32_t)((uint32_t)(uint16_t)w[2] << 16), y, 5);
+                d1_high = y < 0x100000 ? 0x10 : (uint16_t)((uint32_t)y >> 16);
+                continue;
+            }
+            ship_gun_shell(w[2]);
+            d2 = wof_target_range_frame(w[2], wof_g.draw_player_x, wof_g.draw_player_y);
+            if (d2 < 0)
+                continue;
+            d1 = (int16_t)(s->w0e - s->row - wof_g.g_026e56 + w[3] + 0x0D);
+            d2 = (int16_t)(d2 + 0x81);
+            if (wof_rand_beam(0x014C3E) & 0x8000u)
+                d2 = (int16_t)(d2 + 7);
+            if (wof_g.view_step == 1) {
+                d2 = 0x5A;
+                if (!(wof_rand_beam(0x014C3E) & 0x8000u))
+                    wof_draw_world_shape(table, d2, w[2], d1);
+            } else {
+                wof_draw_world_shape(table, d2, w[2], d1);
+            }
+            wof_target_fire(w[2], d1_high, 0);
+        }
     }
 }
 
-/* orig 0x013A18 - the airfields' aircraft rows (M6); a record whose +2 is clear is empty. */
-static void airfields(void)
+/* orig 0x013A18 airfields_draw - the aircraft parked on each airfield in use (+0x02 set):
+ * japplane_shapes entry 20 facing west, from the east end +0x02 westward 0x40 apart, or
+ * entry 21 facing east from the west end +0x00 eastward (+0x0E not -1), as many as the
+ * drawing's count +0x10, on the sea's row view_y; and the one rolling to take off at its
+ * drawing's x +0x12.  In the eighth-scale view entries 0xA0 and 0xA3 of eighth_shapes, all
+ * of it shifted down by three and a row higher. */
+static void airfields_draw(void)
 {
-    for (int i = 0; i < 4; i++)
-        if (wof_m.airfield_records[i].w[1] != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x013A36, an airfield in view");
+    for (int i = 0; i < 4; i++) {
+        const wof_airfield_t *a = &wof_m.airfield_records[i];
+        uint16_t h = wof_table_entry(T_JAPPLANE, 20);
+        const wof_shape_t *sh;
+        int16_t  d0 = a->w[1], d1 = wof_g.view_y, d2 = 0x20;
+        int16_t  n = a->w[8];
+
+        if (d0 == 0)
+            continue;
+        if (a->w[7] != -1) {
+            h = wof_table_entry(T_JAPPLANE, 21);
+            d0 = a->w[0];
+            d2 = -0x20;
+        }
+        d0 = (int16_t)(d0 - wof_g.view_x);
+        if (wof_g.view_shift) {
+            d0 = (int16_t)(d0 >> 3);
+            d2 = (int16_t)(d2 >> 3);
+            d1 = (int16_t)((d1 >> 3) - 1);
+            h = wof_table_entry(T_EIGHTH, a->w[7] != -1 ? 0xA3 : 0xA0);
+        }
+        sh = wof_shape_of(h);
+        d0 = (int16_t)(d0 - d2);
+        d2 = (int16_t)(d2 + d2);
+        d0 = (int16_t)(d0 - (sh ? sh->hot_x : 0));
+        d1 = (int16_t)(d1 - (sh ? sh->hot_y : 0));
+        for (int16_t k = n; (int16_t)(k - 1) != -1; k--) {       /* bra to dbra: n draws */
+            draw_raw(h, d0, d1);
+            d0 = (int16_t)(d0 - d2);
+        }
+        d0 = a->w[9];
+        if (d0 == 0)
+            continue;
+        d0 = (int16_t)(d0 - wof_g.view_x);
+        if (wof_g.view_shift)
+            d0 = (int16_t)(d0 >> 3);
+        draw_raw(h, (int16_t)(d0 - (sh ? sh->hot_x : 0)), d1);
+    }
 }
 
-/* orig 0x01391E - the aircraft parked on the ships (the ship blocks' drawing copy), each
- * ship's block at 0x40 bytes, and the japanese carrier's deck crane (M6). */
-static void ship_planes(void)
+/* orig 0x01391E ship_planes - the aircraft parked on the ships' decks, from the drawing's
+ * copy of the ship blocks (0x024F38, the block of the ship at the same place of ship_order
+ * 0x40 bytes on): every entry whose +0x00 is set, japplane_shapes entry 0x14, or 0x15 when
+ * its +0x06 is not negative, at its x and its height less the ship's row (and the swell at
+ * full scale); in the eighth-scale view entries 0xA0 and 0xA3 of eighth_shapes under a clip
+ * at row 0x96.  The last ship of the order, the Japanese carrier, clips its aircraft at its
+ * waterline, 0x8E below its row.  After the walk, with that carrier's block holding
+ * aircraft and at full scale, its crane, MasterList entry 0xF7, 0x199 east of its first
+ * map offset and 0x15 above the row the walk left in D6 (the last ship afloat's, else the
+ * swell draw_world handed on, d6_in), drawn without its hotspot under the caller's clip. */
+static void ship_planes(int16_t d6_in)
 {
     int16_t saved_bottom = wof_g.clip_bottom;
+    int16_t d6 = d6_in;
 
     for (int k = 0; k < 5; k++) {
-        uint32_t at   = wof_tbl_ship_order[k];
-        int      ship = (int)((at - 0x025460u) / 0x1Eu);
-        const wof_ship_t *s = (ship >= 0 && ship < 5) ? &wof_m.ship_records[ship] : 0;
+        const wof_ship_t *s = ship_at(wof_tbl_ship_order[k]);
         uint16_t count;
 
-        if (!s || s->present == 0)
+        if (s->present == 0)
             continue;
+        d6 = s->row;
         if (wof_g.view_shift) {
             wof_g.clip_bottom = 0x96;
-        } else if (4 - k <= 0) {
-            WOF_STANDIN("M6 STAND-IN: 0x01395A, the last ship's clip at full scale");
+        } else {
+            d6 = (int16_t)(d6 + wof_g.g_026e56);
+            if (4 - k <= 0) {
+                int16_t d1 = (int16_t)(0x8E + d6);
+
+                if (d1 < wof_g.clip_bottom)
+                    wof_g.clip_bottom = d1;
+            }
         }
         count = wof_m.ship_blocks_draw[k * 0x20].v;
-        if (count)
-            WOF_STANDIN("M6 STAND-IN: 0x013976, aircraft on a ship's deck");
+        for (uint16_t n = 0; (int16_t)(count - 1 - n) >= 0 && n < 7; n++) {
+            const wof_word_t *e = &wof_m.ship_blocks_draw[k * 0x20 + 4 + 4 * n];
+            int16_t d2;
+            int     table = T_JAPPLANE;
+
+            if (e[0].v == 0)
+                continue;
+            d2 = (int16_t)e[3].v < 0 ? 0x14 : 0x15;
+            if (wof_g.view_shift) {
+                table = T_EIGHTH;
+                d2 = (int16_t)e[3].v < 0 ? 0xA0 : 0xA3;
+            }
+            wof_draw_world_shape(table, d2, (int16_t)e[1].v, (int16_t)((int16_t)e[2].v - d6));
+        }
     }
-    if ((int16_t)wof_m.ship_blocks_draw[4 * 0x20].v > 0 && !wof_g.view_shift)
-        WOF_STANDIN("M6 STAND-IN: 0x0139D6, the japanese carrier's crane");
+    if ((int16_t)wof_m.ship_blocks_draw[4 * 0x20].v > 0 && !wof_g.view_shift) {
+        const wof_ship_t *jc = ship_at(wof_tbl_ship_order[4]);
+        int16_t d0 = (int16_t)((int16_t)(jc->span0 << 2) + 0x199 - wof_g.view_x);
+        int16_t d1 = (int16_t)(-0x15 + d6 + wof_g.view_y);
+
+        if (d0 >= -0x80 && d0 <= 0x1C0) {
+            wof_g.clip_bottom = saved_bottom;
+            draw_raw(wof_m.master_list[0xF7].s, d0, d1);
+        }
+    }
     wof_g.clip_bottom = saved_bottom;
 }
 
@@ -592,16 +789,113 @@ done:
     wof_g.clip_bottom = saved;
 }
 
-/* orig 0x010DA6 - the enemy aircraft: the words counted in 0x0251D8 and the four aircraft
- * records.  The five scripts brought none up (re/notes/objects.md), so only the walk is
- * here (M6). */
+/* The k-th word of the wrecks' list (0x0251DA), read on past its forty words into the
+ * aircraft records behind it as the original's (a5)+ would; nothing else lies closer. */
+static int16_t wreck_word(uint16_t k)
+{
+    if (k < 40)
+        return wof_g.wrecks[k];
+    if (k < 40 + 4 * 26) {
+        const uint8_t *b = (const uint8_t *)wof_m.aircraft_records + 2u * (k - 40u);
+        int16_t        v;
+
+        wof_mem_copy(&v, b, 2);
+        return v;
+    }
+    return (int16_t)wof_image16(0x0251DAu + 2u * k);
+}
+
+/* An entry of the enemy aircraft's frame tables (0x026F8E at full scale, 0x02706E in the
+ * eighth-scale view, 56 each: 28 facing west, then 28 facing east), read by address as the
+ * original's (a0,d2.w) does: past the first table lies the second. */
+static uint16_t enemy_frame(int eighth, int16_t index)
+{
+    int32_t i = (eighth ? 56 : 0) + index;
+
+    if (i >= 0 && i < 56)
+        return wof_m.japplane_frames[i].s;
+    if (i >= 56 && i < 112)
+        return wof_m.eighth_frames[i - 56].s;
+    return WOF_SHAPE_NONE;
+}
+
+/* orig 0x010DA6 draw_enemy_aircraft - the wrecks of the enemy aircraft shot down, and the
+ * four aircraft records.  A wreck is a word of 0x0251DA, as many as 0x0251D8 counts
+ * (0x01E476 leaves one when a burning wreck on the water, state 0x10, has gone out): the
+ * world x, negative for an aircraft that faced west, drawn with frame 27 or 55 of the frame
+ * table four rows above view_y.  A record in use is drawn at its x (+0x20) and height
+ * (+0x26) with the frame +0x30; one that fires (+0x12) at full scale counts +0x2C up in the
+ * pass and on its odd counts puts its guns' flash over it, japplane_shapes entry 0x10 or
+ * 0x11, two further on facing west, with the exclusive-or blit. */
 void wof_draw_enemy_aircraft(void)
 {
-    if (wof_g.g_0251d8 != 0)
-        WOF_STANDIN("M6 STAND-IN: 0x010DBA, the formation words of 0x0251D8");
-    for (int i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].w[0] != 0)
-            WOF_STANDIN("M6 STAND-IN: 0x010E26, an enemy aircraft");
+    int eighth = wof_g.view_shift != 0;
+
+    for (int16_t n = wof_g.wreck_count; (int16_t)(n - 1) != -1; n--) {   /* bra to dbra */
+        int16_t  d0 = wreck_word((uint16_t)(wof_g.wreck_count - n));
+        int16_t  d2 = d0;
+        int16_t  d1 = (int16_t)(-4 + wof_g.view_y);
+        uint16_t h;
+        const wof_shape_t *s;
+
+        if (d0 < 0)
+            d0 = (int16_t)-d0;
+        d0 = (int16_t)(d0 - wof_g.view_x);
+        if (eighth) {
+            d0 = (int16_t)(d0 >> 3);
+            d1 = (int16_t)(d1 >> 3);
+        }
+        if (d0 < -0x80 || d0 > 0x1C0)
+            continue;
+        h = enemy_frame(eighth, d2 < 0 ? 27 : 55);
+        s = wof_shape_of(h);
+        if (!s) {
+            wof_trace_add("shape_draw", 0, 0, 0, 1, 0, 0);
+            continue;
+        }
+        wof_shape_draw(s, (int16_t)(d0 - s->hot_x), (int16_t)(d1 - s->hot_y));
+    }
+    for (int i = 0; i < 4; i++) {
+        wof_aircraft_t *a = &wof_m.aircraft_records[i];
+        int16_t  d0, d1;
+        uint16_t h;
+        const wof_shape_t *s;
+
+        if (a->state == 0)
+            continue;
+        d0 = (int16_t)(a->x - wof_g.view_x);
+        d1 = (int16_t)(-a->y + wof_g.view_y - 7);
+        if (eighth) {
+            d0 = (int16_t)(d0 >> 3);
+            d1 = (int16_t)(d1 >> 3);
+        }
+        if (d0 < -0x80 || d0 > 0x1C0)
+            continue;
+        h = enemy_frame(eighth, a->frame);
+        s = wof_shape_of(h);
+        if (!s) {
+            wof_trace_add("shape_draw", 0, 0, 0, 1, 0, 0);
+            continue;
+        }
+        wof_shape_draw(s, (int16_t)(d0 - s->hot_x), (int16_t)(d1 - s->hot_y));
+        if (a->firing == 0 || eighth)
+            continue;
+        a->flash = (int16_t)(a->flash + 1);
+        if (!(a->flash & 1))
+            continue;
+        {
+            int16_t  d2 = (int16_t)(((uint16_t)a->flash & 3u) >> 1);
+            uint16_t fh;
+            const wof_shape_t *f;
+
+            d2 = (int16_t)(d2 + 0x10);
+            if (a->facing < 0)
+                d2 = (int16_t)(d2 + 2);
+            fh = wof_table_entry(T_JAPPLANE, d2);
+            f = wof_shape_of(fh);
+            draw_xor(fh, f ? (int16_t)(d0 - f->hot_x) : 0, f ? (int16_t)(d1 - f->hot_y) : 0);
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ draw_world, 0x013772 */
@@ -686,9 +980,9 @@ layers:
     wof_draw_enemy_aircraft();
     wof_targets_3_draw(table);
     wof_targets_f_draw(table);
-    ship_guns();
-    airfields();
-    ship_planes();
+    ship_guns_draw(table);
+    airfields_draw();
+    ship_planes(wof_g.g_026e56);
     islands(ocean());
 
     if (wof_g.g_027454 != 0) {
@@ -844,3 +1138,16 @@ wof_co_t wof_frame_update(void)
     wof_trace_pass_end();
     CO_END(c);
 }
+
+#ifdef WOF_TRACE
+/* The oracle tests' entry into the pass routines of M6 part 1 (tests/test_oracle_m6.py). */
+int32_t wof_test_m6_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out)
+{
+    (void)b; (void)c; (void)out;
+    switch (orig) {
+    case 0x014EFC: ship_gun_shell((int16_t)a); return 0;
+    case 0x014C3E: ship_guns_draw(wof_g.view_step == 1 ? T_ATH : T_MASTER); return 0;
+    default:       return -1000;
+    }
+}
+#endif

@@ -75,10 +75,39 @@ WOF_FIELD(player, enemy_countdown, int16_t, 0x1C, WOF_K_PLAIN)
 WOF_RECORD_END(player)
 
 /* ---------------------------------------------------------- an enemy aircraft, 0x34
- * aircraft_records (0x02522A, four).  Part 1 of M4 reads only +0x00, +0x02, +0x12, +0x14,
- * +0x20, +0x26, +0x2C, +0x2E and +0x30; the rest is M6's, kept as words until then. */
+ * aircraft_records (0x02522A, four), re/notes/enemy.md: the fields by their writers.  +0x00
+ * is the state (0 free, 1 unused, 2 flying, 4 shot down and falling, 8 unused, 0x10
+ * burning on the water); +0x02 the kind and manoeuvre (1 a fighter cruising, 2 a fighter on
+ * the player's tail, 4 a torpedo plane, 0x10 a torpedo plane that has dropped, bit 3 in a
+ * turn); +0x04 where it is against the player (1 behind him the same way, 3 ahead of him
+ * the same way, 2 and 4 the other way, east and west of him). */
 WOF_RECORD(aircraft, 0x34)
-WOF_FIELD_ARRAY(aircraft, w, int16_t, 26, 0x00, WOF_K_PLAIN)
+WOF_FIELD(aircraft, state,       int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(aircraft, mode,        int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(aircraft, relation,    int16_t,  0x04, WOF_K_PLAIN)
+WOF_FIELD(aircraft, hit,         int16_t,  0x06, WOF_K_PLAIN)
+WOF_FIELD(aircraft, health,      int16_t,  0x08, WOF_K_PLAIN)
+WOF_FIELD(aircraft, burst,       int16_t,  0x0A, WOF_K_PLAIN)
+WOF_FIELD(aircraft, order,       int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(aircraft, w0e,         int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(aircraft, timer,       int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(aircraft, firing,      int16_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(aircraft, facing,      int16_t,  0x14, WOF_K_PLAIN)
+WOF_FIELD(aircraft, attitude,    int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(aircraft, turn_in,     int16_t,  0x18, WOF_K_PLAIN)
+WOF_FIELD(aircraft, turns,       int16_t,  0x1A, WOF_K_PLAIN)
+WOF_FIELD(aircraft, speed,       int16_t,  0x1C, WOF_K_PLAIN)
+WOF_FIELD(aircraft, want_speed,  int16_t,  0x1E, WOF_K_PLAIN)
+WOF_FIELD(aircraft, x,           int16_t,  0x20, WOF_K_PLAIN)
+WOF_FIELD(aircraft, climb,       int16_t,  0x22, WOF_K_PLAIN)
+WOF_FIELD(aircraft, want_y,      int16_t,  0x24, WOF_K_PLAIN)
+WOF_FIELD(aircraft, y,           int16_t,  0x26, WOF_K_PLAIN)
+WOF_FIELD(aircraft, distance,    int16_t,  0x28, WOF_K_PLAIN)
+WOF_FIELD(aircraft, w2a,         int16_t,  0x2A, WOF_K_PLAIN)
+WOF_FIELD(aircraft, flash,       int16_t,  0x2C, WOF_K_PLAIN)
+WOF_FIELD(aircraft, draw_x,      int16_t,  0x2E, WOF_K_PLAIN)
+WOF_FIELD(aircraft, frame,       int16_t,  0x30, WOF_K_PLAIN)
+WOF_FIELD(aircraft, step_count,  int16_t,  0x32, WOF_K_PLAIN)
 WOF_RECORD_END(aircraft)
 
 /* --------------------------------------------------------------------- a ship, 0x1E
