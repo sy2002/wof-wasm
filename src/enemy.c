@@ -8,13 +8,13 @@
  *
  * The compiler's C keeps int 16 bits wide: a product of muls.w that is sign-extended again
  * with ext.l before a divs.w keeps only its low word, and the port says so where it
- * happens.  The two speed limits 0x025F52 (900) and 0x025F54 (0xA28) are words of the
- * DATA hunk that nothing writes. */
+ * happens.  The two speed limits 0x025F52 (900) and 0x025F54 (0xA28) are registered
+ * globals of the DATA hunk that nothing writes. */
 #include "wof.h"
 
 #define P          (wof_m.player[0])
-#define SPEED_MIN  ((int16_t)wof_image16(0x025F52u))
-#define SPEED_MAX  ((int16_t)wof_image16(0x025F54u))
+#define SPEED_MIN  (wof_g.aircraft_speed_min)
+#define SPEED_MAX  (wof_g.aircraft_speed_max)
 
 typedef wof_aircraft_t aircraft_t;
 

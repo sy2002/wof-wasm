@@ -444,7 +444,7 @@ typedef struct {
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 8u
+#define WOF_STATE_VERSION 9u
 
 extern wof_state_t wof_s;
 

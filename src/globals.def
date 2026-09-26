@@ -186,6 +186,9 @@ WOF_GLOBAL(g_026f8a,           int16_t,  0x026F8A)  /* 0x0107F2: 0x14 at a weapo
 WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
 WOF_GLOBAL(launch_cooldown,    int16_t,  0x027348)  /* 100 at a ship's or an airfield's launch; logic_tick counts it down */
 WOF_GLOBAL(japcarrier_roll,    int16_t,  0x02734A)  /* the Japanese carrier's aircraft's roll, sixteenths of a pixel a tick */
+WOF_GLOBAL(aircraft_speed_min, int16_t,  0x025F52)  /* 900, an enemy aircraft's least speed; nothing writes it */
+WOF_GLOBAL(aircraft_speed_max, int16_t,  0x025F54)  /* 0xA28, its greatest */
+WOF_GLOBAL(g_025f56,           int16_t,  0x025F56)  /* the word after them, which nothing reads; it keeps the struct free of padding */
 WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */
 WOF_GLOBAL(g_0253e8,           int16_t,  0x0253E8)  /* the swell's period, which logic_tick reloads 0x0253AC from */
 WOF_GLOBAL(g_026f80,           uint16_t, 0x026F80)  /* the cheat's q: main then ends the program (st.b) */

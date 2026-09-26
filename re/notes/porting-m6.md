@@ -228,8 +228,10 @@ The fall on land, the burning and the wreck's word are reached with the poke of
   turn by the distance times 100), only its low word divides, and the port says so there.
   The height's steps are the words of `climb_steps` (`0x0261F8`) by the twentieths of the
   distance to the wanted height, the speeds' limits the DATA words `0x025F52` (900) and
-  `0x025F54` (`0xA28`), which nothing writes, and x moves by mathffp (`aircraft_motion`,
-  `re/notes/ffp.md`).
+  `0x025F54` (`0xA28`), which nothing writes and which are registered
+  (`aircraft_speed_min`, `aircraft_speed_max`, with the unread word after them, which keeps
+  the globals' struct free of padding beside `japcarrier_roll`), and x moves by mathffp
+  (`aircraft_motion`, `re/notes/ffp.md`).
 - **The guns at an enemy aircraft** (`0x01B682`): by the relation alone, whatever the
   state, as the original walks them.
 - **The countdown's launch** (`0x01BC02`): the torpedo plane `0x1800` away on the side of
@@ -280,9 +282,9 @@ The fall on land, the burning and the wreck's word are reached with the poke of
 | T1, T2 | `tests/test_world.py`, `tests/test_weapons.py` | every M4 and M5 script in both loops, unchanged |
 | T7 | `tests/test_page.py`, `tests/test_firefox.py`: `test_an_enemy_aircraft_comes_up_on_the_page`, `..._in_a_visible_window` | on the page, in Chrome, Firefox and a visible Firefox window: the second rank's first mission, map d, flown from the keyboard from the hold to the airfield; the fighter it sends up found in the framebuffer by its frame's pixels, and none in the sky taken on the way (below) |
 
-The controls, each run by changing the port, rebuilding and running the open loop of one
-script with its attribution, then reverting; every one leaves steps that differ without a
-later stand-in reached:
+The controls of the pass (part 1), each run by changing the port, rebuilding and running
+the open loop of one script with its attribution, then reverting; every one leaves steps
+that differ without a later stand-in reached:
 
 | Control | Script | Steps not owed | The first |
 |---|---|---|---|

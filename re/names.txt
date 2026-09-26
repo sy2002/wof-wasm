@@ -821,3 +821,5 @@
 026f72 cheat_no_damage       ; word: the cheat's key 0x64 at cheat state 5 toggles it: no oil lost to an enemy fighter's guns or a target's fire
 027346 tick_parity           ; word: 0 and 1 in turn, one a tick; a fighter's guns take the oil on every other tick
 027e66 fighters_ahead        ; word: cleared each tick; fighter_cruise counts the fighters ahead of the player the same way (0x46 of speed each)
+025f52 aircraft_speed_min    ; word: 900, the least speed of an enemy aircraft (aircraft_speed); nothing writes it
+025f54 aircraft_speed_max    ; word: 0xA28, its greatest
