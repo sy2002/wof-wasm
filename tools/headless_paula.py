@@ -92,6 +92,7 @@ class Paula:
         self.events = []
         self.irqs = 0                   # handler calls
         self.handled = []               # each call: its VBlank, the requests, the DMA after
+        self.periods = []               # (instant, channel, period) at every change of AUDxPER
         self.late = 0                   # requests made deliverable outside a delivery point
         self.at = None                  # the instant of the channel event being delivered
         self._publish()
@@ -232,6 +233,8 @@ class Paula:
             elif field == 0x4:
                 ch.len = word
             elif field == 0x6:
+                if word != ch.per:
+                    self.periods.append((self.now(), (reg - AUD0) >> 4, word))
                 ch.per = word
             elif field == 0x8:
                 ch.vol = word
