@@ -33,6 +33,7 @@ tests/m4compare.py       the event log and the model after every pass and tick, 
 tests/m4state.py         a sample pointer to the port's handle
 tests/test_sound.py      the model's own properties, and the port's PCM
 tests/test_oracle_m8.py  every routine of the engine against the original, Paula compared too
+tests/m8_renders.py      the port's PCM of five scripts in the closed loop, dist/m8-sound/*.wav
 web/audio.js, core.js, main.js, overlay.js
                          the page takes the core's PCM by emulated time; the stereo width
 ```
