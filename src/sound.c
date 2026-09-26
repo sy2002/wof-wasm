@@ -510,3 +510,40 @@ void wof_soundfx_vblank(void)
         wof_paula_write(WOF_DMACON, wof_g.sound_dmacon);
     wof_paula_write(WOF_INTENA, 0x8780);
 }
+
+#ifdef WOF_TRACE
+/* The oracle tests' entry (tests/test_oracle_m8.py): one routine of the engine by its
+ * original address, on the port's state as the test left it.  Register arguments come in
+ * a to f as the original takes them in D0, D1, D2, D3, D4 and A0; `out` takes D0 and D1 as
+ * a routine leaves them where the caller goes on with them. */
+int32_t wof_test_m8_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t d,
+                         int32_t e, int32_t f, int32_t *out)
+{
+    uint16_t d0 = (uint16_t)a, d1 = (uint16_t)b;
+
+    switch (orig) {
+    case 0x011F4E: wof_sound_slots_clear(); return 0;
+    case 0x011F76: wof_sound_slots_init(); return 0;
+    case 0x012066: wof_sound_channels(); return 0;
+    case 0x012132: wof_engine_sound(); return 0;
+    case 0x0122CE: out[0] = distance_volume(d0); return 0;
+    case 0x0122F6: out[0] = near_volume(d0); return 0;
+    case 0x012306: out[0] = heard_at(d0, &d1); out[1] = d1; return 0;
+    case 0x012324: out[0] = wof_sound_boom((int16_t)d0); return 0;
+    case 0x01233E: wof_sound_splash((int16_t)d0); return 0;
+    case 0x012354: wof_sound_clang(); return 0;
+    case 0x012380: wof_sound_screech(); return 0;
+    case 0x0123AC: wof_sound_scream(&d0, &d1); out[0] = d0; out[1] = d1; return 0;
+    case 0x01E8B8: wof_sound_init(); return 0;
+    case 0x01EA28:
+        channel_play((uint32_t)f, (uint32_t)a, (uint16_t)b, (uint16_t)c, (uint16_t)d,
+                     (uint16_t)e);
+        return 0;
+    case 0x01EAC0: channel_stop(a & 3); return 0;
+    case 0x01EB4C: channel_adjust(a & 3, (uint16_t)b, (uint16_t)c); return 0;
+    case 0x01EBAA: wof_audio_irq(); return 0;
+    case 0x01EC64: wof_soundfx_vblank(); return 0;
+    default:       return -1;
+    }
+}
+#endif

@@ -91,6 +91,7 @@ class Paula:
         self.intreq = 0
         self.events = []
         self.irqs = 0                   # handler calls
+        self.handled = []               # each call: its VBlank, the requests, the DMA after
         self.late = 0                   # requests made deliverable outside a delivery point
         self.at = None                  # the instant of the channel event being delivered
         self._publish()
@@ -179,7 +180,12 @@ class Paula:
             if rounds > 8:
                 raise RuntimeError('the audio interrupt does not clear its request')
             self.irqs += 1
+            seen = self.intena & self.intreq & AUDIO_BITS
             self.m.nested_interrupt(self.m.o.r32(LEVEL4_VECTOR))
+            # (VBlank, the channels whose requests it saw, each channel's DMA after it)
+            self.handled.append((self.m.vblanks + (1 if self.at is not None else 0),
+                                 tuple(c for c in range(4) if seen & (0x80 << c)),
+                                 tuple(int(ch.on) for ch in self.ch)))
 
     # ------------------------------------------------------------------ the registers
 
