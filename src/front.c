@@ -433,8 +433,9 @@ static void ticker_message(uint32_t addr)
  * selection comes), s the music, f the vertical flip, g the save dialog on the carrier, l the
  * load dialog, b the crash reporter, c deletes the high scores, v the version in the ticker.
  * Any other key, and a Control key that is none of those, goes on to Escape, the pause, and
- * the cheat sequence c o l i n with the debug keys it unlocks.  The sound engine's slots it
- * clears (0x011F4E) are M8's; what a saved game holds is M7's. */
+ * the cheat sequence c o l i n with the debug keys it unlocks.  Switching the music off,
+ * the save and load dialogs and the pause clear the sound slots (0x011F4E), which stops
+ * every channel; what a saved game holds is M7's. */
 static wof_co_t ingame_keys(void)
 {
     wof_ctx_t *c = &wof_f.co_keys;
@@ -443,8 +444,10 @@ static wof_co_t ingame_keys(void)
     if (wof_f.pause_request) {
         /* The shell's request (wof_request_pause), taken where Escape would be. */
         wof_f.pause_request = 0;
-        if (!wof_g.pause_flag)
+        if (!wof_g.pause_flag) {
             wof_g.pause_flag = 0xFF;
+            wof_sound_slots_clear();                          /* as Escape: 0x01CE8E */
+        }
     }
     wof_g.last_key = 0;
     while (wof_key_available()) {
@@ -461,6 +464,8 @@ static wof_co_t ingame_keys(void)
             }
             if (wof_f.keys_char == 's') {
                 wof_g.opt_music_off = (uint8_t)~wof_g.opt_music_off;
+                if (wof_g.opt_music_off)
+                    wof_sound_slots_clear();                  /* 0x01CD60 */
                 continue;
             }
             if (wof_f.keys_char == 'f') {
@@ -471,6 +476,7 @@ static wof_co_t ingame_keys(void)
             if (wof_f.keys_char == 'g') {
                 if (wof_m.player[0].on_deck != 1)
                     continue;
+                wof_sound_slots_clear();                      /* 0x01CD86 */
                 CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(1));
                 wof_screen_game_restore();
                 wof_input_queue_clear();
@@ -479,6 +485,7 @@ static wof_co_t ingame_keys(void)
             if (wof_f.keys_char == 'l') {
                 if (wof_g.demo_mode != 0)
                     continue;
+                wof_sound_slots_clear();                      /* 0x01CDB0 */
                 wof_free_dash_shapes();                       /* 0x0134AE */
                 wof_free_sounds();                            /* 0x01346C */
                 wof_free_for_load();                          /* 0x011256 */
@@ -518,6 +525,8 @@ static wof_co_t ingame_keys(void)
 
             if (ch == 0x1B) {
                 wof_g.pause_flag = (uint8_t)~wof_g.pause_flag;
+                if (wof_g.pause_flag)
+                    wof_sound_slots_clear();                  /* 0x01CE8E */
                 continue;
             }
             if (ch == 'o') {
@@ -740,6 +749,7 @@ wof_co_t wof_front(void)
     CO_BEGIN(c);
     wof_g.g_027de2 = 1;                                       /* 0x01AA50 */
     wof_g.g_027de4 = 0;
+    wof_sound_init();                                         /* 0x012598, in open_libraries */
     wof_g.outside_mission = 0xFF;
     wof_g.g_024cac = 0xFFFF;
     CO_CALL(c, &wof_f.co_show, wof_cop_show_blank());     /* the tail of display_init */
@@ -774,7 +784,8 @@ wof_co_t wof_front(void)
             continue;
 
         /* 0x0101C6: the mission is over. */
-        wof_ticker_clear();                                   /* sub_011f4e is M8's */
+        wof_sound_slots_clear();
+        wof_ticker_clear();
         CO_CALL(c, &wof_f.co_fade, wof_fade_out_pair());
         wof_g.g_026d54 = 0;
         wof_g.demo_was_played = (uint8_t)(wof_g.demo_mode == 1 ? 0xFF : 0);

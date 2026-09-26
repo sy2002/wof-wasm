@@ -414,6 +414,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
     wof_f.dialog_prev   = 0;
     wof_draw_set_target(wof_front_vport());
     wof_clip_set_full();
+    wof_sound_engine_free();                /* 0x018DE4: the engine's sound goes (0x0134A4) */
     wof_f.dialog_count = dialog_file_list();
     dialog_draw_names();
     if (wof_f.dialog_count == 0 && mode == 0)
@@ -474,6 +475,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
             CO_CALL(c, &wof_f.co_fade, wof_fade_out());
             CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
             wof_f.dialog_result = 0xFFFF;
+            wof_sound_engine_load();        /* 0x019248 */
             CO_RETURN(c);
         }
 
@@ -509,6 +511,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
         CO_CALL(c, &wof_f.co_fade, wof_fade_out());
         CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
         wof_f.dialog_result = 0;
+        wof_sound_engine_load();            /* 0x019248: back, if it went */
         CO_RETURN(c);
     }
 
@@ -517,5 +520,6 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
      * nothing to end into, so the port treats it as a cancel and says so here. */
     CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
     wof_f.dialog_result = 0xFFFF;
+    wof_sound_engine_load();                /* 0x019248 */
     CO_END(c);
 }

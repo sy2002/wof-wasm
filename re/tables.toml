@@ -12,6 +12,7 @@
 #   cstrs     `count` NUL-terminated strings, back to back       -> const char *const[count]
 #   strptrs   `count` big-endian pointers to strings             -> const char *const[count]
 #   words     `count` big-endian 16-bit values                -> uint16_t[count]
+#             (`stride` bytes apart when given: immediates of a run of instructions)
 #   longs     `count` big-endian 32-bit values                -> uint32_t[count]
 #   blob      `count` raw bytes                               -> uint8_t[count]
 #   sysfont   topaz 8, located by contents in original/kick.rom (re/notes/system-font.md)
@@ -659,3 +660,101 @@ count = 10
 name = "score_format"
 kind = "cstr"
 addr = 0x0266C8
+
+# ------------------------------------------------------------------ the sound engine (M8)
+#
+# The periods, volumes, repeat counts and lengths the engine hands its slots are immediate
+# operands of `move.w #imm,d16(a4)`, six bytes to an instruction (re/notes/sound.md).
+# sub_011f76 (0x011F76) builds slots 0 to 6 with seven runs of 0x22 bytes, one per slot:
+# the period, the volume and the repeat count are the words at +0, +6 and +12 of each run.
+
+[[table]]
+name = "slot_periods"
+kind = "words"
+addr = 0x011F84
+count = 7
+stride = 0x22
+
+[[table]]
+name = "slot_volumes"
+kind = "words"
+addr = 0x011F8A
+count = 7
+stride = 0x22
+
+[[table]]
+name = "slot_repeats"
+kind = "words"
+addr = 0x011F90
+count = 7
+stride = 0x22
+
+# engine_sound (0x012132): the grinding lift into slot 7 (period, volume, repeat), and slot 5
+# while the aircraft is aboard (period, volume, repeat) or not (period; the repeat at
+# 0x0122B0).
+[[table]]
+name = "slot_lift"
+kind = "words"
+addr = 0x01224C
+count = 3
+stride = 6
+
+[[table]]
+name = "slot_aboard"
+kind = "words"
+addr = 0x012284
+count = 3
+stride = 6
+
+[[table]]
+name = "slot_splash"
+kind = "words"
+addr = 0x0122AA
+count = 2
+stride = 6
+
+# 0x012354 the lift's clang, 0x012380 the touch-down's screech: slot 7's length, period,
+# volume and repeat count.  0x0123AC a soldier's scream: length and period, and the repeat
+# count at 0x0123CA.
+[[table]]
+name = "slot_clang"
+kind = "words"
+addr = 0x01235C
+count = 4
+stride = 6
+
+[[table]]
+name = "slot_screech"
+kind = "words"
+addr = 0x012388
+count = 4
+stride = 6
+
+[[table]]
+name = "slot_scream"
+kind = "words"
+addr = 0x0123B4
+count = 2
+stride = 6
+
+[[table]]
+name = "slot_scream_repeat"
+kind = "words"
+addr = 0x0123CA
+count = 1
+
+# engine_idle (0x01B9CC): the engine's volume and the volume it eases to, its period and
+# the period it eases to, at rest.
+[[table]]
+name = "engine_idle"
+kind = "words"
+addr = 0x01B9D2
+count = 4
+stride = 6
+
+# 0x01EAC0, a channel stopped: the period it leaves in AUDxPER.
+[[table]]
+name = "channel_stop_period"
+kind = "words"
+addr = 0x01EB18
+count = 1

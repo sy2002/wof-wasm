@@ -102,7 +102,7 @@ WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);
 WOF_API(wof_palettes)          const uint32_t *wof_palettes(void);
 WOF_API(wof_display_list)      const void     *wof_display_list(uint32_t *count);
-WOF_API(wof_audio_render)      void            wof_audio_render(int16_t *stereo, uint32_t frames, uint32_t rate);
+WOF_API(wof_audio_render)      uint32_t        wof_audio_render(int16_t *stereo, uint32_t frames, uint32_t rate);
 WOF_API(wof_state_size)        uint32_t        wof_state_size(void);
 WOF_API(wof_state_save)        void            wof_state_save(uint8_t *dst);
 WOF_API(wof_state_load)        void            wof_state_load(const uint8_t *src);
@@ -385,6 +385,7 @@ typedef struct {
 #define WOF_K_SHAPE 1
 #define WOF_K_MAP   2
 #define WOF_K_POOL  3
+#define WOF_K_SOUND 4
 
 #define WOF_RECORD(r, size)                   typedef struct {
 #define WOF_FIELD(r, n, t, off, k)            t n;
@@ -407,6 +408,42 @@ typedef struct {
 #undef WOF_POOL
 } wof_mission_t;
 
+/* ------------------------------------------------------------- Paula's audio side (M8) */
+
+/* A sample pointer as the port keeps it (records.def, WOF_K_SOUND): the sound file's index
+ * in sound_files plus one in the top byte, the offset into the file below it; 0 for none.
+ * The samples are the files as the disk has them, signed 8-bit PCM, read from the file
+ * system blob where they lie. */
+#define WOF_SOUND(file, offset) ((((uint32_t)(file) + 1u) << 24) | ((uint32_t)(offset) & 0xFFFFFFu))
+#define WOF_SOUND_FILE(h)       ((int)((h) >> 24) - 1)
+#define WOF_SOUND_OFFSET(h)     ((h) & 0xFFFFFFu)
+
+/* One audio channel of the model (SPEC 6.5, re/notes/sound.md): the registers as the game
+ * wrote them and where the channel is in its cycle.  Time is counted in units of
+ * 1 / (clock x hz) seconds, so that a VBlank is `clock` units and a sample at period P is
+ * P x hz units, both whole numbers; tools/headless_paula.py keeps the same. */
+typedef struct {
+    uint64_t next;       /* the instant the next byte of the cycle begins */
+    uint32_t lc;         /* AUDxLC, a sound handle */
+    uint32_t ptr;        /* the next byte of the cycle to begin, a sound handle */
+    uint32_t left;       /* bytes of the cycle not begun yet */
+    uint16_t len;        /* AUDxLEN in words, 0 for 65,536 */
+    uint16_t per;        /* AUDxPER */
+    uint16_t vol;        /* AUDxVOL */
+    uint16_t on;         /* the channel's bit in DMACON */
+} wof_paula_channel_t;
+
+typedef struct {
+    wof_paula_channel_t ch[4];
+    uint32_t vblanks;    /* VBlanks the model has seen: the instant T_k is vblanks x clock */
+    uint32_t irqs;       /* calls of the level-4 handler */
+    uint32_t late;       /* requests the main program made deliverable (none is expected) */
+    uint16_t intena;     /* INTENA as INTENAR reads it */
+    uint16_t intreq;     /* INTREQ as INTREQR reads it */
+    uint16_t hz;         /* the video rate the units were taken at */
+    uint16_t pad;
+} wof_paula_t;
+
 /* ------------------------------------------------------------------------ core state */
 
 /* Everything the core may change while running, in one struct, so that wof_state_save is a
@@ -422,8 +459,6 @@ typedef struct {
     uint32_t vblanks;       /* VBlanks since wof_init */
     uint32_t ticks;         /* logic ticks since wof_init, one per 4 VBlanks */
     uint32_t passes;        /* wof_pass calls since wof_init */
-    uint32_t tone_phase_l;  /* test tone, 32-bit phase, one turn per cycle */
-    uint32_t tone_phase_r;
     uint16_t video_hz;      /* 60 or 50 */
     uint16_t raw;           /* the most recent VBlank's controller state, opposing
                              * directions cancelled: the port's JOY1DAT and CIA-A PRA */
@@ -438,13 +473,14 @@ typedef struct {
     uint16_t assist_left;   /* the VBlanks that push still covers */
     uint16_t assist_queued; /* presses remembered while it runs, at most two */
     uint16_t assist_queue[2];
+    wof_paula_t   paula;    /* Paula's audio side, src/audio.c (M8) */
     wof_globals_t g;        /* the original's own globals, src/globals.def */
     wof_mission_t m;        /* the original's tables, src/mission.def */
     wof_front_t   f;        /* the front end: coroutines, screens, dialogs (SPEC 6.3) */
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 9u
+#define WOF_STATE_VERSION 10u
 
 extern wof_state_t wof_s;
 
@@ -883,6 +919,52 @@ void     wof_high_score_draw(void);                          /* orig 0x01967E */
 
 void wof_audio_init(void);
 
+/* Paula (src/audio.c).  The engine writes the registers through these, as the original
+ * writes 0xDFF096 and on; wof_paula_boundary runs at every VBlank before the servers and
+ * delivers the channel events of the VBlank that has passed, wof_paula_deliver calls the
+ * level-4 handler while a request is deliverable. */
+#define WOF_DMACON 0x096
+#define WOF_INTENA 0x09A
+#define WOF_INTREQ 0x09C
+void     wof_paula_write(uint16_t reg, uint16_t value);        /* a custom register, 0x096 on */
+void     wof_paula_lc(int channel, uint32_t sound);            /* AUDxLC as a long */
+uint16_t wof_paula_intenar(void);
+uint16_t wof_paula_intreqr(void);
+void     wof_paula_boundary(void);
+void     wof_paula_deliver(void);
+void     wof_paula_server(int inside);                           /* a VBlank server runs */
+const int8_t *wof_sound_data(uint32_t handle, uint32_t *left);  /* the bytes from a handle on */
+
+/* The effects engine (src/sound.c, re/notes/sound.md), in the original's address order. */
+void     wof_sound_slots_clear(void);       /* orig 0x011F4E */
+void     wof_sound_slots_init(void);        /* orig 0x011F76 */
+void     wof_sound_channels(void);          /* orig 0x012066 */
+void     wof_engine_sound(void);            /* orig 0x012132 */
+uint16_t wof_sound_boom(int16_t x);         /* orig 0x012324, D0 as it leaves it */
+void     wof_sound_splash(int16_t x);       /* orig 0x01233E */
+void     wof_sound_clang(void);             /* orig 0x012354 */
+void     wof_sound_screech(void);           /* orig 0x012380 */
+void     wof_sound_scream(uint16_t *d0, uint16_t *d1);   /* orig 0x0123AC, D0 and D1 in and out */
+void     wof_sound_init(void);              /* orig 0x01E8B8 */
+void     wof_audio_irq(void);               /* orig 0x01EBAA */
+void     wof_soundfx_vblank(void);          /* orig 0x01EC64 */
+
+#ifdef WOF_TRACE
+/* The sound event log of SPEC 8 (src/audio.c): one entry per sample start and restart. */
+typedef struct {
+    uint64_t time;
+    uint32_t vblank, pass, tick;
+    uint32_t offset;
+    uint16_t kind;       /* 'S' or 'R' */
+    uint16_t channel;
+    int16_t  file;       /* index in sound_files, -1 for none */
+    uint16_t words, period, volume;
+} wof_sound_event_t;
+uint32_t                 wof_sound_event_count(void);
+const wof_sound_event_t *wof_sound_event_at(uint32_t i);
+void                     wof_sound_events_reset(void);
+#endif
+
 /* ------------------------------------------------------ the mission (M4, src/mission.c) */
 
 void     wof_mission_init(void);            /* the dashboard picture's buffer, at start-up */
@@ -907,6 +989,8 @@ void     wof_dashboard_invalidate(void);    /* orig 0x01EDAA */
 void     wof_load_ship_shapes(void);        /* orig 0x013252 */
 void     wof_build_master_lists(void);      /* orig 0x01535A */
 void     wof_sounds_load(void);             /* orig 0x013368 */
+void     wof_sound_engine_load(void);       /* orig 0x01344E */
+void     wof_sound_engine_free(void);       /* orig 0x0134A4 */
 void     wof_ticker_clear(void);            /* orig 0x016BBC */
 void     wof_demo_end(void);                /* orig 0x01852A */
 wof_co_t wof_mission_display_setup(void);   /* orig 0x018806 */

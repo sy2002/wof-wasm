@@ -31,6 +31,7 @@ from conftest import (ROOT, assert_an_enemy_aircraft_comes_up,
                       assert_the_screenshot_shows_the_picture,
                       assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
+                      assert_the_front_end_is_silent, assert_the_mission_is_heard,
                       measured_box, overlay_audio, overlay_number)
 
 # What the shell was showing when each measurement was taken.
@@ -95,7 +96,7 @@ def test_the_up_key_is_the_stick_pushed_forward(loaded_firefox):
 
 
 def test_firefox_is_silenced_by_its_profile(loaded_firefox):
-    """The page plays a test tone, and these runs happen on a machine somebody is working at.
+    """The page plays the game's sounds, and these runs happen on a machine somebody is working at.
     The profile the harness builds sets media.volume_scale, which turns Firefox's output down
     from outside the page so that the shipped configuration is still what the audio tests
     see.  What is read back here is the preference Firefox itself wrote out when it shut
@@ -245,6 +246,24 @@ def test_a_mission_is_flown_from_the_keyboard(loaded_firefox):
     assert after['stored'] == '1' and after['player']['flip'], after
 
 
+def test_the_front_end_renders_silence(loaded_firefox):
+    """M8 in Firefox: the key that started the sound came in the front end, which plays no
+    effect; every frame of PCM the shell has taken from the core since is silence."""
+    assert_the_front_end_is_silent(loaded_firefox['overlay'])
+
+
+def test_the_mission_sounds_through_the_worklet(loaded_firefox):
+    """M8 in Firefox: after the hold, the lift, the take-off, the guns and a weapon's burst,
+    the PCM that went through the AudioWorklet is not silent."""
+    assert_the_mission_is_heard(loaded_firefox['flight']['pcm'], 'worklet')
+
+
+def test_the_mission_sounds_through_the_scheduled_buffers(loaded_firefox):
+    """M8 in Firefox: the enemy flight runs with ?audio=buffers, and its sounds went through
+    the fallback as PCM that is not silent."""
+    assert_the_mission_is_heard(loaded_firefox['enemy']['overlay'], 'buffers')
+
+
 def test_an_enemy_aircraft_comes_up_on_the_page(loaded_firefox, ported):
     """M6 in Firefox: the second rank's first mission, map d, flown from the hold to the
     airfield, whose fighter the framebuffer shows over the island."""
@@ -275,6 +294,14 @@ def test_a_mission_is_flown_in_a_visible_window(loaded_firefox_visible):
     assert_the_mission_is_flown_from_the_keyboard(flight)
     after = flight['afterReload']
     assert after['stored'] == '1' and after['player']['flip'], after
+
+
+def test_the_mission_sounds_in_a_visible_window(loaded_firefox_visible):
+    """M8 in a visible Firefox window: the worklet's PCM of the flight and the scheduled
+    buffers' of the enemy flight are not silent, and the front end's is."""
+    assert_the_front_end_is_silent(loaded_firefox_visible['overlay'])
+    assert_the_mission_is_heard(loaded_firefox_visible['flight']['pcm'], 'worklet')
+    assert_the_mission_is_heard(loaded_firefox_visible['enemy']['overlay'], 'buffers')
 
 
 def test_an_enemy_aircraft_comes_up_in_a_visible_window(loaded_firefox_visible, ported):

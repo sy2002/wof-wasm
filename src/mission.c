@@ -73,10 +73,17 @@ void wof_free_dash_shapes(void)
 {
 }
 
-/* orig 0x01346C - seven of the eight sounds; the first stays until 0x0134A4 frees it from
- * the load dialog.  The port keeps only whether each one is loaded (M8 plays them). */
+/* orig 0x01346C - seven of the eight sounds, their pointers cleared (mem_free_var); the
+ * engine's stays until 0x0134A4 frees it from the load dialog. */
 void wof_free_sounds(void)
 {
+    wof_m.sound_machinegun[0].p = 0;
+    wof_m.sound_boom[0].p       = 0;
+    wof_m.sound_splash[0].p     = 0;
+    wof_m.sound_clang[0].p      = 0;
+    wof_m.sound_scream[0].p     = 0;
+    wof_m.sound_screech[0].p    = 0;
+    wof_m.sound_grind[0].p      = 0;
     wof_f.sound_loaded &= 0x01u;
 }
 
@@ -961,11 +968,50 @@ static const uint8_t sound_order[8][2] = {
     { 7, 2 }, { 3, 3 }, { 1, 6 }, { 2, 4 }, { 5, 5 }, { 0, 1 }, { 6, 7 }, { 4, 0 },
 };
 
+/* The pointer sounds_load keeps to each effect, in the order it takes them. */
+static uint32_t *sound_pointer(int k)
+{
+    wof_soundptr_t *p[8] = {
+        wof_m.sound_engine, wof_m.sound_splash, wof_m.sound_screech, wof_m.sound_scream,
+        wof_m.sound_clang, wof_m.sound_boom, wof_m.sound_grind, wof_m.sound_machinegun,
+    };
+
+    return &p[k][0].p;
+}
+
+/* orig 0x01344E - the engine's sound loaded again if the load and save dialog let it go: its
+ * length and its pointer, as sounds_load's first step. */
+void wof_sound_engine_load(void)
+{
+    wof_file_t f;
+    uint32_t   mark, len = 0;
+
+    if (wof_m.sound_engine[0].p != 0)
+        return;
+    if (wof_dos_open(&f, wof_tbl_sound_files[sound_order[0][0]])) {
+        int32_t size = wof_dos_examine_size(f.entry);
+
+        wof_g.sound_length[sound_order[0][1]] = (uint32_t)(size < 0 ? 0 : size);
+        wof_dos_close(&f);
+    }
+    mark = wof_arena_mark();
+    wof_load_file(wof_tbl_sound_files[sound_order[0][0]], &len);
+    wof_arena_release(mark);
+    wof_m.sound_engine[0].p = WOF_SOUND(sound_order[0][0], 0);
+    wof_f.sound_loaded |= 0x01u;
+}
+
+/* orig 0x0134A4 - the engine's sound let go, which the load and save dialog does first. */
+void wof_sound_engine_free(void)
+{
+    wof_m.sound_engine[0].p = 0;
+    wof_f.sound_loaded &= (uint8_t)~0x01u;
+}
+
 /* orig 0x013368 sounds_load - each effect's length by file_length (0x015B1A), then the file,
- * each only if it is not loaded yet.  The engine that plays them is M8's: the slots
- * sub_011f76 builds from the pointers are not ported (M8 STAND-IN: the sound slots, which
- * stand on the exclusion list of the completeness test), but the files are opened and the
- * lengths kept, in the original's order. */
+ * each only if its pointer is still clear, in the original's order; then the slots are built
+ * from the pointers (0x011F76).  The port's pointer is a sound handle: the samples are
+ * played from the file system blob, where they lie as the disk has them (src/audio.c). */
 void wof_sounds_load(void)
 {
     for (int k = 0; k < 8; k++) {
@@ -974,7 +1020,7 @@ void wof_sounds_load(void)
         uint32_t    len  = 0;
         wof_file_t  f;
 
-        if (wof_f.sound_loaded & (1u << k))
+        if (*sound_pointer(k) != 0)
             continue;
         if (wof_dos_open(&f, name)) {                     /* file_length: Open, Seek, Close */
             int32_t size = wof_dos_examine_size(f.entry);
@@ -984,8 +1030,10 @@ void wof_sounds_load(void)
         }
         wof_load_file(name, &len);
         wof_arena_release(mark);
+        *sound_pointer(k) = WOF_SOUND(sound_order[k][0], 0);
         wof_f.sound_loaded |= (uint8_t)(1u << k);
     }
+    wof_sound_slots_init();                                       /* 0x011F76 */
 }
 
 /* ---------------------------------------------------------- mission_display_setup, 0x018806 */

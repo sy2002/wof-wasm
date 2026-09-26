@@ -249,7 +249,7 @@ def observe(name, verbose=True, blocks=False, **more):
     if pokes:
         import m5_scripts
         m5_scripts.install_pokes(machine, pokes)
-    machine.run()
+    machine.run(wall_limit=3600.0)           # the longest scripts with block hooks, on a busy machine
     if verbose:
         print('%-9s %5d VBlanks, %5d passes, %4d ticks, %d missions, %d entropy reads  (%.0f s)'
               % (name, machine.vblanks, machine.passes, machine.ticks, machine.missions,

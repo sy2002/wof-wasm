@@ -532,13 +532,14 @@ static void hook(void)
     }
 }
 
-/* orig 0x01B9CC - the engine's sound at rest (M8's parameters, kept as state). */
+/* orig 0x01B9CC engine_idle - the engine's sound at rest: its volume and the volume it eases
+ * to, its period and the period it eases to (re/tables.toml, engine_idle). */
 void wof_engine_idle(void)
 {
-    wof_g.g_02542c = 0x28;
-    wof_g.g_025428 = 0x28;
-    wof_g.g_02542e = 0x328;
-    wof_g.g_02542a = 0x328;
+    wof_g.g_02542c = (int16_t)wof_tbl_engine_idle[0];
+    wof_g.g_025428 = (int16_t)wof_tbl_engine_idle[1];
+    wof_g.g_02542e = (int16_t)wof_tbl_engine_idle[2];
+    wof_g.g_02542a = (int16_t)wof_tbl_engine_idle[3];
     wof_g.g_027de8 = 0;
 }
 
@@ -560,13 +561,13 @@ static void ground(void)
         if (P.facing == -1 && wof_g.landing_stall) {
             P.on_deck = 1;
             wof_g.g_025a9e = -1;
-            /* 0x012380: the touch-down's sound (M8) */
+            wof_sound_screech();                                  /* 0x012380 */
             P.y = (int16_t)(wof_ground_height(at) + wof_wheel_height());
         } else {
             P.speed_y = (int16_t)-P.speed_y;
             wof_g.pitch_target = (int16_t)-wof_g.pitch_target;
             P.y = (int16_t)(P.y + 6);
-            /* 0x012380: the touch-down's sound (M8) */
+            wof_sound_screech();                                  /* 0x012380 */
         }
         return;
     }

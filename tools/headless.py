@@ -47,6 +47,7 @@ from capstone import Cs, CS_ARCH_M68K, CS_MODE_M68K_000                         
 
 import disasm                                                                          # noqa: E402
 import headless_dump as dump                                                           # noqa: E402
+import headless_paula                                                                  # noqa: E402
 import headless_writes as trace                                                      # noqa: E402
 from headless_os import AmigaOS, HarnessError                                          # noqa: E402
 from oracle import Oracle                                                              # noqa: E402
@@ -93,6 +94,7 @@ READ_JOY_BITS      = 0x01520E
 DISPLAY_ALLOC_CHIP = 0x0165CC
 SPINS              = (0x01AA36, 0x01AA44)        # tst.b vblank_flag in wait_next_vblank, wait_vblank
 CRACK_SCREEN       = 0x01F41A
+AUDIO_IRQ_RTE      = 0x01EC62    # the rte of audio_irq, the level-4 handler sound_init installs
 RAND_BEAM          = 0x0203BE
 READ_VHPOSR        = 0x015D5A
 DATA_START, DATA_END = 0x023000, 0x028004
@@ -120,6 +122,7 @@ DEFAULT_RUN = {
     'entropy': {'seed': 1},
     'video_hz': 50,
     'vblanks_per_pass': 2,
+    'paula': True,
     'raw': [],
     'stop': {'ticks': 100},
 }
@@ -441,6 +444,14 @@ class Headless(AmigaOS):
         self.stop_at(LOGIC_TICK, self._tick_begin)
         for address in TICK_RETURNS:              # hooks must exist before the code is first run:
             self.stop_at(address, self._tick_end)     # Unicorn does not re-translate for a new hook
+
+        # Paula's audio side (M8): the channels, their interrupts and the sound event log
+        # (tools/headless_paula.py).  `"paula": false` in the run description leaves the audio
+        # registers plain memory, as they were before M8.
+        self.paula = headless_paula.install(self, self.video_hz) if run.get('paula', True) else None
+        # Unicorn does not execute rte (it raises an exception it leaves unhandled), so the
+        # driver does it at the one the game's interrupt handler ends with.
+        self.stop_at(AUDIO_IRQ_RTE, self._rte)
 
         # the main program: main(argc, argv) with a 16-bit argc of 1, as the C startup calls it
         sp = MAIN_STACK_TOP
@@ -809,19 +820,21 @@ class Headless(AmigaOS):
         if d0 is not None:
             self.setreg('d0', d0)
 
-    def nested(self, address, regs, args=b''):
+    def nested(self, address, regs, args=b'', frame=None):
         """Run a routine of the original to its rts while the program is parked: an interrupt
         server, a callback.  It has a stack of its own and may call the operating system.
         `args` are the bytes a C routine reads above its return address, right to left as
-        the caller would have pushed them.  Returns the registers it left."""
+        the caller would have pushed them.  `frame`, instead of a return address, is an
+        exception frame for a handler that ends with rte.  Returns the registers it left."""
         if self.depth >= 3:
             raise HarnessError('nested calls too deep')
         saved = self.context(), self.pc, self._reason, self._pause
         self.depth += 1
-        sp = NESTED_STACK_TOP - 0x2000 * (self.depth - 1) - 4 - len(args)
+        top = frame if frame is not None else struct.pack('>L', NESTED_TRAP)
+        sp = NESTED_STACK_TOP - 0x2000 * (self.depth - 1) - len(top) - len(args)
         if args:
-            self.o.write(sp + 4, args)
-        self.o.w32(sp, NESTED_TRAP)
+            self.o.write(sp + len(top), args)
+        self.o.write(sp, top)
         self.uc.reg_write(UC_M68K_REG_A7, sp)
         for name, value in regs.items():
             self.setreg(name, value)
@@ -832,6 +845,20 @@ class Headless(AmigaOS):
         context, self.pc, self._reason, self._pause = saved
         self.restore(context)
         return out
+
+    def _rte(self):
+        """rte: the status register and the return address from the exception frame."""
+        sp = self.uc.reg_read(UC_M68K_REG_A7)
+        sr, self.pc = self.o.r16(sp), self.o.r32(sp + 2)
+        self.uc.reg_write(UC_M68K_REG_A7, sp + 6)
+        self.uc.reg_write(UC_M68K_REG_SR, sr)
+
+    def nested_interrupt(self, address):
+        """The CPU taking an interrupt while the program is parked: the handler at `address`
+        runs on a stack of its own with an exception frame, in supervisor mode, and its rte
+        returns to the trap (tools/headless_paula.py)."""
+        sr = self.uc.reg_read(UC_M68K_REG_SR) | 0x2000
+        return self.nested(address, {}, frame=headless_paula.frame(sr, NESTED_TRAP))
 
     def _os_call(self, address):
         library = LIB_NAMES[(address - LIB_AREA) // LIB_SPAN]
@@ -903,6 +930,12 @@ class Headless(AmigaOS):
             self.joy_words = self._joy_words()
         raw, keys = self._next_raw()
         self.in_vblank += 1
+        if self.paula:
+            try:
+                self.paula.boundary()         # the channel events of the VBlank that has passed
+            except BaseException:
+                self.in_vblank -= 1
+                raise
         down, up, right, left, fire = [(raw >> i) & 1 for i in range(5)]
         if down and up:
             down = up = 0
@@ -922,6 +955,8 @@ class Headless(AmigaOS):
         try:
             for _, _, data, code in sorted(self.servers, key=lambda s: (-s[0], s[1])):
                 self.nested(code, {'a0': CUSTOM, 'a1': data, 'a5': code, 'a6': self.lib_base['exec']})
+                if self.paula:
+                    self.paula.deliver()      # a channel the server switched on: its start
         finally:
             self.in_vblank -= 1
         stop = self.run_spec['stop']

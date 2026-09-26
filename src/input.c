@@ -259,6 +259,18 @@ void wof_vblank(uint8_t raw)
     if ((state & (RAW_LEFT | RAW_RIGHT)) == (RAW_LEFT | RAW_RIGHT))
         state &= (uint8_t)~(RAW_LEFT | RAW_RIGHT);
 
+    /* The audio channels' events of the VBlank that has passed, then the servers in the order
+     * of their priorities: soundfx_vblank (30) once sound_init has added it, with the start
+     * interrupts it raises delivered when it returns, then vblank_server (-10), which is the
+     * rest of this function (src/audio.c, re/notes/sound.md). */
+    wof_paula_boundary();
+    if (wof_g.sound_installed) {
+        wof_paula_server(1);
+        wof_soundfx_vblank();
+        wof_paula_server(0);
+        wof_paula_deliver();
+    }
+
     wof_s.raw = state;
     wof_s.vblanks++;
     wof_s.since_pass++;

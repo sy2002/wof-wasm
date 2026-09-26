@@ -4,7 +4,7 @@
 import { loadCore } from './core.js';
 import { createVideo } from './video.js';
 import { createInput } from './input.js';
-import { createAudio } from './audio.js';
+import { createAudio, STEREO_WIDTHS } from './audio.js';
 import { createClock } from './clock.js';
 import { createOverlay } from './overlay.js';
 
@@ -121,7 +121,13 @@ async function boot() {
             writeSetting('invertVertical', invert ? '1' : '0');
         }
     }
-    const audio = createAudio(core);
+    /* The stereo width is the owner's too (SPEC 6.5): remembered, and 1 - the Amiga's hard
+       left and right - until changed. */
+    let width = Number(readSetting('stereoWidth'));
+    if (!STEREO_WIDTHS.includes(width)) {
+        width = STEREO_WIDTHS[0];
+    }
+    const audio = createAudio(core, width);
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
@@ -211,6 +217,10 @@ async function boot() {
             setStandard('pal');
         } else if (overlay.visible() && event.code === 'Digit6') {
             setStandard('ntsc');
+        } else if (overlay.visible() && event.code === 'Digit7') {
+            width = STEREO_WIDTHS[(STEREO_WIDTHS.indexOf(width) + 1) % STEREO_WIDTHS.length];
+            audio.setWidth(width);
+            writeSetting('stereoWidth', String(width));
         } else if (overlay.visible() && event.code === 'Digit1') {
             core.devSetScore(5000);          /* enough to beat the tenth entry */
             event.preventDefault();

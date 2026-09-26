@@ -512,6 +512,100 @@ int wt_trace_get(int i, char *what, char *text, int *numbers)
 }
 #endif
 
+/* The sound event log (src/audio.c, SPEC 8): one entry per sample start and restart, as
+ * eleven numbers - kind, VBlank, pass, tick, channel, file, offset, words, period, volume -
+ * and the instant, in units, as its low and high halves. */
+#ifdef WOF_TRACE
+int  wt_sound_event_count(void)  { return (int)wof_sound_event_count(); }
+void wt_sound_events_reset(void) { wof_sound_events_reset(); }
+
+int wt_sound_event(int i, uint32_t *out)
+{
+    const wof_sound_event_t *e = wof_sound_event_at((uint32_t)i);
+
+    if (!e)
+        return 0;
+    out[0]  = e->kind;
+    out[1]  = e->vblank;
+    out[2]  = e->pass;
+    out[3]  = e->tick;
+    out[4]  = e->channel;
+    out[5]  = (uint32_t)(int32_t)e->file;
+    out[6]  = e->offset;
+    out[7]  = e->words;
+    out[8]  = e->period;
+    out[9]  = e->volume;
+    out[10] = (uint32_t)e->time;
+    out[11] = (uint32_t)(e->time >> 32);
+    return 1;
+}
+#endif
+
+/* Paula's registers as the model holds them: per channel LC (a sound handle), LEN, PER, VOL
+ * and the DMA bit; then INTENA, INTREQ, the handler calls, the late requests and the VBlanks
+ * the model has seen.  25 numbers. */
+void wt_paula(uint32_t *out)
+{
+    for (int c = 0; c < 4; c++) {
+        const wof_paula_channel_t *ch = &wof_s.paula.ch[c];
+
+        out[c * 5 + 0] = ch->lc;
+        out[c * 5 + 1] = ch->len;
+        out[c * 5 + 2] = ch->per;
+        out[c * 5 + 3] = ch->vol;
+        out[c * 5 + 4] = ch->on;
+    }
+    out[20] = wof_s.paula.intena;
+    out[21] = wof_s.paula.intreq;
+    out[22] = wof_s.paula.irqs;
+    out[23] = wof_s.paula.late;
+    out[24] = wof_s.paula.vblanks;
+}
+
+/* The model set to a state of the headless original's (the open loop): per channel LC and
+ * the next byte as sound handles, LEN, PER, VOL, DMA, the bytes left and the instant in two
+ * halves; then INTENA, INTREQ and the VBlank count.  39 numbers. */
+void wt_paula_put(const uint32_t *in)
+{
+    for (int c = 0; c < 4; c++) {
+        wof_paula_channel_t *ch = &wof_s.paula.ch[c];
+        const uint32_t      *v  = in + c * 9;
+
+        ch->lc   = v[0];
+        ch->len  = (uint16_t)v[1];
+        ch->per  = (uint16_t)v[2];
+        ch->vol  = (uint16_t)v[3];
+        ch->on   = (uint16_t)v[4];
+        ch->ptr  = v[5];
+        ch->left = v[6];
+        ch->next = (uint64_t)v[7] | ((uint64_t)v[8] << 32);
+    }
+    wof_s.paula.intena  = (uint16_t)in[36];
+    wof_s.paula.intreq  = (uint16_t)in[37];
+    wof_s.paula.vblanks = in[38];
+}
+
+void wt_paula_state(uint32_t *out)
+{
+    for (int c = 0; c < 4; c++) {
+        const wof_paula_channel_t *ch = &wof_s.paula.ch[c];
+        uint32_t                  *v  = out + c * 9;
+
+        v[0] = ch->lc;
+        v[1] = ch->len;
+        v[2] = ch->per;
+        v[3] = ch->vol;
+        v[4] = ch->on;
+        v[5] = ch->ptr;
+        v[6] = ch->left;
+        v[7] = (uint32_t)ch->next;
+        v[8] = (uint32_t)(ch->next >> 32);
+    }
+    out[36] = wof_s.paula.intena;
+    out[37] = wof_s.paula.intreq;
+    out[38] = wof_s.paula.vblanks;
+}
+
 /* The music calls the front end made, with the VBlank each one happened at. */
 int wt_music_count(void)        { return wof_f.music_count; }
 int wt_music_song(int i)        { return i < wof_f.music_count ? wof_f.music_song[i] : -1; }

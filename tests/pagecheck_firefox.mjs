@@ -37,7 +37,7 @@ const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 const profile = mkdtempSync(join(tmpdir(), 'wof-firefox-'));
 
-/* The page plays a test tone, and these runs happen on a machine somebody is working at.
+/* The page plays the game's sounds, and these runs happen on a machine somebody is working at.
    media.volume_scale turns Firefox's own output down to nothing without touching the page,
    so what is tested is still the shipped configuration: the context runs, the worklet
    backend is the one from the data: URL, and audio is queued.  Chrome is silenced the same
@@ -492,6 +492,8 @@ try {
     flight.climb1 = await player();
     await sleep(1500);
     flight.climb2 = await player();
+    /* M8: the engine, the guns and the burst have played by now (the overlay's pcm line). */
+    flight.pcm = await evaluateIn(flightTab, "document.getElementById('overlay').textContent");
     await keyAction(flightTab, 'keyUp', KEY_UP);
     await keyAction(flightTab, 'keyUp', KEY_RIGHT);
     await press(flightTab, 'p');
@@ -522,8 +524,9 @@ try {
        airfield flown to from the hold (pagemeasure.mjs, enemyFlight). */
     const enemyTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
     await send(socket, 'browsingContext.activate', { context: enemyTab });
+    /* M8: this flight plays its sounds through the fallback, the scheduled buffers. */
     await send(socket, 'browsingContext.navigate', {
-        context: enemyTab, url: 'file://' + pagePath, wait: 'complete',
+        context: enemyTab, url: 'file://' + pagePath + '?audio=buffers', wait: 'complete',
     });
     await sleep(1500);
     /* The flight above left the flip stored, and the shell takes it when the page loads. */
@@ -564,6 +567,8 @@ try {
     await sleep(1500);
     report.enemy = await enemyFlight(enemyKeys, enemyPlayer,
                                      () => evaluateIn(enemyTab, SKY_PNG), sleep);
+    report.enemy.overlay = await evaluateIn(enemyTab,
+        "document.getElementById('overlay').textContent");
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

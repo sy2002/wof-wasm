@@ -3,20 +3,10 @@
 SPEC section 8 runs every later milestone's oracle tests this way, against the original
 executable under Unicorn, so the path has to work from the first milestone on.
 """
+import ctypes
 import hashlib
 
 import pytest
-
-TONE_TOLERANCE_HZ = 2.0
-
-
-def frequency(samples, channel, frames, rate):
-    """Zero crossings of the triangle wave: two per cycle."""
-    crossings = 0
-    for i in range(1, frames):
-        if (samples[(i - 1) * 2 + channel] < 0) != (samples[i * 2 + channel] < 0):
-            crossings += 1
-    return crossings / 2 / (frames / rate)
 
 
 def test_native_library_loads_and_reports_the_same_geometry(native_core_factory, wasm, blob):
@@ -35,13 +25,19 @@ def test_four_vblanks_make_one_tick(native_core_factory):
     assert core.lib.wof_pass_count() == 240
 
 
-@pytest.mark.parametrize('rate', [44100, 48000])
-def test_test_tone_follows_the_requested_rate(native_core_factory, rate):
-    core = native_core_factory(1)
-    frames = 16384
-    samples = core.render_audio(frames, rate)
-    assert abs(frequency(samples, 0, frames, rate) - 440) < TONE_TOLERANCE_HZ
-    assert abs(frequency(samples, 1, frames, rate) - 660) < TONE_TOLERANCE_HZ
+@pytest.mark.parametrize('rate,hz', [(44100, 50), (48000, 60)])
+def test_the_pcm_follows_the_emulated_time(native_core_factory, blob, rate, hz):
+    """The frames wof_audio_render returns are the VBlanks' at the rate asked for: 882 or 800
+    a VBlank here, silence in the front end, nothing more once they are taken (M8)."""
+    core = native_core_factory(1, blob)
+    core.lib.wof_set_video_hz(hz)
+    buffer = (ctypes.c_int16 * (65536 * 2))()
+    assert core.lib.wof_audio_render(buffer, 65536, rate) == 0
+    core.run(20)
+    frames = core.lib.wof_audio_render(buffer, 65536, rate)
+    assert frames == 20 * rate // hz
+    assert not any(buffer[:frames * 2])
+    assert core.lib.wof_audio_render(buffer, 65536, rate) == 0
 
 
 def test_state_round_trips(native_core_factory, blob):

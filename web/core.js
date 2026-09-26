@@ -174,10 +174,11 @@ class Core {
         return this.x.wof_paused() !== 0;
     }
 
-    /* Interleaved stereo int16, as many frames as asked for, at the given sample rate. */
+    /* The PCM of emulated time the core has mixed and the shell has not taken yet, oldest
+       first, at most `frames` of it: interleaved stereo int16 at the given sample rate, as
+       a view into the core's memory that the next call overwrites. */
     renderAudio(frames, rate) {
-        const n = Math.min(frames, this.audioFrames);
-        this.x.wof_audio_render(this.audioPtr, n, rate);
+        const n = this.x.wof_audio_render(this.audioPtr, Math.min(frames, this.audioFrames), rate);
         return new Int16Array(this.x.memory.buffer, this.audioPtr, n * 2);
     }
 

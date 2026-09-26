@@ -155,8 +155,8 @@ static void object_draw_first(void)
 
 /* orig 0x010820 object_spawn - a free object record (+0x20 zero) for something left at a
  * map record: at the record's world x (its byte offset times four, a word), 0x0C above `y`,
- * kind 8, type 1; `flag` 0 marks it (+0x1F 2) and makes the sound engine's noise (0x012324,
- * M8).  With all fifteen in use nothing happens. */
+ * kind 8, type 1; `flag` 0 marks it (+0x1F 2) and makes the burst's sound (0x012324).  With
+ * all fifteen in use nothing happens. */
 void wof_object_spawn(uint32_t at, int16_t y, int16_t flag)
 {
     wof_object_t *o = 0;
@@ -180,8 +180,10 @@ void wof_object_spawn(uint32_t at, int16_t y, int16_t flag)
     o->b21     = 1;
     o->type    = 1;
     o->b1f     = 0;
-    if (flag == 0)
+    if (flag == 0) {
         o->b1f = 2;
+        wof_sound_boom(o->x);                                     /* 0x010888: jmp 0x012324 */
+    }
 }
 
 /* orig 0x01088E - object_spawn's second entry, the launch: one weapon less unless they are
@@ -409,7 +411,10 @@ moved:
         goto flying;
     o->y = h;
     o->b1f = (int8_t)(uint8_t)d2;
-    /* 0x010C7E: the impact's sound, 0x01233E in the sea and 0x012324 elsewhere (M8) */
+    if ((uint8_t)d2 == 0)                                         /* 0x010C7E: cmp.b #2, #0 */
+        wof_sound_splash(o->x);                                   /* 0x01233E, in the sea */
+    else
+        wof_sound_boom(o->x);                                     /* 0x012324 */
     o->w1a = (int16_t)wof_g.pass_counter;
     if (o->type == 2)
         goto torpedo_down;
@@ -457,7 +462,8 @@ running:                                                          /* 0x010D50 */
             wof_weapon_hit(o);
             o->kind = 8;
             o->b21 = 1;
-            /* 0x010D8E: the sounds 0x012324 and 0x01233E (M8) */
+            /* 0x010D8E: the burst, then the splash with what the burst left in D0 */
+            wof_sound_splash((int16_t)wof_sound_boom(o->x));
             return;
         }
     } else {

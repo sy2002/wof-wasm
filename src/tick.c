@@ -11,8 +11,8 @@
  *
  * What the scripts of part 2 never executed is a marked stand-in naming the milestone that
  * owes it (re/notes/porting-m4.md, "Appendix: the regions no run executed").  The sound
- * engine's routines keep nothing the port keeps except the two values 0x012132 eases, which
- * the dashboard's neighbours read; their slots are M8's (tests/m4complete.py). */
+ * engine the tick drives, engine_sound (0x012132) and sound_channels (0x012066) with the
+ * slots they fill, is src/sound.c (M8). */
 #include "wof.h"
 #include "gen/tables.h"
 
@@ -233,9 +233,9 @@ static void weapon_menu(void)
 }
 
 /* orig 0x011460 - the lift, once per pass: going up (0x025394 2) it rises a step a pass
- * until 0x025396 is 0 and the engine idles on the deck; going down (3) it sinks to 0x20 and
- * the aircraft is reset in the hold.  The two sounds on the way (0x011F4E, 0x012354) are
- * the sound engine's slots, M8's. */
+ * until 0x025396 is 0, the slots are cleared, the lift clangs and the engine idles on the
+ * deck; going down (3) it sinks to 0x20, clangs the same way, and the aircraft is reset in
+ * the hold. */
 static void lift(void)
 {
     if (wof_g.pass_counter == (uint16_t)wof_g.g_027352)
@@ -247,55 +247,18 @@ static void lift(void)
         if (--wof_g.g_025396 != 0)
             return;
         ABOARD = 0;
+        wof_sound_slots_clear();                              /* 0x011F4E */
+        wof_sound_clang();                                    /* 0x012354 */
         wof_engine_idle();                                    /* 0x01B9CC */
         return;
     }
     if (ABOARD == 3) {
         if (++wof_g.g_025396 != 0x20)
             return;
+        wof_sound_slots_clear();                              /* 0x011F4E */
+        wof_sound_clang();                                    /* 0x012354 */
         wof_player_restart_state();
     }
-}
-
-/* orig 0x012132 - the engine's sound, as far as the port keeps it: the volume 0x02542C eases
- * towards 0x025428 by one up and two down, and while it is not zero the pitch 0x02542E
- * towards what pitch_target, 0x02542A and the height ask for, by twenty up and ten down.
- * The comparisons are unsigned, as the original's.  Everything else it writes is the sound
- * engine's slots (M8).  Nothing moves while paused or with the music off. */
-static void engine_sound(void)
-{
-    uint16_t d0, d1;
-
-    if (wof_g.pause_flag || wof_g.opt_music_off)
-        return;
-    d0 = (uint16_t)wof_g.g_02542c;
-    d1 = (uint16_t)wof_g.g_025428;
-    if (d1 != d0) {
-        if (d1 > d0) {
-            d0++;
-        } else {
-            d0 = (uint16_t)(d0 - 2);
-            if (!(d1 <= d0))
-                d0 = d1;
-        }
-    }
-    wof_g.g_02542c = (int16_t)d0;
-    if (d0 == 0)
-        return;
-    d0 = (uint16_t)wof_g.g_02542e;
-    d1 = (uint16_t)((int16_t)(wof_g.pitch_target >> 7) + wof_g.g_02542a + (int16_t)(P.y >> 4));
-    if (d1 != d0) {
-        if (d1 > d0) {
-            d0 = (uint16_t)(d0 + 0x14);
-            if (!(d1 > d0))
-                d0 = d1;
-        } else {
-            d0 = (uint16_t)(d0 - 0x0A);
-            if (!(d1 <= d0))
-                d0 = d1;
-        }
-    }
-    wof_g.g_02542e = (int16_t)d0;
 }
 
 /* orig 0x011274 - the player's speeds and position as four 16.16 longs from 0x026E62, and
@@ -387,28 +350,10 @@ int16_t wof_guns_ground_x(int16_t d0)
     return (int16_t)(wof_g.draw_player_x - w);
 }
 
-/* The arithmetic 0x0123AC (a soldier's scream, M8) does through 0x012306 and 0x0122F6 on
- * D0 and D1 and leaves in them: the loudness by the distance from the aircraft, halved, and
- * the height's distance from 0x14. */
-static void scream_registers(uint16_t *d0, uint16_t *d1)
-{
-    uint16_t a = (uint16_t)(*d0 - (uint16_t)P.x);
-    uint16_t b = (uint16_t)(0x14u - (uint16_t)P.y);
-
-    if ((int16_t)a < 0)
-        a = (uint16_t)-(int16_t)a;
-    if ((int16_t)b < 0)
-        b = (uint16_t)-(int16_t)b;
-    a = (uint16_t)((uint16_t)(a + b) >> 5);
-    a = a > 0x40 ? 0 : (uint16_t)(0x40u - a);
-    *d0 = (uint16_t)(a >> 1);
-    *d1 = b;
-}
-
 /* orig 0x011A8C soldiers_hit - the running soldiers from x - w to x + w start dying (state 2,
  * frame 5, timer 2) with a scream; then 0x011AE2 over the same span.  The scream's sound
  * code (0x0123AC) leaves its own values in D0 and D1 and the walk goes on with them, so after
- * the first soldier hit the span is the scream's (scream_registers). */
+ * the first soldier hit the span is the scream's (src/sound.c). */
 void wof_soldiers_hit(int16_t x, int16_t w)
 {
     uint16_t d0 = (uint16_t)(x - w);
@@ -424,7 +369,7 @@ void wof_soldiers_hit(int16_t x, int16_t w)
         s->state = 2;
         s->frame = 5;
         s->timer = 2;
-        scream_registers(&d0, &d1);
+        wof_sound_scream(&d0, &d1);                            /* 0x0123AC */
     }
     wof_torpedoes_hit(d0, d1);
 }
@@ -757,9 +702,9 @@ wof_co_t wof_logic_tick(void)
         }
         CO_CALL(c, &wof_f.co_player, wof_player_update());
         wof_enemy_aircraft_step();                             /* src/enemy.c */
-        engine_sound();
+        wof_engine_sound();                                    /* src/sound.c */
         wof_guns();
-        /* 0x012066: the sound engine's slots (M8) */
+        wof_sound_channels();                                  /* 0x012066 */
         shot_origin();
         engine_smoke();
         wof_objects_step(0);        /* D4's upper word is 0 there (observed at every tick) */

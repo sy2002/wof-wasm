@@ -34,6 +34,11 @@ WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next charact
                                                      * address in its text: a message is named by
                                                      * where the original keeps it */
 
+/* the sound engine (M8, re/notes/sound.md) */
+WOF_GLOBAL(sound_vblanks,      uint32_t, 0x027E6A)  /* soundfx_vblank counts every VBlank */
+WOF_GLOBAL(g_026218,           uint32_t, 0x026218)  /* audio_irq stores g_027f1a at index g_027f18 */
+WOF_GLOBAL(g_027f1a,           uint32_t, 0x027F1A)  /* read by audio_irq alone; nothing writes it */
+
 /* the tick (M4 part 2) */
 WOF_GLOBAL(crand_seed,         uint32_t, 0x026A16)  /* the C library's rand() (0x021E24), not the entropy */
 WOF_GLOBAL(g_025422,           uint32_t, 0x025422)  /* the name of the shape 0x02541A, 0x01C378 */
@@ -152,6 +157,12 @@ WOF_GLOBAL(g_027de6,           int16_t,  0x027DE6)
 WOF_GLOBAL(g_027de8,           int16_t,  0x027DE8)
 WOF_GLOBAL(airspeed_step,      int16_t,  0x027DEA)
 WOF_GLOBAL(g_027350,           int16_t,  0x027350)  /* the tick's oil timer */
+
+/* the sound engine (M8) */
+WOF_GLOBAL(sound_installed,    uint16_t, 0x027E68)  /* sound_init has run: its server and vector are in */
+WOF_GLOBAL(g_027f18,           uint16_t, 0x027F18)  /* read by audio_irq alone; nothing writes it */
+WOF_GLOBAL(sound_intena,       uint16_t, 0x027F1E)  /* soundfx_vblank: INTENAR's audio bits on entry */
+WOF_GLOBAL(sound_dmacon,       uint16_t, 0x027F20)  /* soundfx_vblank: the channels it switches on */
 
 /* the mission (M4): the tick and the player (re/notes/porting-m4.md, part 2) */
 WOF_GLOBAL(g_02476a,           int16_t,  0x02476A)  /* logic_tick: 0..7, the index into 0x024C44 */
@@ -299,6 +310,9 @@ WOF_GLOBAL(g_02568d,           uint8_t,  0x02568D)
 WOF_GLOBAL(frame_drawn,        uint8_t,  0x026E3C)
 WOF_GLOBAL(g_027458,           uint8_t,  0x027458)
 WOF_GLOBAL(g_0276fc,           uint8_t,  0x0276FC)
+/* The sound engine's flags for channel 2 at +0 to +2, which only the uncalled 0x01E9F4 sets
+ * (+0 and +2 also soundfx_vblank, when +1 is set); +3 is read and written by nothing. */
+WOF_GLOBAL_ARRAY(sound_flags,  uint8_t, 4, 0x027F14)
 WOF_GLOBAL_ARRAY(score_text,   uint8_t, 8, 0x027F22)  /* sprintf("%ld") of the score, for the digits */
 WOF_GLOBAL_ARRAY(ticker_text,  uint8_t, 300, 0x02716A)  /* the tick's sprintf targets of the ticker */
 WOF_GLOBAL_ARRAY(ticker_text_2, uint8_t, 102, 0x027E00) /* messages (0x011D52, 0x01CE72, 0x01D02E) */

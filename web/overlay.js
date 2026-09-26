@@ -48,6 +48,9 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'input        ' + bits() + '\n' +
             'audio        ' + a.backend + ', ' + a.state + ', ' + Math.round(a.rate) + ' Hz\n' +
             'buffer       ' + a.queuedMs.toFixed(0) + ' ms queued, ' + a.underruns + ' underruns\n' +
+            'pcm          ' + a.emulated + ' frames, ' + a.audible + ' audible, peak ' + a.peak +
+                ', padded ' + a.padded + ', dropped ' + a.dropped + '\n' +
+            'stereo       ' + Math.round(a.width * 100) + '% width\n' +
             (a.note ? 'note         ' + a.note.slice(0, 48) + '\n' : '') +
             'core         ' + core.width + 'x' + core.height + ', ' + core.paletteCount +
                 ' palettes, ' + c.files + ' files\n' +
@@ -59,8 +62,9 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'player       x ' + pl.x + '  y ' + pl.y + '  deck state ' + pl.deck +
                 '  weapon ' + pl.weapon +
                 (core.paused() ? ', paused' : '') + (core.invertVertical() ? ', flip on' : '') + '\n' +
-            'while this is up: 5 PAL, 6 NTSC, 1 a high score, 2 the save dialog,\n' +
-            '                  3 the load dialog (development keys, not the game\'s)';
+            'while this is up: 5 PAL, 6 NTSC, 7 the stereo width, 1 a high score,\n' +
+            '                  2 the save dialog, 3 the load dialog (development keys,\n' +
+            '                  not the game\'s)';
     }
 
     function toggle() {

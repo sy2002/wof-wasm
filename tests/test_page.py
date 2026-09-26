@@ -3,7 +3,7 @@
 This is the M1 acceptance criterion of SPEC section 9 as far as it can be decided without a
 person: the page opens from file://, shows the publisher logo, the title and the credit
 picture with their own colours, browses the shapes, holds a steady emulated 60 Hz and makes
-no network request.  Whether the tone is audible is the one part left over.
+no network request.  Whether the sound is right to the ear is the one part left over.
 
 Skipped where Google Chrome is not installed; set WOF_CHROME to use another binary.
 """
@@ -30,6 +30,7 @@ from conftest import (assert_an_enemy_aircraft_comes_up,
                       assert_the_screenshot_shows_the_picture,
                       assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
+                      assert_the_front_end_is_silent, assert_the_mission_is_heard,
                       measured_box, overlay_audio, overlay_number)
 
 # What the shell was showing when each measurement was taken.
@@ -367,6 +368,24 @@ def test_a_mission_is_flown_from_the_keyboard(loaded):
     assert flight['second']['deck'] in (1, 11), flight['second']
     for life in ('third', 'end'):
         assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
+
+
+def test_the_front_end_renders_silence(loaded):
+    """M8 in Chrome: the key that started the sound came in the front end, which plays no
+    effect; every frame of PCM the shell has taken from the core since is silence."""
+    assert_the_front_end_is_silent(loaded['overlay'])
+
+
+def test_the_mission_sounds_through_the_worklet(loaded):
+    """M8 in Chrome: after the hold, the lift, the take-off, the guns and a weapon's burst,
+    the PCM that went through the AudioWorklet is not silent."""
+    assert_the_mission_is_heard(loaded['flight']['pcm'], 'worklet')
+
+
+def test_the_mission_sounds_through_the_scheduled_buffers(loaded):
+    """M8 in Chrome: the enemy flight runs with ?audio=buffers, and its sounds went through
+    the fallback as PCM that is not silent."""
+    assert_the_mission_is_heard(loaded['enemy']['overlay'], 'buffers')
 
 
 def test_an_enemy_aircraft_comes_up_on_the_page(loaded, ported):

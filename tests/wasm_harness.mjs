@@ -45,35 +45,23 @@ function run(x, vblanks, raw = 0) {
     }
 }
 
-/* Zero crossings of a triangle wave give its frequency directly: two per cycle. */
-function frequency(samples, channel, frames, rate) {
-    let crossings = 0;
-    for (let i = 1; i < frames; i++) {
-        const a = samples[(i - 1) * 2 + channel];
-        const b = samples[i * 2 + channel];
-        if ((a < 0) !== (b < 0)) {
-            crossings++;
-        }
-    }
-    return crossings / 2 / (frames / rate);
-}
-
-function tone(x, rate, raw) {
-    const frames = 16384;
-    const ptr = x.wof_alloc(frames * 4);
-    x.wof_vblank(raw);                       /* the raw state is what selects the octave */
-    x.wof_audio_render(ptr, frames, rate);
+/* The PCM of emulated time (src/audio.c): a first call sets the rate, VBlanks with a pass
+   after each are run, and what the core mixed for them is taken.  The front end plays no
+   effect, so it is silence, and exactly as many frames as the VBlanks last at that rate. */
+function audio(x, rate, hz, vblanks) {
+    const room = 65536;
+    const ptr = x.wof_alloc(room * 4);
+    x.wof_set_video_hz(hz);
+    const first = x.wof_audio_render(ptr, room, rate);
+    run(x, vblanks);
+    const frames = x.wof_audio_render(ptr, room, rate);
     const samples = new Int16Array(x.memory.buffer, ptr, frames * 2);
-    let peak = 0;
+    let nonzero = 0;
     for (let i = 0; i < frames * 2; i++) {
-        peak = Math.max(peak, Math.abs(samples[i]));
+        if (samples[i] !== 0) nonzero++;
     }
-    return {
-        rate,
-        left: frequency(samples, 0, frames, rate),
-        right: frequency(samples, 1, frames, rate),
-        peak,
-    };
+    const after = x.wof_audio_render(ptr, room, rate);
+    return { rate, hz, vblanks, first, frames, nonzero, after };
 }
 
 const result = {};
@@ -209,10 +197,9 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     result.framebuffer = { max, nonzero, size: fb.length, hash: digest(fb) };
 }
 
-result.tones = {
-    idle44100: tone(boot(1), 44100, 0),
-    idle48000: tone(boot(1), 48000, 0),
-    fire48000: tone(boot(1), 48000, 0x10),
+result.audio = {
+    pal48000: audio(boot(1), 48000, 50, 30),
+    ntsc44100: audio(boot(1), 44100, 60, 30),
 };
 
 /* Save and load round-trip, and a replay from a loaded state matching one from the start. */

@@ -16,7 +16,29 @@ import struct
 
 DATA_START, DATA_END = 0x023000, 0x028004
 
-K_PLAIN, K_SHAPE, K_MAP, K_POOL = 0, 1, 2, 3
+K_PLAIN, K_SHAPE, K_MAP, K_POOL, K_SOUND = 0, 1, 2, 3, 4
+
+# The pointers sounds_load (0x013368) keeps to the eight sound effects, and each one's file
+# as its index in sound_files (0x0236D7), which is how the port's sound handle names it
+# (src/wof.h, WOF_SOUND).
+SOUND_POINTERS = {0x026E3E: 0, 0x026EA8: 1, 0x026EAC: 2, 0x026EB4: 3, 0x026E96: 4,
+                  0x026E42: 5, 0x026E7A: 6, 0x026E58: 7}
+
+
+def sound_handle(memory, pointer):
+    """The port's handle for a sample pointer of the original: the file whose data the
+    pointer lies in, found as the nearest of the eight pointers at or below it, and the
+    offset from there; None when it lies in none."""
+    if pointer == 0:
+        return 0
+    best = None
+    for where, index in SOUND_POINTERS.items():
+        start = memory.u(where, 4)
+        if start and start <= pointer < start + 0x10000 and (best is None or start > best[0]):
+            best = (start, index)
+    if best is None:
+        return None
+    return ((best[1] + 1) << 24) | (pointer - best[0])
 
 # The shape containers the original keeps pointers to, by the address of the pointer, and
 # the port's container slot (src/wof.h, WOF_C_*).  dash.shp and nightdash.shp share one
@@ -124,7 +146,7 @@ class Layout:
         for i in range(lib.wt_field_count()):
             record = lib.wt_field(i, ctypes.byref(field), numbers).decode()
             orig, elem, count, port, kind = numbers[0], numbers[1], numbers[2], numbers[3], numbers[4]
-            orig_elem = 4 if kind in (K_SHAPE, K_MAP, K_POOL) else elem
+            orig_elem = 4 if kind in (K_SHAPE, K_MAP, K_POOL, K_SOUND) else elem
             for k in range(count):
                 name = field.value.decode() + ('[%d]' % k if count > 1 else '')
                 self.records[record]['fields'].append(
@@ -223,6 +245,12 @@ class Layout:
                         v = h
                     elif kind == K_MAP:
                         v = (v - map_base) & 0xFFFFFFFF if v else 0
+                    elif kind == K_SOUND:
+                        h = sound_handle(memory, v)
+                        if h is None:
+                            problems.append('%s[%d].%s: %08x is in no sound' % (table['name'], i, fname, v))
+                            h = 0xFFFFFFFF
+                        v = h
                     else:
                         v = 1 if v else 0
                     m[port_at + port:port_at + port + elem] = v.to_bytes(elem, 'little')

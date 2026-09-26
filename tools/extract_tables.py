@@ -154,9 +154,13 @@ def emit_strptrs(image, entry, header, source):
 
 
 def emit_words(image, entry, header, source):
-    """`count` big-endian 16-bit values, as they stand in the executable."""
+    """`count` big-endian 16-bit values, as they stand in the executable.  With `stride` they
+    are that many bytes apart, which is how the immediate operands of a run of equal
+    instructions are read: the sound engine's periods, volumes and repeat counts are words
+    inside its `move.w #imm,d16(a4)` (re/notes/sound.md)."""
     name, addr, count = entry['name'], entry['addr'], entry['count']
-    values = [struct.unpack('>H', image.bytes(addr + 2 * i, 2))[0] for i in range(count)]
+    stride = entry.get('stride', 2)
+    values = [struct.unpack('>H', image.bytes(addr + stride * i, 2))[0] for i in range(count)]
 
     header.append('extern const uint16_t %s%s[%d];   /* orig 0x%06X */'
                   % (PREFIX, name, count, addr))

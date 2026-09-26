@@ -11,7 +11,6 @@ SPEC_EXPORTS = [
     'wof_state_size', 'wof_state_save', 'wof_state_load',
 ]
 
-TONE_TOLERANCE_HZ = 2.0
 
 
 def test_exports_the_spec_interface(wasm):
@@ -115,16 +114,15 @@ def test_the_pictures_have_their_own_colours(wasm):
         assert stage['colours'] >= 8, stage
 
 
-@pytest.mark.parametrize('case,left,right', [
-    ('idle44100', 440, 660),
-    ('idle48000', 440, 660),
-    ('fire48000', 880, 1320),
-])
-def test_test_tone_has_the_right_pitch_at_the_requested_rate(wasm, case, left, right):
-    tone = wasm['tones'][case]
-    assert abs(tone['left'] - left) < TONE_TOLERANCE_HZ, tone
-    assert abs(tone['right'] - right) < TONE_TOLERANCE_HZ, tone
-    assert 0 < tone['peak'] <= 32767
+@pytest.mark.parametrize('case,per_vblank', [('pal48000', 960), ('ntsc44100', 735)])
+def test_the_pcm_is_emulated_time(wasm, case, per_vblank):
+    """wof_audio_render hands out the frames the VBlanks mixed, as many as they last at the
+    rate asked for, and no more; the front end's are silence (M8)."""
+    audio = wasm['audio'][case]
+    assert audio['first'] == 0, audio
+    assert audio['frames'] == audio['vblanks'] * per_vblank, audio
+    assert audio['nonzero'] == 0, audio
+    assert audio['after'] == 0, audio
 
 
 def test_state_round_trips(wasm):

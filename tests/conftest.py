@@ -116,7 +116,7 @@ class NativeCore:
             'wof_palette_rows': ([], ctypes.c_void_p),
             'wof_palettes': ([], ctypes.c_void_p),
             'wof_display_list': ([ctypes.c_void_p], ctypes.c_void_p),
-            'wof_audio_render': ([ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32], None),
+            'wof_audio_render': ([ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32], ctypes.c_uint32),
             'wof_state_size': ([], ctypes.c_uint32),
             'wof_state_save': ([ctypes.c_void_p], None),
             'wof_state_load': ([ctypes.c_void_p], None),
@@ -253,6 +253,35 @@ def assert_the_mission_is_flown_from_the_keyboard(flight):
     assert not first['paused'] and second['ticks'] > first['ticks'], (first, second)
     assert flight['flipped']['flip'], flight['flipped']
     assert_a_weapon_is_dropped_and_the_guns_fire(flight['drop'])
+
+
+# M8 on the page: the sound, read off the overlay's pcm line (web/audio.js), which counts the
+# frames of emulated time the shell took from the core, how many of them were not silent,
+# the loudest sample, and what the drift guard padded and dropped.
+def overlay_pcm(text):
+    found = re.search(r'pcm\s+(\d+) frames, (\d+) audible, peak (\d+), padded (\d+), '
+                      r'dropped (\d+)', text)
+    assert found, 'no pcm line on the overlay:\n%s' % text
+    return dict(zip(('frames', 'audible', 'peak', 'padded', 'dropped'),
+                    (int(v) for v in found.groups())))
+
+
+def assert_the_front_end_is_silent(overlay):
+    """The front end plays no effect (its music is M8's part 2): the shell has taken PCM from
+    the core since the key started the sound, and every frame of it is silence."""
+    pcm = overlay_pcm(overlay)
+    assert pcm['frames'] > 0, 'the shell took no PCM from the core: %s' % pcm
+    assert pcm['audible'] == 0 and pcm['peak'] == 0, 'the front end made a sound: %s' % pcm
+
+
+def assert_the_mission_is_heard(overlay, backend):
+    """A mission's effects - the sea in the hold, the lift, the engine, the guns - came
+    through the shell's audio path, `backend`, as PCM that is not silent."""
+    backend_found, state, _ = overlay_audio(overlay)
+    assert backend_found == backend and state == 'running', (backend_found, state)
+    pcm = overlay_pcm(overlay)
+    assert pcm['audible'] > 0 and pcm['peak'] > 0, 'the mission was silent: %s' % pcm
+    assert pcm['frames'] > pcm['audible'], pcm
 
 
 # M6 on the page: what an enemy aircraft looks like in the framebuffer (tests/pagemeasure.mjs,

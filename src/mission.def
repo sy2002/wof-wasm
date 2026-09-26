@@ -45,6 +45,19 @@ WOF_TABLE(dash_frames,         shaperef,   168, 0x02745C)
 WOF_TABLE(torpedo_shape,       shaperef,     1, 0x02541E)
 WOF_TABLE(g_02541a,            shaperef,     1, 0x02541A)
 
+/* The sound engine (M8, re/notes/sound.md): the eight slots, two per channel; the four
+ * channels' records; and the pointers sounds_load keeps to the eight effects, by file. */
+WOF_TABLE(sound_slots,         sound_slot,    8, 0x027368)
+WOF_TABLE(sound_channels,      sound_channel, 4, 0x027E6E)
+WOF_TABLE(sound_boom,          soundptr,  1, 0x026E3E)
+WOF_TABLE(sound_clang,         soundptr,  1, 0x026E42)
+WOF_TABLE(sound_engine,        soundptr,  1, 0x026E58)
+WOF_TABLE(sound_grind,         soundptr,  1, 0x026E7A)
+WOF_TABLE(sound_machinegun,    soundptr,  1, 0x026E96)
+WOF_TABLE(sound_screech,       soundptr,  1, 0x026EA8)
+WOF_TABLE(sound_scream,        soundptr,  1, 0x026EAC)
+WOF_TABLE(sound_splash,        soundptr,  1, 0x026EB4)
+
 /* A pointer into the map's record list: the last record. */
 WOF_TABLE(map_records_end,     mapptr,    1, 0x02462C)
 

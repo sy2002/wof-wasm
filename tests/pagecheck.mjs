@@ -5,7 +5,7 @@
  * network for nothing.  Everything is read back through the page's own diagnostics overlay
  * and through the canvas, so the instrument is the same one a person would use.
  *
- * Whether the tone is audible is the one thing left for a person.
+ * Whether the sound is right to the ear is the one thing left for a person.
  *
  *     node tests/pagecheck.mjs <page.html> [chrome-binary]
  *
@@ -364,6 +364,9 @@ try {
     flight.climb1 = await evaluate(PLAYER);
     await sleep(1500);
     flight.climb2 = await evaluate(PLAYER);
+    /* M8: the engine, the guns and the burst have played by now; the overlay's pcm line
+       counts the frames of emulated time the shell took and how many were not silent. */
+    flight.pcm = await evaluate("document.getElementById('overlay').textContent");
     await cdp.release(sessionId, 'up');
     await cdp.release(sessionId, 'right');
 
@@ -566,7 +569,8 @@ try {
     const enemySession = (await cdp.send('Target.attachToTarget', {
         targetId: enemyTarget.targetId, flatten: true,
     })).sessionId;
-    await open(enemySession, 'file://' + pagePath);
+    /* M8: this flight plays its sounds through the fallback, the scheduled buffers. */
+    await open(enemySession, 'file://' + pagePath + '?audio=buffers');
     /* The flight above left the flip stored, and the shell takes it when the page loads. */
     await evaluateIn(enemySession, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
     await cdp.send('Page.reload', {}, enemySession);
@@ -603,6 +607,8 @@ try {
     report.enemy = await enemyFlight(enemyKeys, enemyPlayer,
                                      () => evaluateIn(enemySession, SKY_PNG), sleep);
     report.enemy.console = channel(enemySession).console;
+    report.enemy.overlay = await evaluateIn(enemySession,
+        "document.getElementById('overlay').textContent");
 } finally {
     await stopChrome(browser);
 }

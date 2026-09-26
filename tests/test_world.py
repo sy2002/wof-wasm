@@ -105,6 +105,12 @@ def compare_passes(replay, chart, stop=None):
             r.port_map_draws()
         if om != pm:
             found.add('map', k, ('decoder', om[:3], 'port', pm[:3]))
+        sound = r.sound_differences(head)
+        if sound:
+            found.add('sound', k, sound)
+        paula = r.paula_differences(memory)
+        if paula:
+            found.add('paula', k, paula[:4])
 
     def on_tick(r, memory, head, k, waited):
         if stopping(r):
@@ -130,6 +136,12 @@ def compare_passes(replay, chart, stop=None):
         markers = r.marker_differences(memory)
         if markers:
             found.add('tick markers', k, markers[:4])
+        sound = r.sound_differences(head)
+        if sound:
+            found.add('tick sound', k, sound)
+        paula = r.paula_differences(memory)
+        if paula:
+            found.add('tick paula', k, paula[:4])
 
     passes = replay.run(on_pass=on_pass, on_tick=on_tick)
     return passes, found

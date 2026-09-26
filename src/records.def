@@ -21,6 +21,10 @@
  *   WOF_K_POOL   a pointer to an allocation in the original (4 bytes); the port keeps the
  *                allocation at a fixed place in its state and this field only says whether
  *                there is one (uint16_t, 0 or 1)
+ *   WOF_K_SOUND  a pointer into one of the eight sound effects in the original (4 bytes), a
+ *                sound handle in the port (uint32_t, WOF_SOUND: the file's index in
+ *                sound_files plus one in the top byte, the offset into the file below it),
+ *                0 on both sides for none
  *
  * The fields of a record tile it exactly; tests/test_mission.py holds every record to that.
  */
@@ -233,3 +237,43 @@ WOF_RECORD_END(shaperef)
 WOF_RECORD(mapptr, 0x04)
 WOF_FIELD(mapptr, off,        uint32_t, 0x00, WOF_K_MAP)
 WOF_RECORD_END(mapptr)
+
+/* ------------------------------------------------------ the sound engine (M8), re/notes/sound.md
+ * A sound slot, 0x18: the eight at 0x027368, two per audio channel, the first of each pair
+ * before the second.  What sub_011f76 builds and the tick switches on and off; +0x10 and
+ * +0x14 of a pair's first slot are what the channel plays now, which sound_channels
+ * compares with the slot it chose.  +0x0 is a word the tick tests as a whole and sets with
+ * st.b, which makes 0xFF00. */
+WOF_RECORD(sound_slot, 0x18)
+WOF_FIELD(sound_slot, active,     uint16_t, 0x00, WOF_K_PLAIN)
+WOF_FIELD(sound_slot, sample,     uint32_t, 0x02, WOF_K_SOUND)
+WOF_FIELD(sound_slot, length,     uint32_t, 0x06, WOF_K_PLAIN)
+WOF_FIELD(sound_slot, period,     uint16_t, 0x0A, WOF_K_PLAIN)
+WOF_FIELD(sound_slot, volume,     uint16_t, 0x0C, WOF_K_PLAIN)
+WOF_FIELD(sound_slot, repeat,     int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(sound_slot, playing,    uint32_t, 0x10, WOF_K_SOUND)
+WOF_FIELD(sound_slot, playing_pv, uint32_t, 0x14, WOF_K_PLAIN)
+WOF_RECORD_END(sound_slot)
+
+/* An audio channel's record, 0x1E: the four at 0x027E6E that sub_01ea28 fills, that
+ * soundfx_vblank starts from and eases, and that audio_irq counts down and frees.  +0x0 is
+ * also the busy flag; +0x4 the engine's VBlank count when the channel last stopped, which
+ * holds a new start back for two VBlanks; +0xE the volume as 16.16, whose upper word goes to
+ * AUDxVOL; +0x16 the volume it eases to, negative for none, and +0x1A the step. */
+WOF_RECORD(sound_channel, 0x1E)
+WOF_FIELD(sound_channel, sample,  uint32_t, 0x00, WOF_K_SOUND)
+WOF_FIELD(sound_channel, stamp,   uint32_t, 0x04, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, pending, uint16_t, 0x08, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, words,   uint16_t, 0x0A, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, period,  uint16_t, 0x0C, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, volume,  uint32_t, 0x0E, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, repeat,  int16_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, count,   int16_t,  0x14, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, target,  int32_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(sound_channel, step,    int32_t,  0x1A, WOF_K_PLAIN)
+WOF_RECORD_END(sound_channel)
+
+/* A pointer to a sound effect: sounds_load keeps one per file. */
+WOF_RECORD(soundptr, 0x04)
+WOF_FIELD(soundptr, p,          uint32_t, 0x00, WOF_K_SOUND)
+WOF_RECORD_END(soundptr)

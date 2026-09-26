@@ -57,6 +57,11 @@ DIRECT_CALLS = {'shape_blit': 0x4EAC8320, 'shape_draw': 0x4EAC832C, 'rect_fill':
 RASTPORTS = {0x027748 + 0x2C: 0, 0x0277F4 + 0x2C: 1, 0x0278A0 + 0x2C: 2, 0x02794C + 0x2C: 3,
              0x027296 + 0x2C: 4}
 VIEW_A, VIEW_B = 0x0279F8, 0x027A06
+
+# The eight sound files as sound_files (0x0236D7) names them, by index: the port's event log
+# names a sample by its index, the headless original's by the file it was loaded from.
+SOUND_FILES = ['sounds/boom', 'sounds/screech', 'sounds/scream', 'sounds/splash',
+               'sounds/machinegun', 'sounds/metal.clang.1', 'sounds/Grind.1', 'sounds/Engine']
 FRONT_VIEW = 0x026E30
 
 def signed(v, bits=16):
@@ -101,6 +106,7 @@ class Recorder(headless.Headless):
             self.uc.hook_add(UC_HOOK_MEM_WRITE, self._write_t, begin=begin, end=end - 1)
         for address in MISSION_WINDOW:
             self.uc.hook_add(UC_HOOK_CODE, self._window, begin=address, end=address)
+        self.paula_steps = []                     # the audio model's state after every step
         self.map_addresses = []                   # the map list's address at every map load
         self.uc.hook_add(UC_HOOK_MEM_WRITE, self._map_pointer, begin=MAP_LIST_POINTER,
                          end=MAP_LIST_POINTER + 3)
@@ -151,6 +157,8 @@ class Recorder(headless.Headless):
         self._t = set()
         if kind == 'T':
             self.t_windows.append(self.window)
+        # Paula as the step leaves it, for the port's model to be held to (M8)
+        self.paula_steps.append(self.paula.snapshot() if self.paula else None)
 
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
@@ -208,7 +216,13 @@ class Replay:
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
                 ('wt_standins_reset', [], None),
                 ('wt_ticks_run', [], ctypes.c_uint),
-                ('wt_passes_run', [], ctypes.c_uint)):
+                ('wt_passes_run', [], ctypes.c_uint),
+                ('wof_set_video_hz', [ctypes.c_int], None),
+                ('wt_sound_event_count', [], ctypes.c_int),
+                ('wt_sound_event', [ctypes.c_int, ctypes.c_void_p], ctypes.c_int),
+                ('wt_sound_events_reset', [], None),
+                ('wt_paula_state', [ctypes.c_void_p], None),
+                ('wt_paula_put', [ctypes.c_void_p], None)):
             f = getattr(lib, name)
             f.argtypes = args
             f.restype = res
@@ -289,6 +303,10 @@ class Replay:
                 off = memory.u(table + 4 * i, 4)
                 arr[i] = memory.u(first + off + 8, 2) & 0xFF
         self.lib.wt_markers_put(hell, torp)
+        state = self.expected_paula(memory)
+        if state is not None:
+            words = (ctypes.c_uint32 * 39)(*state)
+            self.lib.wt_paula_put(words)
 
     # ------------------------------------------------------------------ the replay
 
@@ -307,6 +325,11 @@ class Replay:
             keys[vblank].append((code, qualifier))
 
         ported.reset_core(fade_vblanks=0)
+        self.lib.wof_set_video_hz(self.machine.video_hz)
+        self.lib.wt_sound_events_reset()
+        self.sound_seen = 0                      # the original's events compared so far
+        self.sound_count = 0                     # the port's events taken so far
+        self.step_index = -1                     # the dump step last consumed
         if on_reset:
             on_reset(self)
         for fname, data in (files or {}).items():
@@ -441,6 +464,7 @@ class Replay:
     def _consume(self):
         head = self._next_head()
         self.upcoming = None
+        self.step_index += 1
         memory = m4state.Memory(self.reader.regions, copy=False)
         self.current = (memory, head)
         return self.current
@@ -615,6 +639,87 @@ class Replay:
 
     def port_entropy(self):
         return [(t['a'], self.names.routine(t['c'])) for t in self.ported.traces('rand_beam')]
+
+    # --------------------------------------------------- M8: the sound, event by event
+
+    def expected_paula(self, memory):
+        """The original's audio model after the step just consumed, in the port's 39 words:
+        the sample pointers as sound handles (tests/m4state.py)."""
+        steps = getattr(self.machine, 'paula_steps', None)
+        if not steps or self.step_index < 0 or steps[self.step_index] is None:
+            return None
+        channels, intena, intreq, vblanks = steps[self.step_index]
+        out = []
+        for on, lc, length, per, vol, ptr, left, nxt in channels:
+            h_lc = m4state.sound_handle(memory, lc)
+            h_ptr = m4state.sound_handle(memory, ptr)
+            out += [0xFFFFFFFF if h_lc is None else h_lc, length, per, vol, on,
+                    0xFFFFFFFF if h_ptr is None else h_ptr, left, nxt & 0xFFFFFFFF, nxt >> 32]
+        return out + [intena, intreq, vblanks]
+
+    def paula_differences(self, memory):
+        """The port's audio model against the original's after the step: registers, DMA,
+        where each channel is in its cycle, INTENA and INTREQ.  A channel that is off is
+        compared by its registers only."""
+        want = self.expected_paula(memory)
+        if want is None:
+            return []
+        got = (ctypes.c_uint32 * 39)()
+        self.lib.wt_paula_state(got)
+        got = list(got)
+        names = ['lc', 'len', 'per', 'vol', 'on', 'ptr', 'left', 'next', 'next_hi']
+        out = []
+        for c in range(4):
+            a, b = got[c * 9:c * 9 + 9], want[c * 9:c * 9 + 9]
+            for i, name in enumerate(names):
+                if i >= 5 and not b[4]:
+                    continue
+                if a[i] != b[i]:
+                    out.append(('channel %d %s' % (c, name), 'port', a[i], 'original', b[i]))
+        for i, name in ((36, 'intena'), (37, 'intreq'), (38, 'vblanks')):
+            if got[i] != want[i]:
+                out.append((name, 'port', got[i], 'original', want[i]))
+        return out
+
+    def port_sound_events(self):
+        """The port's sound events since the last call, in the original's form."""
+        words = (ctypes.c_uint32 * 12)()
+        files = [name.lower() for name in SOUND_FILES]
+        out = []
+        for i in range(self.lib.wt_sound_event_count()):
+            assert self.lib.wt_sound_event(i, words)
+            kind, vblank, passes, ticks, channel, file, offset, length, per, vol = words[:10]
+            file = file - (1 << 32) if file >= 1 << 31 else file
+            out.append((chr(kind), vblank, passes, ticks, channel,
+                        files[file] if 0 <= file < len(files) else '?',
+                        offset, length, per, vol, words[10] | words[11] << 32))
+        self.lib.wt_sound_events_reset()
+        self.sound_count = getattr(self, 'sound_count', 0) + len(out)
+        return out
+
+    def sound_differences(self, head):
+        """The sample starts and restarts since the previous step, the port's against the
+        original's up to this step's VBlank: kind, VBlank, pass, channel, file, offset,
+        length, period, volume and instant."""
+        paula = getattr(self.machine, 'paula', None)
+        if paula is None:
+            return []
+        events = paula.events
+        end = self.sound_seen
+        while end < len(events) and events[end][1] <= head['vblank']:
+            end += 1
+        want = [self.sound_key(e) for e in events[self.sound_seen:end]]
+        self.sound_seen = end
+        got = [self.sound_key(e) for e in self.port_sound_events()]
+        if got == want:
+            return []
+        n = next((i for i, (a, b) in enumerate(zip(got, want)) if a != b), min(len(got), len(want)))
+        return [('port', got[n:n + 2], 'original', want[n:n + 2])]
+
+    @staticmethod
+    def sound_key(event):
+        kind, vblank, passes, ticks, channel, name, offset, length, per, vol, at = event
+        return (kind, vblank, passes, channel, name, offset, length, per, vol, at)
 
     # --------------------------------------------------- V1 (d): the palette of every row
 
