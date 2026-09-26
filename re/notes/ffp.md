@@ -157,8 +157,9 @@ and once with a random value in all three (observed).
 
 ### `player_motion` `0x01BDFA`, once per tick from `0x01C70E`
 
-Observed over 2,782 entries in five flights; the model in `tests/ffp_model.py` reproduces
-every call and every value it leaves.
+Observed over 14,861 entries in ten flights, five of them M6 scripts
+(`tools/ffp_observe.py`); the model in `tests/ffp_model.py` reproduces every call and every
+value it leaves in the 298 kept in `tests/ffp_observed.json`.
 
 Inputs, all words unless said otherwise:
 
@@ -213,7 +214,9 @@ constants `0xC8000046` and `0xC8000047` in the listing are 50 and 100.
 
 `0x01E7D6` walks the four records of `aircraft_records` `0x02522A`, `0x34` bytes each, and
 calls this for every record whose state word is neither zero nor `0x10`. Observed over
-1,671 entries; the model reproduces all of them.
+10,378 entries in six runs, five of them M6 scripts that fly fighters, torpedo planes and
+a fall onto land (`tools/ffp_observe.py`); the model reproduces the 297 kept in
+`tests/ffp_observed.json`, the turn's write of `+0x24` included.
 
 ```text
 if not state and 0x14 and player_record[+0x0C] is 4, 8 or 6:
@@ -227,9 +230,11 @@ if not state and 0x14 and not record[+0x03] bit 2:
     if record[+0x24] < 0x21:           record[+0x24] = 0x21
 ```
 
-The rest of the routine steers `+0x22` and `+0x26` towards `+0x24` and takes values from
-the entropy stream through `0x01CAC8`; that belongs to the enemy aircraft, whose record and
-states are in `re/notes/enemy.md`.
+The rest of the routine steers `+0x22` and `+0x26` towards `+0x24`, takes values from the
+entropy stream through `0x01CAC8`, counts `+0x18` down into a turn and turns
+(`aircraft_turn` `0x01D562`, which takes the player's height into `+0x24` for a fighter
+while he flies): the enemy aircraft's, whose record and states are in `re/notes/enemy.md`
+and whose port is `src/enemy.c`.
 
 ### `format_float` `0x021A40` is dead
 
@@ -237,9 +242,10 @@ It is the C library's `%e`, `%f` and `%g` conversion, reached from `0x0218A4` on
 formatter's conversion letter is `e` or above (`sub.w #0x65,d0` at `0x02187A`). It is the
 only user of `SPSub`, `SPCmp` and `SPTst`.
 
-- **Observed:** no entry in six runs, which together cover the whole front end, a take-off,
-  level flight, climbing, diving and turning, firing, a roll over the bow and 3,218 ticks of
-  a flight with an enemy aircraft. Only `"%d"` ever reached `sprintf` in them.
+- **Observed:** no entry in eleven runs, which together cover the whole front end, a
+  take-off, level flight, climbing, diving and turning, firing, a roll over the bow, 3,218
+  ticks of a flight with an enemy aircraft and five M6 scripts with fighters, torpedo planes,
+  ships and a kill. Only `"%d"` ever reached `sprintf` in them.
 - **Read:** the executable has seven calls of `sprintf`. Six push a literal — `"%d"` four
   times, `"%-6ld"` and `"%-12s"` — and the seventh is inside the wrapper `0x01F332`, whose
   only caller is the crack's text screen `0x01F41A` with five strings that carry no
@@ -259,21 +265,21 @@ All 28, with what the runs saw.
 
 | site | operation | calls observed | operands |
 |---|---|---|---|
-| `0x01BE90` | neg | 251 | the across component |
-| `0x01BE9C` | fix | 2,782 | the across component |
-| `0x01BEE0` | flt | 2,782 | the airspeed, 716 to 1400 |
-| `0x01BEE8` | mul | 2,782 | attitude factor by the airspeed |
-| `0x01BEF0` | mul | 2,782 | that by the along component |
-| `0x01BEFA` | add | 2,782 | that plus 50 |
-| `0x01BF04` | div | 2,782 | that by 100 |
-| `0x01BF08` | fix | 2,782 | the horizontal speed |
-| `0x01BF32` | flt | 2,782 | the airspeed again |
-| `0x01BF3A` | mul | 2,782 | by the across component |
-| `0x01BF44` | div | 2,782 | by 100 |
-| `0x01BF48` | fix | 2,782 | the vertical speed |
-| `0x01D80C` | flt | 1,671 | the aircraft's step, −9 to 13 |
-| `0x01D814` | mul | 1,671 | by its attitude factor |
-| `0x01D818` | fix | 1,671 | its height change |
+| `0x01BE90` | neg | 6,718 | the across component |
+| `0x01BE9C` | fix | 14,861 | the across component |
+| `0x01BEE0` | flt | 14,861 | the airspeed, 716 to 1400 |
+| `0x01BEE8` | mul | 14,861 | attitude factor by the airspeed |
+| `0x01BEF0` | mul | 14,861 | that by the along component |
+| `0x01BEFA` | add | 14,861 | that plus 50 |
+| `0x01BF04` | div | 14,861 | that by 100 |
+| `0x01BF08` | fix | 14,861 | the horizontal speed |
+| `0x01BF32` | flt | 14,861 | the airspeed again |
+| `0x01BF3A` | mul | 14,861 | by the across component |
+| `0x01BF44` | div | 14,861 | by 100 |
+| `0x01BF48` | fix | 14,861 | the vertical speed |
+| `0x01D80C` | flt | 10,378 | the aircraft's step, its speed's hundreds with its facing: −25 to 20 in the entries kept |
+| `0x01D814` | mul | 10,378 | by its attitude factor |
+| `0x01D818` | fix | 10,378 | its move along x |
 | `0x021A64` | tst | not reached | inside `format_float`, see above; `bge` follows |
 | `0x021A6E` | neg | not reached | |
 | `0x021A82` | tst | not reached | `ble` follows |

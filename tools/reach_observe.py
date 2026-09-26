@@ -568,6 +568,41 @@ ORIG = re.compile(r'orig (0x[0-9A-Fa-f]{6})')
 # such region must be named here: the table marks any other one as unclassified, and
 # --cold then fails.
 REGION_NOTES = {
+    # M6 part 2: the tick's regions no script runs, each reached by the cases of an oracle test
+    # (tests/test_oracle_m6.py asserts that its cases execute every one of them).
+    0x011D28: 'ported from reading; tests/test_oracle_m6.py, the ships sinking: the last enemy '
+              'ship sunk with no island left, the mission won',
+    0x011D3A: 'ported from reading; tests/test_oracle_m6.py, the ships sinking: the carrier a row '
+              'deeper with the player aboard, back on the lift',
+    0x011D7E: 'ported from reading; tests/test_oracle_m6.py, the ships sinking: the carrier 0x21 '
+              'rows down with the aircraft on its deck, into the sea',
+    0x01B6C8: 'ported from reading; tests/test_oracle_m6.py, the guns at an enemy aircraft east '
+              'of the player',
+    0x01CBEE: 'ported from reading; tests/test_oracle_m6.py, an aircraft at rest on a record that '
+              'is not land',
+    0x01D6BE: 'ported from reading; tests/test_oracle_m6.py, a fighter\'s turn reversed behind '
+              'the player while he turns',
+    0x01D6EE: 'ported from reading; tests/test_oracle_m6.py, a fighter\'s turn reversed east of '
+              'the player while he turns',
+    0x01D742: 'the jump table of aircraft_turn\'s switch: data, not code',
+    0x01DB86: 'ported from reading; tests/test_oracle_m6.py, a fighter ahead of the player hit '
+              'by the guns: its evasion',
+    0x01DCAC: 'the jump table of fighter_cruise\'s switch: data, not code',
+    0x01DF8C: 'ported from reading; tests/test_oracle_m6.py, a torpedo plane flying west turning '
+              '500 past the deck',
+    0x01E3D2: 'ported from reading; tests/test_oracle_m6.py, a fighter shot down and freed off '
+              'land: one fewer up',
+    0x01E404: 'ported from reading; tests/test_oracle_m6.py, a wreck burning facing east',
+    0x01E4C8: 'ported from reading; tests/test_oracle_m6.py, state 1, which nothing sets',
+    0x01E504: 'ported from reading; tests/test_oracle_m6.py, a torpedo plane already up when '
+              'another is launched',
+    0x01E71A: 'unreachable: slowing towards a want speed of at least 900 lands half the gap and '
+              '5 above it',
+    0x01E7BA: 'ported from reading; tests/test_oracle_m6.py, a mode that is none of the four',
+    0x01E7D0: 'ported from reading; tests/test_oracle_m6.py, a mode that is none of the four',
+    0x01E84E: 'ported from reading; tests/test_oracle_m6.py, state 1, which nothing sets',
+    0x01E866: 'ported from reading; tests/test_oracle_m6.py, state 8, which nothing sets',
+    0x01E87E: 'ported from reading; tests/test_oracle_m6.py, a state that is none of the five',
     0x010036: "M3's: the command line's demo file, which the port has no command line for",
     0x010104: 'ported from reading: demo_mode sets 0x026D44 before step S',
     0x010196: 'ported from reading: a paused mission waits for the next VBlank',

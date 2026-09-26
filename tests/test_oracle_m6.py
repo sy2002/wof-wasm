@@ -215,14 +215,14 @@ COLD = {
     0x01D562: [0x01D6BE, 0x01D6EE],                        # aircraft_turn: case 1, case 2
     0x01D9C6: [0x01DB86],                                  # fighter_cruise: a hit ahead
     0x01DEA4: [0x01DF8C],                                  # torpedo_plane: past the deck's west end
-    0x01E244: [0x01E380, 0x01E3D2, 0x01CBC0, 0x01CBD4],    # at rest on land; a fighter; record_is_land
-    0x01E3E8: [0x01E3E8],                                  # aircraft_burning
+    0x01E244: [0x01E3D2, 0x01CBEE],                        # a fighter freed; a record not land
+    0x01E3E8: [0x01E404],                                  # a wreck burning facing east
     0x01E4C8: [0x01E4C8],                                  # aircraft_idle
     0x01E4D0: [0x01E504],                                  # a torpedo plane already up
     # aircraft_speed's clamp at 900 (0x01E71A) is dead: slowing towards a want speed that is
     # at least 900 lands half the gap and 5 above it.
     0x01E728: [0x01E7BA, 0x01E7D0],                        # a mode none of the four
-    0x01E7D6: [0x01E84E, 0x01E876],                        # states 1, 8, 0x10 and the rest
+    0x01E7D6: [0x01E84E, 0x01E866, 0x01E87E],              # states 1, 8 and any other
     0x011CAE: [0x011D28, 0x011D3A, 0x011D7E],              # won; the carrier's lift; the sea
     0x01B682: [0x01B6C8],                                  # an aircraft east of the player
 }

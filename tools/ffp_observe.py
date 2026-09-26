@@ -76,13 +76,26 @@ RUNS = {
 }
 STOP = {'flight': 2600, 'climb': 2400, 'guns': 2400, 'roll_off': 1700, 'deck': 1700,
         'zeros': 13000}
+# The M6 scripts (tools/m6_scripts.py) that fly the enemy aircraft in every mode through
+# aircraft_motion: fighters from an airfield turning and on the tail, the Japanese carrier's
+# and the battleship's aircraft, the countdown's torpedo planes chased and shot down, and a
+# fighter falling onto land and burning.
+M6_RUNS = ['airfield_e', 'japcarrier_o', 'battleship_j', 'burning_a', 'fight_a']
+for _name in M6_RUNS:
+    RUNS['m6_' + _name] = None
 
 
 def observe(name, verbose=True):
-    description = {'raw': RUNS[name] + [[1, '']], 'stop': {'vblanks': STOP[name]}}
+    import m6_scripts
+    if name.startswith('m6_'):
+        description = m6_scripts.script(name[3:])
+    else:
+        description = {'raw': RUNS[name] + [[1, '']], 'stop': {'vblanks': STOP[name]}}
     started = time.time()
     machine = headless.Headless(description, observe=GLUE + ROUTINES + FORMATTERS,
                                 observe_returns=True, watch=WATCH, watch_for=ROUTINES)
+    if name.startswith('m6_'):
+        m6_scripts.install_pokes(machine, m6_scripts.pokes(name[3:]))
     machine.run()
     if verbose:
         print('%-9s %5d VBlanks, %4d ticks, %5d observations  (%.1f s)'

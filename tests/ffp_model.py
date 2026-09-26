@@ -258,6 +258,19 @@ def model_01d796(entry, engine):
         if r24 < 0x21:
             r24 = 0x21
 
+    # 0x01D96A: the countdown to a turn (+0x18) sets bit 3 of the mode at its end, and a
+    # flying aircraft turning (0x01D562) takes the player's height into +0x24 while he
+    # flies and it is a fighter (mode bit 0 or 1); nothing else in the turn writes the
+    # three words compared here.
+    mode = memory.w('aircraft', at + 0x02)
+    r18 = memory.sw('aircraft', at + 0x18)
+    if not state & 0x14 and r18 != 0:
+        r18 -= 1
+        if r18 <= 0:
+            mode |= 8
+    if mode & 8 and state == 2 and player_c == 0 and mode & 3:
+        r24 = memory.sw('player', 0x00)
+
     return ffp.made, {'r1e': u16(r1e), 'r20': u16(r20), 'r24': u16(r24)}
 
 

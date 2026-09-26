@@ -255,6 +255,102 @@ def assert_the_mission_is_flown_from_the_keyboard(flight):
     assert_a_weapon_is_dropped_and_the_guns_fire(flight['drop'])
 
 
+# M6 on the page: what an enemy aircraft looks like in the framebuffer (tests/pagemeasure.mjs,
+# SKY_PNG and enemyFlight).  Its 56 flying frames, the shapes of japplane.shp by the names
+# enemy_frames reads (0x025F58), each pixel doubled across the low-resolution playfield, in
+# the colours of map d's sky: row 40's palette at the first pass of oil_d's mission in the
+# closed loop, the port's own.  Built once.
+_ENEMY_TEMPLATES = []
+
+
+def enemy_templates(ported):
+    if _ENEMY_TEMPLATES:
+        return _ENEMY_TEMPLATES
+    import tempfile
+    import hunk
+    import m4compare
+    import m6_scripts
+    for part in hunk.load(str(ROOT / 'original' / 'disk' / 'Wings_of_Fury' / 'Wings')):
+        if part['base'] <= 0x025F58 < part['base'] + len(part['data']):
+            names = bytes(part['data'][0x025F58 - part['base']:0x025F58 - part['base'] + 56 * 4])
+    japplane = 3                                                  # WOF_C_JAPPLANE
+    frames = sorted({ported.shape_find(japplane, int.from_bytes(names[i:i + 4], 'big'))
+                     for i in range(0, 56 * 4, 4)} - {-1})
+    dump = str(pathlib.Path(tempfile.mkdtemp()) / 'oil_d.dump')
+    machine = m4compare.record('oil_d', dump, pokes=m6_scripts.pokes('oil_d'))
+    replay = m4compare.Replay(ported, machine, dump, mode='closed', pokes=m6_scripts.pokes('oil_d'))
+    palette = []
+
+    class Enough(Exception):
+        pass
+
+    def on_pass(r, memory, head, k):
+        if memory.u(0x02507A, 2) == 0:                            # before step S
+            return
+        lib = ported.lib
+        lib.wt_present()
+        lib.wof_palette_rows.restype = ctypes.c_void_p
+        lib.wof_palettes.restype = ctypes.c_void_p
+        rows = ctypes.string_at(lib.wof_palette_rows(), lib.wof_framebuffer_height() * 2)
+        count = lib.wof_palette_colours()
+        pal = ctypes.string_at(lib.wof_palettes(), lib.wof_palette_count() * count * 4)
+        row = int.from_bytes(rows[80:82], 'little')
+        palette.extend(tuple(pal[(row * count + i) * 4:(row * count + i) * 4 + 3])
+                       for i in range(count))
+        raise Enough()
+    try:
+        replay.run(on_pass=on_pass)
+    except Enough:
+        pass
+    for i in frames:
+        w = ported.shape_field(japplane, i, 'wbytes') * 8
+        h = ported.shape_field(japplane, i, 'height')
+        px = ported.shape_pixels(japplane, i)
+        pts = [(y, 2 * x + d, palette[px[y * w + x]]) for y in range(h) for x in range(w)
+               for d in (0, 1) if px[y * w + x]]
+        if len(pts) >= 12:
+            _ENEMY_TEMPLATES.append((i, pts))
+    return _ENEMY_TEMPLATES
+
+
+def enemy_in(png_url, templates):
+    """(shape, x, y) of an enemy aircraft's frame whose every opaque pixel the picture holds
+    at one place, or None."""
+    import numpy as np
+    from PIL import Image
+    image = np.array(Image.open(io.BytesIO(base64.b64decode(png_url.split(',', 1)[1])))
+                     .convert('RGB'))
+    for shape, pts in templates:
+        y0, x0, c0 = pts[0]
+        ys, xs = np.nonzero(np.all(image == np.array(c0, np.uint8), axis=2))
+        for top, left in zip(ys - y0, xs - x0):
+            if all(0 <= top + y < image.shape[0] and 0 <= left + x < image.shape[1] and
+                   tuple(int(v) for v in image[top + y, left + x]) == c for y, x, c in pts[1:]):
+                return (shape, int(left), int(top))
+    return None
+
+
+def assert_an_enemy_aircraft_comes_up(enemy, ported):
+    """M6 on the page: in the second rank's first mission, map d (its hold at x 7456), the
+    aircraft takes off and flies to the airfield; the sky taken on the way, out of the
+    airfield's reach, shows no enemy aircraft, and the sky over the island shows the fighter
+    the airfield sends up, found by its frame's pixels (enemy_templates)."""
+    assert enemy['hold'] and enemy['hold']['x'] == 7456, 'not map d: %s' % enemy['hold']
+    assert not enemy['hold']['flip'], 'the flip is on: %s' % enemy['hold']
+    assert enemy['air']['deck'] == 0, 'the aircraft never left the deck: %s' % enemy['air']
+    assert len(enemy['before']) >= 3, 'the sky was taken %d times on the way' % len(enemy['before'])
+    assert len(enemy['over']) >= 10, 'only %d looks over the island: %s' % (
+        len(enemy['over']), enemy['trail'][-3:])
+    templates = enemy_templates(ported)
+    assert len(templates) >= 20, 'only %d frames to look for' % len(templates)
+    early = [(shot['x'], enemy_in(shot['png'], templates)) for shot in enemy['before']]
+    assert all(found is None for _, found in early), 'an enemy aircraft before the airfield: %s' % early
+    seen = [(shot['x'], shot['ms'], found) for shot in enemy['over']
+            for found in [enemy_in(shot['png'], templates)] if found]
+    assert seen, 'no enemy aircraft in %d looks over the island; last %s' % (
+        len(enemy['over']), enemy['last'])
+
+
 def assert_a_weapon_is_dropped_and_the_guns_fire(drop):
     """M5 on the page, read off the framebuffer: before the click the weapon counter is
     steady and nothing is white just above the sea; after it the counter has turned and a

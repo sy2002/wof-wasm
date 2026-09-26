@@ -18,7 +18,8 @@ import pytest
 from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
-from conftest import (assert_the_mission_is_flown_from_the_keyboard,
+from conftest import (assert_an_enemy_aircraft_comes_up,
+                      assert_the_mission_is_flown_from_the_keyboard,
                       assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
                       assert_a_modifier_alone_starts_nothing,
@@ -366,6 +367,12 @@ def test_a_mission_is_flown_from_the_keyboard(loaded):
     assert flight['second']['deck'] in (1, 11), flight['second']
     for life in ('third', 'end'):
         assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
+
+
+def test_an_enemy_aircraft_comes_up_on_the_page(loaded, ported):
+    """M6 in Chrome: the second rank's first mission, map d, flown from the hold to the
+    airfield, whose fighter the framebuffer shows over the island."""
+    assert_an_enemy_aircraft_comes_up(loaded['enemy'], ported)
 
 
 def test_a_tap_as_soon_as_the_hold_appears_steps_once(loaded):

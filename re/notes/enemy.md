@@ -98,7 +98,7 @@ meaning read from the writers named):
 Only two fields are written in a pass: `+0x2C` by `draw_enemy_aircraft` and `+0x2E` by
 `snapshot_for_draw` (observed, the same command). Everything else is the tick's.
 
-### What each state and mode does (read)
+### What each state and mode does (read, and held by the oracle and the closed loop)
 
 `enemy_aircraft_step` (`0x01E7D6`) walks the four records every tick. For each one in use
 it takes the relation (`aircraft_relation`, `0x01D3B4`) and the order of those that tail
@@ -185,7 +185,10 @@ Every launch: state 2, health `0xF0`, speed and want speed `0x025F52` (900), bur
 The guns (`guns`, `0x01B682`) hit an aircraft that flies the same way ahead of the player
 (relation 3) within `0xA0` pixels and `0x14` of height while his pitch target is 0 (level,
 the stick left alone): each tick of hits counts `+0x0A` down, and at its end a burst takes
-8 of the health, smoke comes off it and `+0x06` is set. Below `0x60` it is shot down:
+8 of the health, smoke comes off it and `+0x06` is set. The walk tests the relation only,
+not the state, and a record that is freed keeps the relation it last had, so a free record
+left at relation 3 near the player would be hit too (read; the port does the same, and the
+oracle's cases include it). Below `0x60` it is shot down:
 350 points, state 4, want y -3. So nineteen bursts, some 110 to 170 ticks of hits, bring
 one down (read; observed in `fight_a`, `tools/m6_observe.py states` and `events`: the
 torpedo plane launched at tick 5070 loses its health in bursts of 8 from `0xF0` to `0x58`,
@@ -200,8 +203,20 @@ kills soldiers within `0x14`, hits the record under it as a crash does while fas
 (state `0x10`, `aircraft_burning`) for about a hundred ticks and then leaves one of the
 wrecks' words (`0x0251DA`, its x, negative facing west, counted in `0x0251D8`) and frees its
 record; anywhere else it is freed at once (read; observed in `fight_a`: the kill came east
-of map a's end and the record was freed without a wreck). `draw_enemy_aircraft` draws the
-wrecks at `view_y` less 4, a height of 15 over the sea.
+of map a's end and the record was freed without a wreck). The wreck's word goes to
+`0x0251DA` plus twice the count whatever the count is, so a forty-first wreck would be
+written into the aircraft records behind the list. `aircraft_burning` frees the record with
+one fighter fewer up even for a torpedo plane: the fall cleared the mode when the burning
+began. `draw_enemy_aircraft` draws the wrecks at `view_y` less 4, a height of 15 over the
+sea.
+
+The fall on land, observed in `burning_a` (`tools/m6_scripts.py trace burning_a`), where a
+fighter shot down high over map a's island is poked into the first record after the
+mission's reset of its tables, as the guns leave one (state 4, want y -3, one fighter up):
+it falls west, comes to rest on the island at tick 500 at x 3239, slides to 3218, counts
+the kill at tick 510 and burns (state `0x10`, `+0x1E` 6, `+0x1C` `0x1E`), and at tick 610
+leaves the wreck's word -3218 with the count 1 and frees the record, `fighters_up` from 1
+to 0.
 
 ## The ships
 
@@ -263,8 +278,12 @@ first (page 7); the code does not: the hit counts whatever the guns do (read).
 
 A ship whose hits are 0 sinks (`ships_sinking`, `0x011CAE`, `ship_sinking`, `0x011CD8`):
 every `+0x16` ticks it goes a row deeper, the interval falling by one each time. Ten rows
-down an enemy ship scores its `+0x12`, the ticker says so, and one ship fewer is left; with
-no ship and no island left the mission is won. At `0x78` rows it is gone and its map
+down an enemy ship scores its `+0x12`, the ticker says so (`ship_sunk_message`,
+`0x015640`: the format at `0x023AD8` with the ship's name, chosen by its score from the
+four at `0x023BA8`, and the score), and one ship fewer is left; with no ship and no island
+left the mission is won. What tells the carrier from an enemy ship is its score of 0: the
+`beq` after the row's step reads the flags of the `move.w` of `+0x12` that comes between
+it and the `cmpi.w #1` of the rows (read; the oracle's cases include both). At `0x78` rows it is gone and its map
 records are cleared (read; observed in `torpedo_f`: 19 ticks later a row, then fewer; the
 score +1000, the cruise ship's `+0x12`, at tick 763; its hits -1 and its records cleared at
 tick 928).
@@ -276,9 +295,11 @@ torpedo that runs into it takes one, as the player's do a ship's (observed,
 `tools/m6_observe.py events`: in `enemy_a` the torpedo plane drops at tick 2014 and its
 torpedo takes the carrier from 4 hits to 3 at tick 2183, flashing the sky white and red; in
 `sunk_a` four torpedoes, at ticks 2084, 3127, 4172 and 5992). Sunk, it goes down as a ship
-does; one row down with the player aboard he is put back on the lift, `0x21` rows down with
-the aircraft on its deck he goes into the sea, his lives are taken and the game-over count
-starts, and the enemy's countdown stops (read; observed in `sunk_a`: the sinking from tick
+does; at every row while the player is aboard (in the hold, `0x025394` 1) he is put back
+on the lift (deck state `0x0B`, `0x025394` 2, the weapon menu down, the attitude level),
+`0x21` rows down with the aircraft on its deck he goes into the sea, his lives are taken and
+the game-over count starts at 100, and the enemy's countdown stops (read; observed in
+`sunk_a`: the sinking from tick
 5992, the carrier gone at tick 6320, and the game's end at tick 6420 after the aircraft
 came down on the sunken deck and into the sea). What defends the carrier is the
 manual's (page 11): shoot the torpedo plane down before it drops, or destroy
@@ -298,8 +319,12 @@ the call at tick 516, then the aircraft in the sea).
 
 ## Open
 
-- An enemy aircraft shot down over land, its burning (state `0x10`) and the wreck it leaves:
-  no script reaches it. The kill of `fight_a` came east of map a's end; over map a's island
-  the dug-outs' fire takes the oil during the chase (`re/notes/porting-m6.md`, "The
-  scripts"). The wrecks' words are drawn in `wrecks_a` from a poke.
+- An enemy aircraft shot down over land by play: no flight reached it. Over map a's island
+  the dug-outs' fire takes the oil during the chase; against the airfields' fighters of
+  maps d and e, seven dogfight plans of up to 15,000 ticks (`re/notes/porting-m6.md`, "The
+  scripts") brought none down, because a fighter jinks down to 35 pixels over land, where
+  the chase flies into the ground, and a fighter on the aircraft's tail takes its oil. The
+  fall, the burning and the wreck's word are held through the poke of `burning_a`.
 - States 1 and 8 of the aircraft record: cases of `enemy_aircraft_step` that nothing sets.
+- `aircraft_speed`'s floor at 900 when slowing (`0x01E71A`) is dead: slowing towards a
+  want speed of at least 900 lands half the gap and 5 above it (read).

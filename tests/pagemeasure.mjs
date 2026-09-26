@@ -236,3 +236,100 @@ export async function weaponRun(view, player, click, hold, sleep) {
         playerGuns: await player(),
     };
 }
+
+/* M6 on the page: the sky as the framebuffer shows it, the top 150 rows of the source canvas
+   as a PNG.  The pytest side looks in it for an enemy aircraft: every opaque pixel of one of
+   the 56 frames an enemy aircraft flies with (japplane.shp by the names enemy_frames takes,
+   0x025F58), each doubled across the low-resolution playfield, in the colours of map d's
+   sky, at one place (tests/conftest.py).  Colour alone does not tell it: the targets'
+   bursts round the aircraft and the ships' and the carrier's paint share the fighter's. */
+export const SKY_ROWS = 150;
+export const SKY_PNG = `(() => {
+    const source = window.__wofVideo.source;
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = ${SKY_ROWS};
+    canvas.getContext('2d').drawImage(source, 0, 0, 640, ${SKY_ROWS}, 0, 0, 640, ${SKY_ROWS});
+    return canvas.toDataURL('image/png');
+})()`;
+
+/* M6 on the page: map d, the first mission of the second rank, whose airfield (world x 3200
+   to 3544) sends a fighter up when the aircraft comes within 0x1E0 of it (0x011622,
+   re/notes/enemy.md).  From the hold: the lift, the roll east along the deck for 115 ticks
+   as tools/m5_autopilot.py rolls, the stick forward, the take-off and the climb to 120,
+   since a turn dives, then the turn and on
+   west to the island,
+   and there back and forth over the airfield for half a minute, the height kept between 70
+   and 170 with short taps.  The sky is taken five times on the way, out of the airfield's
+   reach (the control: no enemy aircraft can be there yet), and every 400 ms over the
+   island.  `keys` holds, lets go and taps the keys by name; `player` reads the overlay and
+   `sky` SKY_PNG. */
+export async function enemyFlight(keys, player, sky, sleep) {
+    const until = async (test, limitMs, stepMs = 100) => {
+        for (let waited = 0; waited < limitMs; waited += stepMs) {
+            const now = await player();
+            if (now && test(now)) {
+                return now;
+            }
+            await sleep(stepMs);
+        }
+        return player();
+    };
+    const out = { trail: [], before: [], over: [] };
+    out.hold = await player();
+    await keys.tap('space', 250);                                 /* the lift goes up */
+    out.deck = await until((p) => p.deck === 1 && p.y > 30, 6000);
+    await keys.down('right');
+    const rollFrom = (await player()).ticks;              /* 115 ticks, as the scripts roll */
+    out.rolling = await until((p) => p.ticks >= rollFrom + 115 || p.deck !== 1, 20000, 40);
+    await keys.down('up');
+    out.air = await until((p) => p.deck === 0, 10000);
+    out.climbed = await until((p) => p.y >= 120 || p.deck !== 0, 15000);   /* a turn dives */
+    await keys.up('up');
+    await keys.up('right');
+    let way = 'left';
+    await keys.down(way);
+    const started = Date.now();
+    let zone = null;
+    let lastShot = 0;
+    while (Date.now() - started < 90000 && (zone === null || Date.now() - zone < 30000)) {
+        const p = await player();
+        if (!p) {
+            await sleep(100);
+            continue;
+        }
+        const now = Date.now();
+        out.trail.push([now - started, p.x, p.y, p.deck]);
+        if (p.deck !== 0) {
+            break;                                               /* down: the run has failed */
+        }
+        if (p.x > 4700 && p.x < 7000 && out.before.length < 5 && now - lastShot > 1000) {
+            out.before.push({ x: p.x, y: p.y, png: await sky() });
+            lastShot = now;
+        } else if (p.x <= 4600) {
+            zone = zone === null ? now : zone;
+            if (now - lastShot > 400) {
+                out.over.push({ x: p.x, y: p.y, ms: now - zone, png: await sky() });
+                lastShot = now;
+            }
+        }
+        if (way === 'left' && p.x < 2900) {
+            await keys.up(way);
+            way = 'right';
+            await keys.down(way);
+        } else if (way === 'right' && p.x > 3900) {
+            await keys.up(way);
+            way = 'left';
+            await keys.down(way);
+        }
+        if (p.y < 70) {
+            await keys.tap('up', 120);
+        } else if (p.y > 170) {
+            await keys.tap('down', 120);
+        }
+        await sleep(100);
+    }
+    await keys.up(way);
+    out.last = await player();
+    return out;
+}

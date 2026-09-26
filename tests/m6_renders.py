@@ -1,6 +1,13 @@
-"""Pictures of the M6 scenes the port draws, for looking at (M6 part 1, deliverable 6).
+"""Pictures of the M6 scenes the port draws, for looking at.
 
-    .venv/bin/python tests/m6_renders.py          writes dist/m6-part1/
+    .venv/bin/python tests/m6_renders.py          writes dist/m6-part1/ and dist/m6-part2/
+    .venv/bin/python tests/m6_renders.py 2        only dist/m6-part2/
+
+Part 2's pictures come from the closed loop: the port runs on its own from the program's
+start, and the picture is its own state (a fighter on the tail firing, a torpedo plane at
+its drop, the carrier sinking, the carrier hit, an aircraft shot down and falling, the Japanese
+carrier's aircraft rolling, a wreck burning on land).  The conditions read the original's
+memory at the same pass, which the closed loop holds equal to the port's.
 
 Part 1 ports the pass, and the tick that flies the enemy aircraft and sinks the ships is part
 2's, so these pictures come from the open loop of tests/m4compare.py: every pass starts
@@ -27,6 +34,7 @@ import m6_scripts                          # noqa: E402
 from m4_renders import picture, save, s16   # noqa: E402
 
 OUT = os.path.join(ROOT, 'dist', 'm6-part1')
+OUT2 = os.path.join(ROOT, 'dist', 'm6-part2')
 PLAYER = 0x025078
 AIRCRAFT = 0x02522A
 
@@ -35,14 +43,14 @@ class Enough(Exception):
     pass
 
 
-def capture(ported, script, want, count=1):
-    """Replay `script` in the open loop until `count` passes met want(memory, pass), and
-    return their pictures."""
+def capture(ported, script, want, count=1, mode='open'):
+    """Replay `script` in the open or the closed loop until `count` passes met
+    want(memory, pass), and return their pictures."""
     work = tempfile.mkdtemp()
     dump_path = os.path.join(work, script + '.dump')
     pokes = m6_scripts.pokes(script)
     machine = m4compare.record(script, dump_path, pokes=pokes)
-    replay = m4compare.Replay(ported, machine, dump_path, mode='open', pokes=pokes)
+    replay = m4compare.Replay(ported, machine, dump_path, mode=mode, pokes=pokes)
     found = []
 
     def on_pass(r, memory, head, k):
@@ -84,9 +92,55 @@ def dashboard(image, name):
     save(image.crop((0, 163, 640, 200)), name, scale=(2, 4), out=OUT)
 
 
+def part2(ported):
+    """The tick's scenes from the closed loop into dist/m6-part2/."""
+    def closed(script, want):
+        return capture(ported, script, want, mode='closed')[0]
+
+    def around(m, states=None, modes=None, width=150):
+        px = s16(m.u(0x026E5C, 2))
+        return [e for e in enemies(m) if abs(e[2] - px) < width and
+                (states is None or e[0] in states) and (modes is None or e[1] in modes)]
+
+    def tail_firing(m, k):
+        return full(m) and any(f and fl & 1 for _, mode, _, _, f, fl in around(m, {2}, {2}))
+    save(closed('oil_d', tail_firing), 'fighter-on-the-tail-firing.png', out=OUT2)
+
+    def drop(m, k):
+        return full(m) and around(m, {2}, {0x10}, 200) and m.u(0x025594 + 0x20, 1) == 0xFF
+    save(closed('countdown_b', drop), 'torpedo-plane-dropped.png', out=OUT2)
+
+    def sinking(m, k):                        # the carrier, low over it: the cruise ship
+        rows = s16(m.u(0x0254D8 + 0x14, 2))  # sinks while torpedo_f flies high over it
+        return full(m) and 4 <= rows <= 0x40 and near(m, 6300, 7600) and \
+            s16(m.u(PLAYER, 2)) < 100
+    save(closed('sunk_a', sinking), 'carrier-sinking.png', out=OUT2)
+
+    def carrier_hit(m, k):
+        return full(m) and s16(m.u(0x0254D8 + 0x0C, 2)) == 3 and m.u(0x025416, 2) > 0
+    save(closed('enemy_a', carrier_hit), 'carrier-hit.png', out=OUT2)
+
+    def falling(m, k):
+        return full(m) and around(m, {4}, None, 160)
+    save(closed('fight_a', falling), 'shot-down-falling.png', out=OUT2)
+
+    def rolling(m, k):
+        count = m.u(0x025196, 2)
+        flag = s16(m.u(0x025196 + 8 + 8 * (count - 1), 2)) if count else 0
+        return full(m) and flag > 0 and m.u(0x02734A, 2) > 0x20 and near(m, 21700, 22800)
+    save(closed('japcarrier_m', rolling), 'japanese-carrier-rolling.png', out=OUT2)
+
+    def burning(m, k):
+        return full(m) and around(m, {0x10}, None, 160)
+    save(closed('burning_a', burning), 'wreck-burning-on-land.png', out=OUT2)
+
+
 def main():
     page = conftest.PAGE.read_text(encoding='utf-8')
     ported = conftest.Ported(conftest.payload(page, 'wof-fs'))
+    if sys.argv[1:] == ['2']:
+        part2(ported)
+        return
 
     def fighter_near(m, k):
         px = s16(m.u(0x026E5C, 2))
@@ -142,6 +196,7 @@ def main():
         return any(mode & 7 == 4 for _, mode, _, _, _, _ in enemies(m)) and \
             m.u(PLAYER + 0x0C, 2) == 0
     dashboard(capture(ported, 'countdown_b', arrow)[0], 'torpedo-plane-arrow.png')
+    part2(ported)
 
 
 if __name__ == '__main__':

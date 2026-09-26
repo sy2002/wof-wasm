@@ -17,8 +17,8 @@ import { resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, STORED_FILES, WEAPON_VIEW,
-         weaponRun } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, WEAPON_VIEW,
+         enemyFlight, weaponRun } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -558,6 +558,51 @@ try {
     await sleep(500);
     report.stick.released = await evaluateIn(stickSession, STICK_LOOK);
     report.stick.console = channel(stickSession).console;
+
+    /* M6: an enemy aircraft on the page, in a session of its own.  The front end walked to
+       the rank selection, the cursor one rank down and fire, the briefing, and then map d's
+       airfield flown to from the hold (pagemeasure.mjs, enemyFlight). */
+    const enemyTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const enemySession = (await cdp.send('Target.attachToTarget', {
+        targetId: enemyTarget.targetId, flatten: true,
+    })).sessionId;
+    await open(enemySession, 'file://' + pagePath);
+    /* The flight above left the flip stored, and the shell takes it when the page loads. */
+    await evaluateIn(enemySession, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
+    await cdp.send('Page.reload', {}, enemySession);
+    await sleep(1500);
+    const enemyKeys = {
+        down: (name) => cdp.hold(enemySession, name),
+        up: (name) => cdp.release(enemySession, name),
+        tap: async (name, ms) => {
+            await cdp.hold(enemySession, name);
+            await sleep(ms);
+            await cdp.release(enemySession, name);
+        },
+    };
+    await press(enemySession, 'backquote');          /* the overlay; also the gesture */
+    await sleep(800);
+    await enemyKeys.tap('space', 250);               /* the scroller */
+    await sleep(6600);
+    await enemyKeys.tap('space', 250);               /* the title sequence */
+    await sleep(2500);
+    await press(enemySession, 'down');               /* the second rank */
+    await sleep(400);
+    await press(enemySession, 'enter');
+    await sleep(3000);
+    await enemyKeys.tap('space', 250);               /* the briefing */
+    const enemyPlayer = () => evaluateIn(enemySession, PLAYER);
+    for (let waited = 0; waited < 20000; waited += 100) {
+        const p = await enemyPlayer();
+        if (p && p.x !== 0) {
+            break;
+        }
+        await sleep(100);
+    }
+    await sleep(1500);
+    report.enemy = await enemyFlight(enemyKeys, enemyPlayer,
+                                     () => evaluateIn(enemySession, SKY_PNG), sleep);
+    report.enemy.console = channel(enemySession).console;
 } finally {
     await stopChrome(browser);
 }

@@ -23,6 +23,7 @@ export const KEYS = {
     backquote: { key: '`', code: 'Backquote', text: '`' },
     space: { key: ' ', code: 'Space', text: ' ' },
     right: { key: 'ArrowRight', code: 'ArrowRight' },
+    left: { key: 'ArrowLeft', code: 'ArrowLeft' },
     up: { key: 'ArrowUp', code: 'ArrowUp' },
     down: { key: 'ArrowDown', code: 'ArrowDown' },
     five: { key: '5', code: 'Digit5', text: '5' },

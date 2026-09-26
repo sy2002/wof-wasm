@@ -19,7 +19,7 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture,
                      big_enough_blocks)
-from conftest import (ROOT,
+from conftest import (ROOT, assert_an_enemy_aircraft_comes_up,
                       assert_the_mission_is_flown_from_the_keyboard,
                       assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
@@ -245,6 +245,12 @@ def test_a_mission_is_flown_from_the_keyboard(loaded_firefox):
     assert after['stored'] == '1' and after['player']['flip'], after
 
 
+def test_an_enemy_aircraft_comes_up_on_the_page(loaded_firefox, ported):
+    """M6 in Firefox: the second rank's first mission, map d, flown from the hold to the
+    airfield, whose fighter the framebuffer shows over the island."""
+    assert_an_enemy_aircraft_comes_up(loaded_firefox['enemy'], ported)
+
+
 def test_a_tap_as_soon_as_the_hold_appears_steps_once(loaded_firefox):
     """The keyboard assist keeps a press made in the weapon menu's first fifteen ticks."""
     assert_a_tap_as_soon_as_the_hold_appears_steps_once(loaded_firefox['flight']['early'])
@@ -269,6 +275,11 @@ def test_a_mission_is_flown_in_a_visible_window(loaded_firefox_visible):
     assert_the_mission_is_flown_from_the_keyboard(flight)
     after = flight['afterReload']
     assert after['stored'] == '1' and after['player']['flip'], after
+
+
+def test_an_enemy_aircraft_comes_up_in_a_visible_window(loaded_firefox_visible, ported):
+    """The same in a visible Firefox window: map d's airfield's fighter over the island."""
+    assert_an_enemy_aircraft_comes_up(loaded_firefox_visible['enemy'], ported)
 
 
 def test_the_visible_canvas_shows_the_picture(loaded_firefox_visible):

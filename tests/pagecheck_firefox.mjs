@@ -22,8 +22,8 @@ import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SOURCE_PNG, WEAPON_VIEW,
-         weaponRun } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, WEAPON_VIEW,
+         enemyFlight, weaponRun } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -516,6 +516,54 @@ try {
         player: await player(),
     };
     report.flight = flight;
+
+    /* M6: an enemy aircraft on the page, in a tab of its own: the front end walked to the
+       rank selection, the cursor one rank down and Enter, the briefing, and then map d's
+       airfield flown to from the hold (pagemeasure.mjs, enemyFlight). */
+    const enemyTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'browsingContext.activate', { context: enemyTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: enemyTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+    /* The flight above left the flip stored, and the shell takes it when the page loads. */
+    await evaluateIn(enemyTab, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
+    await send(socket, 'browsingContext.reload', { context: enemyTab, wait: 'complete' });
+    await sleep(1500);
+    const KEY_LEFT = '\uE012';
+    const byName = { space: KEY_SPACE, left: KEY_LEFT, right: KEY_RIGHT, up: KEY_UP,
+                     down: KEY_DOWN };
+    const enemyKeys = {
+        down: (name) => keyAction(enemyTab, 'keyDown', byName[name]),
+        up: (name) => keyAction(enemyTab, 'keyUp', byName[name]),
+        tap: async (name, ms) => {
+            await keyAction(enemyTab, 'keyDown', byName[name]);
+            await sleep(ms);
+            await keyAction(enemyTab, 'keyUp', byName[name]);
+        },
+    };
+    await press(enemyTab, KEY_BACKQUOTE);            /* the overlay; also the gesture */
+    await sleep(800);
+    await enemyKeys.tap('space', 250);               /* the scroller */
+    await sleep(6600);
+    await enemyKeys.tap('space', 250);               /* the title sequence */
+    await sleep(2500);
+    await press(enemyTab, KEY_DOWN);                 /* the second rank */
+    await sleep(400);
+    await press(enemyTab, KEY_ENTER);
+    await sleep(3000);
+    await enemyKeys.tap('space', 250);               /* the briefing */
+    const enemyPlayer = () => evaluateIn(enemyTab, PLAYER);
+    for (let waited = 0; waited < 20000; waited += 100) {
+        const p = await enemyPlayer();
+        if (p && p.x !== 0) {
+            break;
+        }
+        await sleep(100);
+    }
+    await sleep(1500);
+    report.enemy = await enemyFlight(enemyKeys, enemyPlayer,
+                                     () => evaluateIn(enemyTab, SKY_PNG), sleep);
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {
