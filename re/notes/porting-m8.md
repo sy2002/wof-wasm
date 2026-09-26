@@ -189,8 +189,81 @@ comment naming one is left (`src/tick.c`, `objects.c`, `player.c`, `front.c`).
 
 ## Appendix: the reach map of the engine
 
-Entries of the engine's routines per part of the run, summed over the 32 runs of M4, the
-18 scripts of M5 and the 25 of M6, and the number of runs that entered each (written by
-`tools/reach_observe.py --m6 --load REACH.json --sound-markdown TABLE.md`):
+Entries of the engine's routines per part of the run, summed over the 32 runs of M4 (its
+scripts and its key runs), the 18 scripts of M5 and the 25 of M6, and the number of runs
+that entered each, written by
+`tools/reach_observe.py --m6 --load REACH.json --sound-markdown TABLE.md`:
 
-(the tables follow)
+### The head of the outer loop, before the rank selection
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `sounds_free` | `01346c` | 34 | 19 | 25 | 75 |
+| `sound_engine_free` | `0134a4` | 34 | 19 | 25 | 75 |
+
+### Mission setup, main program: the briefing's end to step S
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `sound_slots_init` | `011f76` | 33 | 20 | 25 | 75 |
+| `sounds_load` | `013368` | 33 | 20 | 25 | 75 |
+
+### Mission setup, the tick main runs itself
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `sound_channels` | `012066` | 33 | 20 | 25 | 75 |
+| `engine_sound` | `012132` | 33 | 20 | 25 | 75 |
+| `enemy_loudness` | `0122ce` | 33 | 20 | 25 | 75 |
+| `channel_play` | `01ea28` | 99 | 63 | 75 | 75 |
+| `channel_stop` | `01eac0` | 66 | 42 | 50 | 75 |
+| `channel_busy` | `01eb2e` | 99 | 63 | 75 | 75 |
+
+### Mission setup, VBlank servers
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `soundfx_vblank` | `01ec64` | 66 | 40 | 50 | 75 |
+
+### A VBlank during a mission (phase V)
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `audio_irq` | `01ebaa` | 817 | 3030 | 7428 | 75 |
+| `soundfx_vblank` | `01ec64` | 58008 | 82119 | 171191 | 75 |
+
+### The inner loop beside `frame_update` during a mission (phase M)
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `sound_slots_clear` | `011f4e` | 11 | 1 | 0 | 12 |
+| `sound_slots_init` | `011f76` | 1 | 0 | 0 | 1 |
+| `sound_channels` | `012066` | 11 | 1 | 0 | 12 |
+| `sounds_load` | `013368` | 1 | 0 | 0 | 1 |
+| `sound_engine_load` | `01344e` | 1 | 0 | 0 | 1 |
+| `sounds_free` | `01346c` | 4 | 0 | 0 | 2 |
+| `sound_engine_free` | `0134a4` | 7 | 0 | 0 | 3 |
+| `channel_stop` | `01eac0` | 33 | 6 | 0 | 12 |
+
+### The tick during a mission (phase T)
+
+| Routine | Address | M4 (32) | M5 (18) | M6 (25) | Runs |
+|---|---|---|---|---|---|
+| `sound_slots_clear` | `011f4e` | 15 | 19 | 28 | 54 |
+| `sound_channels` | `012066` | 14037 | 20556 | 42892 | 75 |
+| `engine_sound` | `012132` | 14022 | 20537 | 42864 | 75 |
+| `enemy_loudness` | `0122ce` | 13999 | 20537 | 42864 | 75 |
+| `near_loudness` | `0122f6` | 5 | 256 | 331 | 37 |
+| `loudness_at` | `012306` | 5 | 256 | 331 | 37 |
+| `sound_boom` | `012324` | 5 | 224 | 313 | 35 |
+| `sound_splash` | `01233e` | 0 | 2 | 18 | 8 |
+| `sound_clang` | `012354` | 15 | 19 | 28 | 54 |
+| `sound_screech` | `012380` | 1 | 0 | 2 | 3 |
+| `sound_scream` | `0123ac` | 0 | 30 | 0 | 3 |
+| `engine_idle` | `01b9cc` | 14 | 19 | 27 | 54 |
+| `channel_play` | `01ea28` | 294 | 1077 | 1782 | 56 |
+| `channel_stop` | `01eac0` | 433 | 1202 | 2283 | 56 |
+| `channel_busy` | `01eb2e` | 294 | 1077 | 1782 | 56 |
+| `channel_adjust` | `01eb4c` | 3013 | 7884 | 20538 | 53 |
+| `audio_irq` | `01ebaa` | 0 | 0 | 4 | 3 |
+| `soundfx_vblank` | `01ec64` | 105 | 84 | 336 | 23 |

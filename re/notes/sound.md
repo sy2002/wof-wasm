@@ -54,7 +54,7 @@ or 12 (**observed**, the harness's `player_calls`).
 
 ## The slots and what they play
 
-`sub_011f76` (`0x011F76`), at the end of `sounds_load`, builds slots 0 to 6 from the sound
+`sound_slots_init` (`0x011F76`), at the end of `sounds_load`, builds slots 0 to 6 from the sound
 pointers and lengths; slot 7 is filled by whoever switches it on. The periods, volumes and
 repeat counts are the immediates of the instructions (`re/tables.toml`, the `slot_*`
 tables); a period is in colour clocks, so a byte lasts period / 3,546,895 s on PAL.
@@ -63,11 +63,11 @@ tables); a period is in colour clocks, so a byte lasts period / 3,546,895 s on P
 |---|---|---|---|---|---|---|
 | 0 | 0 | `machinegun` | `0xC8` | 64 | -1 | `engine_sound`: the player's guns fire (`guns_firing`, `0x02536A`) |
 | 1 | 0 | `Engine` | eased | eased | -1 | `engine_sound`: the engine, while its eased volume is not 0 |
-| 2 | 1 | `machinegun` | `0xA0` | 57 | -1 | `engine_sound`: any enemy aircraft fires (`+0x12`, flying or attacking) |
+| 2 | 1 | `machinegun` | `0xA0` | 57 | -1 | `engine_sound`: an enemy aircraft in state 1 or 2 fires (`+0x12`) |
 | 3 | 1 | `Engine` | `0x14A` | by distance | -1 | `engine_sound`: the nearest enemy aircraft in states 1 and 2 |
-| 4 | 2 | `boom` | `0x1F4` | by distance | 1 | `0x012324`: a bomb's or a rocket's burst, a wreck at rest (`object_spawn`) |
-| 5 | 2 | `splash` | `0x15E` | by distance | 1 | `0x01233E`: something in the sea; aboard the carrier `engine_sound` makes it the sea itself, period `0x320`, volume 34, for ever |
-| 6 | 3 | `machinegun` | `0x140` | by distance | -1 | `engine_sound`: the guns of the ground, from `draw_world`'s nearest distance (`0x027164`, `0x027166`) |
+| 4 | 2 | `boom` | `0x1F4` | by distance | 1 | `sound_boom` (`0x012324`): a bomb's or a rocket's burst, a wreck at rest (`object_spawn`) |
+| 5 | 2 | `splash` | `0x15E` | by distance | 1 | `sound_splash` (`0x01233E`): something in the sea; aboard the carrier `engine_sound` makes it the sea itself, period `0x320`, volume 34, for ever |
+| 6 | 3 | `machinegun` | `0x140` | by distance | -1 | `engine_sound`: a ground target firing at the aircraft (`target_fire`, `0x014F5C`, keeps the nearest one's distance, which `draw_world` turns into `0x027164` and the loudness `0x027166`) |
 | 7 | 3 | set when used | | | | the lift moving (`Grind.1`, `0x1C2`, 64, for ever); its clang when it stops (`metal.clang.1`, length `0x1646`, `0x1C2`, 64, once); the wheels touching the deck (`screech`, `0x1A5A`, `0x15E`, 64, once); a soldier hit (`scream`, `0x19AC`, `0x17C`, half the distance's loudness, once) |
 
 The first slot of a pair has priority (**read**, `sound_channels`): the guns drown the
@@ -92,10 +92,13 @@ the original over every input by `tests/test_oracle_m8.py`):
 The engine (slot 1, `engine_sound` `0x012132`): the volume `0x02542C` moves towards
 `0x025428` by 1 up and 2 down each tick, the period `0x02542E` towards
 `(pitch_target >> 7) + 0x02542A + (player_y >> 4)` by 20 up and 10 down; the comparisons
-are unsigned. The controls set the two targets (`re/tables.toml`, `engine_targets`): at
-rest volume 40 and period `0x328`, climbing or full speed 64 and `0x14F`, level 49 and
-`0x181`, crashed 25 and `0x3C0`. So the engine rises in pitch as the aircraft climbs and
-speeds up; nothing moves while paused or with the music off (**read**).
+are unsigned. A smaller period is a higher pitch, so the engine sounds higher with the nose
+down and lower with the nose up and with height. The controls set the two targets in ten
+places (`re/tables.toml`, `engine_targets`): `flight_controls` volume 49 with period `0x181`,
+and 64 with `0x14F` where the speed's step grows or the stick is pulled back;
+`deck_controls` 64 with `0x14F` rolling towards the bow and 40 with `0x328` otherwise; `player_update` 25 with `0x3C0` for a
+crash and 40 with `0x328` on the cable; `engine_idle` 40 with `0x328`, when the lift has
+brought the aircraft up. Nothing moves while paused or with the music off (**read**).
 
 ## A channel record, `0x1E` bytes at `0x027E6E` + `0x1E` x c
 
@@ -116,15 +119,15 @@ speeds up; nothing moves while paused or with the music off (**read**).
 
 - **`sound_channels`** (`0x012066`, from `logic_tick` and `sound_slots_clear`): for a slot
   whose sample is the one the channel was given, only the period and the volume are
-  adjusted, and only when they changed (`0x01EB4C`, which also gives up any easing); for
-  another sample it calls `0x01EA28` three times with the same arguments; with no slot on,
+  adjusted, and only when they changed (`channel_adjust`, `0x01EB4C`, which also gives up
+  any easing); for another sample it calls `channel_play` (`0x01EA28`) three times with the same arguments; with no slot on,
   paused or with the music off, a channel that was given a sample is stopped three times
-  (`0x01EAC0`). **Read.**
-- **`0x01EA28`**, a sample for a channel: a busy channel is stopped first, its request
+  (`channel_stop`, `0x01EAC0`). **Read.**
+- **`channel_play`** (`0x01EA28`), a sample for a channel: a busy channel is stopped first, its request
   cleared and its interrupt enabled, and the record takes the sample and waits. The second
   and third calls therefore stop the start the first one set up and set it up again; each
   stop stamps the record with the current VBlank count.
-- **`0x01EAC0`**, a channel stopped: its interrupt off, its DMA off, the record free, count
+- **`channel_stop`** (`0x01EAC0`), a channel stopped: its interrupt off, its DMA off, the record free, count
   -1, no easing, volume 0, the VBlank count stamped, and `AUDxPER` left at `0x7C`.
 - **`soundfx_vblank`** (`0x01EC64`, VBlank server at priority 30, before `vblank_server`):
   counts `0x027E6A`; with the audio interrupts off, every record that waits and stopped at

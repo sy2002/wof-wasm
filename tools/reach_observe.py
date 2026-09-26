@@ -443,11 +443,21 @@ def sound_markdown(data, names):
     groups = [('M4', [n for n in names if n not in m5_scripts.SCRIPTS and n not in m6_scripts.SCRIPTS]),
               ('M5', [n for n in names if n in m5_scripts.SCRIPTS]),
               ('M6', [n for n in names if n in m6_scripts.SCRIPTS])]
+    current = {address: name for address, _, name in table}
+
+    def where(routine):
+        """A routine's address by the name a saved run recorded it under, which may be the
+        listing's automatic sub_ name of a routine named since."""
+        name = routine.split(':')[0]
+        found = address_of(name, table)
+        if not found and name.startswith('sub_'):
+            found = name[4:]
+        return int(found or '0', 16)
+
     lines = []
     for title, windows, phase in LISTS:
         rows = table_rows(data, names, windows, phase)
-        rows = {r: v for r, v in rows.items()
-                if int(address_of(r.split(':')[0], table) or '0', 16) in SOUND_ROUTINES and any(v)}
+        rows = {r: v for r, v in rows.items() if where(r) in SOUND_ROUTINES and any(v)}
         if not rows:
             continue
         lines.append('### %s' % code_words(title))
@@ -455,10 +465,10 @@ def sound_markdown(data, names):
         lines.append('| Routine | Address | ' + ' | '.join('%s (%d)' % (g, len(m)) for g, m in groups)
                      + ' | Runs |')
         lines.append('|---|---|' + '---|' * (len(groups) + 1))
-        for routine in sorted(rows, key=lambda r: (address_of(r.split(':')[0], table), r)):
+        for routine in sorted(rows, key=lambda r: (where(r), r)):
             values = dict(zip(names, rows[routine]))
-            lines.append('| `%s` | `%s` | %s | %d |' % (
-                routine, address_of(routine.split(':')[0], table),
+            lines.append('| `%s` | `%06x` | %s | %d |' % (
+                current.get(where(routine), routine), where(routine),
                 ' | '.join(str(sum(values[n] for n in m)) for _, m in groups),
                 sum(1 for n in names if values[n])))
         lines.append('')

@@ -40,6 +40,7 @@ def observe(name):
         'restarts': sum(1 for e in paula.events if e[0] == 'R'),
         'irqs': paula.irqs, 'late': paula.late,
         'player': sorted({c[1] for c in machine.player_calls if c[0].lower() == 'songplay'}),
+        'together': sum(1 for h in paula.handled if len(h[1]) > 1),
         'by_file': sorted(by_file.items()),
         'seconds': time.time() - started,
     }
@@ -71,7 +72,9 @@ def main():
             name, r['vblanks'], r['starts'], r['restarts'], r['irqs'], r['late'], starts or 'none'))
     commands = sorted({c for n in names for c in records[n]['player']})
     rows.append('')
-    rows.append('The commands the scripts give the music player: %s.' % commands)
+    rows.append('The commands the scripts give the music player: %s.  Handler calls that saw '
+                'the requests of two channels or more: %d.' % (
+                    commands, sum(records[n]['together'] for n in names)))
     rows.append('')
     total = [sum(records[n][k] for n in names) for k in ('starts', 'restarts', 'irqs', 'late')]
     rows.append('| all %d | | %d | %d | %d | %d | |' % tuple([len(names)] + total))
