@@ -1381,7 +1381,7 @@ Written by
 | `draw_world` `0x013772` | `0x013900`-`0x013901` | ported from reading: the distance handed to the sound engine | |
 | `ship_planes` `0x01391E` | `0x01395A`-`0x01396B` | `0x01395A`, the last ship's clip at full scale | M6 |
 | `ship_planes` `0x01391E` | `0x013976`-`0x0139B7` | `0x013976`, aircraft on a ship's deck | M6 |
-| `ship_planes` `0x01391E` | `0x0139CE`-`0x013A0D` | `0x0139D6`, the japanese carrier's crane | M6 |
+| `ship_planes` `0x01391E` | `0x0139CE`-`0x013A0D` | `0x0139D6`, `MasterList` slot `0xF7` after the Japanese carrier's deck aircraft, a shape its container lacks (`re/notes/porting-m6.md`) | M6 |
 | `airfields_draw` `0x013A18` | `0x013A36`-`0x013AB1` | `0x013A36`, an airfield in view | M6 |
 | `deck_aircraft` `0x013ABC` | `0x013ADA`-`0x013ADB` | ported from reading: more than nine lives count as nine | |
 | `record_extras` `0x013B1C` | `0x013B52`-`0x013BCD` | `0x013B52`, an island's flag | M5 |
