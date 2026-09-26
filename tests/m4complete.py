@@ -163,8 +163,7 @@ M5_HEAP = [
 ]
 
 # What the M6 scripts write beside the rows above (tests/test_enemy.py takes all three sets):
-# the ships' containers, which the mission setup loads on maps d to o, and the roll of the
-# Japanese carrier's aircraft, which the tick's launch writes.
+# the ships' containers, which the mission setup loads on maps d to o.
 M6_EXCLUDED = [
     (0x0256A2, 0x0256A5, {'shapes_load'},
      'shapes_load_name: the file name shapes_load is working on, for its error text',
@@ -176,10 +175,6 @@ M6_EXCLUDED = [
      'the port holds every container from start-up and keeps which ships the mission loaded '
      'in ship_loaded; what the tables hand on is MasterList\'s slots 0xB8 on, which are '
      'registered and compared after every step', 'M4'),
-    (0x02734A, 0x02734B, {'ship_launches'},
-     'japcarrier_roll: the speed of the aircraft the Japanese carrier rolls west to take off',
-     'written only by the tick\'s launch (0x01152A), which the port holds as a stand-in of '
-     'M6 part 2; part 2 registers it', 'M6 part 2'),
 ]
 M6_HEAP = [
     ('shapes_resolve', {'shapes_resolve'},

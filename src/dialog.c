@@ -42,6 +42,14 @@ uint16_t wof_raw_do_fmt(char *dst, const char *format, const uint16_t *data)
             continue;
         }
         p++;
+        if (*p == 's') {                        /* a long pointer to a text of the image */
+            uint32_t addr = ((uint32_t)data[0] << 16) | data[1];
+
+            data += 2;
+            for (uint32_t i = 0; wof_image8(addr + i) != 0; i++)
+                dst[out++] = (char)wof_image8(addr + i);
+            continue;
+        }
         if (*p == 'l') {
             p++;
             v = (int32_t)(((uint32_t)data[0] << 16) | data[1]);

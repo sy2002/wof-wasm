@@ -185,6 +185,7 @@ WOF_GLOBAL(g_026e70,           int16_t,  0x026E70)
 WOF_GLOBAL(g_026f8a,           int16_t,  0x026F8A)  /* 0x0107F2: 0x14 at a weapon's drop, for the debug view */
 WOF_GLOBAL(g_027346,           int16_t,  0x027346)  /* logic_tick: 0 and 1 in turn */
 WOF_GLOBAL(launch_cooldown,    int16_t,  0x027348)  /* 100 at a ship's or an airfield's launch; logic_tick counts it down */
+WOF_GLOBAL(japcarrier_roll,    int16_t,  0x02734A)  /* the Japanese carrier's aircraft's roll, sixteenths of a pixel a tick */
 WOF_GLOBAL(g_027352,           int16_t,  0x027352)  /* 0x011460: the pass it last ran in */
 WOF_GLOBAL(g_0253e8,           int16_t,  0x0253E8)  /* the swell's period, which logic_tick reloads 0x0253AC from */
 WOF_GLOBAL(g_026f80,           uint16_t, 0x026F80)  /* the cheat's q: main then ends the program (st.b) */

@@ -39,7 +39,7 @@ RANK_END, MISSION_RESET = m5_scripts.RANK_END, m5_scripts.MISSION_RESET
 
 # The scripts in the order the tests take them; the long ones (more than about 2,000 ticks)
 # run only with --slow.
-SCRIPTS = ['kills_a', 'wrecks_a', 'oil_d', 'night_d', 'airfield_e', 'cruise_f', 'torpedo_f', 'crash_f', 'crash_side_f',
+SCRIPTS = ['kills_a', 'wrecks_a', 'burning_a', 'oil_d', 'night_d', 'airfield_e', 'cruise_f', 'torpedo_f', 'crash_f', 'crash_side_f',
            'rockets_f', 'cruise_g', 'destroyer_h', 'ships_i', 'battleship_j', 'battleship_k',
            'destroyer_l', 'japcarrier_m', 'destroyer_n', 'japcarrier_o', 'countdown_b',
            'countdown_c', 'enemy_a', 'fight_a', 'sunk_a']

@@ -414,6 +414,12 @@ def raw_do_fmt(o, fmt, data):
             long, i = True, i + 1
         kind = chr(text[i])
         i += 1
+        if kind == 's':                   # a long pointer to the text
+            pointer = o.r32(data)
+            data += 4
+            field = o.read(pointer, 256).split(b'\0')[0] if pointer else b''
+            out += b' ' * max(0, width - len(field)) + field
+            continue
         if long:
             value = o.r32(data)
             data += 4

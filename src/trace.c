@@ -201,7 +201,7 @@ void wof_test_step_s(uint32_t mission)
  * after the mission's reset of its tables, which is how a state the promotion leaves is
  * reached (re/notes/porting-m5.md, "The scripts").  The headless original's run gets the
  * same pokes at the same points (0x01009E, 0x0100D6). */
-#define POKES_MAX 8
+#define POKES_MAX 32                 /* more than any script pokes; a poke past it would be lost */
 
 static struct { uint32_t offset, size, value, reset; } pokes[POKES_MAX];
 static uint32_t poke_count;
@@ -227,6 +227,14 @@ void wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value)
     poke_add(offset, size, value, 1);
 }
 
+/* A poke by the original's address, big-endian as the original's memory holds it, into
+ * whatever registered global or fixed table covers it (src/core.c): the tables' records,
+ * which have no offset in the globals. */
+void wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t reset)
+{
+    poke_add(addr, size, value, (reset & 1u) | 2u);
+}
+
 void wof_test_pokes_clear(void)
 {
     poke_count = 0;
@@ -237,8 +245,14 @@ static void pokes_apply(uint32_t reset)
     for (uint32_t i = 0; i < poke_count; i++) {
         uint8_t *at = (uint8_t *)&wof_s.g + pokes[i].offset;
 
-        if (pokes[i].reset != reset)
+        if ((pokes[i].reset & 1u) != reset)
             continue;
+        if (pokes[i].reset & 2u) {
+            for (uint32_t b = 0; b < pokes[i].size; b++)
+                wof_original_store8(pokes[i].offset + b,
+                                    (uint8_t)(pokes[i].value >> (8 * (pokes[i].size - 1u - b))));
+            continue;
+        }
         for (uint32_t b = 0; b < pokes[i].size; b++)
             at[b] = (uint8_t)(pokes[i].value >> (8 * b));
     }

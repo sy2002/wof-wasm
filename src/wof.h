@@ -444,7 +444,7 @@ typedef struct {
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 7u
+#define WOF_STATE_VERSION 8u
 
 extern wof_state_t wof_s;
 
@@ -459,6 +459,9 @@ extern wof_state_t wof_s;
  * loaded from there, with the byte order converted.  wof_init calls it after zeroing. */
 void wof_globals_from_image(void);
 int  wof_global_byte(uint32_t orig_address, uint8_t *out);   /* a registered global's byte */
+int  wof_original_store8(uint32_t orig_address, uint8_t value);     /* a byte to a registered
+                                                                       global or fixed table */
+void wof_original_store16(uint32_t orig_address, uint16_t value);   /* a word, big-endian */
 
 /* ------------------------------------------------------------- the marked stand-ins (M4)
  *
@@ -921,6 +924,11 @@ int16_t  wof_wheel_height(void);            /* orig 0x01AAEA */
 uint32_t wof_record_at(int16_t x);          /* orig 0x01C982 */
 int      wof_on_water(uint32_t at);         /* orig 0x01CB74 */
 int      wof_record_on_ship(uint32_t at);   /* orig 0x01CB34 */
+int      wof_record_is_land(uint32_t at);   /* orig 0x01CBB2 */
+void     wof_burn_smoke(int16_t unused, int16_t kind, int16_t x, int16_t y);   /* orig 0x01CAE0 */
+void     wof_aircraft_frame_index(wof_aircraft_t *a);   /* orig 0x01D35A */
+void     wof_aircraft_launch(int16_t kind, int16_t x, int16_t height, int16_t facing);   /* orig 0x01E4D0 */
+void     wof_enemy_aircraft_step(void);    /* orig 0x01E7D6 */
 uint16_t wof_crand(void);                   /* orig 0x021E24, the C library's rand() */
 void     wof_flash_set(int16_t count, int16_t colour);   /* orig 0x01CAB4 */
 uint16_t wof_map_slot_at(int16_t x, uint16_t *slot);     /* orig 0x0150C8 */
@@ -970,6 +978,7 @@ void     wof_target_fire(int16_t x, uint16_t d1_high, uint16_t d2_high);        
 void     wof_target_refill(wof_gtarget_t *a0);             /* orig 0x014FEE */
 void     wof_ticker_format(uint32_t format, uint32_t value, uint16_t at);   /* orig 0x015078 */
 void     wof_ticker_say(uint32_t format, uint32_t value);  /* orig 0x015624 */
+void     wof_ship_sunk_message(const wof_ship_t *s);       /* orig 0x015640 */
 void     wof_mission_won(void);                            /* orig 0x015694 */
 uint16_t wof_island_bonus(uint8_t island);                 /* orig 0x015AE8 */
 void     wof_smoke_draw(void);                             /* orig 0x010EE0 */
@@ -1005,6 +1014,7 @@ void     wof_crash_hit(uint32_t at);             /* orig 0x0146C6 */
 #ifdef WOF_TRACE
 void     wof_test_poke(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_pokes_clear(void);
+void     wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t reset);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
 void     wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value);
@@ -1015,6 +1025,7 @@ int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the 
 int32_t  wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/targets.c */
 int32_t  wof_test_m6_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/world.c */
 int32_t  wof_test_tick_part(uint32_t orig);     /* src/tick.c */
+int32_t  wof_test_enemy_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out);   /* src/enemy.c */
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);

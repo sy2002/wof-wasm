@@ -685,11 +685,10 @@ def test_the_player_routines_match_the_original(player, address, what, deck):
         try:
             want = d.o.call(address) & 0xFFFF
         except RuntimeError as error:
-            # The enemy aircraft coming (0x01BC66, M6) draw rand_beam, which reads the beam
-            # counter the oracle has no chips for: the port must stand in there.
+            # The enemy aircraft coming (0x01BC66) draw rand_beam, which reads the beam
+            # counter this machine has no chips for; tests/test_oracle_m6.py serves the beam
+            # and compares those cases.
             assert '00dff0' in str(error), error
-            d.port(address)
-            assert lib.wof_standin_hits() != hits, '%s, case %d: no stand-in' % (what, n)
             continue
         got = d.port(address) & 0xFFFF
         if lib.wof_standin_hits() != hits:

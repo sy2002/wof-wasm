@@ -164,6 +164,93 @@ int wof_global_byte(uint32_t addr, uint8_t *out)
     return 0;
 }
 
+/* The records of src/records.def by number, with the original's size of each. */
+enum {
+#define WOF_RECORD(r, size)                 rec_##r,
+#define WOF_FIELD(r, n, t, off, k)
+#define WOF_FIELD_ARRAY(r, n, t, c, off, k)
+#define WOF_RECORD_END(r)
+#include "records.def"
+    rec_count
+};
+static const uint32_t record_size[rec_count] = {
+#undef WOF_RECORD
+#define WOF_RECORD(r, size)                 (uint32_t)(size),
+#include "records.def"
+};
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+
+/* The byte of the port's struct that holds byte `off` of an original record: the plain
+ * field that covers it, big-endian in the original.  -1 where none does (a gap, or a
+ * pointer the port keeps as a handle). */
+static int32_t record_byte(int rec, uint32_t off)
+{
+    switch (rec) {
+#define WOF_RECORD(r, size)                 case rec_##r:
+#define WOF_FIELD(r, n, t, o, k)                                                       \
+        if ((k) == WOF_K_PLAIN && off - (uint32_t)(o) < (uint32_t)sizeof(t))           \
+            return (int32_t)(offsetof(wof_##r##_t, n) + sizeof(t) - 1u - (off - (uint32_t)(o)));
+#define WOF_FIELD_ARRAY(r, n, t, c, o, k)                                              \
+        if ((k) == WOF_K_PLAIN && off - (uint32_t)(o) < (uint32_t)(sizeof(t) * (c)))   \
+            return (int32_t)(offsetof(wof_##r##_t, n) +                                \
+                             ((off - (uint32_t)(o)) / sizeof(t)) * sizeof(t) +         \
+                             sizeof(t) - 1u - (off - (uint32_t)(o)) % sizeof(t));
+#define WOF_RECORD_END(r)                   return -1;
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+    default:
+        return -1;
+    }
+}
+
+/* A byte stored at an original address, into the registered global or the table at a
+ * fixed address that covers it, as the original's move to that address would.  Returns 0
+ * where nothing the port keeps covers the address. */
+int wof_original_store8(uint32_t addr, uint8_t value)
+{
+#define WOF_GLOBAL(n, t, a)                                                            \
+    if (addr - (uint32_t)(a) < (uint32_t)sizeof(t)) {                                  \
+        ((uint8_t *)&wof_g.n)[sizeof(t) - 1u - (addr - (uint32_t)(a))] = value;        \
+        return 1;                                                                      \
+    }
+#define WOF_GLOBAL_ARRAY(n, t, c, a)                                                   \
+    if (addr - (uint32_t)(a) < (uint32_t)(sizeof(t) * (c))) {                          \
+        uint32_t at_ = addr - (uint32_t)(a);                                           \
+        ((uint8_t *)wof_g.n)[(at_ / sizeof(t)) * sizeof(t) + sizeof(t) - 1u - at_ % sizeof(t)] = value; \
+        return 1;                                                                      \
+    }
+#include "globals.def"
+#undef WOF_GLOBAL
+#undef WOF_GLOBAL_ARRAY
+#define WOF_TABLE(n, r, c, a)                                                          \
+    if (addr - (uint32_t)(a) < record_size[rec_##r] * (uint32_t)(c)) {                 \
+        uint32_t at_ = addr - (uint32_t)(a);                                           \
+        int32_t  b_  = record_byte(rec_##r, at_ % record_size[rec_##r]);               \
+                                                                                       \
+        if (b_ < 0)                                                                    \
+            return 0;                                                                  \
+        ((uint8_t *)&wof_m.n[at_ / record_size[rec_##r]])[b_] = value;                 \
+        return 1;                                                                      \
+    }
+#define WOF_POOL(n, r, c, p)
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
+void wof_original_store16(uint32_t addr, uint16_t value)
+{
+    wof_original_store8(addr, (uint8_t)(value >> 8));
+    wof_original_store8(addr + 1u, (uint8_t)value);
+}
+
 /* ------------------------------------------------------------------ marked stand-ins */
 
 uint32_t wof_standin_hits(void)

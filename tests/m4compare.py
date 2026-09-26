@@ -201,6 +201,8 @@ class Replay:
                 ('wt_pokes_clear', [], None),
                 ('wt_poke', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_poke_reset', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
+                ('wt_poke_address', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint],
+                 None),
                 ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
@@ -317,9 +319,14 @@ class Replay:
             assert at in (m5_scripts.RANK_END, m5_scripts.MISSION_RESET), hex(at)
             for address, size, value in items:
                 # A global, or an element of a global array (the wrecks' words of
-                # tools/m6_scripts.py's wrecks_a): the element's offset in the port's struct.
-                entry = next(e for e in self.layout.globals
-                             if e[1] <= address < e[1] + e[2] * e[3])
+                # tools/m6_scripts.py's wrecks_a): the element's offset in the port's struct;
+                # else a record of a table (burning_a's aircraft), by its address.
+                entry = next((e for e in self.layout.globals
+                              if e[1] <= address < e[1] + e[2] * e[3]), None)
+                if entry is None:
+                    self.lib.wt_poke_address(address, size, value,
+                                             0 if at == m5_scripts.RANK_END else 1)
+                    continue
                 poke(entry[4] + (address - entry[1]), size, value)
         # The address the harness's allocator gave the map list at every map load, which the
         # port takes as it takes the entropy stream (re/notes/porting-m5.md, "The wreck").

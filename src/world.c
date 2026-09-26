@@ -1149,14 +1149,19 @@ wof_co_t wof_frame_update(void)
 }
 
 #ifdef WOF_TRACE
-/* The oracle tests' entry into the pass routines of M6 part 1 (tests/test_oracle_m6.py). */
+/* The oracle tests' entry into the routines of M6 (tests/test_oracle_m6.py): the pass
+ * routines of part 1 here, the tick's elsewhere by their original address. */
 int32_t wof_test_m6_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t *out)
 {
     (void)b; (void)c; (void)out;
     switch (orig) {
     case 0x014EFC: ship_gun_shell((int16_t)a); return 0;
     case 0x014C3E: ship_guns_draw(wof_g.view_step == 1 ? T_ATH : T_MASTER); return 0;
-    default:       return -1000;
+    case 0x01B682: wof_guns(); return 0;
+    case 0x01BC02: return wof_test_player_call(orig, 0);
+    case 0x011622: case 0x011510: case 0x011CAE:
+        return wof_test_tick_part(orig);
+    default:       return wof_test_enemy_call(orig, a, b, c, out);
     }
 }
 #endif

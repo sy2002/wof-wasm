@@ -93,14 +93,19 @@ class Enemy(m5_autopilot.Attack):
         plan = self.sortie_plan(0)
         self.plan = plan
         m4_autopilot.Pilot.__init__(self, prefix_of(plan), policy, **options)
+        # One stop per address, which makes every poke due there (a second stop_at at the same
+        # address would replace the first); the mission number is one of them.
+        due = {}
         if plan.get('mission'):
-            self.stop_at(0x01009E, lambda: self.o.write(MISSION_NUMBER,
-                                                         bytes([0, plan['mission']])))
+            due[0x01009E] = [(MISSION_NUMBER, 2, plan['mission'])]
         for address, entry in plan.get('pokes', {}).items():
-            size, value = entry[0], entry[1]
             at = entry[2] if len(entry) > 2 else 0x01009E
-            self.stop_at(at, lambda a=address, n=size, v=value:
-                         self.o.write(a, (v & ((1 << (8 * n)) - 1)).to_bytes(n, 'big')))
+            due.setdefault(at, []).append((address, entry[0], entry[1]))
+        for at, items in due.items():
+            def poke(items=items):
+                for a, n, v in items:
+                    self.o.write(a, (v & ((1 << (8 * n)) - 1)).to_bytes(n, 'big'))
+            self.stop_at(at, poke)
         self.leg = 0
         self.tap = 0
         self.cool = 0
@@ -331,6 +336,40 @@ PLANS = {
         {'dir': 'L', 'y': 150, 'to': 900, 'do': [('dogfight', 400, 3700, 1, 0x14)]},
         {'dir': 'R', 'y': 150, 'to': 3400, 'do': [('dogfight', 400, 3700, 1, 0x14)]},
     ] * 30, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 1100, 'end': 'level', 'tail': 20},
+    # Map e: the airfield's fighter fought over land.  East of the airfield (15664-16008),
+    # land runs on to 17040 with no target on it, and the airfield's island is land to 12800;
+    # the fighter takes off west when the aircraft comes within 0x1E0 of the airfield.
+    'fight_e': {'rank': 1, 'mission': 2, 'legs': [
+        {'dir': 'R', 'y': 150, 'to': 16900, 'do': [('dogfight', 15300, 17100, 1, 0x0B)]},
+        {'dir': 'L', 'y': 150, 'to': 15600, 'do': [('dogfight', 15300, 17100, 1, 0x0B)]},
+    ] * 30, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    'fight_e_low': {'rank': 1, 'mission': 2, 'legs': [
+        {'dir': 'R', 'y': 100, 'to': 16900, 'do': [('dogfight', 15300, 17100, 1, 0x0B, 50)]},
+        {'dir': 'L', 'y': 100, 'to': 15600, 'do': [('dogfight', 15300, 17100, 1, 0x0B, 50)]},
+    ] * 30, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    # The chase never below 70, over the land's ground.
+    'fight_e_70': {'rank': 1, 'mission': 2, 'legs': [
+        {'dir': 'R', 'y': 120, 'to': 16900, 'do': [('dogfight', 15300, 17100, 1, 0x0B, 70)]},
+        {'dir': 'L', 'y': 120, 'to': 15600, 'do': [('dogfight', 15300, 17100, 1, 0x0B, 70)]},
+    ] * 40, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    'fight_e_wide70': {'rank': 1, 'mission': 2, 'legs': [
+        {'dir': 'R', 'y': 120, 'to': 16900, 'do': [('dogfight', 13000, 17100, 1, 0x0B, 70)]},
+        {'dir': 'L', 'y': 120, 'to': 14000, 'do': [('dogfight', 13000, 17100, 1, 0x0B, 70)]},
+    ] * 40, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    'fight_d_70': {'rank': 1, 'mission': 1, 'legs': [
+        {'dir': 'L', 'y': 120, 'to': 2950, 'do': [('dogfight', 2600, 4300, 1, 0x0B, 70)]},
+        {'dir': 'R', 'y': 120, 'to': 4100, 'do': [('dogfight', 2600, 4300, 1, 0x0B, 70)]},
+    ] * 40, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    'fight_e_wide': {'rank': 1, 'mission': 2, 'legs': [
+        {'dir': 'R', 'y': 150, 'to': 16900, 'do': [('dogfight', 13000, 17100, 1, 0x0B)]},
+        {'dir': 'L', 'y': 150, 'to': 15000, 'do': [('dogfight', 13000, 17100, 1, 0x0B)]},
+    ] * 30, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
+    # Map d: the same over its airfield (3200-3544), between the dug-out at 2824 and the
+    # pillboxes at 4376 and 4408; land from 16 to 4464.
+    'fight_d': {'rank': 1, 'mission': 1, 'legs': [
+        {'dir': 'L', 'y': 150, 'to': 2950, 'do': [('dogfight', 2600, 4300, 1, 0x0B)]},
+        {'dir': 'R', 'y': 150, 'to': 4100, 'do': [('dogfight', 2600, 4300, 1, 0x0B)]},
+    ] * 30, 'until': ('kills', 1), 'then': 'orbit', 'orbit': 400, 'end': 'level', 'tail': 20},
     # Map a: the carrier left to the torpedo planes from the hold until one hit is left, then
     # the aircraft up and out east until the carrier is sunk, and back to land on it.
     'sunk_a': {'countdown': True, 'wait': ('carrier', 1), 'legs': EAST_A * 20,
@@ -347,6 +386,18 @@ PLANS = {
                  'legs': [{'dir': 'R', 'y': 150, 'to': 9000}, {'dir': 'L', 'y': 150, 'to': 6000},
                           {'dir': 'R', 'y': 420, 'to': 9000}, {'dir': 'L', 'y': 420, 'to': 6000}],
                  'end': 'level', 'tail': 20},
+    # Map a with an enemy fighter shot down high over the island (32 to 3944), poked into the
+    # first aircraft record after the mission's reset of its tables (0x0100D6), as the guns
+    # leave one (0x01B75C: state 4, want y -3), and one fighter counted up: it falls west,
+    # comes to rest on land and burns (state 0x10), and leaves its wreck's word.  The
+    # aircraft flies out west over the island and back.
+    'burning_a': {'pokes': {0x0251D6: (2, 1, 0x0100D6), 0x02522A: (2, 4, 0x0100D6),
+                            0x02522C: (2, 1, 0x0100D6), 0x025232: (2, 0x50, 0x0100D6),
+                            0x02523E: (2, -1, 0x0100D6), 0x025246: (2, 900, 0x0100D6),
+                            0x025248: (2, 900, 0x0100D6), 0x02524A: (2, 7700, 0x0100D6),
+                            0x02524E: (2, -3, 0x0100D6), 0x025250: (2, 14200, 0x0100D6)},
+                  'legs': [{'dir': 'L', 'y': 150, 'to': 1800}, {'dir': 'R', 'y': 150, 'to': 5000}],
+                  'end': 'level', 'tail': 20},
     # Maps b and c: the countdown's torpedo plane, until it has dropped its torpedo.
     'countdown_b': {'mission': 2, 'countdown': True,
                     'legs': [{'dir': 'R', 'y': 150, 'to': 9000},

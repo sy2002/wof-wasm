@@ -810,3 +810,14 @@
 026c96 skid_count            ; word: aircraft_falling counts to 2, then a skidding aircraft's want_y falls by one
 027348 launch_cooldown       ; word: ticks after a ship's or an airfield's launch in which nothing else is sent up (100)
 02734a japcarrier_roll       ; word: the speed, in sixteenths of a pixel a tick, of the aircraft the Japanese carrier rolls west; eased towards 128
+015640 ship_sunk_message     ; asm. A1 = an enemy ship: the format 0x023AD8 with its name by its score and the score, into ticker_text
+023ad8 msg_ship_sunk         ; text: the format of a sunk ship's message (%s, %ld)
+023ba8 ship_names            ; four longs: the names of the ships by score, 4500, 6000, 2500 and any other
+0253fc deck_west             ; word: the carrier's deck's west end as world x, sixteen pixels in (deck_span)
+0253fe deck_east             ; word: its east end, sixteen pixels in
+02536a guns_firing           ; word: the guns fire this tick; the guns at an enemy aircraft only then
+02537f kill_count            ; byte: the enemy plane counter, one more for each enemy aircraft shot down to rest
+0261f8 climb_steps           ; six words: an enemy aircraft's height step by the twentieths of its distance to +0x24
+026f72 cheat_no_damage       ; word: the cheat's key 0x64 at cheat state 5 toggles it: no oil lost to an enemy fighter's guns or a target's fire
+027346 tick_parity           ; word: 0 and 1 in turn, one a tick; a fighter's guns take the oil on every other tick
+027e66 fighters_ahead        ; word: cleared each tick; fighter_cruise counts the fighters ahead of the player the same way (0x46 of speed each)

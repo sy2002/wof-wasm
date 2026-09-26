@@ -761,6 +761,39 @@ void wof_ticker_say(uint32_t format, uint32_t value)
         wof_g.ticker_message = 0x02716Au;                 /* 0x01555A: ticker_text */
 }
 
+/* orig 0x015640 - an enemy ship sunk, into ticker_text from its start: the format at
+ * 0x023AD8 with the ship's name, by its score from the table of four names at 0x023BA8
+ * (4500, 6000, 2500, and any other), and the score.  The carrier, which has none, says
+ * nothing. */
+void wof_ship_sunk_message(const wof_ship_t *s)
+{
+    uint32_t name = 0x023BA8u;
+    uint16_t data[4];
+    char     out[200];
+    uint16_t n;
+    char     fmt[160];
+
+    if (s->w12 == 0)
+        return;
+    if (s->w12 != 0x1194) {
+        name += 4u;
+        if (s->w12 != 0x1770) {
+            name += 4u;
+            if (s->w12 != 0x09C4)
+                name += 4u;
+        }
+    }
+    name = wof_image32(name);
+    data[0] = (uint16_t)(name >> 16);
+    data[1] = (uint16_t)name;
+    data[2] = (uint16_t)((uint32_t)(int32_t)s->w12 >> 16);
+    data[3] = (uint16_t)s->w12;
+    image_string(0x023AD8u, fmt, sizeof fmt);
+    n = wof_raw_do_fmt(out, fmt, data);
+    for (uint16_t i = 0; i <= n && i < sizeof wof_g.ticker_text; i++)
+        wof_g.ticker_text[i] = (uint8_t)out[i];
+}
+
 /* orig 0x015694 - the map's last island neutralised: the next mission, and after the rank's
  * last mission (missions_per_rank, 0x025548) the first of the next rank, at most rank 6,
  * with balloons_on set (the promotion's balloons over the carrier and a life more at the

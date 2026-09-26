@@ -18,6 +18,7 @@
 
 #define P       (wof_m.player[0])
 #define ABOARD  (wof_g.g_025394)
+#define SHIP_JAPCARRIER 3
 
 /* The ship records in the order the walks take them (ship_order, 0x02555A). */
 static wof_ship_t *ship_in_order(int i)
@@ -256,15 +257,6 @@ static void lift(void)
     }
 }
 
-/* orig 0x01E7D6 - the enemy aircraft, every live record (M6). */
-static void enemy_aircraft(void)
-{
-    wof_g.g_027e66 = 0;
-    for (int i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].state != 0)
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01E7FC-0x01E8A7, an enemy aircraft");
-}
-
 /* orig 0x012132 - the engine's sound, as far as the port keeps it: the volume 0x02542C eases
  * towards 0x025428 by one up and two down, and while it is not zero the pitch 0x02542E
  * towards what pitch_target, 0x02542A and the height ask for, by twenty up and ten down.
@@ -457,53 +449,102 @@ void wof_torpedoes_hit(uint16_t d0, uint16_t d1)
     }
 }
 
-/* orig 0x011622 - the enemy's airfields: an aircraft taking off, and the player near one
- * sending the next up (M6). */
+/* orig 0x011622 - the enemy's airfields (airfield_records, 0x0252FA: the span +0x00 to
+ * +0x02, the most up +0x04, the aircraft parked +0x06, the one rolling at x +0x08 with its
+ * speed +0x0C, the end it takes off from +0x0E, -1 the west).  The first airfield with an
+ * aircraft rolling moves it by a pixel for every eight of its speed, which grows by one a
+ * tick up to 0x38, and at the far end it takes off as a fighter at height 0; that is all
+ * the tick does then.  Else, out of the cooldown (launch_cooldown), every airfield whose
+ * span the player is within 0x1E0 of rolls its next aircraft out from its end, 0x40 apart
+ * by the aircraft left, and starts the cooldown at 100; one with fighters_up at its most
+ * or none parked ends the walk. */
 static void airfields(void)
 {
     for (int i = 0; i < 4; i++) {
-        if (wof_m.airfield_records[i].w[4] != 0) {
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x011630, an enemy aircraft taking off");
-            return;
+        wof_airfield_t *a = &wof_m.airfield_records[i];
+        int16_t         d0;
+
+        if (a->w[4] == 0)
+            continue;
+        d0 = (int16_t)(a->w[6] + 1);
+        if (d0 > 0x38)
+            d0 = 0x38;
+        a->w[6] = d0;
+        d0 = (int16_t)((uint16_t)d0 >> 3);
+        if (a->w[7] != -1) {
+            a->w[4] = (int16_t)(a->w[4] + d0);
+            if (a->w[4] <= a->w[1])
+                return;
+        } else {
+            a->w[4] = (int16_t)(a->w[4] - d0);
+            if (a->w[4] >= a->w[0])
+                return;
         }
+        wof_aircraft_launch(0, a->w[4], 0, a->w[7]);
+        a->w[4] = 0;
+        return;
     }
     if (wof_g.launch_cooldown)
         return;
     for (int i = 0; i < 4; i++) {
-        const wof_airfield_t *a = &wof_m.airfield_records[i];
+        wof_airfield_t *a = &wof_m.airfield_records[i];
+        int16_t         d1, d0;
 
         if (wof_g.g_026e6a < (int16_t)(a->w[0] - 0x1E0))
             continue;
         if (wof_g.g_026e6a > (int16_t)(a->w[1] + 0x1E0))
             continue;
-        if (wof_g.fighters_up >= (int16_t)a->w[2] || a->w[3] <= 0)
+        if (wof_g.fighters_up >= a->w[2] || a->w[3] <= 0)
             return;                                              /* 0x0116BE, 0x0116CA */
-        WOF_STANDIN("M6 PART 2 STAND-IN: 0x0116D2-0x011709, an enemy airfield sends an aircraft up");
-        return;
+        a->w[3]--;
+        wof_g.launch_cooldown = 100;
+        d1 = (int16_t)((uint16_t)a->w[3] << 6);
+        d0 = (int16_t)((int16_t)(a->w[1] - 0x20) - d1);
+        if (a->w[7] != -1)
+            d0 = (int16_t)((int16_t)(a->w[0] + 0x20) + d1);
+        a->w[4] = d0;
+        a->w[6] = 0;
     }
 }
 
-/* orig 0x011510 - the Japanese carrier's aircraft and the ships' launches (M6).  The
- * carrier's block (0x025196) holds a count and entries of eight bytes; the last entry's
- * first word above 0 is an aircraft to launch. */
+/* orig 0x011510 - the Japanese carrier's aircraft and the ships' launches.  A ship block
+ * (0x025096, 0x40 bytes a ship in the order of ship_order) holds its count, the most up, the
+ * span of the player's x it launches in, and entries of eight bytes from +8: a flag, x and
+ * height.  The Japanese carrier's last entry, once readied (its flag above 0), rolls west
+ * at japcarrier_roll sixteenths of a pixel a tick, 8 more each tick less a sixteenth of
+ * itself, and takes off as a fighter facing west past the ship's west end.  Out of the
+ * cooldown, every ship afloat with a score (not the carrier), hits left, the player in its
+ * span, fewer fighters up than its most and an aircraft left sends up its last entry facing
+ * west and starts the cooldown; the Japanese carrier, last of the order, readies it on its
+ * deck instead, 0x17C past its west end at height 0x21, and ends the walk. */
 static void ship_launches(void)
 {
     uint16_t count = wof_m.ship_blocks[0x80].v;
 
     if (count != 0) {
-        uint32_t last = 0x80u + 4u * (uint32_t)count;     /* 8 bytes in, (count - 1) * 8 on */
+        uint32_t    last = 0x80u + 4u + 4u * (uint32_t)(uint16_t)(count - 1u);
+        wof_word_t *e = &wof_m.ship_blocks[last < 157u ? last : 156u];
 
-        if (last < 160u && (int16_t)wof_m.ship_blocks[last].v > 0)
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01152A, the Japanese carrier's aircraft");
+        if (last < 157u && (int16_t)e[0].v > 0) {
+            uint16_t d1 = (uint16_t)wof_g.japcarrier_roll;
+            int16_t  d7;
+
+            d1 = (uint16_t)(d1 + 8u - (uint16_t)(d1 >> 4));
+            wof_g.japcarrier_roll = (int16_t)d1;
+            e[1].v = (uint16_t)((int16_t)e[1].v - (int16_t)(d1 >> 4));
+            d7 = (int16_t)(wof_m.ship_records[SHIP_JAPCARRIER].span0 << 2);
+            if (d7 > (int16_t)e[1].v) {
+                wof_m.ship_blocks[0x80].v--;
+                wof_aircraft_launch(0, (int16_t)e[1].v, (int16_t)e[2].v, -1);
+            }
+        }
     }
     if (wof_g.launch_cooldown)
         return;
-    /* 0x011574: each ship in ship_order beside the block of the same place from 0x025096:
-     * a ship afloat that has aircraft (+0x12) and is not sunk (+0x0C), the player within its
-     * block's span, 0x0251D6 below its limit and an aircraft left launches one. */
     for (int i = 0; i < 5; i++) {
         const wof_ship_t *s = ship_in_order(i);
-        const wof_word_t *blk = &wof_m.ship_blocks[0x20 * i];
+        wof_word_t       *blk = &wof_m.ship_blocks[0x20 * i];
+        uint32_t          at;
 
         if (s->present == 0 || s->w12 == 0 || s->w0c <= 0)
             continue;
@@ -511,22 +552,100 @@ static void ship_launches(void)
             continue;
         if (wof_g.fighters_up >= (int16_t)blk[1].v || blk[0].v == 0)
             continue;
-        if (i == 4)
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x0115F4-0x011621, the last ship's aircraft readied");
-        else
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x0115C4-0x0115E9, a ship launching an aircraft");
-        return;
+        if (i == 4) {                                            /* 0x0115F4 */
+            at = 4u + 4u * (uint32_t)(uint16_t)(blk[0].v - 1u);
+            if (0x20u * (uint32_t)i + at + 2u < 160u) {
+                blk[at].v = 1;
+                blk[at + 1].v = (uint16_t)((int16_t)(s->span0 << 2) + 0x17C);
+                blk[at + 2].v = 0x21;
+            }
+            wof_g.japcarrier_roll = 0;
+            wof_g.launch_cooldown = 100;
+            return;
+        }
+        blk[0].v--;
+        at = 4u + 4u * (uint32_t)blk[0].v;
+        if (0x20u * (uint32_t)i + at + 2u < 160u)
+            wof_aircraft_launch(0, (int16_t)blk[at + 1].v, (int16_t)blk[at + 2].v, -1);
+        wof_g.launch_cooldown = 100;
     }
 }
 
-/* orig 0x011CAE - a ship afloat whose +0x0C has run out sinks (0x011CD8, M6). */
+/* orig 0x011CD8 ship_sinking - a ship afloat whose hits (+0x0C) are gone: every +0x16 ticks
+ * a row deeper (+0x14), the interval +0x18 one shorter each time.  The carrier (no score,
+ * +0x12) puts the player back on the lift while he is aboard (0x025394 1) at every row, and
+ * at 0x21 rows with him on the deck he goes into the sea: no life left, the game-over count
+ * at 100.  An enemy ship scores at ten rows, the ticker says so (0x015640), one ship fewer
+ * is left, and with none and no island left the mission is won.  At 0x78 rows a ship's map
+ * records are cleared: the carrier is gone (+0x04 0, 0x0255C1 set), an enemy ship's hits
+ * become -1 and briefing_number_2 one less.  The first test after the row's step is of the
+ * score: the move.w of +0x12 sets the flags the beq reads, not the cmpi before it. */
+static void ship_sinking(wof_ship_t *s)
+{
+    if (--s->w16 > 0)
+        return;
+    s->w14++;
+    s->w16 = s->w18;
+    if (s->w18 != 0)
+        s->w18--;
+    if (s->w12 == 0) {
+        if (ABOARD == 1) {
+            P.on_deck = 0x0B;
+            ABOARD = 2;
+            wof_g.g_025364 = 0;
+            wof_g.attitude_index = 0;
+        }
+    } else if (s->w14 == 10) {
+        wof_g.player_score += (uint32_t)(int32_t)s->w12;
+        wof_ship_sunk_message(s);
+        /* subq.b #1 then bgt: the signed result before its byte wraps, so 0x80 is not > 0 */
+        if ((int8_t)wof_g.ships_left-- > 1 || wof_g.islands_left != 0) {
+            if (wof_g.ticker_message == 0)                    /* 0x01555A: ticker_text */
+                wof_g.ticker_message = 0x02716Au;
+            return;
+        }
+        wof_mission_won();
+        return;
+    }
+    if (s->w12 != 0) {
+        if (s->w14 < 0x78)
+            return;
+        wof_g.briefing_number_2--;
+        s->w0c = -1;
+    } else {
+        if (s->w14 < 0x21)
+            return;
+        if (s->w14 == 0x21 && P.on_deck == 1) {
+            P.on_deck = 6;
+            P.y = 0;
+            wof_g.lives = 0;
+            wof_g.g_025364 = 0;
+            wof_g.game_over_count = 100;
+        }
+        if (s->w14 < 0x78)
+            return;
+        s->present = 0;
+        wof_g.g_0255c1 = 0xFF;
+    }
+    /* 0x011DC2: the words of its map records from +0x00 to +0x02, bytes of the list */
+    {
+        uint16_t n = (uint16_t)((uint16_t)(s->span1 - s->span0) >> 1);
+        int32_t  w = (int32_t)(int16_t)s->span0 >> 1;
+
+        for (int32_t k = 0; k <= (int32_t)n; k++)
+            if (w + k >= 0 && w + k < 3576)
+                wof_m.map_records[w + k].v = 0;
+    }
+}
+
+/* orig 0x011CAE - every ship afloat whose hits have run out sinks a step. */
 static void ships_sinking(void)
 {
     for (int i = 0; i < 5; i++) {
-        const wof_ship_t *s = ship_in_order(i);
+        wof_ship_t *s = ship_in_order(i);
 
         if (s->present != 0 && s->w0c == 0)
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x011CCA, a ship sinking (0x011CD8)");
+            ship_sinking(s);
     }
 }
 
@@ -589,6 +708,9 @@ int32_t wof_test_tick_part(uint32_t orig)
     case 0x011BFC: engine_smoke();  return 0;
     case 0x011DE4: target_timers(); return 0;
     case 0x011C5E: balloons();      return 0;
+    case 0x011622: airfields();     return 0;
+    case 0x011510: ship_launches(); return 0;
+    case 0x011CAE: ships_sinking(); return 0;
     default:       return -1000;
     }
 }
@@ -634,7 +756,7 @@ wof_co_t wof_logic_tick(void)
             lift();
         }
         CO_CALL(c, &wof_f.co_player, wof_player_update());
-        enemy_aircraft();
+        wof_enemy_aircraft_step();                             /* src/enemy.c */
         engine_sound();
         wof_guns();
         /* 0x012066: the sound engine's slots (M8) */

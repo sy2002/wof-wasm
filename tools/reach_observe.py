@@ -556,7 +556,7 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
 # M4's routines: every one a port file names with an `orig 0x......` comment, and of the
 # files that hold M3's too, the routines M4 changed.
 PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c',
-              'src/objects.c', 'src/targets.c', 'src/pools.c']
+              'src/objects.c', 'src/targets.c', 'src/pools.c', 'src/enemy.c']
 M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
                      'wait_next_vblank', 'screen_game_restore']
 MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']

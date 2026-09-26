@@ -449,15 +449,47 @@ static void button(void)
     }
 }
 
-/* orig 0x01B682 - the guns against the enemy aircraft (M6): only while they fire, and only
- * a record in state 3 near the aircraft is hit. */
+/* orig 0x01B682 - the guns against the enemy aircraft, while they fire: every record that
+ * is ahead of the player the same way (+0x04 3, whatever its state) within 0xA0 of x and
+ * 0x14 of height, with his pitch target 0 (the stick left alone), is hit (+0x06); each
+ * tick of hits counts its burst (+0x0A) down, and at the end of a burst it smokes and loses
+ * 8 of its health: below 0x60 it is shot down, 350 points, state 4 falling from want y -3,
+ * level, its turn over.  A new burst takes 6 to 9 ticks.  The walk's record pointer the
+ * original keeps at 0x027DF0 is set before every read, so the port walks by index. */
 void wof_guns(void)
 {
     if (!wof_g.g_02536a)
         return;
-    for (int16_t i = 0; i < 4; i++)
-        if (wof_m.aircraft_records[i].relation == 3)
-            WOF_STANDIN("M6 PART 2 STAND-IN: 0x01B6B0-0x01B79D, the guns at an enemy aircraft");
+    for (int16_t i = 0; i < 4; i++) {
+        wof_aircraft_t *a = &wof_m.aircraft_records[i];
+        int16_t         dx, dy;
+
+        if (a->relation != 3)
+            continue;
+        dx = (int16_t)(P.x - a->x);
+        if (dx < 0)
+            dx = (int16_t)-dx;
+        dy = (int16_t)(P.y - a->y);
+        if (dy < 0)
+            dy = (int16_t)-dy;
+        if (dx >= 0xA0 || dy >= 0x14 || wof_g.pitch_target != 0)
+            continue;
+        a->hit = 1;
+        a->burst--;
+        if (a->burst > 0)
+            continue;
+        wof_burn_smoke(0, 6, (int16_t)(a->x - 0x10), (int16_t)(a->y + 0x0A));
+        a->health = (int16_t)(a->health - 8);
+        if (a->health < 0x60) {
+            wof_g.player_score += 0x15E;
+            a->state = 4;
+            a->want_y = -3;
+            a->attitude = 0;
+            a->mode = (int16_t)(a->mode & ~8);
+            wof_aircraft_frame_index(a);
+        }
+        a->burst = (int16_t)(wof_rand_mod(4) + 6);
+    }
 }
 
 /* orig 0x01B8C4 - whether the aircraft touches what is below it: its wheels at or below the
@@ -547,8 +579,11 @@ static void ground(void)
     wof_crash();
 }
 
-/* orig 0x01BC02 - the enemy's countdown (0x02509A, M6 brings the aircraft): the button
- * holds it at 750 at most; without it, while the carrier is afloat, one less each tick. */
+/* orig 0x01BC02 - the enemy's countdown (+0x1C): the button holds it at 750 at most;
+ * without it, while the carrier is afloat with hits left, one less each tick, and at 0,
+ * with the player more than 0x1A00 from 0x7FFF, a torpedo plane 0x1800 away on the side of
+ * the carrier's deck (0x0253FC, 0x0253FE) he is on, flying at him; over the deck a draw of
+ * rand_beam (bit 15) takes the west. */
 static void enemy_countdown(void)
 {
     int16_t far = (int16_t)(0x7FFF - P.x);
@@ -564,7 +599,11 @@ static void enemy_countdown(void)
         return;
     if (--P.enemy_countdown != 0 || far <= 0x1A00)
         return;
-    WOF_STANDIN("M6 PART 2 STAND-IN: 0x01BC66, the enemy aircraft come");
+    if (P.x < wof_g.g_0253fc ||
+        (P.x <= wof_g.g_0253fe && (wof_rand_beam(0x01BC82) & 0x8000u)))
+        wof_aircraft_launch(1, (int16_t)(P.x - 0x1800), 0, 1);
+    else
+        wof_aircraft_launch(1, (int16_t)(P.x + 0x1800), 0, -1);
 }
 
 /* orig 0x01BCCE - on the deck, the carrier's state (0x02535F) and the touch-down: at the
@@ -923,7 +962,7 @@ void wof_flash_set(int16_t count, int16_t colour)
 
 /* orig 0x01CAE0 - a puff of smoke from the burning wreck, a random 0 to 7 to the right and
  * 6 up, through 0x0154CC into the Smoke pool. */
-static void burn_smoke(int16_t unused, int16_t kind, int16_t x, int16_t y)
+void wof_burn_smoke(int16_t unused, int16_t kind, int16_t x, int16_t y)
 {
     (void)unused;
     x = (int16_t)(x + (int16_t)(wof_rand_beam(0x01CAE4) & 7));
@@ -937,6 +976,15 @@ int wof_on_water(uint32_t at)
     if (at == 0 || !(at < wof_m.map_records_end[0].off - 2u))
         return 1;
     return ((at >> 1) < 3576u ? (wof_m.map_records[at >> 1].v & 3u) : 0u) == 0;
+}
+
+/* orig 0x01CBB2 record_is_land - whether a map record is land (low bits 2); a record outside
+ * the list is not. */
+int wof_record_is_land(uint32_t at)
+{
+    if (at == 0 || !(at < wof_m.map_records_end[0].off - 2u))
+        return 0;
+    return ((at >> 1) < 3576u && (wof_m.map_records[at >> 1].v & 3u) == 2) ? 1 : 0;
 }
 
 /* orig 0x01C660 - the player, once per tick: the button, the enemy's countdown, and by the
@@ -1032,7 +1080,7 @@ wof_co_t wof_player_update(void)
         else
             P.y = wof_wheel_height();
         if ((++wof_g.g_026c84 & 3) == 0)
-            burn_smoke(1, 6, (int16_t)(P.x + (int16_t)(P.facing << 3)), (int16_t)(P.y + 0x0B));
+            wof_burn_smoke(1, 6, (int16_t)(P.x + (int16_t)(P.facing << 3)), (int16_t)(P.y + 0x0B));
         wreck_smoke();
         CO_CALL(c, &wof_f.co_lost, lost_wait());
     } else if (P.on_deck != 9) {                                  /* 2, 3, 5, 10, 11 */

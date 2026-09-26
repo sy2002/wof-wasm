@@ -1,13 +1,14 @@
 """M6, the enemy aircraft, the ships, the torpedo attack and the carrier's defence, against
 the headless original (re/notes/porting-m6.md).
 
-Part 1 ports the pass: what the M6 scripts execute in frame_update's tree and in the VBlank
-server.  Every script of tools/m6_scripts.py is recorded under the headless original and
-replayed through the port by tests/m4compare.py in the open loop (T1): every step starts
-from the original's state before it, and a step may differ only where it reached a
-stand-in of part 2 (the tick), M7 or M8 in that same step; no step may reach any other.
-Beside it: every address the M6 scripts write accounted for (tests/m4complete.py), the
-tables' capacities on all fifteen maps, and the register the ship guns hand on.
+Every script of tools/m6_scripts.py is recorded under the headless original and run
+through the port by tests/m4compare.py in the closed loop (T2): the port runs on its own
+from the program's start with nothing handed over but the entropy and the map list's
+address, and after every tick and every pass it must agree with the original and reach no
+stand-in.  The open loop (T1) keeps every step starting from the original's state: a step
+may differ only where it reached a stand-in of M7 or M8 in that same step.  Beside them:
+every address the M6 scripts write accounted for (tests/m4complete.py), the tables'
+capacities on all fifteen maps, and the register the ship guns hand on.
 """
 import collections
 import os
@@ -29,11 +30,11 @@ import test_world                  # noqa: E402
 
 SCRIPTS = list(m6_scripts.SCRIPTS)
 SLOW = set(m6_scripts.SLOW)
-LATER = ('M6 PART 2 STAND-IN', 'M7 STAND-IN', 'M8 STAND-IN')
+LATER = ('M7 STAND-IN', 'M8 STAND-IN')
 
 
 def later(marker):
-    """A stand-in of M6's second part, M7 or M8: a difference there is owed, not a fault."""
+    """A stand-in of M7 or M8: a difference there is owed, not a fault."""
     return any(tag in marker for tag in LATER)
 
 
@@ -57,13 +58,57 @@ def params(names):
     return [n if n not in SLOW else pytest.param(n, marks=pytest.mark.slow) for n in names]
 
 
+def closed_loop(ported, name, rate=2):
+    """The closed loop over an M6 script with the live map; returns (machine, passes,
+    findings, stand-ins, the reason it stopped early or None).  Any stand-in ends it."""
+    machine, dump_path = test_world.recorded(name, rate, pokes=m6_scripts.pokes(name))
+    replay = m4compare.Replay(ported, machine, dump_path, mode='closed', rate=rate,
+                              pokes=m6_scripts.pokes(name))
+
+    def stop(r):
+        reached = dict(r.standins())
+        if reached:
+            return 'the port reached %s in tick %d' % (sorted(reached), r.ticks)
+        return None
+
+    passes, found = test_world.compare_passes(replay, replay.live_chart, stop=stop)
+    return machine, passes, found, replay.standins(), replay.stopped
+
+
+def assert_closed(machine, passes, found, standins, stopped):
+    want = max(h[2] for h in machine.step_hashes if h[0] == 'P')
+    assert not found, 'closed loop:\n%s' % found
+    assert stopped is None and standins == [], 'the closed loop reached %s' % standins
+    assert passes >= want - 1, 'only %d of %d passes compared' % (passes, want)
+
+
+@pytest.mark.parametrize('name', params(SCRIPTS))
+def test_every_tick_and_pass_agrees_in_the_closed_loop(ported, name):
+    """T2 over an M6 script: the port runs on its own from the program's start - the rank
+    selection, the setup of the map, the flight, the enemy's launches from the countdown,
+    the airfields and the ships, the enemy aircraft's flight, attack, turns, fall and
+    burning, the guns at them, the ships' guns and their shells, a torpedo into a ship and
+    into the carrier, the sinking, the crash on a ship, the landing on a sunken deck and
+    the game's end - and after every tick and every pass its registered state, its drawing
+    calls, its entropy with its callers, its view, its rows, its markers and its map draws
+    are the original's, and it reaches no stand-in."""
+    assert_closed(*closed_loop(ported, name))
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize('name', ['torpedo_f', 'enemy_a'])
+@pytest.mark.parametrize('rate', [1, 3])
+def test_the_closed_loop_holds_at_other_pass_rates(ported, name, rate):
+    """The closed loop at one and three VBlanks per pass against the original run at the same
+    rate: the torpedo into the cruise ship and its sinking, and the countdown's torpedo plane
+    into the carrier."""
+    assert_closed(*closed_loop(ported, name, rate))
+
+
 @pytest.mark.parametrize('name', params(SCRIPTS))
 def test_every_pass_agrees_and_every_other_difference_is_owed(ported, name):
     """T1 over an M6 script: a pass or a tick that differs from the original must have reached
-    a stand-in of part 2, M7 or M8 in that same step, and no step may reach any other
-    stand-in.  The passes carry the enemy aircraft, their wrecks and their guns' flash, the
-    ships' guns and their shells, the aircraft on the ships' decks, the airfields, the
-    arrows, the enemy plane counter and the 3-D view."""
+    a stand-in of M7 or M8 in that same step, and no step may reach any other stand-in."""
     steps, differing, bad, reached = open_loop(ported, name)
     assert steps > 800, 'only %d steps compared' % steps
     assert bad == [], '%d of %d differing steps are not owed to a later stand-in: %s' % (
