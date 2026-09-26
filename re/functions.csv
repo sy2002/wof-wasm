@@ -10,10 +10,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 010702,object_draw,asm,210,,,,1,draw_world_shape,,4,,ported
 0107d4,object_free_unused,asm,30,,,,0,,,1,,todo
 0107f2,object_draw_first,asm,46,,,,1,,,3,,verified
-010820,object_spawn,asm,378,,,-32736,3,sub_012324 cosine sine rand_beam,,12,,verified
+010820,object_spawn,asm,378,,,-32736,3,sound_boom cosine sine rand_beam,,12,,verified
 01099a,rocket_homing,asm,216,,,,1,pillbox_between ship_gun_between guns_ground_x cosine sine bearing_of,,0,,verified
 010a72,objects_step,asm,52,,,-32730,1,object_step,,3,,verified
-010aa6,object_step,asm,768,,,,1,rocket_homing airfield_at soldiers_hit sub_012324 sub_01233e weapon_hit map_slot_at splash_spawn ground_height,,7,,verified
+010aa6,object_step,asm,768,,,,1,rocket_homing airfield_at soldiers_hit sound_boom sound_splash weapon_hit map_slot_at splash_spawn ground_height,,7,,verified
 010da6,draw_enemy_aircraft,asm,314,,,-32724,1,shape_draw shape_draw_xor,,10,,ported
 010ee0,smoke_draw,asm,166,,,,1,draw_world_shape blit_begin blit_end,,8,,ported
 010f86,sub_010f86,asm,2,,,,0,,,0,,todo
@@ -25,12 +25,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01115c,pillbox_between,asm,74,,,,1,,,2,,verified
 0111a6,ship_gun_between,asm,86,,,,1,,,1,,verified
 0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,ported
-011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sub_01346c sub_0134ae,exec.AllocMem,2,,ported
-011256,sub_011256,asm,30,,,-32706,1,mem_free_var sub_01346c sub_0134ae,exec.AllocMem,2,,todo
+011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sounds_free sub_0134ae,exec.AllocMem,2,,ported
+011256,sub_011256,asm,30,,,-32706,1,mem_free_var sounds_free sub_0134ae,exec.AllocMem,2,,todo
 011274,shot_origin,asm,60,,,,1,,,14,,ported
 0112b0,weapon_menu,asm,214,,,,1,weapon_gauge_reset,,10,,ported
 011386,logic_tick,asm,218,,,-32700,3,objects_step shot_origin weapon_menu lift_step ship_launches airfields_step input_queue_pop gun_splashes engine_smoke balloons_step ships_sinking target_timers sound_channels engine_sound guns player_update enemy_aircraft_step,,16,,ported
-011460,lift_step,asm,120,,,,1,sound_slots_clear sub_012354 player_restart_state engine_idle,,4,,ported
+011460,lift_step,asm,120,,,,1,sound_slots_clear sound_clang player_restart_state engine_idle,,4,,ported
 0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,partial
 011510,ship_launches,asm,274,,,,1,aircraft_launch,,8,,verified
 011622,airfields_step,asm,242,,,,1,aircraft_launch,,4,,verified
@@ -43,7 +43,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011a42,sub_011a42,asm,4,,,,0,,,0,,todo
 011a46,guns_ground_x,asm,62,,,,2,tangent,,3,,verified
 011a84,soldiers_hit_c,asm,8,,,-32676,2,,,0,,ported
-011a8c,soldiers_hit,asm,78,,,,2,torpedoes_hit sub_0123ac,,2,,verified
+011a8c,soldiers_hit,asm,78,,,,2,torpedoes_hit sound_scream,,2,,verified
 011ada,sub_011ada,asm,8,,,,0,,,0,,todo
 011ae2,torpedoes_hit,asm,112,,,,2,,,2,,verified
 011b52,sub_011b52,asm,2,,,,0,,,0,,todo
@@ -54,19 +54,19 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011cd8,ship_sinking,asm,268,,,,1,ticker_offer ship_sunk_message mission_won,,14,,verified
 011de4,target_timers,asm,158,,,,1,soldier_out,,5,,verified
 011e82,soldier_out,asm,204,,,,2,rand_beam,,4,,verified
-011f4e,sound_slots_clear,asm,22,,,-32670,4,sound_channels,,1,,todo
-011f64,sub_011f64,asm,18,,,,0,,,1,,todo
-011f76,sub_011f76,asm,240,,,,1,,,50,,todo
-012066,sound_channels,asm,204,,,,2,sub_01ea28 sub_01eac0 sub_01eb4c,,3,,todo
-012132,engine_sound,asm,412,,,,1,sub_0122ce,,39,,partial
-0122ce,sub_0122ce,asm,40,,,,1,,,0,,todo
-0122f6,sub_0122f6,asm,16,,,,1,,,0,,todo
-012306,sub_012306,asm,30,,,,3,sub_0122f6,,2,,todo
-012324,sub_012324,asm,26,,,-32664,2,sub_012306,,4,,todo
-01233e,sub_01233e,asm,22,,,-32652,1,sub_012306,,4,,todo
-012354,sub_012354,asm,44,,,-32646,1,,,9,,todo
-012380,sub_012380,asm,44,,,-32640,1,,,9,,todo
-0123ac,sub_0123ac,asm,48,,,,1,sub_012306,,9,,todo
+011f4e,sound_slots_clear,asm,22,,,-32670,4,sound_channels,,1,,verified
+011f64,sound_slots_off,asm,18,,,,0,,,1,,drop
+011f76,sound_slots_init,asm,240,,,,1,,,50,,verified
+012066,sound_channels,asm,204,,,,2,channel_play channel_stop channel_adjust,,3,,verified
+012132,engine_sound,asm,412,,,,1,enemy_loudness,,39,,verified
+0122ce,enemy_loudness,asm,40,,,,1,,,0,,verified
+0122f6,near_loudness,asm,16,,,,1,,,0,,verified
+012306,loudness_at,asm,30,,,,3,near_loudness,,2,,verified
+012324,sound_boom,asm,26,,,-32664,2,loudness_at,,4,,verified
+01233e,sound_splash,asm,22,,,-32652,1,loudness_at,,4,,verified
+012354,sound_clang,asm,44,,,-32646,1,,,9,,verified
+012380,sound_screech,asm,44,,,-32640,1,,,9,,verified
+0123ac,sound_scream,asm,48,,,,1,loudness_at,,9,,verified
 0123dc,music_start,asm,148,,,,3,,dos.LoadSeg,8,"""songplay""",todo
 012470,sub_012470,asm,108,,,,3,fatal_exit,dos.UnLoadSeg,7,,todo
 0124dc,sub_0124dc,asm,4,,,,2,,,0,,todo
@@ -75,7 +75,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01251e,sub_01251e,asm,14,,,,0,shape_find_c,,0,,todo
 01252c,ship_block,asm,68,,,,1,,,3,,ported
 012570,open_libraries,asm,46,,,,1,sound_init,exec.OpenLibrary,5,,todo
-01259e,close_libraries,asm,38,,,,1,sub_01e94c,exec.CloseLibrary,3,,todo
+01259e,close_libraries,asm,38,,,,1,sound_shutdown,exec.CloseLibrary,3,,todo
 0125c4,sub_0125c4,asm,2,,,,0,,,0,,todo
 0125c6,task_setup,asm,122,,,,1,,exec.FindTask exec.SetTaskPri,10,,drop
 012640,trap_handler,asm,300,,,,0,sub_01556e,exec.Debug,1,"""Crashed in the main task!!!  Error number is %d...."" | ""SR is %d.\n"" | ""crash pc is %06lx, _quit_cleanup is %06lx.\n"" | ""Offset from _quit_cleanup is %06lx (%ld).\n""",drop
@@ -97,10 +97,10 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 013216,sub_013216,asm,32,,,,1,,,0,,ported
 013236,sub_013236,asm,28,,,,1,,,0,,ported
 013252,load_ship_shapes,asm,278,,,-32616,2,ship_guns_setup shapes_load,,30,,ported
-013368,sounds_load,asm,230,,,-32610,2,sub_011f76 file_length load_file_chip_asm,,24,,partial
-01344e,sub_01344e,asm,30,,,,1,file_length load_file_chip_asm,,3,,todo
-01346c,sub_01346c,asm,56,,,-32604,3,mem_free_var,,7,,ported
-0134a4,sub_0134a4,asm,10,,,,1,mem_free_var,,1,,todo
+013368,sounds_load,asm,230,,,-32610,2,sound_slots_init file_length load_file_chip_asm,,24,,ported
+01344e,sound_engine_load,asm,30,,,,1,file_length load_file_chip_asm,,3,,ported
+01346c,sounds_free,asm,56,,,-32604,3,mem_free_var,,7,,ported
+0134a4,sound_engine_free,asm,10,,,,1,mem_free_var,,1,,ported
 0134ae,sub_0134ae,asm,14,,,-32598,3,shapes_free,,2,,ported
 0134bc,init_assets,asm,28,,,,1,task_setup font_load alloc_pools load_permanent_shapes keyboard_open,,1,,ported
 0134d8,sub_0134d8,asm,54,,,,1,close_libraries sub_01276c sub_0127f6 sub_0128d6 sub_01295a sub_012a92 display_shutdown keyboard_close mem_free,intuition.OpenWorkBench,1,,todo
@@ -265,7 +265,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait enemy_frames mem_free,,13,,ported
 018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,ported
 018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,ported
-018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 free_map sub_01344e sub_0134a4 save_game_read save_game_write text_input path_sanitise screen_dialog exit_game view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen strcmp bcopy strcat os_dos_delete_file os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",ported
+018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 free_map sound_engine_load sound_engine_free save_game_read save_game_write text_input path_sanitise screen_dialog exit_game view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen strcmp bcopy strcat os_dos_delete_file os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",ported
 019288,high_score_save,C,38,0,,,2,save_file,,1,"""highscore""",verified
 0192ae,high_score_reset_unused,C,114,2,,,0,high_score_save strncpy,,1,"""Colin was here!""",drop
 019320,high_score_sort,C,172,40,,,1,,,1,,verified
@@ -325,7 +325,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01b9cc,engine_idle,C,36,0,,-32262,1,,,5,,ported
 01b9f0,sub_01b9f0,C,16,4,,,1,,,0,,todo
 01ba00,sub_01ba00,asm,128,,,,0,sub_015710 record_at,,6,,todo
-01ba80,ground_contact,C,386,10,,,1,object_spawn sub_012380 crash_hit sub_015710 wheel_height crash touches_ground record_at record_on_ship on_water,,9,,ported
+01ba80,ground_contact,C,386,10,,,1,object_spawn sound_screech crash_hit sub_015710 wheel_height crash touches_ground record_at record_on_ship on_water,,9,,ported
 01bc02,enemy_countdown_step,C,204,2,,,1,aircraft_launch rand_beam,,7,,verified
 01bcce,deck_state,C,236,0,,,1,on_the_lift,,9,,verified
 01bdba,deck_roll,C,64,0,,,1,,,2,,verified
@@ -350,7 +350,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01cbb2,record_is_land,C,64,2,8,,1,,,2,,verified
 01cbf2,ship_of_record,C,196,4,8,-32238,1,record_on_ship sub_021dce,,2,"""Not over a ship in ShipNum.\n"" | ""COULDN'T FIND A SHIP in ShipNum.\n""",partial
 01ccb6,sub_01ccb6,C,64,0,8,-32232,1,os_avail_mem os_close_window os_close_workbench,,2,,drop
-01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sound_slots_clear load_ship_shapes sounds_load sub_01346c sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,partial
+01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sound_slots_clear load_ship_shapes sounds_load sounds_free sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,partial
 01ce28,sub_01ce28,asm,868,,,,0,sound_slots_clear sub_013756 format_to ticker_offer weapon_gauge_reset,dos.DeleteFile exec.AvailMem,28,"""highscore""",todo
 01d18c,aircraft_gone_far,C,94,6,8,,1,,,1,,verified
 01d1ea,enemy_frames,C,368,4,,,1,sub_01cb30,,12,,ported
@@ -372,20 +372,20 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01e64e,aircraft_speed,C,218,0,8,,1,,,2,,verified
 01e728,aircraft_fly,C,174,0,8,,1,burn_smoke fighter_cruise fighter_attack torpedo_plane torpedo_plane_away rand_beam,,0,,verified
 01e7d6,enemy_aircraft_step,C,226,4,,-32208,1,aircraft_frame_index aircraft_relation aircraft_order aircraft_motion aircraft_falling aircraft_burning aircraft_idle aircraft_speed aircraft_fly,,2,,verified
-01e8b8,sound_init,asm,148,,,-32202,1,,exec.AddIntServer,6,"""SoundFX_IntHandler""",todo
-01e94c,sub_01e94c,asm,70,,,-32196,1,sub_01eab4,dos.Delay exec.RemIntServer,4,,todo
-01e992,sub_01e992,asm,76,,,,0,sub_01ea28,,0,,todo
-01e9de,sub_01e9de,asm,22,,,-32190,0,,,1,,todo
-01e9f4,sub_01e9f4,asm,36,,,-32184,1,sub_01eac0,dos.Delay,4,,todo
-01ea18,sub_01ea18,asm,16,,,-32178,0,sub_01eac0,,2,,todo
-01ea28,sub_01ea28,asm,140,,,-32172,2,sub_01e9f4 sub_01eac0 sub_01eb2e,,1,,todo
-01eab4,sub_01eab4,asm,12,,,-32166,1,sub_01eac0,,0,,todo
-01eac0,sub_01eac0,asm,110,,,-32160,5,,,3,,todo
-01eb2e,sub_01eb2e,asm,30,,,-32154,1,,,1,,todo
-01eb4c,sub_01eb4c,asm,72,,,-32148,1,,,1,,todo
-01eb94,sub_01eb94,asm,22,,,,0,,,1,,todo
-01ebaa,audio_irq,asm,186,,,,0,,,6,,todo
-01ec64,soundfx_vblank,asm,278,,,,0,,,8,,todo
+01e8b8,sound_init,asm,148,,,-32202,1,,exec.AddIntServer,6,"""SoundFX_IntHandler""",verified
+01e94c,sound_shutdown,asm,70,,,-32196,1,channels_stop,dos.Delay exec.RemIntServer,4,,drop
+01e992,sound_play_rate,asm,76,,,,0,channel_play,,0,,drop
+01e9de,sound_wait_music,asm,22,,,-32190,0,,,1,,drop
+01e9f4,channel2_to_music,asm,36,,,-32184,1,channel_stop,dos.Delay,4,,todo
+01ea18,channel2_from_music,asm,16,,,-32178,0,channel_stop,,2,,drop
+01ea28,channel_play,asm,140,,,-32172,2,channel2_to_music channel_stop channel_busy,,1,,partial
+01eab4,channels_stop,asm,12,,,-32166,1,channel_stop,,0,,drop
+01eac0,channel_stop,asm,110,,,-32160,5,,,3,,verified
+01eb2e,channel_busy,asm,30,,,-32154,1,,,1,,verified
+01eb4c,channel_adjust,asm,72,,,-32148,1,,,1,,verified
+01eb94,channel_ease,asm,22,,,,0,,,1,,drop
+01ebaa,audio_irq,asm,186,,,,0,,,6,,verified
+01ec64,soundfx_vblank,asm,278,,,,0,,,8,,verified
 01ed7a,dash_cache_invalidate,asm,48,,,,1,,,2,,ported
 01edaa,dashboard_invalidate,asm,18,,,-32142,2,dash_cache_invalidate,,1,,todo
 01edbc,weapon_gauge_reset,asm,46,,,-32136,3,,,5,,verified

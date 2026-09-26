@@ -12,7 +12,8 @@
 #   cstrs     `count` NUL-terminated strings, back to back       -> const char *const[count]
 #   strptrs   `count` big-endian pointers to strings             -> const char *const[count]
 #   words     `count` big-endian 16-bit values                -> uint16_t[count]
-#             (`stride` bytes apart when given: immediates of a run of instructions)
+#             (`stride` bytes apart when given: immediates of a run of instructions;
+#             or one from each address of `addrs`)
 #   longs     `count` big-endian 32-bit values                -> uint32_t[count]
 #   blob      `count` raw bytes                               -> uint8_t[count]
 #   sysfont   topaz 8, located by contents in original/kick.rom (re/notes/system-font.md)
@@ -751,6 +752,17 @@ kind = "words"
 addr = 0x01B9D2
 count = 4
 stride = 6
+
+# The engine's volume target 0x025428 and its period's base 0x02542A as the player's controls
+# set them, a pair of `move.w #imm` at each of ten places: the volume, then the period.
+# flight_controls: 0x01C0E2, 0x01C144, 0x01C288, 0x01C2A0; deck_controls: 0x01C528,
+# 0x01C548, 0x01C566, 0x01C5A0; player_update: 0x01C74E (a crash), 0x01C882 (the cable).
+[[table]]
+name = "engine_targets"
+kind = "words"
+addrs = [0x01C0E4, 0x01C0EA, 0x01C146, 0x01C14C, 0x01C28A, 0x01C290, 0x01C2A2, 0x01C2A8,
+         0x01C52A, 0x01C530, 0x01C54A, 0x01C550, 0x01C568, 0x01C56E, 0x01C5A2, 0x01C5A8,
+         0x01C750, 0x01C756, 0x01C884, 0x01C88A]
 
 # 0x01EAC0, a channel stopped: the period it leaves in AUDxPER.
 [[table]]

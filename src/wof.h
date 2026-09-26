@@ -933,6 +933,7 @@ uint16_t wof_paula_intreqr(void);
 void     wof_paula_boundary(void);
 void     wof_paula_deliver(void);
 void     wof_paula_server(int inside);                           /* a VBlank server runs */
+void     wof_paula_rate(uint16_t hz);                            /* the video standard changed */
 const int8_t *wof_sound_data(uint32_t handle, uint32_t *left);  /* the bytes from a handle on */
 
 /* The effects engine (src/sound.c, re/notes/sound.md), in the original's address order. */

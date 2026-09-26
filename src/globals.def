@@ -36,7 +36,7 @@ WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next charact
 
 /* the sound engine (M8, re/notes/sound.md) */
 WOF_GLOBAL(sound_vblanks,      uint32_t, 0x027E6A)  /* soundfx_vblank counts every VBlank */
-WOF_GLOBAL(g_026218,           uint32_t, 0x026218)  /* audio_irq stores g_027f1a at index g_027f18 */
+WOF_GLOBAL(irq_store,          uint32_t, 0x026218)  /* audio_irq stores g_027f1a at index g_027f18 */
 WOF_GLOBAL(g_027f1a,           uint32_t, 0x027F1A)  /* read by audio_irq alone; nothing writes it */
 
 /* the tick (M4 part 2) */
@@ -139,8 +139,8 @@ WOF_GLOBAL(g_025410,           uint16_t, 0x025410)  /* vblank_server counts it d
 WOF_GLOBAL(airspeed,           int16_t,  0x025414)
 WOF_GLOBAL(flash_count,        uint16_t, 0x025416)
 WOF_GLOBAL(flash_colour,       uint16_t, 0x025418)
-WOF_GLOBAL(g_025428,           int16_t,  0x025428)
-WOF_GLOBAL(g_02542c,           int16_t,  0x02542C)
+WOF_GLOBAL(engine_volume_target, int16_t, 0x025428)  /* the engine's volume, as the controls set it */
+WOF_GLOBAL(engine_volume,      int16_t,  0x02542C)  /* eased towards it by engine_sound */
 WOF_GLOBAL(g_025592,           int16_t,  0x025592)
 WOF_GLOBAL(g_025a9c,           int16_t,  0x025A9C)
 WOF_GLOBAL(g_025f14,           int16_t,  0x025F14)
@@ -170,8 +170,8 @@ WOF_GLOBAL(g_025404,           int16_t,  0x025404)  /* 0x011274: the pitch as a 
 WOF_GLOBAL(pitch_delta,        int16_t,  0x025408)  /* added to pitch_angle for the two speeds */
 WOF_GLOBAL(g_02540c,           int16_t,  0x02540C)  /* 0x01B92E: the last cable it looked at */
 WOF_GLOBAL(g_025426,           int16_t,  0x025426)
-WOF_GLOBAL(g_02542a,           int16_t,  0x02542A)  /* the engine's pitch the sound engine eases to */
-WOF_GLOBAL(g_02542e,           int16_t,  0x02542E)  /* where 0x012132 has eased it to */
+WOF_GLOBAL(engine_period_base, int16_t,  0x02542A)  /* the engine's period, as the controls set it */
+WOF_GLOBAL(engine_period,      int16_t,  0x02542E)  /* where 0x012132 has eased it to */
 WOF_GLOBAL(g_025a9e,           int16_t,  0x025A9E)
 WOF_GLOBAL(g_025aa0,           int16_t,  0x025AA0)  /* 0x01AB80: a turn steps every second call */
 WOF_GLOBAL(pitch_angle,        int16_t,  0x025AA2)  /* player_motion eases it towards pitch_target */

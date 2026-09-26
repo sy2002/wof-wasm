@@ -196,8 +196,8 @@ void wof_objects_clear(void)
 /* orig 0x01B9BC. */
 static void sub_01b9bc(void)
 {
-    wof_g.g_02542c = 0;
-    wof_g.g_025428 = 0;
+    wof_g.engine_volume = 0;
+    wof_g.engine_volume_target = 0;
 }
 
 /* orig 0x01B7BC - the carrier's deck as world x, sixteen pixels in from both ends. */

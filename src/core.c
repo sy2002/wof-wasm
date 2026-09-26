@@ -40,7 +40,7 @@ void wof_init(uint32_t seed, const uint8_t *fs, uint32_t fs_len)
 void wof_set_video_hz(int hz)
 {
     wof_s.video_hz = (uint16_t)(hz == 50 ? 50 : 60);
-    wof_s.paula.hz = wof_s.video_hz;       /* the shell sets it before any sound plays */
+    wof_paula_rate(wof_s.video_hz);
 }
 
 /* One resume of the coroutine the original's main program becomes (SPEC 6.3), and the

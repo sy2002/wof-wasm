@@ -157,10 +157,16 @@ def emit_words(image, entry, header, source):
     """`count` big-endian 16-bit values, as they stand in the executable.  With `stride` they
     are that many bytes apart, which is how the immediate operands of a run of equal
     instructions are read: the sound engine's periods, volumes and repeat counts are words
-    inside its `move.w #imm,d16(a4)` (re/notes/sound.md)."""
-    name, addr, count = entry['name'], entry['addr'], entry['count']
-    stride = entry.get('stride', 2)
-    values = [struct.unpack('>H', image.bytes(addr + stride * i, 2))[0] for i in range(count)]
+    inside its `move.w #imm,d16(a4)` (re/notes/sound.md).  With `addrs` instead of `addr`
+    and `count`, one word from each of the addresses listed."""
+    name = entry['name']
+    if 'addrs' in entry:                   # words scattered over the code, one per address
+        addrs = entry['addrs']
+        addr, count = addrs[0], len(addrs)
+    else:
+        addr, count = entry['addr'], entry['count']
+        addrs = [addr + entry.get('stride', 2) * i for i in range(count)]
+    values = [struct.unpack('>H', image.bytes(a, 2))[0] for a in addrs]
 
     header.append('extern const uint16_t %s%s[%d];   /* orig 0x%06X */'
                   % (PREFIX, name, count, addr))

@@ -95,6 +95,7 @@ class Paula:
         self.periods = []               # (instant, channel, period) at every change of AUDxPER
         self.late = 0                   # requests made deliverable outside a delivery point
         self.at = None                  # the instant of the channel event being delivered
+        self.starts = {}                # allocation base -> the game's pointer to the sample in it
         self._publish()
 
     # ------------------------------------------------------------------ time
@@ -260,7 +261,11 @@ class Paula:
             name = label[label.rfind(' ') + 1:].rstrip(')') if 'sounds/' in label else label
             starts = [p for p in (self.m.o.r32(g) for g in SOUND_POINTERS)
                       if base <= p <= pointer < end]
-            return name, pointer - (max(starts) if starts else base)
+            if starts:
+                self.starts[base] = max(starts)
+            # A sample the game has let go is named by where its pointer pointed while it
+            # was loaded: a slot still holds it after the load and save dialog.
+            return name, pointer - self.starts.get(base, base)
         return '%06x' % pointer, 0
 
     def _log(self, kind, c, t, vblank):

@@ -91,6 +91,12 @@ def attribute(replay):
         om, pm = r.predicted_map_draws(memory, r.live_chart(memory)), r.port_map_draws()
         if om != pm:
             found.add('map', k, ('decoder', om[:3], 'port', pm[:3]))
+        sound = r.sound_differences(head)
+        if sound:
+            found.add('sound', k, sound)
+        paula = r.paula_differences(memory)
+        if paula:
+            found.add('paula', k, paula[:4])
         judge(r, 'pass', k, found)
 
     def on_tick(r, memory, head, k, waited):
@@ -105,6 +111,12 @@ def attribute(replay):
                 found.add('tick entropy', k, '')
         if waited != r.waits.get(k, 0):
             found.add('tick waits', k, (waited, r.waits.get(k, 0)))
+        sound = r.sound_differences(head)
+        if sound:
+            found.add('tick sound', k, sound)
+        paula = r.paula_differences(memory)
+        if paula:
+            found.add('tick paula', k, paula[:4])
         judge(r, 'tick', k, found)
 
     replay.run(on_pass=on_pass, on_tick=on_tick)

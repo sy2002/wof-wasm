@@ -25,17 +25,30 @@ SOUND_POINTERS = {0x026E3E: 0, 0x026EA8: 1, 0x026EAC: 2, 0x026EB4: 3, 0x026E96: 
                   0x026E42: 5, 0x026E7A: 6, 0x026E58: 7}
 
 
+# Every sample the eight pointers have pointed at, by its first byte: a slot keeps a
+# pointer to the engine's sample after the load and save dialog has let the sample go and
+# before sounds_load builds the slots again (re/notes/sound.md), and the headless original's
+# allocator never hands that memory out again, so the pointer still names the sample.
+SEEN_SAMPLES = {}
+
+
 def sound_handle(memory, pointer):
     """The port's handle for a sample pointer of the original: the file whose data the
-    pointer lies in, found as the nearest of the eight pointers at or below it, and the
-    offset from there; None when it lies in none."""
+    pointer lies in, found as the nearest sample start at or below it - the eight pointers'
+    now, else one they held before - and the offset from there; None when it lies in none."""
     if pointer == 0:
         return 0
     best = None
     for where, index in SOUND_POINTERS.items():
         start = memory.u(where, 4)
-        if start and start <= pointer < start + 0x10000 and (best is None or start > best[0]):
-            best = (start, index)
+        if start:
+            SEEN_SAMPLES[start] = index
+            if start <= pointer < start + 0x10000 and (best is None or start > best[0]):
+                best = (start, index)
+    if best is None:
+        below = [start for start in SEEN_SAMPLES if start <= pointer < start + 0x10000]
+        if below:
+            best = (max(below), SEEN_SAMPLES[max(below)])
     if best is None:
         return None
     return ((best[1] + 1) << 24) | (pointer - best[0])

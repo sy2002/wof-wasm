@@ -363,7 +363,8 @@ it can: it skips what it stands for. The release core has no test hook
   the original, which is why it is left out of T2.
 - **The sound engine** keeps nothing the port keeps except the two values `0x012132` eases
   (`0x02542C`, the engine's volume, and `0x02542E`, its pitch), which are registered and
-  compared; the sounds themselves are M8's.
+  compared; the sounds themselves are M8's, which ports the engine
+  (`re/notes/porting-m8.md`).
 - Every other region is listed with its marker in "Appendix: the regions no run executed".
 
 ## What is provisional

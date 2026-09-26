@@ -246,10 +246,57 @@
 026e16 font_glyphs           ; start of the glyph data
 026d56 font_glyph_offsets    ; 96 words
 
-# ---- sound
+# ---- sound  (see re/notes/sound.md)
+011f64 sound_slots_off       ; asm. no callers: the eight slots off, without sound_channels
+011f76 sound_slots_init      ; asm. slots 0 to 6 from the sound pointers and lengths, all off (sounds_load's end)
+0122ce enemy_loudness        ; asm. (D0 distance) -> the loudness of an enemy aircraft, 0 beyond 0x2CF
+0122f6 near_loudness         ; asm. (D0 distance) -> 64 - distance / 32, 0 beyond 0x81F
+012306 loudness_at           ; asm. (D0 world x) -> the loudness at x and height 0x14; D1 left |0x14 - player_y|
+012324 sound_boom            ; asm. (D0 x) a burst in slot 4 at the loudness of x; nothing before boom is loaded
+01233e sound_splash          ; asm. (D0 x) a splash in slot 5, slot 4 off
+012354 sound_clang           ; asm. the lift's clang in slot 7, once
+012380 sound_screech         ; asm. the wheels' screech on the deck in slot 7, once
+0123ac sound_scream          ; asm. (D0 x) a soldier's scream in slot 7 at half the loudness, once
+01344e sound_engine_load     ; asm. the engine's sample loaded again if it was let go (the load and save dialog's end)
+01346c sounds_free           ; asm. seven of the eight samples freed, the engine's kept
+0134a4 sound_engine_free     ; asm. the engine's sample freed (the load and save dialog's start)
 01e8b8 sound_init            ; installs level-4 audio vector ($70) and the VBlank server "SoundFX_IntHandler"
+01e94c sound_shutdown        ; asm. the channels stopped, the server removed, the vector back (close_libraries)
+01e992 sound_play_rate       ; asm. no callers: a sample given as {pointer, rate in Hz or kHz} played on channel D1
+01e9de sound_wait_music      ; asm. no callers: waits while 0x027F14 is clear and the fire button is up
+01e9f4 channel2_to_music     ; asm. channel 2 stopped and handed to the music, Delay(10)
+01ea18 channel2_from_music   ; asm. no callers: channel 2 back from the music
+01ea28 channel_play          ; asm. (A0 sample, D0 bytes, D1 channel, D2 period, D3 volume, D4 repeat) to start at the second VBlank
+01eab4 channels_stop         ; asm. the four channels stopped (sound_shutdown)
+01eac0 channel_stop          ; asm. (D0 channel) DMA and interrupt off, volume 0, period 0x7C, the record free and stamped
+01eb2e channel_busy          ; asm. (D1 channel) -> -1 when its record holds a sample
+01eb4c channel_adjust        ; asm. (D0 channel, D1 period, D2 volume) either left alone when negative
+01eb94 channel_ease          ; asm. no callers: (D0 channel, D1 volume, D2 step) a volume eased by soundfx_vblank
 01ebaa audio_irq             ; asm. level-4 autovector handler (audio channel interrupts)
 01ec64 soundfx_vblank        ; asm. VBlank server of the sound effects engine
+027368 sound_slots           ; 8 slots of 0x18 bytes, two per audio channel (re/notes/sound.md)
+027e68 sound_installed       ; word: sound_init has run
+027e6a sound_vblanks         ; long: soundfx_vblank counts every VBlank
+027e6e sound_channel_records ; 4 records of 0x1E bytes, one per audio channel
+027ee6 saved_level4_vector   ; long: the vector at 0x70 before sound_init
+027eea soundfx_server        ; the Interrupt node of soundfx_vblank, "SoundFX_IntHandler", priority 30
+027f14 sound_flags           ; 3 bytes: the music's flags for channel 2, set only by channel2_to_music
+027f18 g_027f18              ; word: the index audio_irq stores 0x027F1A at into 0x026218; nothing writes it
+027f1e sound_intena          ; word: soundfx_vblank's copy of INTENAR's audio bits
+027f20 sound_dmacon          ; word: the channels soundfx_vblank switches on, with the SET bit
+026218 irq_store             ; long: where audio_irq stores 0x027F1A (at the index 0x027F18, always 0)
+026e3e sound_boom_ptr        ; long: sounds_load's pointer to sounds/boom
+026e42 sound_clang_ptr       ; long: sounds/metal.clang.1
+026e58 sound_engine_ptr      ; long: sounds/Engine
+026e7a sound_grind_ptr       ; long: sounds/Grind.1
+026e96 sound_machinegun_ptr  ; long: sounds/machinegun
+026ea8 sound_screech_ptr     ; long: sounds/screech
+026eac sound_scream_ptr      ; long: sounds/scream
+026eb4 sound_splash_ptr      ; long: sounds/splash
+02542c engine_volume         ; word: the engine's volume, eased by engine_sound towards 0x025428
+025428 engine_volume_target  ; word: set by the controls
+02542e engine_period         ; word: the engine's period, eased towards 0x02542A + pitch and height
+02542a engine_period_base    ; word: set by the controls
 
 # ---- OS glue
 022d48 os_disable            ; exec.Disable thunk

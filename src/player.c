@@ -199,7 +199,7 @@ static void wreck_smoke(void)
 
     if (sinking)
         dy = 0;
-    wof_g.g_025428 = 0;
+    wof_g.engine_volume_target = 0;
     if (wof_g.g_025aa6 >= 0x4B || wof_g.g_025aa6 < wof_g.g_025aa8)
         return;
     {
@@ -444,7 +444,7 @@ static void button(void)
         wof_g.g_02535f = 3;
         ABOARD = 3;
         P.on_deck = 11;
-        wof_g.g_025428 = 0;
+        wof_g.engine_volume_target = 0;
         P.y = (int16_t)(wof_wheel_height() + wof_ground_height(wof_record_at(P.x)));
     }
 }
@@ -532,14 +532,22 @@ static void hook(void)
     }
 }
 
+/* The engine's volume target and its period's base as the controls set them at one of ten
+ * places, a pair of immediates each (re/tables.toml, engine_targets). */
+static void engine_target(int site)
+{
+    wof_g.engine_volume_target = (int16_t)wof_tbl_engine_targets[2 * site];
+    wof_g.engine_period_base = (int16_t)wof_tbl_engine_targets[2 * site + 1];
+}
+
 /* orig 0x01B9CC engine_idle - the engine's sound at rest: its volume and the volume it eases
  * to, its period and the period it eases to (re/tables.toml, engine_idle). */
 void wof_engine_idle(void)
 {
-    wof_g.g_02542c = (int16_t)wof_tbl_engine_idle[0];
-    wof_g.g_025428 = (int16_t)wof_tbl_engine_idle[1];
-    wof_g.g_02542e = (int16_t)wof_tbl_engine_idle[2];
-    wof_g.g_02542a = (int16_t)wof_tbl_engine_idle[3];
+    wof_g.engine_volume = (int16_t)wof_tbl_engine_idle[0];
+    wof_g.engine_volume_target = (int16_t)wof_tbl_engine_idle[1];
+    wof_g.engine_period = (int16_t)wof_tbl_engine_idle[2];
+    wof_g.engine_period_base = (int16_t)wof_tbl_engine_idle[3];
     wof_g.g_027de8 = 0;
 }
 
@@ -751,8 +759,7 @@ static void flight_controls(void)
             if (wof_g.airspeed < 1000)
                 wof_g.airspeed = 1000;
         }
-        wof_g.g_025428 = 0x31;
-        wof_g.g_02542a = 0x181;
+        engine_target(0);
         wof_g.g_027de8 = 0;
         return;
     }
@@ -768,8 +775,7 @@ static void flight_controls(void)
             wof_g.airspeed_step = (int16_t)(wof_g.airspeed_step + 1);
             if (wof_g.airspeed_step > 8)
                 wof_g.airspeed_step = 8;
-            wof_g.g_025428 = 0x40;
-            wof_g.g_02542a = 0x14F;
+            engine_target(1);
             wof_g.g_027de8 = 1;
             wof_g.airspeed = (int16_t)(wof_g.airspeed + wof_g.airspeed_step);
             if (wof_g.airspeed > 0x578)
@@ -811,12 +817,10 @@ static void flight_controls(void)
         return;
     }
     /* 0x01C288: forward or back alone */
-    wof_g.g_025428 = 0x31;
-    wof_g.g_02542a = 0x181;
+    engine_target(2);
     wof_g.g_027de8 = 0;
     if (INPUT & 0x02u) {
-        wof_g.g_025428 = 0x40;
-        wof_g.g_02542a = 0x14F;
+        engine_target(3);
         wof_g.g_027de8 = 1;
         wof_g.pitch_target = (int16_t)(wof_g.pitch_target - (int16_t)(wof_g.pitch_step << 1));
         if (wof_g.pitch_target < (int16_t)0xEE6C)
@@ -898,21 +902,18 @@ static void deck_controls(void)
         if (P.facing == dir) {
             wof_g.g_027de8 = 1;
             if (wof_g.attitude_index == 0) {
-                wof_g.g_025428 = 0x40;
-                wof_g.g_02542a = 0x14F;
+                engine_target(4);
                 wof_g.airspeed_step = (int16_t)(wof_g.airspeed_step + 1);
                 if (wof_g.airspeed_step > 8)
                     wof_g.airspeed_step = 8;
             } else {
-                wof_g.g_025428 = 0x28;
-                wof_g.g_02542a = 0x328;
+                engine_target(5);
                 wof_g.attitude_index--;
             }
             wof_g.airspeed = (int16_t)(wof_g.airspeed + wof_g.airspeed_step);
         } else {
             wof_g.g_027de8 = 0;
-            wof_g.g_025428 = 0x28;
-            wof_g.g_02542a = 0x328;
+            engine_target(6);
             wof_g.airspeed_step = 0;
             if (wof_g.airspeed == 0) {
                 wof_g.attitude_index++;
@@ -924,8 +925,7 @@ static void deck_controls(void)
             wof_g.airspeed = (int16_t)(wof_g.airspeed - 8);
         }
     } else {
-        wof_g.g_025428 = 0x28;
-        wof_g.g_02542a = 0x328;
+        engine_target(7);
         wof_g.g_027de8 = 0;
         wof_g.airspeed_step = 0;
         wof_g.airspeed = (int16_t)(wof_g.airspeed - 8);
@@ -1037,8 +1037,7 @@ wof_co_t wof_player_update(void)
         hook();
         deck_state();
     } else if (P.on_deck == 4) {                                  /* 0x01C74E */
-        wof_g.g_025428 = 0x19;
-        wof_g.g_02542a = 0x3C0;
+        engine_target(8);
         wof_g.g_027de8 = 0;
         wof_g.g_02536a = 0;
         wof_g.pitch_delta = 0;
@@ -1046,7 +1045,7 @@ wof_co_t wof_player_update(void)
         wof_g.g_025a9e = -1;
         wof_crash();
     } else if (P.on_deck == 6) {                                  /* 0x01C78C */
-        wof_g.g_025428 = 0;
+        wof_g.engine_volume_target = 0;
         if (++wof_g.g_025aa4 > 2) {
             wof_g.g_025aa4 = 0;
             P.y = (int16_t)(P.y - 1);
@@ -1057,8 +1056,7 @@ wof_co_t wof_player_update(void)
         wreck_smoke();
         CO_CALL(c, &wof_f.co_lost, lost_wait());
     } else if (P.on_deck == 7) {                                  /* 0x01C882 */
-        wof_g.g_025428 = 0x28;
-        wof_g.g_02542a = 0x328;
+        engine_target(9);
         P.y = (int16_t)(wof_wheel_height() + wof_ground_height(wof_record_at(P.x)));
         wof_g.pitch_target = 0;
         wof_g.pitch_delta = 0;

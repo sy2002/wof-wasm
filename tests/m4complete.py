@@ -40,9 +40,6 @@ EXCLUDED = [
      'draw_planes: the graphics library\'s copy of the plane pointers, never read',
      'the port draws into a viewport by index; the choice of target is compared as the '
      'draw_set_target calls (V1)', 'M4, SPEC 6.6'),
-    (0x026E3E, 0x026EB7, {'sounds_load'},
-     'the sample pointers of the sound effects',
-     'sounds_load is the M8 stand-in: it opens the files and keeps their lengths', 'M8'),
     (0x026F1A, 0x026F1D, {'draw_set_target'},
      'draw_rastport: the RastPort the library draws into',
      'as draw_planes', 'M4, SPEC 6.6'),
@@ -52,12 +49,6 @@ EXCLUDED = [
      'vport_ticker: the ticker\'s ViewPort, RasInfo, BitMap and RastPort',
      'the port\'s screen model (src/screen.c) keeps a viewport as position, size and depth; '
      'its picture is compared as the palette of every row (V1 rows)', 'M4, SPEC 6.6'),
-    (0x027368, 0x027427, {'sub_011f76', 'sound_slots_clear', 'sound_channels', 'engine_sound', 'sub_012324',
-                          'sub_01233e', 'sub_012354', 'sub_012380', 'sub_0123ac'},
-     'the eight sound slots of 0x18 bytes: what sounds_load builds, and the sounds the tick '
-     'starts, stops and moves (the engine, the lift, a splash, a touch-down)',
-     'the sound engine is M8\'s; the two values 0x012132 eases that the rest of the game keeps '
-     '(0x02542C, 0x02542E) are registered', 'M8'),
     (0x02772A, 0x02772D, {'load_file'},
      'load_file_len', 'wof_load_file returns the length', 'M1'),
     (0x027748, 0x027A13, {'screen_game', 'view_set_game', 'vport_init_bitmap',
@@ -85,9 +76,6 @@ EXCLUDED = [
     (0x027DF4, 0x027DF7, {'deck_span'},
      'g_027df4: a pointer deck_span sets, always to player_start_x',
      'the port reads player_start_x directly', 'M4'),
-    (0x027E6A, 0x027F21, {'soundfx_vblank', 'sub_01ea28', 'sub_01eac0', 'sub_01eb4c'},
-     'the sound engine\'s channel state, and the audio channels the tick starts and stops',
-     'soundfx_vblank and the channel routines are the M8 stand-in', 'M8'),
     (0x027FAC, 0x027FAD, {'line_draw'},
      'line_draw\'s copy of the RastPort\'s plane mask, shifted a plane at a time',
      'the port draws a line in every plane of the target\'s mask at once', 'M4, SPEC 6.6'),

@@ -6,7 +6,8 @@ The instrument of milestone M2 (`SPEC.md` section 8): the original executable's 
 tools/headless.py        the machine, the schedule, the run description, the command line
 tools/headless_os.py     the operating system: one Python method per library call
 tools/headless_dump.py   the dump format, its reader, names for addresses, state comparison
-tests/test_headless.py   the tests, part of the suite
+tools/headless_paula.py  Paula's audio side: the channels, their interrupts, the sound event log
+tests/test_headless.py   the tests, part of the suite; the audio model's are in tests/test_sound.py
 ```
 
 ## What runs and what does not
@@ -20,8 +21,8 @@ Not run, and replaced by something that records or answers:
 | The operating system | library calls | `tools/headless_os.py`, table below |
 | The crack's text screen | `crack_text_screen` `0x01F41A` | returns 1 at once. It draws entropy the port never draws |
 | The music player and the song data | `music_start` `0x0123DC`, through `LoadSeg` | two fake segments; every call into them is recorded with its registers, VBlank, pass and tick, and answered with 0, which the game reads as "idle" |
-| The blitter, the copper, Paula | custom-chip space | plain memory. Busy waits fall through, because bit 6 of `DMACONR` reads as 0 |
-| The audio interrupt | level 4, vector at `0x70` | never raised. `sound_init` writes the vector into low memory, where nothing reads it |
+| The blitter, the copper | custom-chip space | plain memory. Busy waits fall through, because bit 6 of `DMACONR` reads as 0 |
+| Paula's audio side | `DMACON`, `INTENA`, `INTREQ`, `AUD0` to `AUD3`; level 4, vector at `0x70` | a model, below: the four channels play in a time of their own, and their interrupts call the handler `sound_init` put at `0x70`, `audio_irq` |
 
 The three habits of the game's code that the stubs have to know about:
 
@@ -68,7 +69,52 @@ The main program blocks and the VBlank interrupt is asynchronous; an emulator th
 | `dos.Delay(n)` | n x `video_hz` / 50 |
 | entry of `frame_update` (`0x010228`), the start of a pass | as many as are still owed so that `vblanks_per_pass` lie between this pass's start and the previous one's; at least one if the flag is clear |
 
-A VBlank is: set `JOY1DAT` and CIA-A PRA from the script, deliver the script's keys, then call every server the game installed with `AddIntServer(5, ...)`, highest priority first, as a nested call on a stack of its own with A1 = `is_Data`, A5 = `is_Code`, A0 = `0xDFF000`, A6 = `SysBase`. These are `soundfx_vblank` (`0x01EC64`, priority 30) and `vblank_server` (`0x011754`, priority −10). All other registers are the parked program's, as in a real interrupt. The servers may call the operating system (`input_queue_pop` uses `Disable` and `Enable`).
+A VBlank is: deliver the audio channels' events of the VBlank that has passed (below), set `JOY1DAT` and CIA-A PRA from the script, deliver the script's keys, then call every server the game installed with `AddIntServer(5, ...)`, highest priority first, as a nested call on a stack of its own with A1 = `is_Data`, A5 = `is_Code`, A0 = `0xDFF000`, A6 = `SysBase`, and after each server the audio requests it made deliverable. The servers are `soundfx_vblank` (`0x01EC64`, priority 30) and `vblank_server` (`0x011754`, priority −10). All other registers are the parked program's, as in a real interrupt. The servers may call the operating system (`input_queue_pop` uses `Disable` and `Enable`).
+
+### The audio channels
+
+`tools/headless_paula.py` watches the game's writes to `DMACON`, `INTENA`, `INTREQ` and the
+registers of `AUD0` to `AUD3` (`LC` as a long or two words, `LEN`, `PER`, `VOL`), keeps
+`INTENAR` and `INTREQR` up to date for the code that reads them, and leaves `DMACONR` alone,
+where the blitter's busy bit is read. The port's Paula (`src/audio.c`) is the same model, so
+the definitions here are the port's too (`SPEC.md` section 6.5).
+
+- **Time.** The harness has no clock between wait points, so the model counts in units of
+  1 / (clock x hz) seconds: a VBlank is `clock` units and a byte of a sample at period P is
+  P x hz units, with clock the colour clock of the run's standard, 3,546,895 Hz at 50 Hz and
+  3,579,545 Hz at 60 Hz. A VBlank is taken as exactly 1/hz s; a real PAL frame is 313 lines
+  of 227 colour clocks, about 0.16 percent longer.
+- **Writes happen at VBlank instants.** Every write the program makes after VBlank k, in the
+  servers of VBlank k and in the main program up to the next VBlank, happens at the instant
+  `T_k = k x clock`.
+- **A channel.** Switched on in `DMACON`, it takes `LC` and `LEN` (0 is 65,536 words) and
+  raises its request at once: Paula's first data fetch. It plays 2 x `LEN` bytes, each for
+  the period `AUDxPER` holds when the byte begins. When the last byte has played, the cycle
+  ends: the channel takes `LC` and `LEN` again as they stand, raises the request again and
+  plays on, the restart from the repeat pointer. Cleared in `DMACON` it stops. Paula raises
+  the wrap request a word earlier, when the cycle's last word is fetched; the model raises it
+  when that word has played, four samples later, which moves a restart to the next VBlank
+  only when a VBlank boundary falls inside those samples.
+- **Delivery.** A channel's events in `[T_k, T_k+1)` are delivered at VBlank k+1 before its
+  servers, in time order and at equal instants in channel order; an event at exactly `T_k`
+  sees every write made at `T_k`. A request reaches the CPU when `INTENA` has the master bit
+  and the channel's bit; deliverable requests are delivered after every channel event and
+  after every VBlank server returns, by calling the handler at `0x70` with an exception
+  frame, again while one stays deliverable. `sound_init` puts `audio_irq` there, so a start
+  is delivered when `soundfx_vblank` has switched the interrupts back on at its end. A
+  request the main program made deliverable would wait for the next such point; the model
+  counts those as `late`, and every M4 to M6 script has none (`tools/sound_observe.py`).
+- **The event log**, one entry per sample start and per restart: kind (`S` for the DMA
+  switched on, `R` for a restart), the VBlank it belongs to (a start inside VBlank k's
+  servers is k, a channel event in `[T_k, T_k+1)` is k+1), the passes and ticks so far, the
+  channel, the sound file the sample pointer lies in and the pointer's offset into it, `LEN`,
+  `PER`, `VOL`, and the instant in units. `tests/m4compare.py` holds the port's log to it
+  and the port's model to the harness's after every pass and tick.
+
+The model only observes where nothing sounds: a flight with the music switched off gives
+the same steps with and without it, except `0x027F1E`, where `soundfx_vblank` keeps
+`INTENAR`'s audio bits, which plain memory reads as 0 (`tests/test_sound.py`). `"paula":
+false` in the run description leaves the audio registers plain memory.
 
 Consequences:
 
@@ -114,7 +160,7 @@ Observed: `0x01CAC8`, reached from the player reset `0x013684`, reads once when 
 | `0x200000`–`0x9FFFFF` | `AllocMem`: a bump allocator, memory is never reused, so every address is reproducible and fresh memory is zero. `FreeMem` takes the block out of the dumps |
 | `0xA00000`–`0xAFFFFF` | what `display_alloc_chip` (`0x0165CC`) asks for: planes, copper lists, `MaskBuffer`. Not dumped; CPU reads are logged |
 | `0xBFD000`–`0xBFEFFF` | the CIAs, plain memory except PRA of CIA-A |
-| `0xDFF000`–`0xDFFFFF` | custom chips, plain memory except `VHPOSR` and `JOY1DAT` |
+| `0xDFF000`–`0xDFFFFF` | custom chips, plain memory except `VHPOSR` and `JOY1DAT`, and the audio side: `INTENAR` and `INTREQR` follow the model of the audio channels |
 | `0xFC0000`–`0xFFFFFF` | the Kickstart ROM, if present |
 
 The whole run is in supervisor mode, so no instruction can trap for privilege.
@@ -160,6 +206,7 @@ Stops inside the original, all of them observers except the first:
 | Address | What happens there |
 |---|---|
 | `0x01F41A` | `crack_text_screen` is left at once with D0 = 1 |
+| `0x01EC62` | the `rte` of `audio_irq`, which the driver executes (below) |
 | `0x01010A` | once per mission, just before the inner loop: step `S` |
 | `0x010228` | a pass begins: the owed VBlanks, the pass count |
 | `0x010192` | `frame_update` and `flip_buffers` have returned: step `P` |
@@ -183,6 +230,7 @@ JSON; every key is optional.
                       runs that consume entropy at different rates needs
   "video_hz":         50           only Delay depends on it
   "vblanks_per_pass": 2
+  "paula":            true         the audio model; false leaves the audio registers plain memory
   "raw":              [[30, ""], [3, "F"], [460, "R"], [100, "RU"], [1, "", [68]]]
                       segments of [VBlanks, letters of U D L R F, optional raw key codes
                       delivered at the segment's first VBlank]; neutral after the last
@@ -316,6 +364,10 @@ Stick right against stick left on the deck, 85 ticks after the scripts part, dif
 - The condition codes cannot be read out of the emulator. Unicorn keeps them lazily, and `reg_read(UC_M68K_REG_SR)` hands back whatever was last materialised, both after `emu_start` stops and inside a code hook: `addq.w #1` on `0x7FFF` reports N without V, and `tst.w` on `0x00010000` reports nothing at all. `Oracle.call(ccr=True)` and the return observers read them by running a move from SR inside the emulation, which costs no register and no flag. Anything that wants flags out of a run has to go the same way.
 - The watchdog is wall-clock time and only ever ends a run with an error; it does not influence one. The emulation runs in slices of two seconds of wall time, though, and a slice that runs out can stop after a code hook has run and before its instruction: the next slice starts on that instruction and runs the hook again. A machine that is busy with other work meets this; it once put a draw call twice into the observed list of a pass. The observers and the reach's entry counter therefore ignore a hook that fires again at the address a timed-out slice stopped on, with the same stack pointer as the entry before it. Run with slices of 3 ms, the observed calls of a key run are the unhurried run's exactly; without the guard the same run records 95 calls too many.
 
+- `rte` is not executed: Unicorn raises `UC_ERR_EXCEPTION` on it. The one the game's
+  interrupt handler ends with, `audio_irq`'s at `0x01EC62`, is a stop where the driver pops
+  the status register and the return address from the exception frame itself.
+
 - A memory-form shift is arithmetic or logical by bit 3 of the opcode instead of by its type
   field (Unicorn 2.1.4): `asr.w d16(An)` shifts logically (`0xFFFD` to `0x7FFE`) and
   `lsr.w (An)` arithmetically. The executable's three `asr.w d16(An)` (`0x010BB8`,
@@ -331,7 +383,8 @@ On the development machine: the front end with fire presses 0.4 s, without any i
 
 ## Not covered
 
-- **Sound.** The audio interrupt never comes, so the effects engine never sees a channel end, and the player is not run. No dumped state outside the sound engine's own variables was seen to depend on it, but that was not examined. The event log of `SPEC.md` section 8, row Sound, needs a channel-end model and belongs to M8.
+- **The music.** The player is not run (M8 part 2). The effects engine runs with the audio
+  model above; what it plays is in `re/notes/sound.md`.
 - **The case of a saved file's name.** The overlay keys its files in lower case, so a game saved
   under a name typed with capitals is listed by the dialog in lower case, where the real file
   system keeps the case the file was created with. Nothing the harness is used for depends on it,

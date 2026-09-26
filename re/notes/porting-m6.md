@@ -246,8 +246,8 @@ The fall on land, the burning and the wreck's word are reached with the poke of
   the original's memory holds it, so a forty-first word lands in the aircraft records as
   the original's does (the oracle's cases have lists of 45, 150, 190 and 300 words).
 - **The sounds** the tick starts from these routines are the sound engine's (`0x01EA28` to
-  `0x01EB4C`, M8's). The port leaves the calls out with a comment naming them, as M4 and M5
-  do for the engine's slots; what they write is excluded in `tests/m4complete.py` as M8's.
+  `0x01EB4C`, M8's). M6 leaves the calls out with a comment naming them, as M4 and M5
+  do for the engine's slots; M8 ports the engine and calls them (`re/notes/porting-m8.md`).
   A stand-in marker there would be reached in almost every tick of every script, and a
   reached stand-in fails every differential test (`SPEC.md` section 7.4).
 
@@ -373,7 +373,8 @@ The markers left in the sources are M7's (a campaign's next mission, a loaded ga
 a negative score, a ticker message outside the registered state) and M5's value marker for
 the soldiers' table. The sound engine's routines the tick calls (`0x01EA28` to `0x01EB4C`)
 are M8's: left out with a comment and excluded in the completeness list, without a marker,
-as M4 and M5 leave the engine's slots ("The tick: what part 2 ports").
+as M4 and M5 leave the engine's slots ("The tick: what part 2 ports"). M8 ports them and
+the rows are gone (`re/notes/porting-m8.md`).
 
 ## Appendix: the reach map
 

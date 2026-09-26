@@ -160,8 +160,8 @@ void wof_engine_sound(void)
     if (wof_g.pause_flag || wof_g.opt_music_off)
         return;
     SLOT(1).active = 0;
-    d0 = (uint16_t)wof_g.g_02542c;
-    d1 = (uint16_t)wof_g.g_025428;
+    d0 = (uint16_t)wof_g.engine_volume;
+    d1 = (uint16_t)wof_g.engine_volume_target;
     if (d1 != d0) {
         if (d1 > d0) {
             d0++;
@@ -171,12 +171,12 @@ void wof_engine_sound(void)
                 d0 = d1;
         }
     }
-    wof_g.g_02542c = (int16_t)d0;
+    wof_g.engine_volume = (int16_t)d0;
     SLOT(1).volume = d0;
     if (d0 != 0) {
         slot_on(1);
-        d0 = (uint16_t)wof_g.g_02542e;
-        d1 = (uint16_t)((int16_t)(wof_g.pitch_target >> 7) + wof_g.g_02542a +
+        d0 = (uint16_t)wof_g.engine_period;
+        d1 = (uint16_t)((int16_t)(wof_g.pitch_target >> 7) + wof_g.engine_period_base +
                         (int16_t)(wof_m.player[0].y >> 4));
         if (d1 != d0) {
             if (d1 > d0) {
@@ -189,7 +189,7 @@ void wof_engine_sound(void)
                     d0 = d1;
             }
         }
-        wof_g.g_02542e = (int16_t)d0;
+        wof_g.engine_period = (int16_t)d0;
         SLOT(1).period = d0;
     }
 

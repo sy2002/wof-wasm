@@ -193,6 +193,10 @@ def compare_attributed(replay, chart):
             found.add('calls', k, '')
         if r.original_entropy(k) != r.port_entropy():
             found.add('entropy', k, '')
+        if r.sound_differences(head):
+            found.add('sound', k, '')
+        if r.paula_differences(memory):
+            found.add('paula', k, '')
         judge(r, 'pass', k, found)
 
     def on_tick(r, memory, head, k, waited):
@@ -206,6 +210,10 @@ def compare_attributed(replay, chart):
             found.add('tick entropy', k, '')
         if waited != r.waits.get(k, 0):
             found.add('tick waits', k, (waited, r.waits.get(k, 0)))
+        if r.sound_differences(head):
+            found.add('tick sound', k, '')
+        if r.paula_differences(memory):
+            found.add('tick paula', k, '')
         judge(r, 'tick', k, found)
 
     replay.run(on_pass=on_pass, on_tick=on_tick)

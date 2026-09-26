@@ -357,6 +357,26 @@ void wof_paula_boundary(void)
     P.vblanks++;
 }
 
+/* The video standard changed (the shell sets it once at start, and its diagnostics overlay
+ * can switch it): the units change with it, so what is left of each running channel's
+ * current byte is carried over into the new ones. */
+void wof_paula_rate(uint16_t hz)
+{
+    uint64_t old_now = now(), old_scale = (uint64_t)clock_of(P.hz) * P.hz;
+    uint64_t new_scale = (uint64_t)clock_of(hz) * hz;
+
+    if (P.hz == hz)
+        return;
+    P.hz = hz;
+    for (int c = 0; c < 4; c++) {
+        wof_paula_channel_t *ch = &P.ch[c];
+        uint64_t left = ch->next > old_now ? ch->next - old_now : 0;
+
+        if (ch->on)
+            ch->next = now() + left * new_scale / old_scale;
+    }
+}
+
 /* ------------------------------------------------------------------ the core's side */
 
 void wof_audio_init(void)

@@ -426,6 +426,45 @@ def markdown(data, names):
     return lines
 
 
+# The sound effects engine (M8, re/notes/sound.md): its routines and those that call it.
+SOUND_ROUTINES = {0x011F4E, 0x011F64, 0x011F76, 0x012066, 0x012132, 0x0122CE, 0x0122F6, 0x012306,
+                  0x012324, 0x01233E, 0x012354, 0x012380, 0x0123AC, 0x013368, 0x01344E, 0x01346C,
+                  0x0134A4, 0x01B9CC} | set(range(0x01E8B8, 0x01ED7A))
+
+
+def sound_markdown(data, names):
+    """The reach map of the sound effects engine: per part of the run, every routine of the
+    engine that was entered, with its entries summed over M4's, M5's and M6's scripts, and
+    the number of scripts that entered it."""
+    import m5_scripts
+    import m6_scripts
+    table = routines()
+    names = [n for n in names if not n.startswith('setup-')]
+    groups = [('M4', [n for n in names if n not in m5_scripts.SCRIPTS and n not in m6_scripts.SCRIPTS]),
+              ('M5', [n for n in names if n in m5_scripts.SCRIPTS]),
+              ('M6', [n for n in names if n in m6_scripts.SCRIPTS])]
+    lines = []
+    for title, windows, phase in LISTS:
+        rows = table_rows(data, names, windows, phase)
+        rows = {r: v for r, v in rows.items()
+                if int(address_of(r.split(':')[0], table) or '0', 16) in SOUND_ROUTINES and any(v)}
+        if not rows:
+            continue
+        lines.append('### %s' % code_words(title))
+        lines.append('')
+        lines.append('| Routine | Address | ' + ' | '.join('%s (%d)' % (g, len(m)) for g, m in groups)
+                     + ' | Runs |')
+        lines.append('|---|---|' + '---|' * (len(groups) + 1))
+        for routine in sorted(rows, key=lambda r: (address_of(r.split(':')[0], table), r)):
+            values = dict(zip(names, rows[routine]))
+            lines.append('| `%s` | `%s` | %s | %d |' % (
+                routine, address_of(routine.split(':')[0], table),
+                ' | '.join(str(sum(values[n] for n in m)) for _, m in groups),
+                sum(1 for n in names if values[n])))
+        lines.append('')
+    return lines
+
+
 def report(data, names):
     for title, windows, phase in LISTS:
         rows = table_rows(data, names, windows, phase)
@@ -471,6 +510,8 @@ def main():
     parser.add_argument('--load', nargs='+',
                         help='take the runs from REACH.json files instead of running them')
     parser.add_argument('--markdown')
+    parser.add_argument('--sound-markdown', default=None,
+                        help='the tables of the sound engine\'s routines (M8), summed by milestone')
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
                         help='also record every basic block executed, by window and phase (slow)')
@@ -499,6 +540,10 @@ def main():
     else:
         data = collect(args.runs, blocks=args.blocks, setups=args.setups, jobs=args.jobs)
     report(data, args.runs)
+    if args.sound_markdown:
+        with open(args.sound_markdown, 'w') as f:
+            f.write('\n'.join(sound_markdown(data, args.runs)) + '\n')
+        print('%s written' % args.sound_markdown)
     if args.markdown:
         with open(args.markdown, 'w') as f:
             f.write('\n'.join(markdown(data, args.runs)) + '\n')
