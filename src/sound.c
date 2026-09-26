@@ -376,8 +376,8 @@ static void channel_play(uint32_t sample, uint32_t length, uint16_t c, uint16_t 
     if (sample == 0)
         return;
     if (c == 6) {
-        WOF_STANDIN("M8 PART 2 STAND-IN: 0x01EA3A, channel 2 asked for as channel 6: the "
-                    "music's channel handed over, with a Delay");
+        /* 0x01E9F4 hands channel 2 over from the music, with a Delay of ten VBlanks */
+        WOF_STANDIN("M8 PART 2 STAND-IN: 0x01EA3A, a sample asked for on channel 6");
         c = 2;
     }
     c &= 3;

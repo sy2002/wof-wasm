@@ -210,10 +210,12 @@ export function createAudio(core, width = 1) {
         }
         if (fresh || queued < LOW_SECONDS * rate) {
             const pad = Math.ceil(TARGET_SECONDS * rate - queued);
-            if (!fresh) {
-                counts.padded += pad;
+            if (pad > 0) {
+                if (!fresh) {
+                    counts.padded += pad;
+                }
+                post(silence(pad));
             }
-            post(silence(pad));
         }
         fresh = false;
     }
@@ -239,10 +241,10 @@ export function createAudio(core, width = 1) {
                 underruns++;
             }
             if (!fresh) {
-                counts.padded += Math.round(
-                    (ctx.currentTime + TARGET_SECONDS - Math.max(nextTime, ctx.currentTime)) * rate);
+                counts.padded += Math.max(0, Math.round(
+                    (ctx.currentTime + TARGET_SECONDS - Math.max(nextTime, ctx.currentTime)) * rate));
             }
-            nextTime = ctx.currentTime + TARGET_SECONDS;
+            nextTime = Math.max(nextTime, ctx.currentTime + TARGET_SECONDS);
         }
         for (const block of blocks) {
             if (fresh) {

@@ -556,7 +556,7 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
 # M4's routines: every one a port file names with an `orig 0x......` comment, and of the
 # files that hold M3's too, the routines M4 changed.
 PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c',
-              'src/objects.c', 'src/targets.c', 'src/pools.c', 'src/enemy.c']
+              'src/objects.c', 'src/targets.c', 'src/pools.c', 'src/enemy.c', 'src/sound.c']
 M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
                      'wait_next_vblank', 'screen_game_restore']
 MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']
@@ -838,6 +838,11 @@ REGION_NOTES = {
     0x01B1BA: 'ported from reading; tests/test_oracle_m4.py, the aircraft down on a ship',
     0x01B1DC: 'ported from reading; tests/test_oracle_m4.py, the attitude levelling out',
     0x01BD86: 'ported from reading; tests/test_oracle_m4.py, the deck state',
+    # M8 part 1: the effects engine's regions no script runs (tests/test_oracle_m8.py).
+    0x01ECBE: 'ported from reading; tests/test_oracle_m8.py, soundfx_vblank: the music\'s flags '
+              'for channel 2, which only the uncalled 0x01E9F4 sets',
+    0x01ECF8: 'ported from reading; tests/test_oracle_m8.py, soundfx_vblank: a volume eased to '
+              'its target, which only the uncalled 0x01EB94 starts',
 }
 
 
