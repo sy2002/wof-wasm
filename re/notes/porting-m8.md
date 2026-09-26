@@ -151,9 +151,92 @@ In `kills_a` the guns never fire over the engine, so the exchanged pair shows no
 
 ## The event log
 
-`tools/sound_observe.py` over the 75 scripts (**observed**):
+`tools/sound_observe.py` over the 75 scripts (**observed**): per script its VBlanks, the
+sample starts and restarts of the event log, the calls of `audio_irq`, the requests the
+main program made deliverable, and the starts by sound and channel (`sound channel:count`).
+The closed loops hold the port to every one of these events.
 
-(the table is written below by the tool)
+| Script | VBlanks | Starts | Restarts | Handler calls | Late | Starts by sound and channel |
+|---|---|---|---|---|---|---|
+| `deck` | 2001 | 1 | 24 | 25 | 0 | splash 2:1 |
+| `flight` | 2401 | 4 | 33 | 36 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `climb` | 2800 | 5 | 30 | 34 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:2 |
+| `lost` | 2600 | 5 | 12 | 16 | 0 | boom 2:1, engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `gameover` | 7000 | 13 | 37 | 47 | 0 | boom 2:3, engine 0:3, grind.1 3:3, metal.clang.1 3:3, splash 2:1 |
+| `night` | 2401 | 4 | 33 | 36 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `select` | 1769 | 4 | 24 | 27 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `turns` | 3677 | 4 | 49 | 52 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `landing` | 3197 | 11 | 47 | 55 | 0 | engine 0:2, grind.1 3:3, metal.clang.1 3:3, screech 3:1, splash 2:2 |
+| `island` | 3969 | 48 | 60 | 107 | 0 | engine 0:1, grind.1 3:1, machinegun 3:44, metal.clang.1 3:1, splash 2:1 |
+| `fuel` | 23242 | 5 | 323 | 327 | 0 | boom 2:1, engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `run:flight-cheat` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-c` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-d` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-f-twice` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-f` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-g` | 520 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:flight-control-key-first` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-control-l` | 520 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:flight-control-r` | 300 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:flight-control-s` | 301 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:flight-escape-twice` | 301 | 2 | 0 | 2 | 0 | splash 2:2 |
+| `run:flight-escape` | 300 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:flight-flip-then-load` | 1401 | 2 | 5 | 7 | 0 | engine 0:1, splash 2:1 |
+| `run:flight-flip-then-restart` | 2100 | 1 | 1 | 2 | 0 | splash 2:1 |
+| `run:flight-no-key` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:flight-plain-f` | 301 | 1 | 2 | 3 | 0 | splash 2:1 |
+| `run:paused-control-c` | 420 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:paused-control-d` | 420 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:paused-control-f` | 420 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:paused-no-key` | 420 | 1 | 0 | 1 | 0 | splash 2:1 |
+| `run:paused-restart` | 1001 | 5 | 7 | 11 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:2 |
+| `guns_sea` | 2005 | 10 | 83 | 92 | 0 | engine 0:4, grind.1 3:1, machinegun 0:3, metal.clang.1 3:1, splash 2:1 |
+| `guns_a` | 3189 | 12 | 154 | 165 | 0 | engine 0:4, grind.1 3:1, machinegun 0:3, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `bomb_a` | 3769 | 10 | 97 | 106 | 0 | boom 2:4, engine 0:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `high_a` | 4521 | 30 | 78 | 107 | 0 | boom 2:4, engine 0:1, grind.1 3:1, machinegun 3:22, metal.clang.1 3:1, splash 2:1 |
+| `rockets_a` | 4789 | 8 | 116 | 123 | 0 | boom 2:2, engine 0:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `torpedo_a` | 2485 | 5 | 37 | 41 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:2 |
+| `hit_a` | 8862 | 47 | 444 | 490 | 0 | boom 2:32, engine 0:1, grind.1 3:1, machinegun 3:11, metal.clang.1 3:1, splash 2:1 |
+| `crash_a` | 4118 | 33 | 72 | 104 | 0 | boom 2:28, engine 0:1, grind.1 3:1, machinegun 3:1, metal.clang.1 3:1, splash 2:1 |
+| `island_a` | 19481 | 124 | 600 | 718 | 0 | boom 2:68, engine 0:11, grind.1 3:2, machinegun 0:9, machinegun 3:10, metal.clang.1 3:2, scream 3:20, splash 2:2 |
+| `bomb_b` | 4209 | 22 | 158 | 179 | 0 | boom 2:6, engine 0:3, grind.1 3:1, machinegun 0:2, machinegun 3:3, metal.clang.1 3:1, scream 3:5, splash 2:1 |
+| `bomb_c` | 3861 | 21 | 188 | 208 | 0 | boom 2:6, engine 0:2, grind.1 3:1, machinegun 0:1, machinegun 3:4, metal.clang.1 3:1, scream 3:5, splash 2:1 |
+| `rockets_c` | 4137 | 10 | 225 | 234 | 0 | boom 2:3, engine 0:1, grind.1 3:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `balloons_c` | 2401 | 4 | 35 | 38 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `torpedo_run` | 3125 | 5 | 46 | 50 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:2 |
+| `bomb_pause` | 3770 | 12 | 104 | 114 | 0 | boom 2:4, engine 0:2, grind.1 3:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `bomb_flip` | 3769 | 10 | 97 | 106 | 0 | boom 2:4, engine 0:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `bomb_restart` | 2777 | 6 | 44 | 49 | 0 | engine 0:1, grind.1 3:1, machinegun 3:1, metal.clang.1 3:1, splash 2:2 |
+| `bomb_cheat` | 3769 | 10 | 97 | 106 | 0 | boom 2:4, engine 0:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `kills_a` | 1517 | 4 | 21 | 24 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `wrecks_a` | 4665 | 4 | 67 | 70 | 0 | engine 0:1, grind.1 3:1, metal.clang.1 3:1, splash 2:1 |
+| `burning_a` | 4073 | 7 | 168 | 174 | 0 | engine 0:1, grind.1 3:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `oil_d` | 3918 | 40 | 204 | 243 | 0 | boom 2:31, engine 0:1, engine 1:2, grind.1 3:1, machinegun 1:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `night_d` | 3918 | 40 | 204 | 243 | 0 | boom 2:31, engine 0:1, engine 1:2, grind.1 3:1, machinegun 1:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `airfield_e` | 5781 | 46 | 370 | 415 | 0 | engine 0:1, engine 1:2, grind.1 3:1, machinegun 3:40, metal.clang.1 3:1, splash 2:1 |
+| `cruise_f` | 4173 | 9 | 200 | 208 | 0 | engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:4, metal.clang.1 3:1, splash 2:1 |
+| `torpedo_f` | 4510 | 12 | 165 | 176 | 0 | boom 2:1, engine 0:1, engine 1:3, grind.1 3:1, machinegun 1:1, machinegun 3:1, metal.clang.1 3:1, splash 2:3 |
+| `crash_f` | 3730 | 32 | 57 | 88 | 0 | boom 2:26, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:1, metal.clang.1 3:1, splash 2:1 |
+| `crash_side_f` | 3802 | 8 | 51 | 58 | 0 | boom 2:2, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:1, metal.clang.1 3:1, splash 2:1 |
+| `rockets_f` | 3729 | 9 | 138 | 146 | 0 | boom 2:1, engine 0:1, engine 1:2, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `cruise_g` | 5086 | 12 | 300 | 311 | 0 | boom 2:1, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:6, metal.clang.1 3:1, splash 2:1 |
+| `destroyer_h` | 4878 | 19 | 266 | 284 | 0 | boom 2:8, engine 0:1, engine 1:2, grind.1 3:1, machinegun 1:1, machinegun 3:4, metal.clang.1 3:1, splash 2:1 |
+| `ships_i` | 4502 | 41 | 212 | 252 | 0 | boom 2:31, engine 0:1, engine 1:2, grind.1 3:1, machinegun 1:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `battleship_j` | 3422 | 16 | 128 | 143 | 0 | boom 2:9, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `battleship_k` | 4658 | 9 | 230 | 238 | 0 | boom 2:1, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `destroyer_l` | 3790 | 10 | 169 | 178 | 0 | boom 2:1, engine 0:1, engine 1:2, grind.1 3:1, machinegun 1:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `japcarrier_m` | 4126 | 8 | 194 | 201 | 0 | boom 2:1, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:2, metal.clang.1 3:1, splash 2:1 |
+| `destroyer_n` | 5138 | 39 | 293 | 331 | 0 | boom 2:31, engine 0:1, engine 1:1, grind.1 3:1, machinegun 3:3, metal.clang.1 3:1, splash 2:1 |
+| `japcarrier_o` | 5738 | 86 | 237 | 321 | 0 | boom 2:4, engine 0:1, engine 1:4, grind.1 3:1, machinegun 1:1, machinegun 3:73, metal.clang.1 3:1, splash 2:1 |
+| `countdown_b` | 8869 | 7 | 148 | 154 | 0 | engine 0:1, engine 1:1, grind.1 3:1, metal.clang.1 3:1, splash 2:3 |
+| `countdown_c` | 8398 | 54 | 422 | 474 | 0 | boom 2:31, engine 0:2, engine 1:2, grind.1 3:2, machinegun 3:12, metal.clang.1 3:2, splash 2:3 |
+| `enemy_a` | 10569 | 12 | 172 | 182 | 0 | engine 0:1, engine 1:2, grind.1 3:2, metal.clang.1 3:2, screech 3:1, splash 2:4 |
+| `fight_a` | 36130 | 79 | 2059 | 2135 | 0 | boom 2:32, engine 0:13, engine 1:12, grind.1 3:2, machinegun 0:11, machinegun 3:4, metal.clang.1 3:2, splash 2:3 |
+| `sunk_a` | 26400 | 16 | 368 | 383 | 0 | engine 0:1, engine 1:3, grind.1 3:1, metal.clang.1 3:1, screech 3:1, splash 2:9 |
+| all 75 | | 1129 | 10219 | 11279 | 0 | |
+
+The commands the scripts give the music player: 0, 1, 2, 4, 5, 6. Handler calls that saw
+the requests of two channels or more: 69; that stopped a channel after keeping one: 0.
 
 ## The completeness list
 

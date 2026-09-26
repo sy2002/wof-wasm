@@ -34,8 +34,8 @@ The engine has two layers, both in the executable (**read**):
 
 `songplay` has sound-effect entries of its own (`_PlaySfx`, `_StopSfx`, `_SfxStat`,
 `_AdjustSfx`); the game never calls them. Over all M4 to M6 scripts the calls into the
-player are the commands 0 (open the timer), 1, 2, 4, 5 and 6 of `music_start`, never 7 to 9
-or 12 (**observed**, the harness's `player_calls`).
+player carry the commands 0 (open the timer), 1, 2, 4, 5 and 6, never 7 to 9 or 12
+(**observed**, `tools/sound_observe.py`).
 
 ## A slot, `0x18` bytes at `0x027368` + `0x18` x i
 
@@ -142,7 +142,9 @@ brought the aircraft up. Nothing moves while paused or with the music off (**rea
   count below zero plays on. The requests it saw are cleared. When it stops a channel it
   writes `INTENA` with the bits of every channel handled so far in this call, so a channel
   handled before it and kept loses its interrupt until the next `soundfx_vblank` turns all
-  four on again (**read**; no script has two channels in one call).
+  four on again (**read**). Over the 75 scripts 69 calls see two channels' requests at
+  once, none of them stopping one after keeping another (**observed**,
+  `tools/sound_observe.py`).
 
 A start raises the channel's request at once and each cycle's end raises it again (Paula's
 behaviour, `re/notes/headless.md`), so a repeat count of N plays N cycles: the count goes
@@ -177,7 +179,12 @@ still holds the old pointer until the next `sounds_load` (**read**; the key run
 
 ## What the scripts play
 
-`tools/sound_observe.py` over every M4 to M6 script gives the table in
-`re/notes/porting-m8.md` ("The event log"). In every mission the sea aboard the carrier starts
-on channel 2 two VBlanks after the mission's first tick, the lift grinds and clangs on
-channel 3, and the engine starts on channel 0 when the lift is up (**observed**).
+Over the 75 scripts of M4 to M6 (**observed**, `tools/sound_observe.py`; the table per
+script is in `re/notes/porting-m8.md`, "The event log"), the starts by sound and channel,
+counted in the scripts they occur in: the sea aboard (`splash`, channel 2) in all 75, at the
+mission's start while the aircraft is in the hold; the lift's grinding and clang (channel 3)
+in 54, and the engine (channel 0) in 55, which starts when the lift is up; the ground's guns
+(`machinegun`, channel 3) in 35; a burst (`boom`, channel 2) in 32; an enemy aircraft's
+engine (channel 1) in 22 and its guns in 7; the player's guns (channel 0) in 6; a scream
+and the touch-down's screech in 3 each. 1,129 starts and 10,219 restarts in all, 11,279
+calls of `audio_irq`, and no request made deliverable outside a delivery point.

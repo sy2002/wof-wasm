@@ -41,6 +41,10 @@ def observe(name):
         'irqs': paula.irqs, 'late': paula.late,
         'player': sorted({c[1] for c in machine.player_calls if c[0].lower() == 'songplay'}),
         'together': sum(1 for h in paula.handled if len(h[1]) > 1),
+        # a call that stops a channel after keeping one it handled before: audio_irq then
+        # switches the kept channel's interrupt off too (re/notes/sound.md)
+        'quirk': sum(1 for h in paula.handled
+                     if any(h[2][a] and not h[2][b] for a in h[1] for b in h[1] if a < b)),
         'by_file': sorted(by_file.items()),
         'seconds': time.time() - started,
     }
@@ -70,14 +74,15 @@ def main():
         starts = ', '.join('%s %d:%d' % (f, c, n) for (k, f, c), n in r['by_file'] if k == 'S')
         rows.append('| `%s` | %d | %d | %d | %d | %d | %s |' % (
             name, r['vblanks'], r['starts'], r['restarts'], r['irqs'], r['late'], starts or 'none'))
+    total = [sum(records[n][k] for n in names) for k in ('starts', 'restarts', 'irqs', 'late')]
+    rows.append('| all %d | | %d | %d | %d | %d | |' % tuple([len(names)] + total))
     commands = sorted({c for n in names for c in records[n]['player']})
     rows.append('')
     rows.append('The commands the scripts give the music player: %s.  Handler calls that saw '
-                'the requests of two channels or more: %d.' % (
-                    commands, sum(records[n]['together'] for n in names)))
-    rows.append('')
-    total = [sum(records[n][k] for n in names) for k in ('starts', 'restarts', 'irqs', 'late')]
-    rows.append('| all %d | | %d | %d | %d | %d | |' % tuple([len(names)] + total))
+                'the requests of two channels or more: %d; that stopped a channel after keeping '
+                'one: %d.' % (', '.join(str(c) for c in commands),
+                              sum(records[n]['together'] for n in names),
+                              sum(records[n]['quirk'] for n in names)))
     text = '\n'.join(rows)
     print(text)
     if args.markdown:
