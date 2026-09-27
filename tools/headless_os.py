@@ -107,6 +107,7 @@ class AmigaOS:
         self.next_signal = 15
         self.segments = []
         self.player_calls = []
+        self.loaded = {}                  # name -> [(address, size, hunk)] of a real LoadSeg
 
     # ------------------------------------------------------------------------ exec
 
@@ -546,11 +547,20 @@ class AmigaOS:
 
     def os_dos_LoadSeg(self):
         """The game loads two segments, the song data and the music player, and calls the first
-        long after each segment's link word.  Neither is run here: each becomes a fake segment
-        whose entry is a stop of its own, and every call into it is recorded."""
+        long after each segment's link word.  With the music on (the run's `"music"`, the
+        default) each is loaded as dos loads it: every hunk into memory of its own with its
+        size and a link to the next in front, relocated, BSS zeroed, and the BPTR of the first
+        link returned; its entry is watched, so that every call into it is recorded, and runs.
+        With the music off each becomes a fake segment whose entry is a stop of its own that
+        answers every call with 0, "idle"."""
         name = self.cstr(self.reg('d1'))
-        self.files_log.append(('LoadSeg', name, self.file_bytes(name) is not None))
-        self.files_at.append((getattr(self, 'vblanks', 0), 'LoadSeg', name, self.file_bytes(name) is not None))
+        found = self.file_bytes(name)
+        self.files_log.append(('LoadSeg', name, found is not None))
+        self.files_at.append((getattr(self, 'vblanks', 0), 'LoadSeg', name, found is not None))
+        if found is None:
+            return 0
+        if self.run_spec.get('music'):
+            return self.load_segment(name, found)
         block = self.segment_block(len(self.segments))
         self.segments.append(name)
         self.o.w32(block, 0x100)                                     # the segment's size
@@ -558,5 +568,49 @@ class AmigaOS:
         self.o.write(block + 8, b'\x4e\x75')
         return (block + 4) >> 2                                      # a BPTR
 
+    def load_segment(self, name, raw):
+        import hunk
+        sizes = [len(h['data']) for h in hunk.load(raw)]
+        bases = []
+        for i, size in enumerate(sizes):
+            base = self.alloc(size + 8)
+            self.alloc_labels[base] = '%s hunk %d (LoadSeg)' % (name, i)
+            bases.append(base)
+        hunks = hunk.load(raw, bases=[b + 8 for b in bases])
+        for i, (base, h) in enumerate(zip(bases, hunks)):
+            self.o.w32(base, len(h['data']) + 8)
+            self.o.w32(base + 4, (bases[i + 1] + 4) >> 2 if i + 1 < len(bases) else 0)
+            self.o.write(base + 8, bytes(h['data']))
+        self.loaded[name.lower()] = [(b + 8, len(h['data']), h) for b, h in zip(bases, hunks)]
+        self.segment_loaded(name.lower())
+        return (bases[0] + 4) >> 2
+
     def os_dos_UnLoadSeg(self):
+        """Every hunk of the list goes, as dos frees them; the harness's allocator never hands
+        the memory out again."""
+        link = self.reg('d1') << 2
+        while link:
+            base = link - 4
+            nxt = self.o.r32(link) << 2
+            self.free(base)
+            link = nxt
         return DOS_TRUE
+
+    def os_exec_OpenResource(self):
+        """ciaa.resource, for the music player's timer; anything else is not there."""
+        name = self.cstr(self.reg('a1'))
+        return self.lib_base['ciaa'] if name == 'ciaa.resource' else 0
+
+    def os_ciaa_AddICRVector(self):
+        """(D0 bit, A1 Interrupt) the vector of one of CIA-A's interrupts, and its interrupt
+        enabled: only timer A, bit 0, is modelled (tools/headless_paula.py, CiaTimer)."""
+        bit, node = self.reg('d0') & 0xFF, self.reg('a1')
+        if bit != 0:
+            raise HarnessError('AddICRVector for CIA-A bit %d; only timer A is modelled' % bit)
+        self.paula.timer.vector = (self.o.r32(node + 0x12), self.o.r32(node + 0x0E))
+        return 0
+
+    def os_ciaa_RemICRVector(self):
+        if self.reg('d0') & 0xFF == 0:
+            self.paula.timer.vector = None
+        return None

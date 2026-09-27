@@ -1,0 +1,66 @@
+# Names for the music player songplay (re/notes/music.md), for tools/disasm_player.py.
+#
+# The player is a hunk executable of its own; the listing re/songplay.lst lays it out at
+# addresses of its own: CODE from 0x0000, DATA from 0x1000, BSS from 0x2000, so a CODE
+# address is the offset the port's comments give as `orig songplay+0x....`.  The symbols the
+# file carries (segentry, _StopSong, ..., PlayState, ...) are taken from it; this file adds
+# the routines and variables that have none, and comments.  Format as re/names.txt:
+#   ADDRESS NAME   ; comment
+
+# ---- code
+0000 segentry              ; the entry: the command in D0 picks one of thirteen (re/names.txt, music)
+0064 _StopSong             ; command 3: PlayState 3, which the next tick turns into a stop
+0084 _FadeSong             ; command 6: (D1 speed) the volumes go down a step every speed + 1 ticks
+00aa _PlaySfx              ; command 7: a sound effect on a music channel, started by the next tick
+0104 sfx_start             ; the tick's part of _PlaySfx: the effect's sample on its channel
+01a8 _StopSfx              ; command 8
+01ea _SfxStat              ; command 9
+01fa _PauseMusic           ; command 10: every track back to its pattern's start, DMA off
+022c track_rewind          ; a track's pattern pointer back to its sequence entry, no note held
+0240 _RestartMusic         ; command 11
+0252 _AdjustSfx            ; command 12
+027c PlaySong              ; (A0 song) SongAddr and PlayState 1, which the next tick begins
+029e _GetSongStat          ; command 5: -> PlayState
+02a6 SongInt               ; the tick: CIA-A timer A's interrupt, through ciaa.resource
+02fe song_stop             ; PlayState 3: 0, and the channels off
+030a song_fade             ; PlayState 4: a fade step every FadeSpeed + 1 ticks, the tracks on meanwhile
+0348 track_fade            ; a track's volume one lower, D7 set while any is above 0
+035a song_begin            ; PlayState 1: the four tracks from the song's sequences, PlayState 2
+041e song_step             ; PlayState 2: the four tracks' steps; none left playing ends the song
+04da audio_off             ; the audio interrupts and DMA off
+04f4 track_step            ; one track, one tick: the note's time, arpeggio, vibrato, release, or the next event
+0598 note_release          ; the note's release: its channel off unless tied or held
+05d2 track_read            ; the next event of the track's pattern
+0656 event_next            ; 0xD9: the next entry of the track's sequence
+066a event_repeat          ; 0xDB: the sequence from its first entry again
+0682 event_end             ; 0xDA: the track ends
+0688 event_voice           ; 0xDC: the track's instrument
+06aa event_tempo_hi        ; 0xDD: timer A's latch high byte, the timer loaded and started
+06c2 event_tempo_lo        ; 0xDE: its low byte
+06dc event_volume          ; 0xDF: the track's volume, unless the song fades
+06fc event_hold            ; 0xE0: +0x38, 1 keeps the note past its release
+0704 note_start            ; a note: its length and release from the durations, its sample, period, volume
+07ea note_period           ; D1 note -> the octave's sample and the period, into the channel
+0848 SongIntHandler        ; the level-4 handler the player puts at 0x70
+08ae CheckChannelInt       ; a channel's interrupt: the loop part set after the start, or the channel off
+092a _PlaySong             ; command 2: PlaySong of the song _ReadInstruments chose, unless one plays
+0946 _ReadInstruments      ; command 1: (D1 song, D2 song data) the song, its voices' VHDR and BODY
+099c find_vhdr             ; A2 -> just past the "VHDR" chunk's header
+09ac find_body             ; A2 -> just past the "BODY" chunk's header
+09bc _OpenTimerInt         ; command 0: ciaa.resource's timer A with SongInt, 0x70 with SongIntHandler
+0a50 _CloseTimerInt        ; command 4: the vector removed, 0x70 given back, the channels off
+
+# ---- data
+1000 dma_on                ; word: the track's channel with the SET bit, for DMACON
+1002 dma_off               ; word: the track's channel, for DMACON
+1004 int_on                ; word: the track's interrupt with the SET bit, for INTENA
+1006 track_number          ; word: 0 to 3, the bit TrackState gets
+1008 ciaa_base             ; long: OpenResource("ciaa.resource")
+100c ciaa_name             ; "ciaa.resource"
+101a timer_node            ; Interrupt: ln_Type 2, is_Code SongInt
+1030 timer_name            ; "Music TimerInt"
+1040 saved_level4_vector   ; long: the vector at 0x70 before _OpenTimerInt
+1044 note_clocks           ; 132 longs: per note, the colour clocks of one cycle; a period is this / samplesPerHiCycle
+1254 durations             ; 20 byte pairs: a note's length in ticks and the tick of its release
+13d2 song_ptr              ; long: the song _ReadInstruments chose
+13d6 voice_table           ; long: the song + 0x10, its voices by number

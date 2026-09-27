@@ -4,7 +4,8 @@ import struct
 HUNK_NAMES = {0x3E9: 'CODE', 0x3EA: 'DATA', 0x3EB: 'BSS'}
 
 def load(path, bases=None):
-    raw = open(path, 'rb').read()
+    """The hunks of a hunk file, given by its path or as its bytes, relocated for `bases`."""
+    raw = bytes(path) if isinstance(path, (bytes, bytearray)) else open(path, 'rb').read()
     pos = 0
     def u32():
         nonlocal pos
@@ -48,6 +49,8 @@ def load(path, bases=None):
             n = u32() * 4; pos += n
         elif h == 0x3F2:
             pass
+        elif h == 0x3F5:              # overlay table: LoadSeg of a plain file stops here
+            break
         else:
             raise ValueError('unknown hunk %x at %x' % (h, pos - 4))
     # alloc sizes from header (BSS tail of data hunk)

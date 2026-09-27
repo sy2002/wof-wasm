@@ -81,6 +81,69 @@ def cycle_bytes(length):
     return 2 * (length or 0x10000)
 
 
+# CIA-A (the 8520 at 0xBFE001, a register every 0x100 bytes): timer A's latch and control.
+CIAA_TALO, CIAA_TAHI, CIAA_CRA = 0xBFE401, 0xBFE501, 0xBFEE01
+E_CLOCK_CC = 5                          # the E clock is the colour clock divided by five
+
+
+class CiaTimer:
+    """CIA-A timer A as the music player drives it (re/notes/headless.md, "The music's timer").
+
+    It counts down at the E clock, 709,379 Hz on PAL and 715,909 Hz on NTSC, one tick being
+    five colour clocks, so 5 x hz units of the model.  Loaded with N it underflows N + 1
+    ticks later (a count of 0 as 1), reloads from its latch and, in continuous mode, counts
+    on; each underflow raises its interrupt, which ciaa.resource hands to the vector
+    AddICRVector installed.  TALO and TAHI write the latch; TAHI also loads the counter while
+    the timer stands, and starts it in one-shot mode; CRA starts (bit 0) and stops it, picks
+    one-shot (bit 3) and force-loads the counter from the latch (bit 4).  At power-up the
+    latch and the counter hold 0xFFFF."""
+
+    def __init__(self, paula):
+        self.p = paula
+        self.latch = self.counter = 0xFFFF
+        self.running = self.oneshot = False
+        self.next = None                # the instant of the next underflow while running
+        self.vector = None              # (is_Code, is_Data) of the ICR vector for timer A
+        self.calls = []                 # (VBlank, instant, latch) of every call of the vector
+
+    def tick(self):
+        return E_CLOCK_CC * self.p.hz
+
+    def due(self, end):
+        return self.next if self.running and self.next is not None and self.next < end else None
+
+    def write(self, address, byte):
+        t = self.p.now()
+        if address == CIAA_TALO:
+            self.latch = (self.latch & 0xFF00) | byte
+        elif address == CIAA_TAHI:
+            self.latch = (self.latch & 0x00FF) | byte << 8
+            if not self.running:
+                self.counter = self.latch
+                if self.oneshot:                # a stopped one-shot timer starts
+                    self.running = True
+                    self.next = t + self.period(self.counter)
+        elif address == CIAA_CRA:
+            if self.running and self.next is not None:
+                self.counter = max((self.next - t + self.tick() - 1) // self.tick() - 1, 0)
+            if byte & 0x10:
+                self.counter = self.latch
+            self.oneshot = bool(byte & 0x08)
+            self.running = bool(byte & 0x01)
+            self.next = t + self.period(self.counter) if self.running else None
+
+    def period(self, count):
+        """From a load of `count` to the underflow: count + 1 E cycles, a count of 0 as 1."""
+        return (max(count, 1) + 1) * self.tick()
+
+    def underflow(self, t):
+        self.counter = self.latch
+        if self.oneshot:
+            self.running, self.next = False, None
+        else:
+            self.next = t + self.period(self.latch)
+
+
 class Paula:
     def __init__(self, machine, hz):
         self.m = machine
@@ -96,6 +159,7 @@ class Paula:
         self.late = 0                   # requests made deliverable outside a delivery point
         self.at = None                  # the instant of the channel event being delivered
         self.starts = {}                # allocation base -> the game's pointer to the sample in it
+        self.timer = CiaTimer(self)     # CIA-A timer A, which the music player takes
         self._publish()
 
     # ------------------------------------------------------------------ time
@@ -128,26 +192,50 @@ class Paula:
     # ------------------------------------------------------------------ the VBlank
 
     def boundary(self):
-        """VBlank k+1 is about to happen: the channel events of [T_k, T_k+1), each delivered."""
+        """VBlank k+1 is about to happen: the events of [T_k, T_k+1), each delivered in time
+        order - the channels' cycle ends and the underflows of CIA-A's timer A.  At an equal
+        instant the channels come first, in channel order, because their interrupt is level 4
+        and the timer's level 2."""
         start = self.m.vblanks * self.clock
         end = start + self.clock
         while True:
-            due = [(t, c) for c in range(4) for t in [self._next_event(c, end)] if t is not None]
+            due = [(t, 0, c) for c in range(4) for t in [self._next_event(c, end)] if t is not None]
+            t = self.timer.due(end)
+            if t is not None:
+                due.append((t, 1, 0))
             if not due:
                 break
-            t, c = min(due)
-            self._advance(c, t)
-            ch = self.ch[c]
-            ch.next = t
-            ch.left = 0
+            t, kind, c = min(due)
             self.at = t
             try:
-                self._restart(c, t)
+                if kind == 0:
+                    self._advance(c, t)
+                    ch = self.ch[c]
+                    ch.next = t
+                    ch.left = 0
+                    self._restart(c, t)
+                else:
+                    self._timer(t)
                 self.deliver()
             finally:
                 self.at = None
         for c in range(4):
             self._advance(c, end)
+
+    def _timer(self, t):
+        """Timer A underflows: it reloads, and the vector ciaa.resource keeps for it runs as a
+        level-2 interrupt server; its writes happen at the underflow's instant."""
+        self.timer.underflow(t)
+        if self.timer.vector is None:
+            return
+        code, data = self.timer.vector
+        self.timer.calls.append((self.m.vblanks + 1, t, self.timer.latch))
+        self.m.in_vblank += 1
+        try:
+            self.m.nested(code, {'a1': data, 'a5': code, 'a0': CUSTOM,
+                                 'a6': self.m.lib_base['exec']})
+        finally:
+            self.m.in_vblank -= 1
 
     def _restart(self, c, t):
         ch = self.ch[c]
@@ -242,9 +330,13 @@ class Paula:
 
     def snapshot(self):
         """The model's state: per channel (on, LC, LEN, PER, VOL, the next byte, the bytes
-        left, the instant the next one begins), then INTENA, INTREQ and the VBlank count."""
+        left, the instant the next one begins), then INTENA, INTREQ and the VBlank count, and
+        the timer (latch, counter, running, one-shot, next underflow, vector installed)."""
+        tm = self.timer
         return (tuple((int(ch.on), ch.lc, ch.len, ch.per, ch.vol, ch.ptr, ch.left, ch.next)
-                      for ch in self.ch), self.intena, self.intreq, self.m.vblanks)
+                      for ch in self.ch), self.intena, self.intreq, self.m.vblanks,
+                (tm.latch, tm.counter, int(tm.running), int(tm.oneshot),
+                 tm.next if tm.running and tm.next is not None else 0, int(tm.vector is not None)))
 
     # ------------------------------------------------------------------ the log
 
@@ -258,6 +350,10 @@ class Paula:
         if i >= 0 and pointer < bases[i] + self.m.alloc_sizes[bases[i]]:
             base, end = bases[i], bases[i] + self.m.alloc_sizes[bases[i]]
             label = self.m.alloc_labels.get(base, '')
+            if '(LoadSeg)' in label:
+                # a segment's hunk: the song data's samples, named by the file and the offset
+                # into its DATA hunk, which begins after the size and the link longs
+                return label.split(' ')[0], pointer - (base + 8)
             name = label[label.rfind(' ') + 1:].rstrip(')') if 'sounds/' in label else label
             starts = [p for p in (self.m.o.r32(g) for g in SOUND_POINTERS)
                       if base <= p <= pointer < end]
@@ -276,13 +372,18 @@ class Paula:
 
 
 def install(machine, hz):
-    """The model and its write hook, for a Headless machine before its first instruction."""
+    """The model and its write hooks, for a Headless machine before its first instruction."""
     from unicorn import UC_HOOK_MEM_WRITE
     paula = Paula(machine, hz)
 
     def hook(uc, access, address, size, value, user):
         paula.write(address, size, value)
+
+    def cia(uc, access, address, size, value, user):
+        if address in (CIAA_TALO, CIAA_TAHI, CIAA_CRA) and size == 1:
+            paula.timer.write(address, value & 0xFF)
     machine.uc.hook_add(UC_HOOK_MEM_WRITE, hook, begin=CUSTOM + DMACON, end=CUSTOM + 0x0DF)
+    machine.uc.hook_add(UC_HOOK_MEM_WRITE, cia, begin=CIAA_TALO, end=CIAA_CRA)
     return paula
 
 

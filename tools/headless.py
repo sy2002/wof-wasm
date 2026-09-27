@@ -57,10 +57,12 @@ A4 = 0x02AFFE
 # ---- memory map.  The oracle maps 0x000000-0x1FFFFF and loads the executable at 0x010000.
 LIB_AREA   = 0x0C0000            # fake library bases, LIB_SPAN each: jump table below, data above
 LIB_SPAN   = 0x2000
-LIB_NAMES  = ['exec', 'dos', 'graphics', 'intuition', 'device']
+LIB_NAMES  = ['exec', 'dos', 'graphics', 'intuition', 'device', 'ciaa']
 # input.device and console.device share the one device base; no fd file names a device's
 # functions, so the ones the game calls are named here.
 DEVICE_FUNCTIONS = {48: 'RawKeyConvert'}
+# ciaa.resource, which the music player takes timer A from (tools/headless_paula.py).
+RESOURCE_FUNCTIONS = {6: 'AddICRVector', 12: 'RemICRVector', 18: 'AbleICR', 24: 'SetICR'}
 MATH_BASE  = 0x0CE000            # mathffp.library: its jump table leads into the Kickstart ROM
 SEG_AREA   = 0x0D0000            # fake segments for LoadSeg, SEG_SPAN each
 SEG_SPAN   = 0x100
@@ -95,6 +97,8 @@ DISPLAY_ALLOC_CHIP = 0x0165CC
 SPINS              = (0x01AA36, 0x01AA44)        # tst.b vblank_flag in wait_next_vblank, wait_vblank
 CRACK_SCREEN       = 0x01F41A
 AUDIO_IRQ_RTE      = 0x01EC62    # the rte of audio_irq, the level-4 handler sound_init installs
+MUSIC_SPINS        = (0x012406, 0x012492)   # music_start's and music_stop's tst.w of GetSongStat
+MUSIC_SPIN_VBLANKS = 4                        # VBlanks a round of that spin lets happen
 RAND_BEAM          = 0x0203BE
 READ_VHPOSR        = 0x015D5A
 DATA_START, DATA_END = 0x023000, 0x028004
@@ -123,6 +127,7 @@ DEFAULT_RUN = {
     'video_hz': 50,
     'vblanks_per_pass': 2,
     'paula': True,
+    'music': False,
     'raw': [],
     'stop': {'ticks': 100},
 }
@@ -380,6 +385,8 @@ class Headless(AmigaOS):
                            for seg in run['raw']]
         self.raw_index, self.raw_left = 0, (self.raw_script[0][0] if self.raw_script else 0)
         self.raw_fresh = True
+        self._frozen = False                  # the music's spin: the script waits (_music_spin)
+        self.spin_vblanks = 0
         self.byte_script = list(run.get('bytes', []))
         self.bytes_used = 0
         self.joy_words = None
@@ -452,6 +459,11 @@ class Headless(AmigaOS):
         # Unicorn does not execute rte (it raises an exception it leaves unhandled), so the
         # driver does it at the one the game's interrupt handler ends with.
         self.stop_at(AUDIO_IRQ_RTE, self._rte)
+        # music_start and music_stop wait for a song's fade by asking the player again and
+        # again (0x012402, 0x01248E); the timer's interrupts end the fade, so each round of
+        # the spin is a wait point that lets one VBlank happen (re/notes/headless.md).
+        for address in MUSIC_SPINS:
+            self.stop_at(address, self._music_spin)
 
         # the main program: main(argc, argv) with a 16-bit argc of 1, as the C startup calls it
         sp = MAIN_STACK_TOP
@@ -853,6 +865,46 @@ class Headless(AmigaOS):
         self.uc.reg_write(UC_M68K_REG_A7, sp + 6)
         self.uc.reg_write(UC_M68K_REG_SR, sr)
 
+    def _music_spin(self):
+        """A round of music_start's or music_stop's spin on GetSongStat while a song fades:
+        four VBlanks happen, so that the fade's end is noticed within four VBlanks and the
+        input sample's phase (vblank_server's divider counts four) is where it was.  The
+        scripted controller waits meanwhile: the VBlanks carry no input and take nothing from
+        the script, which goes on after the spin as it would have gone on at once."""
+        if self.run_spec.get('music') and self.reg('d0') & 0xFFFF:
+            self._frozen = True
+            try:
+                self.deliver_vblanks(MUSIC_SPIN_VBLANKS)
+            finally:
+                self._frozen = False
+
+    def segment_loaded(self, name):
+        """A real LoadSeg (headless_os.load_segment): the segment's entry is watched, so that
+        every call into it is recorded as the fake segments' were, and the player's level-4
+        handler gets the driver's rte, as audio_irq has."""
+        hunks = self.loaded[name]
+        entry = hunks[0][0]
+        self.uc.hook_add(UC_HOOK_CODE, functools.partial(self._segment_entry, name),
+                         begin=entry, end=entry)
+        if name == 'songplay':
+            symbols = dict(hunks[0][2].get('symbols', ()))
+            md = Cs(CS_ARCH_M68K, CS_MODE_M68K_000)
+            start, end = symbols['SongIntHandler'], symbols['CheckChannelInt']
+            code = self.o.read(entry + start, end - start)
+            rte = next(ins.address for ins in md.disasm(code, entry + start) if ins.mnemonic == 'rte')
+            self.stop_at(rte, self._rte)
+            self.player_base = entry
+
+    def _segment_entry(self, name, uc, address, size, user):
+        """A call into a loaded segment: recorded with its registers, VBlank, pass and tick,
+        as the fake segments' calls were; the code then runs.  A hook that fires again where
+        a timed-out slice stopped is not a second call (see _observe)."""
+        stack = self.reg('a7')
+        if self._refire == address and self.player_calls and self.player_calls[-1][-1] == stack:
+            return
+        self.player_calls.append((name, self.reg('d0') & 0xFFFF, self.reg('d1'), self.reg('d2'),
+                                  self.vblanks, self.passes, self.ticks, stack))
+
     def nested_interrupt(self, address):
         """The CPU taking an interrupt while the program is parked: the handler at `address`
         runs on a stack of its own with an exception frame, in supervisor mode, and its rte
@@ -866,6 +918,8 @@ class Headless(AmigaOS):
         name = self.fd.get(library, {}).get(offset)
         if name is None and library == 'device':
             name = DEVICE_FUNCTIONS.get(offset)
+        if name is None and library == 'ciaa':
+            name = RESOURCE_FUNCTIONS.get(offset)
         if name is None:
             name = 'offset -%d' % offset
         handler = getattr(self, 'os_%s_%s' % (library, name), None)
@@ -909,6 +963,8 @@ class Headless(AmigaOS):
         return words
 
     def _next_raw(self):
+        if self._frozen:
+            return 0, []
         while self.raw_index < len(self.raw_script) and self.raw_left == 0:
             self.raw_index += 1
             self.raw_fresh = True
@@ -949,6 +1005,8 @@ class Headless(AmigaOS):
             # replay them through wof_key in the same order (SPEC 8).
             self.key_log.append((self.vblanks + 1, code, qualifier))
         self.vblanks += 1
+        if self._frozen:
+            self.spin_vblanks += 1            # the script's clock stands (_music_spin)
         self.since_pass += 1
         self.progress += 1
         self.schedule.append(('V', raw))
@@ -960,7 +1018,7 @@ class Headless(AmigaOS):
         finally:
             self.in_vblank -= 1
         stop = self.run_spec['stop']
-        if self._until is None and 'vblanks' in stop and self.vblanks >= stop['vblanks']:
+        if self._until is None and 'vblanks' in stop and self.vblanks - self.spin_vblanks >= stop['vblanks']:
             self._pause = 'vblanks'
 
     def key_event(self, code, qualifier=0):
