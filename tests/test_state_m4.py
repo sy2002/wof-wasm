@@ -120,15 +120,26 @@ def expand(raw_entries):
     return raw, keys
 
 
-def drive_schedule(ported, raw, keys, start, count):
+def drive_schedule(ported, raw, keys, start, count, fed=None):
+    """The script's VBlanks `start` to `start + count`; `fed`, when given, takes every VBlank
+    as it was given, (raw, keys), the fades' waits included."""
     by = {}
     for v, code, qualifier in keys:
         by.setdefault(v, []).append((code, qualifier))
     for v in range(start, start + count):
+        while ported.music_spin():
+            # The music waits for a fade and the script with it, the VBlanks carrying no
+            # input, as in the headless original (re/notes/headless.md, "The fade's wait").
+            ported.vblank(0)
+            ported.pass_()
+            if fed is not None:
+                fed.append((0, []))
         for code, qualifier in by.get(v, ()):
             ported.key(code, qualifier)
         ported.vblank(raw[v] if v < len(raw) else 0)
         ported.pass_()
+        if fed is not None:
+            fed.append((raw[v] if v < len(raw) else 0, by.get(v, [])))
 
 
 ESCAPE = 0x45
@@ -171,8 +182,9 @@ def test_a_state_saved_in_a_flight_continues_identically(ported, blob_file, tmp_
     lib.wof_set_fade_vblanks(0)            # the schedules are the headless original's
     ported.reset_core(seed=1)
     before = None
+    fed = []                               # every VBlank as given, for the WebAssembly core
     for v in range(len(raw)):
-        drive_schedule(ported, raw, keys, v, 1)
+        drive_schedule(ported, raw, keys, v, 1, fed)
         if ported.mission_count() and here(ported, v + 1):
             before = v + 1
             break
@@ -187,7 +199,8 @@ def test_a_state_saved_in_a_flight_continues_identically(ported, blob_file, tmp_
 
     saved = native_state(ported)
     saved_frame = frame(ported)
-    drive_schedule(ported, raw, keys, before, AFTER)
+    fed_before = len(fed)
+    drive_schedule(ported, raw, keys, before, AFTER, fed)
     straight = (digest(native_state(ported)), frame(ported))
 
     native_load(ported, saved)
@@ -205,9 +218,12 @@ def test_a_state_saved_in_a_flight_continues_identically(ported, blob_file, tmp_
     ported.reset_core()
 
     schedule = tmp_path / 'schedule.json'
-    schedule.write_text(json.dumps({'raw': raw + [0] * AFTER, 'keys': keys, 'fades': 0}))
+    schedule.write_text(json.dumps({
+        'raw': [r for r, _ in fed] + [0] * AFTER, 'fades': 0,
+        'keys': [(v, code, qualifier) for v, (_, ks) in enumerate(fed) for code, qualifier in ks]}))
+    assert len(fed) == fed_before + AFTER, 'a fade in the flight after the save'
     out = run(['node', str(ROOT / 'tests' / 'state_wasm.mjs'), str(WASM), str(blob_file),
-               str(before), str(AFTER), str(schedule)])
+               str(fed_before), str(AFTER), str(schedule)])
     wasm = json.loads(out.stdout)
     assert wasm['loadedFrame'] == wasm['savedFrame'] == wasm['foreignFrame']
     assert wasm['straight'] == wasm['replayed'] == wasm['foreign'], wasm

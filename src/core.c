@@ -252,6 +252,77 @@ void wof_original_store16(uint32_t addr, uint16_t value)
     wof_original_store8(addr + 1u, (uint8_t)value);
 }
 
+/* ------------------------------------------------------- the music's memory (M8 part 2) */
+
+static uint32_t image_long(const uint8_t *p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+/* A record as LoadSeg leaves it in a hunk: a plain field takes the file's bytes; a pointer
+ * into the song data its offset, which is the long as the file holds it, because the song
+ * data's pointers are relocated to its own hunk (re/notes/music.md); a pointer the port
+ * keeps as a flag whether it is set.  The player's DATA hunk holds no vector yet. */
+static void record_load(int rec, uint8_t *dst, const uint8_t *src)
+{
+    for (uint32_t off = 0; off < record_size[rec]; off++) {
+        int32_t b = record_byte(rec, off);
+
+        if (b >= 0)
+            dst[b] = src[off];
+    }
+    switch (rec) {
+#define WOF_RECORD(r, size)                 case rec_##r:
+#define WOF_FIELD(r, n, t, o, k)                                                       \
+        if ((k) == WOF_K_SONG || (k) == WOF_K_POOL) {                                  \
+            uint32_t v_ = image_long(src + (o));                                       \
+            t        f_ = (t)((k) == WOF_K_POOL ? (v_ != 0u) : v_);                    \
+            wof_mem_copy(dst + offsetof(wof_##r##_t, n), &f_, (uint32_t)sizeof f_);    \
+        }
+#define WOF_FIELD_ARRAY(r, n, t, c, o, k)                                              \
+        if ((k) == WOF_K_POOL)                                                         \
+            for (uint32_t i_ = 0; i_ < (uint32_t)(c); i_++) {                          \
+                t f_ = (t)(image_long(src + (o) + 4u * i_) != 0u);                     \
+                wof_mem_copy(dst + offsetof(wof_##r##_t, n) + i_ * sizeof(t), &f_,     \
+                             (uint32_t)sizeof f_);                                     \
+            }
+#define WOF_RECORD_END(r)                   break;
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+    default:
+        break;
+    }
+}
+
+/* LoadSeg of songplay and wofsongs as far as the port keeps them: the parts of the player's
+ * DATA hunk that change, from its image, and the seven voices of the song data, from the
+ * file (src/mission.def). */
+void wof_music_memory_load(const uint8_t *player, const uint8_t *songs)
+{
+    record_load(rec_plhead, (uint8_t *)&wof_m.player_head[0], player + WOF_PLAYER_HEAD);
+    record_load(rec_plvars, (uint8_t *)&wof_m.player_vars[0], player + WOF_PLAYER_VARS);
+    for (uint32_t t = 0; t < 4; t++)
+        record_load(rec_track, (uint8_t *)&wof_m.player_tracks[t],
+                    player + WOF_PLAYER_TRACKS + t * record_size[rec_track]);
+    record_load(rec_plsong, (uint8_t *)&wof_m.player_song[0], player + WOF_PLAYER_SONG);
+    for (uint32_t n = 0; n < WOF_VOICES; n++)
+        record_load(rec_voice, (uint8_t *)&wof_m.song_voices[n],
+                    songs + WOF_VOICES_AT + n * record_size[rec_voice]);
+}
+
+/* UnLoadSeg of both: nothing of either is left. */
+void wof_music_memory_free(void)
+{
+    wof_mem_set(wof_m.player_head, 0, (uint32_t)sizeof wof_m.player_head);
+    wof_mem_set(wof_m.player_vars, 0, (uint32_t)sizeof wof_m.player_vars);
+    wof_mem_set(wof_m.player_tracks, 0, (uint32_t)sizeof wof_m.player_tracks);
+    wof_mem_set(wof_m.player_song, 0, (uint32_t)sizeof wof_m.player_song);
+    wof_mem_set(wof_m.song_voices, 0, (uint32_t)sizeof wof_m.song_voices);
+}
+
 /* ------------------------------------------------------------------ marked stand-ins */
 
 uint32_t wof_standin_hits(void)

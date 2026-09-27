@@ -585,6 +585,19 @@ void wt_paula_put(const uint32_t *in)
     wof_s.paula.vblanks = in[38];
 }
 
+/* Timer A and the level-4 vector from words 39 to 47 of wt_paula_state's layout. */
+void wt_timer_put(const uint32_t *in)
+{
+    wof_s.cia.latch   = (uint16_t)in[0];
+    wof_s.cia.counter = (uint16_t)in[1];
+    wof_s.cia.running = (uint16_t)in[2];
+    wof_s.cia.oneshot = (uint16_t)in[3];
+    wof_s.cia.next    = (uint64_t)in[4] | ((uint64_t)in[5] << 32);
+    wof_s.cia.vector  = (uint16_t)in[6];
+    wof_s.cia.level4  = (uint16_t)in[7];
+    wof_s.cia.calls   = in[8];
+}
+
 void wt_paula_state(uint32_t *out)
 {
     for (int c = 0; c < 4; c++) {
@@ -604,12 +617,20 @@ void wt_paula_state(uint32_t *out)
     out[36] = wof_s.paula.intena;
     out[37] = wof_s.paula.intreq;
     out[38] = wof_s.paula.vblanks;
+    /* timer A and the level-4 vector (M8 part 2) */
+    out[39] = wof_s.cia.latch;
+    out[40] = wof_s.cia.counter;
+    out[41] = wof_s.cia.running;
+    out[42] = wof_s.cia.oneshot;
+    out[43] = (uint32_t)wof_s.cia.next;
+    out[44] = (uint32_t)(wof_s.cia.next >> 32);
+    out[45] = wof_s.cia.vector;
+    out[46] = wof_s.cia.level4;
+    out[47] = wof_s.cia.calls;
 }
 
-/* The music calls the front end made, with the VBlank each one happened at. */
-int wt_music_count(void)        { return wof_f.music_count; }
-int wt_music_song(int i)        { return i < wof_f.music_count ? wof_f.music_song[i] : -1; }
-int wt_music_vblank(int i)      { return i < wof_f.music_count ? (int)wof_f.music_vblank[i] : -1; }
+/* The music's wait for a fade: VBlanks left of the round it is in, 0 when it is in none. */
+int wt_music_spin(void)         { return wof_f.music_spin; }
 
 /* Where the front end stands: which screen, which viewports, what is on the output. */
 int wt_front_line(void)         { return wof_f.co_main.line; }

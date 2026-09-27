@@ -102,13 +102,13 @@ try {
        skips the rest of the sequence to the rank selection.  Both pictures have colours
        all over them, which is what this run photographs. */
     await fire();
-    await sleep(3400);
+    await sleep(5500);                    /* the scroller's song fades out first */
     await settle();                       /* the logo, in the picture's own colours */
     await sleep(3200);
     report.title = await look('title');
 
     await fire();
-    await sleep(1500);
+    await sleep(3600);                    /* the title's song fades out first */
     report.ranks = await look('ranks');
 } finally {
     await stopChrome(browser);

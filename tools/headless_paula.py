@@ -13,7 +13,10 @@ raises.  This model watches the writes the game makes to
 
 and raises the audio interrupts the way Paula does, calling the handler the game put at the
 level-4 autovector, 0x70, as the CPU would.  DMACONR is left alone: the blitter's busy bit is
-read there, and a model of the audio bits would change nothing the game reads.
+read there, and a model of the audio bits would change nothing the game reads.  The four
+registers that can only be read - DMACONR, ADKCONR, INTENAR, INTREQR - ignore a write, as
+on the machine: the music player writes INTREQR, and a read after it still sees what the
+chip holds (INTENAR and INTREQR the model's, the others what was there before).
 
 Time.  The harness has no clock between wait points (re/notes/headless.md, "Scheduling"), so
 the model defines one.  A VBlank is `clock` units and a sample at period P is `P * hz` units,
@@ -60,6 +63,9 @@ DMACON, INTENA, INTREQ = 0x096, 0x09A, 0x09C
 AUD0 = 0x0A0
 AUDIO_BITS = 0x0780
 LEVEL4_VECTOR = 0x70
+AUDIO_IRQ = 0x01EBAA                    # the effects engine's level-4 handler
+SONGINT_HANDLER = 0x0848                # the player's, in its CODE hunk (re/songplay.lst)
+READ_ONLY = (0x002, 0x010, 0x01C, 0x01E)   # DMACONR, ADKCONR, INTENAR, INTREQR
 
 # The game's pointers to its eight sound files, which sounds_load (0x013368) fills.
 SOUND_POINTERS = (0x026E3E, 0x026E42, 0x026E58, 0x026E7A, 0x026E96, 0x026EA8, 0x026EAC,
@@ -95,8 +101,9 @@ class CiaTimer:
     on; each underflow raises its interrupt, which ciaa.resource hands to the vector
     AddICRVector installed.  TALO and TAHI write the latch; TAHI also loads the counter while
     the timer stands, and starts it in one-shot mode; CRA starts (bit 0) and stops it, picks
-    one-shot (bit 3) and force-loads the counter from the latch (bit 4).  At power-up the
-    latch and the counter hold 0xFFFF."""
+    one-shot (bit 3) and force-loads the counter from the latch (bit 4); a start of a running
+    timer without a forced load leaves it counting, and a stop keeps in the counter the ticks
+    left to the underflow, less one.  At power-up the latch and the counter hold 0xFFFF."""
 
     def __init__(self, paula):
         self.p = paula
@@ -124,6 +131,9 @@ class CiaTimer:
                     self.running = True
                     self.next = t + self.period(self.counter)
         elif address == CIAA_CRA:
+            if self.running and byte & 0x01 and not byte & 0x10:
+                self.oneshot = bool(byte & 0x08)    # started again while it runs: it counts on
+                return
             if self.running and self.next is not None:
                 self.counter = max((self.next - t + self.tick() - 1) // self.tick() - 1, 0)
             if byte & 0x10:
@@ -328,15 +338,28 @@ class Paula:
             elif field == 0x8:
                 ch.vol = word
 
+    def level4(self):
+        """The handler at the level-4 autovector as the port names it (src/wof.h, WOF_L4_*):
+        1 audio_irq, 2 the player's SongIntHandler, 0 the system's."""
+        vector = self.m.o.r32(LEVEL4_VECTOR)
+        base = getattr(self.m, 'player_base', None)
+        if vector == AUDIO_IRQ:
+            return 1
+        if base is not None and vector == base + SONGINT_HANDLER:
+            return 2
+        return 0
+
     def snapshot(self):
         """The model's state: per channel (on, LC, LEN, PER, VOL, the next byte, the bytes
         left, the instant the next one begins), then INTENA, INTREQ and the VBlank count, and
-        the timer (latch, counter, running, one-shot, next underflow, vector installed)."""
+        the timer (latch, counter, running, one-shot, next underflow, vector installed, the
+        level-4 handler, the vector's calls)."""
         tm = self.timer
         return (tuple((int(ch.on), ch.lc, ch.len, ch.per, ch.vol, ch.ptr, ch.left, ch.next)
                       for ch in self.ch), self.intena, self.intreq, self.m.vblanks,
                 (tm.latch, tm.counter, int(tm.running), int(tm.oneshot),
-                 tm.next if tm.running and tm.next is not None else 0, int(tm.vector is not None)))
+                 tm.next if tm.running and tm.next is not None else 0, int(tm.vector is not None),
+                 self.level4(), len(tm.calls)))
 
     # ------------------------------------------------------------------ the log
 
@@ -373,7 +396,7 @@ class Paula:
 
 def install(machine, hz):
     """The model and its write hooks, for a Headless machine before its first instruction."""
-    from unicorn import UC_HOOK_MEM_WRITE
+    from unicorn import UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE
     paula = Paula(machine, hz)
 
     def hook(uc, access, address, size, value, user):
@@ -382,8 +405,26 @@ def install(machine, hz):
     def cia(uc, access, address, size, value, user):
         if address in (CIAA_TALO, CIAA_TAHI, CIAA_CRA) and size == 1:
             paula.timer.write(address, value & 0xFF)
+
+    # A write to a register that can only be read changes nothing: the hook runs before the
+    # write lands, so what was there is kept and put back before the next read of it.
+    kept = {}
+
+    def read_only_write(uc, access, address, size, value, user):
+        for reg in READ_ONLY:
+            at = CUSTOM + reg
+            if address < at + 2 and at < address + size and at not in kept:
+                kept[at] = bytes(uc.mem_read(at, 2))
+
+    def read_only_read(uc, access, address, size, value, user):
+        for at in [a for a in kept if address < a + 2 and a < address + size]:
+            uc.mem_write(at, kept.pop(at))
+        paula._publish()
+
     machine.uc.hook_add(UC_HOOK_MEM_WRITE, hook, begin=CUSTOM + DMACON, end=CUSTOM + 0x0DF)
     machine.uc.hook_add(UC_HOOK_MEM_WRITE, cia, begin=CIAA_TALO, end=CIAA_CRA)
+    machine.uc.hook_add(UC_HOOK_MEM_WRITE, read_only_write, begin=CUSTOM + 0x002, end=CUSTOM + 0x01F)
+    machine.uc.hook_add(UC_HOOK_MEM_READ, read_only_read, begin=CUSTOM + 0x002, end=CUSTOM + 0x01F)
     return paula
 
 

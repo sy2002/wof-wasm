@@ -468,6 +468,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
         wof_gfx_move(v, 10, 10);
         if (!mode) {
             wof_gfx_text(v, wof_tbl_dialog_loading, str_len(wof_tbl_dialog_loading));
+            CO_CALL(c, &wof_f.co_music, wof_music_stop());   /* 0x019146 */
             /* M7 STAND-IN: the loader.  What the original does when the load fails is what
              * re/notes/frontend.md observed, and what the port does until M7 ports it: the
              * dialog comes back as a cancel and the rank selection rebuilds its picture. */

@@ -24,7 +24,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 sys.path.insert(0, HERE)
 
-from unicorn import UC_HOOK_MEM_WRITE                       # noqa: E402
+from unicorn import UC_HOOK_BLOCK, UC_HOOK_MEM_WRITE        # noqa: E402
 from unicorn.m68k_const import UC_M68K_REG_A7, UC_M68K_REG_A4, UC_M68K_REG_SR   # noqa: E402
 
 import headless_paula                                       # noqa: E402
@@ -103,7 +103,7 @@ class SoundDifferential(Differential):
 
     def differences(self):
         found = super().differences()
-        got = (ctypes.c_uint32 * 39)()
+        got = (ctypes.c_uint32 * 48)()
         self.ported.lib.wt_paula_state(got)
         want = self.paula_words()
         names = ['lc', 'len', 'per', 'vol', 'on', 'ptr', 'left', 'next', 'next_hi']
@@ -375,3 +375,423 @@ def test_sound_init_matches_the_original(sound):
         d.o.call(0x01E8B8)
         d.m8(0x01E8B8)
         check(d, 'case %d' % n)
+
+
+# ======================================================================== the music player
+#
+# M8 part 2 (re/notes/music.md): the player's routines against songplay's own code.  The
+# oracle gets both files as LoadSeg lays them out - every hunk with its size and link in
+# front, relocated - and the game's four pointers to them, so that tests/m4state.py finds
+# the player's DATA hunk and the song data as it does in the headless original's runs.  A
+# state is random but real: every track's sequence, pattern position and voice are the song
+# data's own, the voices' samples those _ReadInstruments found, with random vibrato and
+# arpeggio; the song data is otherwise as the file has it on both sides, because the port
+# reads it from the file.
+
+import hunk                                                 # noqa: E402
+import song_decode                                          # noqa: E402
+
+PLAYER_SEGLIST, PLAYER_ENTRY = 0x0255EA, 0x0255EE
+SONGS_SEGLIST, SONG_DATA = 0x027428, 0x02742C
+TRACK0, TRACK_SIZE, VOICES, VOICE_SIZE = 0x2AA, 0x4A, 0xCC, 0x2E
+
+
+def signed16(v):
+    return v & 0xFFFF
+
+
+class MusicDifferential(SoundDifferential):
+    """`songs`, when given, is a variant of wofsongs laid over the disk on both sides."""
+
+    def __init__(self, ported, songs=None):
+        super().__init__(ported)
+        self.blob = ported.blob
+        original = open(song_decode.SONGS, 'rb').read()
+        if songs is not None:               # the variant in the file system blob's copy of it
+            at = ported.blob.find(original)
+            assert at > 0 and ported.blob.find(original, at + 1) < 0
+            ported.blob = ported.blob[:at] + songs + ported.blob[at + len(songs):]
+        ported.reset_core()                 # the port's song data taken afresh from its disk
+        ported.lib.wof_set_video_hz(50)     # the oracle's model's rate: the timer counts in it
+        self.songs_raw = songs if songs is not None else original
+        o = self.o
+        o.uc.mem_map(0xBFD000, 0x2000)
+        o.uc.hook_add(UC_HOOK_MEM_WRITE,
+                      lambda uc, access, address, size, value, user:
+                      self.paula.timer.write(address, value & 0xFF),
+                      begin=headless_paula.CIAA_TALO, end=headless_paula.CIAA_CRA)
+        self.player = self.load_segment(open(song_decode.PLAYER, 'rb').read())
+        self.songs = self.load_segment(self.songs_raw)
+        o.w32(PLAYER_SEGLIST, (self.player[0][0] + 4) >> 2)
+        o.w32(PLAYER_ENTRY, self.player[0][1])
+        o.w32(SONGS_SEGLIST, (self.songs[0][0] + 4) >> 2)
+        o.w32(SONG_DATA, self.songs[1][1])
+        self.code, self.data, self.sdata = self.player[0][1], self.player[1][1], self.songs[1][1]
+        self.ran = set()                    # the player's CODE offsets the original executed
+        o.uc.hook_add(UC_HOOK_BLOCK,
+                      lambda uc, address, size, user:
+                      self.ran.update(range(address - self.code, address - self.code + size)),
+                      begin=self.code, end=self.code + self.player[0][2] - 1)
+        self.pristine = (o.read(self.data, self.player[1][2]), o.read(self.sdata, self.songs[1][2]))
+        self.decoded = song_decode.Songs(self.songs_raw)
+        m4state.SEEN_SONGS.clear()
+        lib = ported.lib
+        lib.wof_test_songplay_call.argtypes = [ctypes.c_uint32] + [ctypes.c_int32] * 3 + [
+            ctypes.POINTER(ctypes.c_int32)]
+        lib.wof_test_songplay_call.restype = ctypes.c_int32
+        lib.wt_timer_put.argtypes = [ctypes.c_void_p]
+
+    def restore(self):
+        super().restore()
+        self.ported.blob = self.blob
+        self.ported.reset_core()            # and the port's own song data again
+
+    def load_segment(self, raw):
+        """The hunks of a file as LoadSeg leaves them: (base, first byte, size) of each."""
+        sizes = [len(h['data']) for h in hunk.load(raw)]
+        bases = [self.o.alloc(size + 8) for size in sizes]
+        hunks = hunk.load(raw, bases=[b + 8 for b in bases])
+        for i, (base, h) in enumerate(zip(bases, hunks)):
+            self.o.w32(base, len(h['data']) + 8)
+            self.o.w32(base + 4, (bases[i + 1] + 4) >> 2 if i + 1 < len(bases) else 0)
+            self.o.write(base + 8, bytes(h['data']))
+        return [(b, b + 8, len(h['data'])) for b, h in zip(bases, hunks)]
+
+    def memory(self):
+        regions = {0x023000: bytes(self.o.read(0x023000, 0x028004 - 0x023000))}
+        for base, first, size in self.player + self.songs:
+            regions[base] = bytes(self.o.read(base, size + 8))
+        return m4state.Memory(regions)
+
+    # ------------------------------------------------------------------ both sides
+
+    def timer_words(self):
+        tm = self.paula.timer
+        nxt = tm.next if tm.running and tm.next is not None else 0
+        return [tm.latch, tm.counter, int(tm.running), int(tm.oneshot), nxt & 0xFFFFFFFF,
+                nxt >> 32, int(tm.vector is not None), 0, 0]
+
+    def load_port(self):
+        super().load_port()
+        self.ported.lib.wt_timer_put((ctypes.c_uint32 * 9)(*self.timer_words()))
+
+    def differences(self):
+        found = super().differences()
+        got = self.ported.paula_state()[39:45]
+        for name, a, b in zip(('latch', 'counter', 'running', 'one-shot', 'next', 'next_hi'),
+                              got, self.timer_words()[:6]):
+            if a != b:
+                found.append(('timer ' + name, a, b))
+        return found
+
+    def songplay(self, offset, t=0, d1=0, d2=0):
+        out = (ctypes.c_int32 * 1)()
+        assert self.ported.lib.wof_test_songplay_call(offset, t, d1, d2, out) == 0, hex(offset)
+        return out[0] & 0xFFFF
+
+    def track(self, t):
+        return self.data + TRACK0 + TRACK_SIZE * t
+
+    def assert_ran(self, *regions):
+        """Every region (first, last offset) the cases were to reach, reached by them: the
+        regions no run of the game executes (tools/reach_observe.py --cold)."""
+        missed = ['%04x-%04x' % (lo, hi) for lo, hi in regions if lo not in self.ran or hi not in self.ran]
+        assert not missed, 'the cases never ran %s' % missed
+
+    def with_sample(self, t):
+        """Track t's VHDR as its voice has it: note_period is only ever reached with one."""
+        tr = self.track(t)
+        if not self.o.r32(tr + 0x14):
+            self.o.w32(tr + 0x14, self.o.r32(self.o.r32(tr + 0x3C)))
+
+    def voice(self, n):
+        return self.sdata + VOICES + VOICE_SIZE * n
+
+    # ------------------------------------------------------------------ a random state
+
+    def randomise_music(self, rng, t=0):
+        o, dec, sd = self.o, self.decoded, self.sdata
+        o.write(self.data, self.pristine[0])
+        o.write(self.sdata, self.pristine[1])
+        song = rng.randrange(5)
+        o.call(self.code, regs={'d0': 1, 'd1': song, 'd2': sd})            # _ReadInstruments
+        sounding = [n for n in range(7) if o.r32(self.voice(n))]
+        for n in range(7):
+            v = self.voice(n)
+            w(o, v + 0x12, rng.choice([rng.randrange(0x40), rng.randrange(0x10000)]))   # vib_hi
+            w(o, v + 0x14, rng.choice([rng.randrange(0x40), rng.randrange(0x10000)]))   # vib_lo
+            w(o, v + 0x16, rng.choice([rng.randrange(-8, 9), rng.randrange(0x10000)]))
+            w(o, v + 0x18, rng.choice([1, 2, rng.randrange(8), rng.randrange(0x10000)]))
+            w(o, v + 0x1A, rng.choice([1, 3, rng.randrange(8)]))
+            w(o, v + 0x1C, rng.choice([0, 1, 2, rng.randrange(-2, 8), rng.randrange(0x10000)]))
+            w(o, v + 0x1E, rng.choice([0, 0, 1]) if n in sounding else 0)          # vibrato
+            w(o, v + 0x22, rng.choice([0, 0, 1]) if n in sounding else 0)          # arpeggio
+            for k in range(4):
+                w(o, v + 0x24 + 2 * k, rng.randrange(-12, 13))
+            w(o, v + 0x2C, rng.randrange(0x10000))
+        songs = dec.songs()
+        at = self.data + 0x27C
+        w(o, at + 0x00, rng.choice([0, 1, 2, 2, 3, 4, 4]))                       # PlayState
+        o.w32(at + 0x02, rng.choice([0, 0x01000000 << rng.randrange(4), rng.randrange(1 << 32)]))
+        w(o, at + 0x06, rng.choice([0, 0, 0, 0x100 << rng.randrange(4), rng.randrange(0x10000)]))
+        w(o, at + 0x08, rng.randrange(0x10000))                                  # SfxMusicVol
+        o.w32(at + 0x0A, sd + rng.choice(songs))                                  # SongAddr
+        w(o, at + 0x0E, rng.choice([0xFFFF, 0, 1, 2, rng.randrange(0x10000)]))  # FadeCount
+        w(o, at + 0x10, rng.choice([0, 1, 2, rng.randrange(0x10000)]))          # FadeSpeed
+        w(o, at + 0x12, rng.choice([0, 0, 0, 0, 1]))                             # Paused
+        o.w32(self.data + 0x3D2, sd + songs[song])
+        o.w32(self.data + 0x3D6, sd + songs[song] + 0x10)
+        w(o, self.data + 0x000, 0x8000 | 1 << t)
+        w(o, self.data + 0x002, 1 << t)
+        w(o, self.data + 0x004, 0x8000 | 0x80 << t)
+        w(o, self.data + 0x006, t)
+        for k in range(4):
+            self.randomise_track(rng, k, sounding)
+        p = self.paula
+        p.m.vblanks = 0
+        for ch in p.ch:
+            ch.on = rng.random() < 0.5
+            ch.lc = sd + 2 * rng.randrange(self.songs[1][2] // 2)
+            ch.len, ch.per = rng.randrange(0x10000), rng.randrange(0x10000)
+            ch.vol = rng.randrange(0x41)
+            ch.ptr, ch.left, ch.next = ch.lc, headless_paula.cycle_bytes(ch.len), 0
+        p.intena = 0x4000 | rng.randrange(0x10000) & 0x3FFF
+        p.intreq = rng.randrange(0x4000)
+        p._publish()
+        tm = p.timer
+        tm.latch = rng.choice([0xFFFF, 0x38FF, 0x3CFF, rng.randrange(0x10000)])
+        tm.counter = rng.randrange(0x10000)
+        tm.running, tm.oneshot = rng.random() < 0.7, rng.random() < 0.2
+        tm.next = rng.randrange(1, 1 << 30) if tm.running else None
+        tm.vector = None
+
+    def randomise_track(self, rng, t, sounding):
+        o, dec, sd = self.o, self.decoded, self.sdata
+        tr = self.track(t)
+        song = rng.choice(dec.songs())
+        seq = rng.choice(dec.tracks(song))
+        entries = dec.sequence(seq)
+        k = rng.randrange(len(entries))
+        pattern = entries[k][0]
+        events = dec.pattern(pattern)
+        voice = rng.choice(sounding)
+        v = self.voice(voice)
+        w(o, tr + 0x00, rng.choice([0, 0xFFFF, 0xFFFF, 1]))                     # active
+        o.w32(tr + 0x02, sd + seq)
+        o.w32(tr + 0x06, sd + pattern + 2 * rng.randrange(len(events)))
+        o.w32(tr + 0x0A, 6 * k)
+        dur = rng.choice([0, 0, 1, 2, rng.randrange(1, 97)])
+        w(o, tr + 0x0E, dur)
+        w(o, tr + 0x10, rng.choice([dur - 1, rng.randrange(97), 0]))            # release
+        w(o, tr + 0x12, rng.choice([0xFFFF, 0, 1, 1, rng.randrange(0x10000)]))  # irq
+        no_sample = not o.r16(v + 0x22) and rng.random() < 0.1
+        o.w32(tr + 0x14, 0 if no_sample else o.r32(v))                         # vhdr
+        o.w32(tr + 0x18, o.r32(v + 4))                                          # body
+        w(o, tr + 0x1C, o.r16(v + 8))                                           # octave_div
+        w(o, tr + 0x1E, rng.choice([0, 1, 0x20, rng.randrange(0x41), rng.randrange(0x10000)]))
+        w(o, tr + 0x20, rng.choice([0x7C, rng.randrange(0x7C, 0x400), rng.randrange(0x10000)]))
+        w(o, tr + 0x22, rng.choice([0, rng.randrange(0x10000)]))                # loop_words
+        o.w32(tr + 0x24, sd + 2 * rng.randrange(self.songs[1][2] // 2))        # loop_start
+        w(o, tr + 0x38, rng.choice([0, 0, 1, 2]))                               # hold
+        w(o, tr + 0x3A, rng.choice([0, 0, 1, 2, 3]))                            # tie
+        o.w32(tr + 0x3C, v)
+        w(o, tr + 0x40, rng.randrange(12, 87))                                  # note
+        w(o, tr + 0x42, rng.choice([0x7C, rng.randrange(0x7C, 0x400), rng.randrange(0x10000)]))
+        w(o, tr + 0x44, rng.choice([rng.randrange(-8, 9), rng.randrange(0x10000)]))
+        w(o, tr + 0x46, rng.choice([0, 0, 0, 0, 1]))                            # sfx
+        w(o, tr + 0x48, rng.choice([0xFFFF, 0, 1, 3]))                          # sfx_count
+
+
+@pytest.fixture
+def music(ported):
+    d = MusicDifferential(ported)
+    yield d
+    d.restore()
+
+
+def music_case(d, rng, offset, n, regs=None, port=()):
+    """One call on both sides from the same state: the original's routine at songplay +
+    `offset`, the port's by the same offset; the state, Paula and the timer compared."""
+    d.load_port()
+    d.o.call(d.code + offset, regs=regs or {})
+    d.songplay(offset, *port)
+    check(d, 'case %d (+%04X, %r)' % (n, offset, regs))
+
+
+@pytest.mark.parametrize('t', [0, 1, 2, 3])
+def test_track_step_matches_the_original(music, t):
+    """songplay+0x04F4 over random tracks: a note's time, its release (held, tied, an
+    effect's channel), arpeggio and vibrato between their limits, and at a note's end the
+    pattern's next events up to the next note, which starts."""
+    d = music
+    rng = random.Random(0x4F4 + t)
+    for n in range(1500):
+        d.randomise_music(rng, t)
+        music_case(d, rng, 0x04F4, n, {'a3': d.track(t), 'd3': rng.randrange(1 << 32)}, (t,))
+    d.assert_ran((0x050E, 0x051C), (0x0538, 0x0542), (0x054E, 0x0596))  # arpeggio, vibrato
+
+
+def test_track_read_and_note_start_match_the_original(music):
+    """songplay+0x05D2, the pattern's next events with D3 added to the note, and +0x0704, a
+    note with each of the twenty lengths: tie, sample, period, AUDxLC and AUDxLEN, the loop
+    part, the volume scaled while an effect plays, the track's bit of TrackState."""
+    d = music
+    rng = random.Random(0x5D2)
+    for n in range(2000):
+        t = rng.randrange(4)
+        d.randomise_music(rng, t)
+        if rng.random() < 0.5:
+            d3 = rng.randrange(-12, 13) & 0xFFFF
+            music_case(d, rng, 0x05D2, n, {'a3': d.track(t), 'd3': d3}, (t, d3))
+        else:
+            note, length = rng.randrange(12, 87), rng.randrange(20)
+            music_case(d, rng, 0x0704, n, {'a3': d.track(t), 'd1': note, 'd2': length},
+                       (t, note, length))
+    d.assert_ran((0x066A, 0x067E), (0x07B0, 0x07BE))     # the sequence again; an effect's volume
+
+
+def test_the_note_lookup_matches_the_original(music):
+    """songplay+0x07EA, a note's octave and period, for every note the tables reach on every
+    voice with a sample: the period into the channel and the track, D3 the octave."""
+    d = music
+    rng = random.Random(0x7EA)
+    n = 0
+    for note in range(0, 99):
+        for repeat in range(8):
+            t = rng.randrange(4)
+            d.randomise_music(rng, t)
+            d.with_sample(t)
+            d.load_port()
+            d.o.call(d.code + 0x07EA, regs={'a3': d.track(t), 'd1': note})
+            want = d.o.reg('d3') & 0xFFFF
+            got = d.songplay(0x07EA, t, note)
+            assert got == want, 'note %d: octave port %d original %d' % (note, got, want)
+            check(d, 'note %d case %d' % (note, n))
+            n += 1
+    d.assert_ran((0x0808, 0x0808))                       # a note above the sample's octaves
+
+
+def test_the_instrument_lookup_matches_the_original(music):
+    """Command 1, _ReadInstruments (songplay+0x0946), for each of the five songs from the
+    voices as the file has them and from voices another song already read: the song, its
+    voice table, every voice's VHDR, BODY and notes per octave."""
+    d = music
+    rng = random.Random(0x946)
+    for n in range(100):
+        d.randomise_music(rng)
+        if rng.random() < 0.5:
+            d.o.write(d.sdata, d.pristine[1])
+        song = rng.randrange(5)
+        d.load_port()
+        d.o.call(d.code, regs={'d0': 1, 'd1': song, 'd2': d.sdata})
+        d.songplay(0x0000, 0, song, 1)
+        check(d, 'case %d, song %d' % (n, song))
+
+
+def test_the_tick_and_the_fade_match_the_original(music):
+    """SongInt (songplay+0x02A6) in every PlayState - a song begun, played, stopped, faded
+    a step every FadeSpeed + 1 ticks and stopped with no volume left - paused and not; and
+    the commands the game gives beside it: 2 PlaySong, 5 GetSongStat, 6 FadeSong."""
+    d = music
+    rng = random.Random(0x2A6)
+    for n in range(3000):
+        d.randomise_music(rng, rng.randrange(4))
+        which = rng.choice(['tick', 'tick', 'tick', 2, 5, 6])
+        if which == 'tick':
+            music_case(d, rng, 0x02A6, n)
+            continue
+        speed = rng.choice([0, 1, 2, rng.randrange(0x10000)])
+        if which == 6:
+            w(d.o, d.data + 0x27C + 0x12, 0)     # Paused: only command 10 sets it, never given
+        d.load_port()
+        d.o.call(d.code, regs={'d0': which, 'd1': speed})
+        want = d.o.reg('d0') & 0xFFFF
+        got = d.songplay(0x0000, 0, speed, which)
+        if which == 5:
+            assert got == want, 'case %d: GetSongStat port %d original %d' % (n, got, want)
+        check(d, 'case %d, command %d' % (n, which))
+    d.assert_ran((0x04CC, 0x04D6))                       # a song no track started a note of
+
+
+def test_the_players_level4_handler_matches_the_original(music):
+    """SongIntHandler (songplay+0x0848) over random tracks and requests: at a note's first
+    interrupt its loop part, or the channel marked to go off, or off; an effect's channel
+    counting its repeats; every channel's request cleared."""
+    d = music
+    rng = random.Random(0x848)
+    for n in range(3000):
+        d.randomise_music(rng, rng.randrange(4))
+        d.paula.intena |= 0x4000
+        d.paula.intreq = rng.choice([0x80, 0x100, 0x200, 0x400, rng.randrange(0x800) & 0x780,
+                                     rng.randrange(0x4000)])
+        d.paula._publish()
+        d.load_port()
+        run_until(d.o, d.code + 0x0848, d.code + 0x08AC)
+        d.songplay(0x0848)
+        check(d, 'case %d' % n)
+    d.assert_ran((0x0916, 0x0928))                       # an effect's channel
+
+
+# A variant of wofsongs, of the file's length, with what no song of the disk has: in song 1's patterns a latch low
+# byte (0xDE), a hold (0xE0), a command byte the player passes over (0xE5), a track's end
+# (0xDA) and notes tied to the ones before; and BassDrum3 with three octaves, so that a note
+# plays in a lower octave's part of the sample.  Only bytes that are no pointer change.
+
+def variant_songs():
+    raw = bytearray(open(song_decode.SONGS, 'rb').read())
+    base = hunk.load(bytes(raw))[1]['file_off']
+    dec = song_decode.Songs()
+    tracks = dec.tracks(dec.songs()[1])
+    first = [dec.sequence(seq)[0][0] for seq in tracks]
+    commands = [(0xDE, 0x80), (0xE0, 1), (0xE5, 7), (0xE0, 0)]
+    for k, (command, argument) in enumerate(commands):
+        raw[base + first[0] + 2 + 4 * k:base + first[0] + 4 + 4 * k] = bytes([command, argument])
+    raw[base + first[1] + 6:base + first[1] + 8] = bytes([0xDA, 0])
+    events = dec.pattern(first[2])
+    for i, event in enumerate(events):
+        if event[0] == 'note' and i % 2:
+            raw[base + first[2] + 2 * i] |= 0x80
+    forms = {dec.form(dec.voice(v)['form'])[0]: dec.voice(v)['form']
+             for song in dec.songs() for v in dec.voices(song).values()}
+    at = forms['BassDrum3'] + 12
+    while bytes(raw[base + at:base + at + 4]) != b'VHDR':
+        at += 2
+    raw[base + at + 8 + 0x0E] = 3                                          # ctOctave
+    return bytes(raw)
+
+
+@pytest.fixture
+def variant(ported):
+    d = MusicDifferential(ported, variant_songs())
+    yield d
+    d.restore()
+
+
+def test_the_player_on_what_no_song_has_matches_the_original(variant):
+    """The pattern commands no song of the disk gives, tied notes, and a sample of three
+    octaves, through track_step, track_read, note_start and note_period over random states
+    of a variant of the song data laid over the disk on both sides."""
+    d = variant
+    rng = random.Random(0x3F5)
+    for n in range(2000):
+        t = rng.randrange(4)
+        d.randomise_music(rng, t)
+        which = rng.choice([0x04F4, 0x05D2, 0x0704, 0x07EA])
+        if which == 0x04F4:
+            music_case(d, rng, which, n, {'a3': d.track(t)}, (t,))
+        elif which == 0x05D2:
+            music_case(d, rng, which, n, {'a3': d.track(t), 'd3': 0}, (t, 0))
+        elif which == 0x0704:
+            note, length = rng.randrange(12, 87), rng.randrange(20)
+            music_case(d, rng, which, n, {'a3': d.track(t), 'd1': note, 'd2': length},
+                       (t, note, length))
+        else:
+            note = rng.randrange(0, 99)
+            d.with_sample(t)
+            d.load_port()
+            d.o.call(d.code + 0x07EA, regs={'a3': d.track(t), 'd1': note})
+            want = d.o.reg('d3') & 0xFFFF
+            assert d.songplay(0x07EA, t, note) == want, 'case %d' % n
+            check(d, 'case %d' % n)
+    d.assert_ran((0x0646, 0x064A), (0x0682, 0x0684), (0x06C2, 0x06D8), (0x06FC, 0x0700),
+                 (0x0748, 0x0756))           # the commands no song gives, a lower octave

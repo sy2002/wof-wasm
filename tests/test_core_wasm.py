@@ -117,11 +117,11 @@ def test_the_pictures_have_their_own_colours(wasm):
 @pytest.mark.parametrize('case,per_vblank', [('pal48000', 960), ('ntsc44100', 735)])
 def test_the_pcm_is_emulated_time(wasm, case, per_vblank):
     """wof_audio_render hands out the frames the VBlanks mixed, as many as they last at the
-    rate asked for, and no more; the front end's are silence (M8)."""
+    rate asked for, and no more; the story scroller's song is in them (M8)."""
     audio = wasm['audio'][case]
     assert audio['first'] == 0, audio
     assert audio['frames'] == audio['vblanks'] * per_vblank, audio
-    assert audio['nonzero'] == 0, audio
+    assert audio['nonzero'] > 0, audio
     assert audio['after'] == 0, audio
 
 

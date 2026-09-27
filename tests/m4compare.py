@@ -61,7 +61,8 @@ VIEW_A, VIEW_B = 0x0279F8, 0x027A06
 # The eight sound files as sound_files (0x0236D7) names them, by index: the port's event log
 # names a sample by its index, the headless original's by the file it was loaded from.
 SOUND_FILES = ['sounds/boom', 'sounds/screech', 'sounds/scream', 'sounds/splash',
-               'sounds/machinegun', 'sounds/metal.clang.1', 'sounds/Grind.1', 'sounds/Engine']
+               'sounds/machinegun', 'sounds/metal.clang.1', 'sounds/Grind.1', 'sounds/Engine',
+               'wofsongs']                  # WOF_SONG_FILE: the song data's samples (M8 part 2)
 FRONT_VIEW = 0x026E30
 
 def signed(v, bits=16):
@@ -185,6 +186,12 @@ class Replay:
         self.mode = mode
         self.rate = rate
         self.layout = m4state.Layout(ported)
+        # The song data of every load of this run, by where it lay: a channel's LC keeps
+        # pointing there after music_stop has let it go (tests/m4state.py, song_handle).
+        m4state.SEEN_SONGS.clear()
+        for name, hunks in getattr(machine, 'loaded_history', ()):
+            if name == 'wofsongs' and len(hunks) > 1:
+                m4state.SEEN_SONGS.add(hunks[1])
         self.pokes = pokes or {}
         self.names = dump.Names(ROOT)
         lib = self.lib
@@ -222,6 +229,7 @@ class Replay:
                 ('wt_sound_event', [ctypes.c_int, ctypes.c_void_p], ctypes.c_int),
                 ('wt_sound_events_reset', [], None),
                 ('wt_paula_state', [ctypes.c_void_p], None),
+                ('wt_timer_put', [ctypes.c_void_p], None),
                 ('wt_paula_put', [ctypes.c_void_p], None)):
             f = getattr(lib, name)
             f.argtypes = args
@@ -305,8 +313,9 @@ class Replay:
         self.lib.wt_markers_put(hell, torp)
         state = self.expected_paula(memory)
         if state is not None:
-            words = (ctypes.c_uint32 * 39)(*state)
+            words = (ctypes.c_uint32 * 39)(*state[:39])
             self.lib.wt_paula_put(words)
+            self.lib.wt_timer_put((ctypes.c_uint32 * 9)(*state[39:48]))
 
     # ------------------------------------------------------------------ the replay
 
@@ -643,19 +652,22 @@ class Replay:
     # --------------------------------------------------- M8: the sound, event by event
 
     def expected_paula(self, memory):
-        """The original's audio model after the step just consumed, in the port's 39 words:
-        the sample pointers as sound handles (tests/m4state.py)."""
+        """The original's audio model after the step just consumed, in the port's 48 words:
+        the sample pointers as sound handles (tests/m4state.py), then timer A and the
+        level-4 vector."""
         steps = getattr(self.machine, 'paula_steps', None)
         if not steps or self.step_index < 0 or steps[self.step_index] is None:
             return None
-        channels, intena, intreq, vblanks = steps[self.step_index]
+        channels, intena, intreq, vblanks, timer = steps[self.step_index]
         out = []
         for on, lc, length, per, vol, ptr, left, nxt in channels:
             h_lc = m4state.sound_handle(memory, lc)
             h_ptr = m4state.sound_handle(memory, ptr)
             out += [0xFFFFFFFF if h_lc is None else h_lc, length, per, vol, on,
                     0xFFFFFFFF if h_ptr is None else h_ptr, left, nxt & 0xFFFFFFFF, nxt >> 32]
-        return out + [intena, intreq, vblanks]
+        latch, counter, running, oneshot, nxt, vector, level4, calls = timer
+        return out + [intena, intreq, vblanks, latch, counter, running, oneshot,
+                      nxt & 0xFFFFFFFF, nxt >> 32, vector, level4, calls]
 
     def paula_differences(self, memory):
         """The port's audio model against the original's after the step: registers, DMA,
@@ -664,7 +676,7 @@ class Replay:
         want = self.expected_paula(memory)
         if want is None:
             return []
-        got = (ctypes.c_uint32 * 39)()
+        got = (ctypes.c_uint32 * 48)()
         self.lib.wt_paula_state(got)
         got = list(got)
         names = ['lc', 'len', 'per', 'vol', 'on', 'ptr', 'left', 'next', 'next_hi']
@@ -676,7 +688,10 @@ class Replay:
                     continue
                 if a[i] != b[i]:
                     out.append(('channel %d %s' % (c, name), 'port', a[i], 'original', b[i]))
-        for i, name in ((36, 'intena'), (37, 'intreq'), (38, 'vblanks')):
+        for i, name in ((36, 'intena'), (37, 'intreq'), (38, 'vblanks'), (39, 'timer latch'),
+                        (40, 'timer counter'), (41, 'timer running'), (42, 'timer one-shot'),
+                        (43, 'timer next'), (44, 'timer next_hi'), (45, 'timer vector'),
+                        (46, 'level-4 vector'), (47, 'timer calls')):
             if got[i] != want[i]:
                 out.append((name, 'port', got[i], 'original', want[i]))
         return out

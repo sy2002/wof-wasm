@@ -208,6 +208,22 @@ export const WEAPON_VIEW = `(() => {
    steady before the click, turned after it, and a burst drawn in the water; the guns, which
    the weapon counter does not count, leave it alone.  `view` reads the framebuffer, `player`
    the overlay. */
+/* KeyM in flight, the game's Control-S (opt_music_off, re/notes/keys.md): the effects stop
+   within a tick and stay silent, and a second press brings them back.  The overlay's pcm line
+   is read after the first press, a while later, and after the second. */
+export async function muteRun(pressM, overlay, sleep) {
+    const out = {};
+    await pressM();
+    await sleep(800);
+    out.muted1 = await overlay();
+    await sleep(1500);
+    out.muted2 = await overlay();
+    await pressM();
+    await sleep(1500);
+    out.unmuted = await overlay();
+    return out;
+}
+
 export async function weaponRun(view, player, click, hold, sleep) {
     const before = [];
     for (let i = 0; i < 15; i++) {

@@ -20,7 +20,7 @@ import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRound, fullscreenRun,
          walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, WEAPON_VIEW,
-         enemyFlight, weaponRun } from './pagemeasure.mjs';
+         enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -122,14 +122,15 @@ try {
 
     await fire();                                    /* end the scroller */
     /* The logo comes up in a palette of its own and only then fades to the picture's own
-       colours, so it is looked at once it has (re/notes/frontend.md's timetable). */
-    await sleep(3400);
+       colours, so it is looked at once it has (re/notes/frontend.md's timetable); before it
+       the scroller's song fades out, which the game waits for, about two seconds. */
+    await sleep(5500);
     report.front.logo = await settle();
     await sleep(3200);
     report.front.title = await settle();
 
     await fire();                                    /* skip to the rank selection */
-    await sleep(1500);
+    await sleep(3600);                               /* the title's song fades out first */
     report.front.ranks = await settle();
     report.picture = report.front.ranks;
 
@@ -371,6 +372,9 @@ try {
     flight.pcm = await evaluate("document.getElementById('overlay').textContent");
     await cdp.release(sessionId, 'up');
     await cdp.release(sessionId, 'right');
+    flight.mute = await muteRun(() => press(sessionId, 'keyM'),
+                                () => evaluate("document.getElementById('overlay').textContent"),
+                                sleep);
 
     /* The pause stops the ticks, and the second press lets them run on. */
     await press(sessionId, 'keyP');
@@ -591,11 +595,11 @@ try {
     await enemyKeys.tap('space', 250);               /* the scroller */
     await sleep(6600);
     await enemyKeys.tap('space', 250);               /* the title sequence */
-    await sleep(2500);
+    await sleep(4600);                               /* and the fade of its song */
     await press(enemySession, 'down');               /* the second rank */
     await sleep(400);
     await press(enemySession, 'enter');
-    await sleep(3000);
+    await sleep(5100);                               /* the music's fade, then the briefing */
     await enemyKeys.tap('space', 250);               /* the briefing */
     const enemyPlayer = () => evaluateIn(enemySession, PLAYER);
     for (let waited = 0; waited < 20000; waited += 100) {

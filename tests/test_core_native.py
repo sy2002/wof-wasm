@@ -28,7 +28,8 @@ def test_four_vblanks_make_one_tick(native_core_factory):
 @pytest.mark.parametrize('rate,hz', [(44100, 50), (48000, 60)])
 def test_the_pcm_follows_the_emulated_time(native_core_factory, blob, rate, hz):
     """The frames wof_audio_render returns are the VBlanks' at the rate asked for: 882 or 800
-    a VBlank here, silence in the front end, nothing more once they are taken (M8)."""
+    a VBlank here, the story scroller's song in them from its first notes, nothing more once
+    they are taken (M8)."""
     core = native_core_factory(1, blob)
     core.lib.wof_set_video_hz(hz)
     buffer = (ctypes.c_int16 * (65536 * 2))()
@@ -36,7 +37,7 @@ def test_the_pcm_follows_the_emulated_time(native_core_factory, blob, rate, hz):
     core.run(20)
     frames = core.lib.wof_audio_render(buffer, 65536, rate)
     assert frames == 20 * rate // hz
-    assert not any(buffer[:frames * 2])
+    assert any(buffer[:frames * 2])
     assert core.lib.wof_audio_render(buffer, 65536, rate) == 0
 
 

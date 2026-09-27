@@ -176,10 +176,15 @@ def test_the_front_end_loads_its_screens_in_order(idle):
 
 
 def test_the_music_starts_where_the_screens_change(idle):
-    """music_start(file, song) calls the player: ReadInstruments then PlaySong with the number."""
+    """music_start(file, song) calls the player: a fade of the song that plays (command 6)
+    and the wait for its end, then ReadInstruments and PlaySong with the number (command 2).
+    The fade takes 104 VBlanks under the harness's rule (re/notes/headless.md, "The fade's
+    wait")."""
     plays = [(call[4], call[2]) for call in idle.player_calls
              if call[0] == 'songplay' and call[1] == 2]          # command 2 is PlaySong
-    assert plays[:3] == [(1, 2), (3791, 1), (4876, 4)]           # scroller, pictures, rank selection
+    assert plays[:3] == [(1, 2), (3895, 1), (5084, 4)]           # scroller, pictures, rank selection
+    fades = [call[4] for call in idle.player_calls if call[0] == 'songplay' and call[1] == 6]
+    assert fades[:3] == [3791, 4980, 6888]                       # the last one music_stop's
 
 
 def test_the_story_scroller_reads_no_key():
@@ -190,13 +195,15 @@ def test_the_story_scroller_reads_no_key():
 
 
 def test_fire_skips_the_front_end(idle):
-    """Left alone the front end takes about 6900 VBlanks; five taps of fire reach a mission in 132."""
+    """Left alone the front end takes about 7200 VBlanks; five taps of fire reach a mission in
+    444, 312 of them the three fades' (the scroller's song, the pictures', the rank
+    selection's), while which the script waits."""
     with_fire = run('front-end-fire')
     assert with_fire.missions == 1
     start = [event for event in with_fire.schedule[:with_fire.schedule.index(('S', 1))] if event[0] == 'V']
-    assert len(start) == 132
+    assert len(start) == 444 and with_fire.spin_vblanks == 312
     late = [event for event in idle.schedule[:idle.schedule.index(('S', 1))] if event[0] == 'V']
-    assert len(late) > 6900, 'left alone the front end took %d VBlanks' % len(late)
+    assert len(late) > 7200, 'left alone the front end took %d VBlanks' % len(late)
 
 
 # ------------------------------------------------------------------ rank selection

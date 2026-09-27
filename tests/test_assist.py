@@ -80,9 +80,18 @@ class Core:
         if self.on_tick:
             self.on_tick(tick)
 
+    def wait_for_the_music(self):
+        """While the music waits for a fade the script waits too, and those VBlanks carry no
+        input, as in the headless original (re/notes/headless.md, "The fade's wait")."""
+        while self.lib.wt_music_spin():
+            self.lib.wof_vblank(0)
+            self.lib.wof_pass()
+            self.vblank += 1
+
     def run(self, count, letters='', keys=()):
         raw = headless.raw_state(letters)
         for i in range(count):
+            self.wait_for_the_music()
             if i == 0:
                 for code in keys:
                     self.p.port_key(code, 0)

@@ -266,12 +266,26 @@ def overlay_pcm(text):
                     (int(v) for v in found.groups())))
 
 
-def assert_the_front_end_is_silent(overlay):
-    """The front end plays no effect (its music is M8's part 2): the shell has taken PCM from
-    the core since the key started the sound, and every frame of it is silence."""
+def assert_the_title_is_heard(overlay, backend=None):
+    """The front end's music (M8 part 2): since the key that started the sound, the shell has
+    taken PCM from the core, and the songs of the story scroller, the title and the rank
+    selection made it audible; through `backend` when one is named."""
+    if backend:
+        backend_found, state, _ = overlay_audio(overlay)
+        assert backend_found == backend and state == 'running', (backend_found, state)
     pcm = overlay_pcm(overlay)
     assert pcm['frames'] > 0, 'the shell took no PCM from the core: %s' % pcm
-    assert pcm['audible'] == 0 and pcm['peak'] == 0, 'the front end made a sound: %s' % pcm
+    assert pcm['audible'] > 0 and pcm['peak'] > 0, 'the front end was silent: %s' % pcm
+
+
+def assert_keym_silences_the_effects(mute):
+    """KeyM in flight is the game's Control-S (opt_music_off): from shortly after the press no
+    frame of the PCM is audible while the frames go on, and a second press brings the effects
+    back (tests/pagemeasure.mjs, muteRun)."""
+    one, two, back = (overlay_pcm(mute[k]) for k in ('muted1', 'muted2', 'unmuted'))
+    assert two['frames'] > one['frames'], 'no PCM taken while muted: %s %s' % (one, two)
+    assert two['audible'] == one['audible'], 'the effects sounded after KeyM: %s %s' % (one, two)
+    assert back['audible'] > two['audible'], 'the effects did not come back: %s %s' % (two, back)
 
 
 def assert_the_mission_is_heard(overlay, backend):
@@ -584,9 +598,11 @@ class Ported:
             'wt_trace_reset': ([], None),
             'wt_trace_get': ([i, ctypes.c_char_p, ctypes.c_char_p,
                               ctypes.POINTER(ctypes.c_int)], i),
-            'wt_music_count': ([], i),
-            'wt_music_song': ([i], i),
-            'wt_music_vblank': ([i], i),
+            'wt_music_spin': ([], i),
+            'wt_sound_event_count': ([], i),
+            'wt_sound_event': ([i, ctypes.c_void_p], i),
+            'wt_sound_events_reset': ([], None),
+            'wt_paula_state': ([ctypes.c_void_p], None),
             'wt_front_line': ([], i),
             'wt_mission_count': ([], i),
             'wt_global_get_at_mission': ([i, i], ctypes.c_uint32),
@@ -660,14 +676,29 @@ class Ported:
     def pass_(self):
         self.lib.wof_pass()
 
-    def music_count(self):
-        return self.lib.wt_music_count()
+    def music_spin(self):
+        return self.lib.wt_music_spin()
 
-    def music_song(self, i):
-        return self.lib.wt_music_song(i)
+    def sound_events(self, files):
+        """The sound event log (src/audio.c) as the headless original's Paula model keeps
+        it: (kind, VBlank, pass, tick, channel, file, offset, words, period, volume,
+        instant), the file named from `files` by the handle's index."""
+        words = (ctypes.c_uint32 * 12)()
+        out = []
+        for i in range(self.lib.wt_sound_event_count()):
+            assert self.lib.wt_sound_event(i, words)
+            kind, vblank, passes, ticks, channel, file, offset, length, per, vol = words[:10]
+            file = file - (1 << 32) if file >= 1 << 31 else file
+            out.append((chr(kind), vblank, passes, ticks, channel,
+                        files[file] if 0 <= file < len(files) else '?',
+                        offset, length, per, vol, words[10] | words[11] << 32))
+        return out
 
-    def music_vblank(self, i):
-        return self.lib.wt_music_vblank(i)
+    def paula_state(self):
+        """Paula's model, timer A and the level-4 vector in tests/shim.c's 48 words."""
+        words = (ctypes.c_uint32 * 48)()
+        self.lib.wt_paula_state(words)
+        return list(words)
 
     def front_line(self):
         return self.lib.wt_front_line()

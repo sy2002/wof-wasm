@@ -58,6 +58,22 @@ WOF_TABLE(sound_screech,       soundptr,  1, 0x026EA8)
 WOF_TABLE(sound_scream,        soundptr,  1, 0x026EAC)
 WOF_TABLE(sound_splash,        soundptr,  1, 0x026EB4)
 
+/* The music's segments (M8 part 2): music_start keeps the song data's segment list and its
+ * address, the player's segment list and its entry. */
+WOF_TABLE(songs_seglist,       segptr,    1, 0x027428)
+WOF_TABLE(song_data,           segptr,    1, 0x02742C)
+WOF_TABLE(player_seglist,      segptr,    1, 0x0255EA)
+WOF_TABLE(player_entry,        segptr,    1, 0x0255EE)
+
+/* The music's own memory (M8 part 2, re/notes/music.md): the parts of the player's DATA
+ * hunk that change, found in the original through the player's segment list (hunk 1), and
+ * the voices of the song data, found through song_data at +0xCC. */
+WOF_POOL(player_head,          plhead,    1, 0x0255EA)
+WOF_POOL(player_vars,          plvars,    1, 0x0255EA)
+WOF_POOL(player_tracks,        track,     4, 0x0255EA)
+WOF_POOL(player_song,          plsong,    1, 0x0255EA)
+WOF_POOL(song_voices,          voice,     7, 0x02742C)
+
 /* A pointer into the map's record list: the last record. */
 WOF_TABLE(map_records_end,     mapptr,    1, 0x02462C)
 

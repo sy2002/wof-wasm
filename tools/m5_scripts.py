@@ -377,9 +377,18 @@ RUNS['bomb_cheat'] = (with_keys(with_keys(with_keys(BOMB_A, 800, CHEAT), 900, [0
 # (0x0100D6, main's jsr to player_restart_state), where balloons_on stays as poked.
 RANK_END, MISSION_RESET = 0x01009E, 0x0100D6
 BALLOONS_ON = 0x02535D
-POKES = {'bomb_b': {MISSION_NUMBER: (2, 2)}, 'bomb_c': {MISSION_NUMBER: (2, 3)},
+# The targets let their soldiers out on timers taken from vblank_total (target_timers,
+# 0x011E18: (vblank_total >> 4) & 31), and the music's fades in the front end add 312 VBlanks
+# to that count before the mission (re/notes/music.md).  The three scripts that take soldiers
+# on were made before the music played, so vblank_total is set back at the rank selection's
+# end to what it is there without the fades, 97: their missions are then the ones they were
+# made for.
+VBLANK_TOTAL = 0x0253CA
+WITHOUT_THE_FADES = {VBLANK_TOTAL: (4, 97)}
+POKES = {'bomb_b': {MISSION_NUMBER: (2, 2), **WITHOUT_THE_FADES}, 'bomb_c': {MISSION_NUMBER: (2, 3)},
          'rockets_c': {MISSION_NUMBER: (2, 3)},
-         'balloons_c': {MISSION_NUMBER: (2, 3), BALLOONS_ON: (1, 0xFF, MISSION_RESET)}}
+         'balloons_c': {MISSION_NUMBER: (2, 3), BALLOONS_ON: (1, 0xFF, MISSION_RESET)},
+         'high_a': dict(WITHOUT_THE_FADES), 'island_a': dict(WITHOUT_THE_FADES)}
 
 
 def poke_points(pokes):

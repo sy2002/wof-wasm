@@ -36,6 +36,7 @@ export const KEYS = {
     keyB: { key: 'b', code: 'KeyB', text: 'b' },
     keyP: { key: 'p', code: 'KeyP', text: 'p' },
     keyF: { key: 'f', code: 'KeyF', text: 'f' },
+    keyM: { key: 'm', code: 'KeyM', text: 'm' },
 };
 
 export class Devtools {

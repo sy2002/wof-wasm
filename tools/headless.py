@@ -76,6 +76,7 @@ OBSERVE_CCR   = 0x0FFE10
 OBSERVE_TRAP  = 0x0FFE20
 HEAP_BASE, HEAP_END   = 0x200000, 0xA00000      # AllocMem, except display memory
 PLANE_BASE, PLANE_END = 0xA00000, 0xB00000      # what display_alloc_chip asks for: planes, copper lists
+SEG_BASE, SEG_END     = 0xB00000, 0xBF0000      # the hunks LoadSeg loads (the music's segments)
 CIA_BASE, CIA_SIZE = 0xBFD000, 0x2000
 CUSTOM   = 0xDFF000
 VHPOSR   = 0xDFF006
@@ -127,7 +128,7 @@ DEFAULT_RUN = {
     'video_hz': 50,
     'vblanks_per_pass': 2,
     'paula': True,
-    'music': False,
+    'music': True,
     'raw': [],
     'stop': {'ticks': 100},
 }
@@ -295,7 +296,7 @@ class Headless(AmigaOS):
 
         self.o = Oracle(a4=A4)
         self.uc = uc = self.o.uc
-        uc.mem_map(HEAP_BASE, PLANE_END - HEAP_BASE)
+        uc.mem_map(HEAP_BASE, SEG_END - HEAP_BASE)
         uc.mem_map(CIA_BASE, CIA_SIZE)
         uc.mem_map(CUSTOM, 0x1000)
 
@@ -325,7 +326,7 @@ class Headless(AmigaOS):
         self.os_calls = collections.Counter()
 
         # memory
-        self.heap, self.plane_heap = HEAP_BASE, PLANE_BASE
+        self.heap, self.plane_heap, self.seg_heap = HEAP_BASE, PLANE_BASE, SEG_BASE
         self.allocs = {}                  # address -> size, live allocations outside display memory
         self.alloc_sizes = {}             # address -> size, every allocation ever made
         self.display_allocs = {}          # address -> size, what display_alloc_chip asked for
@@ -386,6 +387,7 @@ class Headless(AmigaOS):
         self.raw_index, self.raw_left = 0, (self.raw_script[0][0] if self.raw_script else 0)
         self.raw_fresh = True
         self._frozen = False                  # the music's spin: the script waits (_music_spin)
+        self.music_at_s = None
         self.spin_vblanks = 0
         self.byte_script = list(run.get('bytes', []))
         self.bytes_used = 0
@@ -456,6 +458,8 @@ class Headless(AmigaOS):
         # (tools/headless_paula.py).  `"paula": false` in the run description leaves the audio
         # registers plain memory, as they were before M8.
         self.paula = headless_paula.install(self, self.video_hz) if run.get('paula', True) else None
+        if self.paula is None:
+            run['music'] = False          # the player needs the model's timer: answered as idle
         # Unicorn does not execute rte (it raises an exception it leaves unhandled), so the
         # driver does it at the one the game's interrupt handler ends with.
         self.stop_at(AUDIO_IRQ_RTE, self._rte)
@@ -548,6 +552,16 @@ class Headless(AmigaOS):
 
     def free(self, address):
         self.allocs.pop(address, None)
+
+    def segment_alloc(self, size):
+        """Memory for a hunk LoadSeg loads, from an area of its own, so that loading the music
+        moves no allocation of the game's; like the heap, it is never handed out again."""
+        size = (size + 7) & ~7
+        address, self.seg_heap = self.seg_heap, self.seg_heap + size
+        if self.seg_heap > SEG_END:
+            raise HarnessError('segment memory exhausted')
+        self.allocs[address] = self.alloc_sizes[address] = size
+        return address
 
     def _map_rom(self):
         """The owner's Kickstart ROM, mapped where it lives.  Two of its parts run for real:
@@ -1039,6 +1053,10 @@ class Headless(AmigaOS):
     def _mission_start(self):
         self.missions += 1
         self.inner_reached = True
+        if self.paula is not None and self.missions == 1:
+            # The music at the first mission's start: the level-4 vector, and whether the
+            # timer still has a vector (re/notes/music.md, "The timer").
+            self.music_at_s = (self.o.r32(0x70), self.paula.timer.vector is not None)
         self.schedule.append(('S', self.missions))
         self._step('S')
         if self._until == 'inner':

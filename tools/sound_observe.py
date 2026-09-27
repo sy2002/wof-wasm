@@ -1,10 +1,12 @@
 """The sound of the M4, M5 and M6 scripts under the headless original (M8, re/notes/sound.md).
 
 Every script of tools/reach_observe.py's --m6 list runs with the model of Paula
-(tools/headless_paula.py), and per script the tool gives: the sample starts and restarts of
-the event log, by sound file and channel; the handler calls; the requests the main program
-made deliverable (`late`, which the model's delivery rule wants at 0); and the event count
-the closed loop of tests/m4compare.py holds the port to.
+(tools/headless_paula.py) and the real music player, and per script the tool gives: the
+sample starts and restarts of the event log, the songs' (wofsongs) and the effects' apart,
+by sound file and channel; the handler calls; the requests the main program made
+deliverable (`late`, which the model's delivery rule wants at 0); the timer's ticks and the
+VBlanks of the fades' waits; the level-4 vector and the timer's vector at step S; and the
+event count the closed loop of tests/m4compare.py holds the port to.
 
     .venv/bin/python tools/sound_observe.py --jobs 8 --markdown TABLE.md
     .venv/bin/python tools/sound_observe.py --runs kills_a deck
@@ -34,7 +36,15 @@ def observe(name):
     machine.run(wall_limit=3600.0)
     paula = machine.paula
     by_file = collections.Counter((e[0], e[5].replace('sounds/', ''), e[4]) for e in paula.events)
+    songs = [e for e in paula.events if e[5] == 'wofsongs']
+    effects = [e for e in paula.events if e[5] != 'wofsongs']
+    at_s = machine.music_at_s
     return name, {
+        'music': (sum(1 for e in songs if e[0] == 'S'), sum(1 for e in songs if e[0] == 'R')),
+        'effects': (sum(1 for e in effects if e[0] == 'S'), sum(1 for e in effects if e[0] == 'R')),
+        'timer': len(paula.timer.calls), 'spin': machine.spin_vblanks,
+        'at_s': None if at_s is None else ('`audio_irq`' if at_s[0] == 0x01EBAA else '`%06x`' % at_s[0],
+                                           'timer vector' if at_s[1] else 'no timer vector'),
         'vblanks': machine.vblanks, 'passes': machine.passes, 'ticks': machine.ticks,
         'starts': sum(1 for e in paula.events if e[0] == 'S'),
         'restarts': sum(1 for e in paula.events if e[0] == 'R'),
@@ -67,15 +77,22 @@ def main():
             records = dict(pool.map(observe, names))
     else:
         records = dict(observe(name) for name in names)
-    rows = ['| Script | VBlanks | Starts | Restarts | Handler calls | Late | Starts by sound and channel |',
-            '|---|---|---|---|---|---|---|']
+    rows = ['| Script | VBlanks | Music S/R | Effects S/R | Handler calls | Late | Timer ticks | '
+            'Fades | At S | Effects\' starts by sound and channel |',
+            '|---|---|---|---|---|---|---|---|---|---|']
     for name in names:
         r = records[name]
-        starts = ', '.join('%s %d:%d' % (f, c, n) for (k, f, c), n in r['by_file'] if k == 'S')
-        rows.append('| `%s` | %d | %d | %d | %d | %d | %s |' % (
-            name, r['vblanks'], r['starts'], r['restarts'], r['irqs'], r['late'], starts or 'none'))
+        starts = ', '.join('%s %d:%d' % (f, c, n) for (k, f, c), n in r['by_file']
+                           if k == 'S' and f != 'wofsongs')
+        rows.append('| `%s` | %d | %d/%d | %d/%d | %d | %d | %d | %d | %s | %s |' % (
+            name, r['vblanks'], r['music'][0], r['music'][1], r['effects'][0], r['effects'][1],
+            r['irqs'], r['late'], r['timer'], r['spin'],
+            ', '.join(r['at_s']) if r['at_s'] else 'none', starts or 'none'))
     total = [sum(records[n][k] for n in names) for k in ('starts', 'restarts', 'irqs', 'late')]
-    rows.append('| all %d | | %d | %d | %d | %d | |' % tuple([len(names)] + total))
+    music = [sum(records[n]['music'][i] for n in names) for i in (0, 1)]
+    effects = [sum(records[n]['effects'][i] for n in names) for i in (0, 1)]
+    rows.append('| all %d | | %d/%d | %d/%d | %d | %d | | | | |' % (
+        len(names), music[0], music[1], effects[0], effects[1], total[2], total[3]))
     commands = sorted({c for n in names for c in records[n]['player']})
     rows.append('')
     rows.append('The commands the scripts give the music player: %s.  Handler calls that saw '

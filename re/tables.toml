@@ -14,8 +14,11 @@
 #   words     `count` big-endian 16-bit values                -> uint16_t[count]
 #             (`stride` bytes apart when given: immediates of a run of instructions;
 #             or one from each address of `addrs`)
+#
+# An entry with `file = "songplay"` reads the music player instead, at the addresses of its
+# listing re/songplay.lst: CODE from 0x0000, DATA from 0x1000.
 #   longs     `count` big-endian 32-bit values                -> uint32_t[count]
-#   blob      `count` raw bytes                               -> uint8_t[count]
+#   blob      `count` raw bytes, or one from each address of `addrs` -> uint8_t[count]
 #   sysfont   topaz 8, located by contents in original/kick.rom (re/notes/system-font.md)
 
 # ---------------------------------------------------------------- shape name lists 3.5
@@ -770,3 +773,79 @@ name = "channel_stop_period"
 kind = "words"
 addr = 0x01EB18
 count = 1
+
+# ------------------------------------------------------------------ the music player (M8)
+#
+# From songplay itself (re/notes/music.md), at its listing's addresses.  note_clocks: per note
+# the colour clocks of one cycle, 132 longs, which note_period indexes at 0x1134 + 4 x
+# (note - 0x1B), so from note 0x1B - 60 on.  durations: 20 pairs of a note's length in ticks
+# and the tick of its release.
+[[table]]
+name = "note_clocks"
+file = "songplay"
+kind = "longs"
+addr = 0x1044
+count = 132
+
+[[table]]
+name = "durations"
+file = "songplay"
+kind = "blob"
+addr = 0x1254
+count = 40
+
+# song_begin's volume for each track (move.w #imm at 0x0382, 0x03AE, 0x03DA, 0x0406), the
+# period a channel is left at when a note is released (note_release, 0x05C4) and when it
+# goes off (CheckChannelInt, 0x08DE), and _ReadInstruments' numerator of the notes per
+# octave (the byte of moveq #imm,d1 at 0x0986).
+[[table]]
+name = "track_volume"
+file = "songplay"
+kind = "words"
+addr = 0x0384
+count = 4
+stride = 0x2C
+
+[[table]]
+name = "release_period"
+file = "songplay"
+kind = "words"
+addrs = [0x05C6, 0x08E0]
+count = 2
+
+[[table]]
+name = "octave_notes"
+file = "songplay"
+kind = "blob"
+addr = 0x0987
+count = 1
+
+# The lowest note note_period's table is indexed from (sub.w #imm,d1 at 0x080A); the
+# player's DATA hunk as the file holds it, which LoadSeg gives the player at every load.
+[[table]]
+name = "note_base"
+file = "songplay"
+kind = "words"
+addr = 0x080C
+count = 1
+
+[[table]]
+name = "player_data"
+file = "songplay"
+kind = "blob"
+addr = 0x1000
+count = 988
+
+# The game's side: the file music_start's callers name (title_sequence's copy; the other
+# three hold the same), and the fade speed music_start and music_stop give with command 6
+# (the byte of moveq #imm,d1 at 0x0123F6 and 0x01247E).
+[[table]]
+name = "songs_file"
+kind = "cstr"
+addr = 0x018122
+
+[[table]]
+name = "music_fade_speed"
+kind = "blob"
+addrs = [0x0123F7, 0x01247F]
+count = 2

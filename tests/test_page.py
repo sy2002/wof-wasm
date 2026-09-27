@@ -33,7 +33,7 @@ from conftest import (assert_a_moment_hidden_changes_nothing,
                       assert_the_screenshot_shows_the_picture,
                       assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
-                      assert_the_front_end_is_silent, assert_the_mission_is_heard,
+                      assert_the_title_is_heard, assert_keym_silences_the_effects, assert_the_mission_is_heard,
                       measured_box, overlay_audio, overlay_number)
 
 # What the shell was showing when each measurement was taken.
@@ -373,10 +373,18 @@ def test_a_mission_is_flown_from_the_keyboard(loaded):
         assert flight['water_' + life]['deck'] == 6, (life, flight['water_' + life])
 
 
-def test_the_front_end_renders_silence(loaded):
-    """M8 in Chrome: the key that started the sound came in the front end, which plays no
-    effect; every frame of PCM the shell has taken from the core since is silence."""
-    assert_the_front_end_is_silent(loaded['overlay'])
+def test_the_front_end_plays_its_music(loaded):
+    """M8 in Chrome: the key that started the sound came in the story scroller, whose song
+    plays from the sixth VBlank; the PCM the shell has taken since through the worklet is not
+    silent, and neither is that of the page opened with ?audio=buffers, the fallback."""
+    assert_the_title_is_heard(loaded['overlay'], 'worklet')
+    assert_the_title_is_heard(loaded['fallback']['overlay'], 'buffers')
+
+
+def test_keym_in_flight_silences_the_effects(loaded):
+    """M8 in Chrome: KeyM in flight, the game's Control-S, stops the effects and a second
+    press brings them back."""
+    assert_keym_silences_the_effects(loaded['flight']['mute'])
 
 
 def test_the_mission_sounds_through_the_worklet(loaded):

@@ -36,6 +36,7 @@ WOF_GLOBAL(ticker_message,     uint32_t, 0x0257B6)  /* the ticker's next charact
 
 /* the sound engine (M8, re/notes/sound.md) */
 WOF_GLOBAL(sound_vblanks,      uint32_t, 0x027E6A)  /* soundfx_vblank counts every VBlank */
+WOF_GLOBAL(song_number,        uint32_t, 0x0255F2)  /* music_start: the song it was asked for */
 WOF_GLOBAL(irq_store,          uint32_t, 0x026218)  /* audio_irq stores g_027f1a at index g_027f18 */
 WOF_GLOBAL(g_027f1a,           uint32_t, 0x027F1A)  /* read by audio_irq alone; nothing writes it */
 
@@ -163,6 +164,9 @@ WOF_GLOBAL(sound_installed,    uint16_t, 0x027E68)  /* sound_init has run: its s
 WOF_GLOBAL(g_027f18,           uint16_t, 0x027F18)  /* read by audio_irq alone; nothing writes it */
 WOF_GLOBAL(sound_intena,       uint16_t, 0x027F1E)  /* soundfx_vblank: INTENAR's audio bits on entry */
 WOF_GLOBAL(sound_dmacon,       uint16_t, 0x027F20)  /* soundfx_vblank: the channels it switches on */
+/* music_start sets the first byte of +0, music_stop clears the word, nothing reads it; +2 is
+ * read and written by nothing. */
+WOF_GLOBAL_ARRAY(music_playing, uint16_t, 2, 0x027430)
 
 /* the mission (M4): the tick and the player (re/notes/porting-m4.md, part 2) */
 WOF_GLOBAL(g_02476a,           int16_t,  0x02476A)  /* logic_tick: 0..7, the index into 0x024C44 */

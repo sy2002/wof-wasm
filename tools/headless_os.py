@@ -108,6 +108,7 @@ class AmigaOS:
         self.segments = []
         self.player_calls = []
         self.loaded = {}                  # name -> [(address, size, hunk)] of a real LoadSeg
+        self.loaded_history = []          # (name, [(address, size)]) of every real LoadSeg
 
     # ------------------------------------------------------------------------ exec
 
@@ -573,7 +574,7 @@ class AmigaOS:
         sizes = [len(h['data']) for h in hunk.load(raw)]
         bases = []
         for i, size in enumerate(sizes):
-            base = self.alloc(size + 8)
+            base = self.segment_alloc(size + 8)
             self.alloc_labels[base] = '%s hunk %d (LoadSeg)' % (name, i)
             bases.append(base)
         hunks = hunk.load(raw, bases=[b + 8 for b in bases])
@@ -582,6 +583,7 @@ class AmigaOS:
             self.o.w32(base + 4, (bases[i + 1] + 4) >> 2 if i + 1 < len(bases) else 0)
             self.o.write(base + 8, bytes(h['data']))
         self.loaded[name.lower()] = [(b + 8, len(h['data']), h) for b, h in zip(bases, hunks)]
+        self.loaded_history.append((name.lower(), [(b + 8, len(h['data'])) for b, h in zip(bases, hunks)]))
         self.segment_loaded(name.lower())
         return (bases[0] + 4) >> 2
 

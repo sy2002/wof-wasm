@@ -147,9 +147,9 @@ export async function walkToTheHold(keys, player, sleep) {
     await keys.tap('space', 250);                   /* the scroller */
     await sleep(6600);
     await keys.tap('space', 250);                   /* the title sequence */
-    await sleep(2500);
+    await sleep(4600);                              /* and the fade of its song */
     await keys.tap('enter', 80);                    /* the first rank */
-    await sleep(3000);
+    await sleep(5100);                              /* the music's fade, then the briefing */
     await keys.tap('space', 250);                   /* the briefing */
     for (let waited = 0; waited < 20000; waited += 100) {
         const p = await player();

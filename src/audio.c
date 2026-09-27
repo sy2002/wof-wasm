@@ -19,6 +19,13 @@
  * stops.  A request reaches audio_irq when INTENA has the master bit and the channel's bit,
  * after every channel event of a boundary and after soundfx_vblank returns.
  *
+ * CIA-A's timer A, which the music player takes (src/music.c), is part of the same time: it
+ * counts at the E clock, one tick of 5 x hz units, and underflows N + 1 ticks after it was
+ * loaded with N (0 counting as 1); an underflow is an event like a channel's, delivered at
+ * its instant in the same walk, after the channels' events of the same instant, with the
+ * player's SongInt as ciaa.resource's vector.  Writing CRA to start a running timer without
+ * a forced load leaves it counting; stopping it keeps what is left in the counter.
+ *
  * The mixer runs inside the same walk: the output frames of [T_k, T_k+1) are mixed at the
  * boundary of VBlank k+1, each frame from the byte every channel plays at its instant, so a
  * channel audio_irq stops at a cycle's end falls silent there and not a VBlank later.
@@ -36,6 +43,8 @@
 #define LEVEL4_ON   0x4000u
 
 #define P (wof_s.paula)
+#define C (wof_s.cia)
+#define E_CLOCK_CC 5u       /* colour clocks per E clock cycle */
 
 static uint32_t clock_of(uint16_t hz)
 {
@@ -45,9 +54,92 @@ static uint32_t clock_of(uint16_t hz)
 /* ------------------------------------------------------------------ the samples */
 
 /* The eight effects, where the file system blob holds them.  Not state: the blob is the same
- * for the whole session, and a handle names a file by its index in sound_files. */
+ * from one wof_init to the next, and a handle names a file by its index in sound_files. */
 static const uint8_t *sound_bytes[8];
 static uint32_t       sound_size[8];
+
+static uint32_t be32(const uint8_t *p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+/* The song data: wofsongs's DATA hunk, the second of the file, found as LoadSeg finds it
+ * (tools/hunk.py reads the same): the header with its hunk sizes, then each hunk with its
+ * relocations, symbols and debug data, up to the overlay table, where LoadSeg stops.  The
+ * hunk's pointers are relocated to the hunk itself, so read as they stand they are offsets
+ * into it (re/notes/music.md). */
+static const uint8_t *song_bytes;
+static uint32_t       song_size;
+
+const uint8_t *wof_song_data(uint32_t *size)
+{
+    const uint8_t *raw;
+    uint32_t       len, at = 4, first, last, hunk = 0, n;
+
+    *size = song_size;
+    if (song_bytes)
+        return song_bytes;
+    raw = wof_fs_find(wof_tbl_songs_file, &len);
+    if (!raw || len < 8 || be32(raw) != 0x3F3u)
+        return 0;
+    for (;;) {                                          /* resident library names */
+        if (at + 4 > len)
+            return 0;
+        n = be32(raw + at);
+        at += 4;
+        if (!n)
+            break;
+        at += 4u * n;
+    }
+    if (at + 12 > len)
+        return 0;
+    first = be32(raw + at + 4);
+    last  = be32(raw + at + 8);
+    at += 12u + 4u * (last - first + 1u);
+    while (at + 4 <= len) {
+        uint32_t type = be32(raw + at) & 0x3FFFFFFFu;
+
+        at += 4;
+        switch (type) {
+        case 0x3E9:                                     /* HUNK_CODE */
+        case 0x3EA:                                     /* HUNK_DATA */
+            n = at + 4 <= len ? 4u * be32(raw + at) : 0;
+            at += 4;
+            if (at + n > len)
+                return 0;
+            if (hunk++ == 1) {
+                song_bytes = raw + at;
+                song_size  = n;
+                *size      = n;
+                return song_bytes;
+            }
+            at += n;
+            break;
+        case 0x3EB:                                     /* HUNK_BSS */
+            at += 4;
+            hunk++;
+            break;
+        case 0x3EC:                                     /* HUNK_RELOC32 */
+            while (at + 4 <= len && (n = be32(raw + at)) != 0)
+                at += 8u + 4u * n;
+            at += 4;
+            break;
+        case 0x3F0:                                     /* HUNK_SYMBOL */
+            while (at + 4 <= len && (n = be32(raw + at) & 0xFFFFFFu) != 0)
+                at += 8u + 4u * n;
+            at += 4;
+            break;
+        case 0x3F1:                                     /* HUNK_DEBUG */
+            at += 4u + (at + 4 <= len ? 4u * be32(raw + at) : 0);
+            break;
+        case 0x3F2:                                     /* HUNK_END */
+            break;
+        default:                                        /* the overlay table, or no hunk */
+            return 0;
+        }
+    }
+    return 0;
+}
 
 const int8_t *wof_sound_data(uint32_t handle, uint32_t *left)
 {
@@ -55,6 +147,15 @@ const int8_t *wof_sound_data(uint32_t handle, uint32_t *left)
     uint32_t off  = WOF_SOUND_OFFSET(handle);
 
     *left = 0;
+    if (file == WOF_SONG_FILE) {
+        uint32_t       n;
+        const uint8_t *d = wof_song_data(&n);
+
+        if (!d || off >= n)
+            return 0;
+        *left = n - off;
+        return (const int8_t *)(d + off);
+    }
     if (file < 0 || file >= 8)
         return 0;
     if (!sound_bytes[file])
@@ -268,6 +369,10 @@ static uint16_t set_clear(uint16_t old, uint16_t value)
 
 void wof_paula_write(uint16_t reg, uint16_t value)
 {
+    /* DMACONR, ADKCONR, INTENAR and INTREQR can only be read: a write to one does nothing,
+     * and what it reads stays the model's (the player writes INTREQR, src/music.c). */
+    if (reg == 0x002 || reg == 0x010 || reg == 0x01C || reg == 0x01E)
+        return;
     if (reg == WOF_DMACON) {
         for (int c = 0; c < 4; c++) {
             if (!(value & (1u << c)))
@@ -305,21 +410,94 @@ uint16_t wof_paula_intreqr(void) { return (uint16_t)(P.intreq & 0x7FFFu); }
 
 /* ------------------------------------------------------------------ the VBlank */
 
-/* The level-4 handler while a request is deliverable: audio_irq once sound_init has put it
- * at the autovector, the system's before that, which clears what it is given. */
+/* The level-4 handler while a request is deliverable, whichever is at the autovector:
+ * audio_irq once sound_init has put it there, the player's SongIntHandler while the music
+ * is loaded, the system's before either, which clears what it is given. */
 void wof_paula_deliver(void)
 {
     for (int rounds = 0; deliverable() && rounds < 8; rounds++) {
         P.irqs++;
-        if (wof_g.sound_installed)
-            wof_audio_irq();
-        else
-            P.intreq = (uint16_t)(P.intreq & ~AUDIO_BITS);
+        switch (C.level4) {
+        case WOF_L4_AUDIO_IRQ: wof_audio_irq();         break;
+        case WOF_L4_SONGINT:   wof_song_int_handler();  break;
+        default: P.intreq = (uint16_t)(P.intreq & ~AUDIO_BITS); break;
+        }
     }
 }
 
-/* VBlank k+1 is about to happen: the channel events of [T_k, T_k+1) in time order, each
- * delivered, and the output frames of the same span mixed around them. */
+/* ------------------------------------------------------------------ CIA-A's timer A */
+
+static uint64_t e_tick(void)
+{
+    return (uint64_t)E_CLOCK_CC * P.hz;
+}
+
+/* From a load of `count` to the underflow: count + 1 ticks, a count of 0 as 1. */
+static uint64_t timer_period(uint16_t count)
+{
+    return ((uint64_t)(count ? count : 1u) + 1u) * e_tick();
+}
+
+void wof_cia_write(uint32_t address, uint8_t value)
+{
+    uint64_t t = in_event ? event_at : now();
+
+    if (address == WOF_CIAA_TALO) {
+        C.latch = (uint16_t)((C.latch & 0xFF00u) | value);
+    } else if (address == WOF_CIAA_TAHI) {
+        C.latch = (uint16_t)((C.latch & 0x00FFu) | (uint16_t)value << 8);
+        if (!C.running) {                   /* a stopped timer is loaded, a one-shot starts */
+            C.counter = C.latch;
+            if (C.oneshot) {
+                C.running = 1;
+                C.next    = t + timer_period(C.counter);
+            }
+        }
+    } else if (address == WOF_CIAA_CRA) {
+        if (C.running && (value & 0x01u) && !(value & 0x10u)) {
+            C.oneshot = (value & 0x08u) != 0;           /* it counts on */
+            return;
+        }
+        if (C.running) {                    /* what is left: ticks to the underflow, less one */
+            uint64_t left = C.next > t ? C.next - t : 0;
+            uint64_t n    = (left + e_tick() - 1u) / e_tick();
+
+            C.counter = (uint16_t)(n > 1u ? n - 1u : 0u);
+        }
+        if (value & 0x10u)
+            C.counter = C.latch;
+        C.oneshot = (value & 0x08u) != 0;
+        C.running = value & 0x01u;
+        C.next    = C.running ? t + timer_period(C.counter) : 0;
+    }
+}
+
+static uint64_t timer_due(uint64_t end)
+{
+    return C.running && C.next < end ? C.next : NEVER;
+}
+
+/* Timer A underflows at t: it reloads from the latch, a one-shot timer stops, and the
+ * vector ciaa.resource keeps for it runs, its writes at the underflow's instant. */
+static void timer_underflow(uint64_t t)
+{
+    C.counter = C.latch;
+    if (C.oneshot) {
+        C.running = 0;
+        C.next    = 0;
+    } else {
+        C.next = t + timer_period(C.latch);
+    }
+    if (C.vector) {
+        C.calls++;
+        wof_song_int();
+    }
+}
+
+/* VBlank k+1 is about to happen: the events of [T_k, T_k+1) in time order - the channels'
+ * cycle ends and timer A's underflows - each delivered, and the output frames of the same
+ * span mixed around them.  At an equal instant the channels come first, in channel order,
+ * because their interrupt is level 4 and the timer's level 2. */
 void wof_paula_boundary(void)
 {
     uint64_t from = now();
@@ -327,7 +505,7 @@ void wof_paula_boundary(void)
     uint64_t mixed = from;
 
     for (;;) {
-        uint64_t best = NEVER;
+        uint64_t best = NEVER, tt = timer_due(end);
         int      which = -1;
 
         for (int c = 0; c < 4; c++) {
@@ -337,6 +515,16 @@ void wof_paula_boundary(void)
                 best  = t;
                 which = c;
             }
+        }
+        if (tt < best) {
+            mix(mixed, tt);
+            mixed    = tt;
+            event_at = tt;
+            in_event = 1;
+            timer_underflow(tt);
+            wof_paula_deliver();
+            in_event = 0;
+            continue;
         }
         if (which < 0)
             break;
@@ -375,6 +563,11 @@ void wof_paula_rate(uint16_t hz)
         if (ch->on)
             ch->next = now() + left * new_scale / old_scale;
     }
+    if (C.running) {
+        uint64_t left = C.next > old_now ? C.next - old_now : 0;
+
+        C.next = now() + left * new_scale / old_scale;
+    }
 }
 
 /* ------------------------------------------------------------------ the core's side */
@@ -384,7 +577,15 @@ void wof_audio_init(void)
     wof_mem_set(&P, 0, sizeof P);
     P.intena = LEVEL4_ON;               /* the system runs with the master bit on */
     P.hz     = wof_s.video_hz;
+    wof_mem_set(&C, 0, sizeof C);
+    C.latch   = 0xFFFF;                 /* the 8520's state at power-up */
+    C.counter = 0xFFFF;
+    C.level4  = WOF_L4_SYSTEM;
     queue_head = queue_count = 0;
+    song_bytes = 0;                     /* the blob wof_init was given may be another */
+    song_size  = 0;
+    for (int f = 0; f < 8; f++)
+        sound_bytes[f] = 0;
 #ifdef WOF_TRACE
     event_count = 0;
 #endif

@@ -196,10 +196,6 @@ void         wof_vport_clear_planes(wof_vport_t *v);     /* orig 0x01A74C */
 #define WOF_VIEW_A 0
 #define WOF_VIEW_B 1
 
-/* The music calls of one run of the front end, recorded with the VBlank they happened at
- * (re/notes/frontend.md); the player itself is M8. */
-#define WOF_MUSIC_LOG 32
-
 /* --------------------------------------------------------------- the front end (6.3) */
 
 /* What the front end keeps between one wof_pass and the next: the resume points of the
@@ -244,6 +240,7 @@ typedef struct {
     wof_ctx_t co_restart;     /* the next aircraft (orig 0x0135CE) */
     wof_ctx_t co_lost_restart; /* player_lost_restart (orig 0x0135D8) */
     wof_ctx_t co_keys;        /* ingame_keys (orig 0x01CCF6) */
+    wof_ctx_t co_music;       /* music_start and music_stop: the wait for the fade */
 
     /* Locals that live across a wait.  The original keeps them on its stack; a stackless
      * coroutine cannot, so they carry the name they have in the routine that owns them. */
@@ -353,10 +350,10 @@ typedef struct {
     uint16_t colour1[2];
     uint16_t dev_dialog;      /* a development request: 1 the load dialog, 2 the save one */
 
-    /* The music calls, recorded rather than played: the player is M8. */
-    uint16_t music_count;
-    uint16_t music_song[WOF_MUSIC_LOG];
-    uint32_t music_vblank[WOF_MUSIC_LOG];
+    /* music_start and music_stop (src/music.c): the VBlanks left of a round of their wait
+     * for the fade, and the song music_start was asked for across it. */
+    uint16_t music_spin;
+    uint16_t music_song;
 
     wof_vport_t vport[WOF_VP_MAX];
     uint8_t     vram[WOF_VRAM_BYTES];
@@ -386,6 +383,8 @@ typedef struct {
 #define WOF_K_MAP   2
 #define WOF_K_POOL  3
 #define WOF_K_SOUND 4
+#define WOF_K_SONG  5
+#define WOF_K_VECTOR 6
 
 #define WOF_RECORD(r, size)                   typedef struct {
 #define WOF_FIELD(r, n, t, off, k)            t n;
@@ -444,6 +443,26 @@ typedef struct {
     uint16_t pad;
 } wof_paula_t;
 
+/* The rest of the hardware the music player takes (M8 part 2, re/notes/music.md): CIA-A's
+ * timer A, whose underflow ciaa.resource hands to the vector AddICRVector installed, and
+ * the level-4 autovector at 0x70, which the player takes over while it is loaded.  Timer A
+ * counts at the E clock, a tick of 5 x hz units of the Paula model; tools/headless_paula.py
+ * keeps the same (re/notes/headless.md, "The music's timer"). */
+#define WOF_L4_SYSTEM    0   /* the operating system's: it clears what it is given */
+#define WOF_L4_AUDIO_IRQ 1   /* audio_irq, 0x01EBAA, which sound_init puts there */
+#define WOF_L4_SONGINT   2   /* the player's SongIntHandler, songplay+0x0848 */
+
+typedef struct {
+    uint64_t next;       /* the instant of the next underflow while the timer runs */
+    uint32_t calls;      /* calls of the ICR vector */
+    uint16_t latch;      /* timer A's latch, TALO and TAHI */
+    uint16_t counter;    /* its counter as last loaded */
+    uint16_t running;    /* CRA bit 0 */
+    uint16_t oneshot;    /* CRA bit 3 */
+    uint16_t vector;     /* the ICR vector of timer A: 1 the player's SongInt, 0 none */
+    uint16_t level4;     /* the handler at 0x70, WOF_L4_* */
+} wof_cia_t;
+
 /* ------------------------------------------------------------------------ core state */
 
 /* Everything the core may change while running, in one struct, so that wof_state_save is a
@@ -474,13 +493,14 @@ typedef struct {
     uint16_t assist_queued; /* presses remembered while it runs, at most two */
     uint16_t assist_queue[2];
     wof_paula_t   paula;    /* Paula's audio side, src/audio.c (M8) */
+    wof_cia_t     cia;      /* timer A and the level-4 vector, src/audio.c (M8 part 2) */
     wof_globals_t g;        /* the original's own globals, src/globals.def */
     wof_mission_t m;        /* the original's tables, src/mission.def */
     wof_front_t   f;        /* the front end: coroutines, screens, dialogs (SPEC 6.3) */
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 10u
+#define WOF_STATE_VERSION 11u
 
 extern wof_state_t wof_s;
 
@@ -889,7 +909,6 @@ void                   wof_trace_standins_reset(void);
 
 wof_co_t wof_front(void);                 /* orig 0x010006 main, the outer loop at 0x010066 */
 void     wof_front_init(void);
-void     wof_music_start(const char *file, uint16_t song);   /* orig 0x0123DC, recorded */
 uint16_t wof_number(char *dst, int32_t value);               /* the sprintf("%d") in use */
 void     wof_view_set_picture(uint8_t view);                 /* orig 0x016A98 */
 wof_co_t wof_load_save_dialog(uint16_t mode);                /* orig 0x018B96 */
@@ -935,6 +954,32 @@ void     wof_paula_deliver(void);
 void     wof_paula_server(int inside);                           /* a VBlank server runs */
 void     wof_paula_rate(uint16_t hz);                            /* the video standard changed */
 const int8_t *wof_sound_data(uint32_t handle, uint32_t *left);  /* the bytes from a handle on */
+#define WOF_CIAA_TALO 0xBFE401u
+#define WOF_CIAA_TAHI 0xBFE501u
+#define WOF_CIAA_CRA  0xBFEE01u
+void     wof_cia_write(uint32_t address, uint8_t value);         /* CIA-A: TALO, TAHI, CRA */
+
+/* The music (src/music.c, re/notes/music.md): the game's two calls, as coroutines because
+ * both wait for a fade to end, and the player they drive.  The song data is file
+ * WOF_SONG_FILE of the sound handles: its samples play from wofsongs's DATA hunk. */
+#define WOF_SONG_FILE 8
+
+/* Where the parts of src/mission.def lie in songplay's DATA hunk (0x1000 below
+ * re/songplay.lst's addresses) and the voices in wofsongs's. */
+#define WOF_PLAYER_HEAD   0x000u
+#define WOF_PLAYER_VARS   0x27Cu
+#define WOF_PLAYER_TRACKS 0x2AAu
+#define WOF_PLAYER_SONG   0x3D2u
+#define WOF_VOICES_AT     0x0CCu
+#define WOF_VOICES        7u
+void     wof_music_memory_load(const uint8_t *player, const uint8_t *songs);   /* src/core.c */
+void     wof_music_memory_free(void);
+wof_co_t wof_music_start(uint16_t song);   /* orig 0x0123DC music_start("wofsongs", song) */
+wof_co_t wof_music_stop(void);             /* orig 0x012470 */
+uint16_t wof_player_call(uint16_t command, uint32_t d1, uint32_t d2);  /* orig songplay+0x0000 */
+void     wof_song_int(void);               /* orig songplay+0x02A6 SongInt, timer A's tick */
+void     wof_song_int_handler(void);       /* orig songplay+0x0848, the player's level-4 handler */
+const uint8_t *wof_song_data(uint32_t *size);   /* wofsongs's DATA hunk, as the file holds it */
 
 /* The effects engine (src/sound.c, re/notes/sound.md), in the original's address order. */
 void     wof_sound_slots_clear(void);       /* orig 0x011F4E */

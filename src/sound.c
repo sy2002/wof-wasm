@@ -340,6 +340,7 @@ void wof_sound_init(void)
     wof_paula_write(WOF_DMACON, 0x000F);
     /* 0x01E8F6: ADKCON 0x00FF, no modulation; the model has none.  0x01E8FC: the vector at
      * 0x70 kept in 0x027EE6 and audio_irq put there: the port calls it (src/audio.c). */
+    wof_s.cia.level4 = WOF_L4_AUDIO_IRQ;
     wof_paula_write(WOF_INTREQ, 0x0780);
     wof_paula_write(WOF_INTENA, 0x8780);
     wof_g.sound_installed = 1;                  /* and AddIntServer: src/input.c calls it */
@@ -366,8 +367,8 @@ static void channel_stop(int c)
 /* orig 0x01EA28 - a sample for channel c (D1), to start at the VBlank after next: with no
  * sample nothing; a busy channel stopped first (0x01EB2E); its request cleared and its
  * interrupt on; the record takes the sample, the length in words, the period, the volume
- * and the repeat count, and waits.  A request for channel 6 hands channel 2 over to the
- * music first (0x01E9F4), which nothing asks for. */
+ * and the repeat count, and waits.  A request for channel 6 would hand channel 2 over to
+ * the music first (0x01E9F4); no caller makes one. */
 static void channel_play(uint32_t sample, uint32_t length, uint16_t c, uint16_t period,
                          uint16_t volume, uint16_t repeat)
 {
@@ -376,8 +377,11 @@ static void channel_play(uint32_t sample, uint32_t length, uint16_t c, uint16_t 
     if (sample == 0)
         return;
     if (c == 6) {
-        /* 0x01E9F4 hands channel 2 over from the music, with a Delay of ten VBlanks */
-        WOF_STANDIN("M8 PART 2 STAND-IN: 0x01EA3A, a sample asked for on channel 6");
+        /* Dead (read): the one caller the game reaches, sound_channels, asks for its pair
+         * index, 0 to 3 (0x0120F8, D6), and the other, sound_play_rate (0x01E992), has no
+         * caller.  0x01E9F4 would hand channel 2 over from the music, with a Delay of ten
+         * VBlanks; channel2_from_music (0x01EA18) would give it back and has no caller. */
+        WOF_STANDIN("M8 STAND-IN: 0x01EA3A, a sample asked for on channel 6, which no caller does");
         c = 2;
     }
     c &= 3;

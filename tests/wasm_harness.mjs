@@ -46,8 +46,8 @@ function run(x, vblanks, raw = 0) {
 }
 
 /* The PCM of emulated time (src/audio.c): a first call sets the rate, VBlanks with a pass
-   after each are run, and what the core mixed for them is taken.  The front end plays no
-   effect, so it is silence, and exactly as many frames as the VBlanks last at that rate. */
+   after each are run, and what the core mixed for them is taken: exactly as many frames as
+   the VBlanks last at that rate, with the story scroller's song in them. */
 function audio(x, rate, hz, vblanks) {
     const room = 65536;
     const ptr = x.wof_alloc(room * 4);
@@ -121,12 +121,13 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
 /* The front end (src/front.c): the screens of re/notes/frontend.md come up one after the
  * other, each with a picture of its own, and the briefing's rank shape fills the display
  * list of SPEC 6.4.  The VBlanks below are the timetable of the note with the provisional
- * two VBlanks per fade step that the core ships with. */
+ * two VBlanks per fade step that the core ships with; before the logo and before the rank
+ * selection the song fades out, 104 VBlanks each (re/notes/music.md). */
 {
     const x = boot(1);
     const countPtr = x.wof_alloc(4);
     const stages = [];
-    const at = { scroller: 200, logo: 3900, title: 4200, credits: 4600, rank: 5300 };
+    const at = { scroller: 200, logo: 4004, title: 4304, credits: 4704, rank: 5508 };
     let seen = 0;
 
     for (const [name, vblank] of Object.entries(at)) {
@@ -183,10 +184,11 @@ result.imports = WebAssembly.Module.imports(module).map((e) => e.module + '.' + 
     };
 }
 
-/* The framebuffer holds indices, every one of them inside the palette. */
+/* The framebuffer holds indices, every one of them inside the palette.  The button held from
+   the start ends the scroller; after the fade of its song (104 VBlanks) the logo comes up. */
 {
     const x = boot(1);
-    run(x, 41, 0x1f);
+    run(x, 150, 0x1f);
     const fb = framebuffer(x);
     let max = 0;
     let nonzero = 0;

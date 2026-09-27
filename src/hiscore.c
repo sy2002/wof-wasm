@@ -220,7 +220,7 @@ wof_co_t wof_high_score_screen(void)
     wof_ctx_t *c = &wof_f.co_stage;
 
     CO_BEGIN(c);
-    wof_music_start("wofsongs", 0);
+    CO_CALL(c, &wof_f.co_music, wof_music_start(0));
     CO_CALL(c, &wof_f.co_inner, wof_high_score_entry());
     CO_CALL(c, &wof_f.co_screen, wof_screen_hiscore());
 

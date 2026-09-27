@@ -24,20 +24,6 @@ static uint16_t str_len(const char *s)
     return n;
 }
 
-/* orig 0x0123DC music_start.  The player is a second executable the original loads with
- * LoadSeg; porting it is M8.  Until then a call is recorded with the VBlank it happened
- * at, which is what re/notes/frontend.md's timetable is made of, and nothing plays. */
-void wof_music_start(const char *file, uint16_t song)
-{
-    (void)file;
-    wof_trace_add("music_start", song, 0, 0, 0, file, 32);
-    if (wof_f.music_count < WOF_MUSIC_LOG) {
-        wof_f.music_song[wof_f.music_count]   = song;
-        wof_f.music_vblank[wof_f.music_count] = wof_s.vblanks;
-        wof_f.music_count++;
-    }
-}
-
 /* orig 0x017422 load_picture_black - the picture is decoded into the **back** view, its
  * colours are handed to the caller and the viewport's table is blacked, so that the caller
  * can show the view and fade up to the colours it was given.  That is what keeps a picture
@@ -167,9 +153,9 @@ static wof_co_t title_sequence(void)
     wof_ctx_t *c = &wof_f.co_stage;
 
     CO_BEGIN(c);
-    wof_music_start("wofsongs", 2);
+    CO_CALL(c, &wof_f.co_music, wof_music_start(2));
     CO_CALL(c, &wof_f.co_inner, story_screen());
-    wof_music_start("wofsongs", 1);
+    CO_CALL(c, &wof_f.co_music, wof_music_start(1));
     CO_CALL(c, &wof_f.co_screen, wof_screen_picture());
 
     wof_load_picture_black(wof_tbl_broderbund_pic, wof_f.title_pal);
@@ -228,7 +214,7 @@ static wof_co_t rank_select(void)
 
     CO_BEGIN(c);
     wof_g.rank_cursor = 0;
-    wof_music_start("wofsongs", 4);
+    CO_CALL(c, &wof_f.co_music, wof_music_start(4));
     CO_CALL(c, &wof_f.co_screen, wof_screen_picture());
     wof_g.loaded_game = 0;
     wof_load_picture_black(wof_tbl_selectrank_pic, wof_f.rank_pal);
@@ -313,6 +299,7 @@ static wof_co_t rank_select(void)
     wof_g.rank_chosen = wof_g.rank_cursor;
     wof_g.rank_played = wof_g.rank_cursor;
     wof_g.mission_number  = 1;
+    CO_CALL(c, &wof_f.co_music, wof_music_stop());           /* 0x0184D6 */
     CO_END(c);
 }
 
@@ -395,7 +382,6 @@ static wof_co_t mission_briefing(void)
 void wof_front_init(void)
 {
     wof_f.co_main.line   = 0;
-    wof_f.music_count    = 0;
     wof_f.mission_count  = 0;
     wof_display_init();
 }

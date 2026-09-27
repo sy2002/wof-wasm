@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.join(ROOT, 'tools'))
 sys.path.insert(0, HERE)
 
 import headless                    # noqa: E402
+import m4compare                   # noqa: E402
 from conftest import WOF_TRACE_TEXT  # noqa: E402
 
 # The drawing routines the harness can watch by name, and what the port calls them.  The
@@ -44,16 +45,20 @@ OBSERVE = ['os_gfx_move', 'os_gfx_set_apen', 'os_gfx_rect_fill', 'text_draw',
 EXECUTABLE = range(0x010000, 0x028004)
 
 
-def headless_run(name, until=None, **options):
-    with open(os.path.join(RUNS, name + '.json')) as f:
-        description = json.load(f)
+def headless_run(name, until=None, machine_class=headless.Headless, **options):
+    """A run of tests/runs/ by its name, or a run description given as a dict."""
+    if isinstance(name, dict):
+        description = dict(name)
+    else:
+        with open(os.path.join(RUNS, name + '.json')) as f:
+            description = json.load(f)
     description.update(options.pop('description', {}))
-    machine = headless.Headless(description, **options)
+    machine = machine_class(description, **options)
     machine.run(until=until)
     return machine
 
 
-def replay(ported, machine, fade_vblanks=0, stop_at_mission=False, stop_at=None):
+def replay(ported, machine, fade_vblanks=0, stop_at_mission=False, stop_at=None, each=None):
     """The harness's schedule through the port: its keys, its raw state, one pass each.
 
     With stop_at_mission the replay ends where the port's front end does, which is where
@@ -65,6 +70,7 @@ def replay(ported, machine, fade_vblanks=0, stop_at_mission=False, stop_at=None)
         keys.setdefault(vblank, []).append((code, qualifier))
 
     ported.reset_core(fade_vblanks=fade_vblanks)
+    ported.lib.wof_set_video_hz(machine.video_hz)      # the music's timer counts in its units
     vblank = 0
     for event in machine.schedule:
         if event[0] != 'V':
@@ -74,6 +80,8 @@ def replay(ported, machine, fade_vblanks=0, stop_at_mission=False, stop_at=None)
             ported.key(code, qualifier)
         ported.vblank(event[1])
         ported.pass_()
+        if each:
+            each(vblank)
         if stop_at_mission and ported.mission_count():
             break
         if stop_at is not None and vblank >= stop_at:
@@ -81,16 +89,20 @@ def replay(ported, machine, fade_vblanks=0, stop_at_mission=False, stop_at=None)
     return vblank
 
 
-def port_music(ported):
-    return [(ported.music_vblank(i), ported.music_song(i))
-            for i in range(ported.music_count())]
+def event_key(event):
+    """A sound event without the pass and the tick, which count differently in the front end
+    (the harness counts its own passes and ticks only in a mission)."""
+    kind, vblank, passes, ticks, channel, name, offset, length, per, vol, at = event
+    return (kind, vblank, channel, name, offset, length, per, vol, at)
 
 
-def original_music(machine):
-    """music_start calls the player twice: ReadInstruments, then PlaySong with the number.
-    Command 2 is the one that names the song (re/notes/frontend.md)."""
-    return [(call[4], call[2]) for call in machine.player_calls
-            if call[0] == 'songplay' and call[1] == 2]
+def original_events(machine, until=None):
+    return [event_key(e) for e in machine.paula.events if until is None or e[1] <= until]
+
+
+def port_events(ported, until=None):
+    files = [name.lower() for name in m4compare.SOUND_FILES]
+    return [event_key(e) for e in ported.sound_events(files) if until is None or e[1] <= until]
 
 
 @pytest.fixture(scope='module')
@@ -106,14 +118,22 @@ def fire():
 # ------------------------------------------------------------------ the timetable
 
 @pytest.mark.parametrize('run_name', ['front-end-idle', 'front-end-fire'])
-def test_the_music_calls_fall_on_the_same_vblanks(ported, run_name):
-    """Which song, at which VBlank.  The player is M8; the port records the call and plays
-    nothing, which is what the harness does with it too."""
+def test_the_music_plays_the_same_notes_at_the_same_instants(ported, run_name):
+    """The player's events: every sample start and restart - the songs' and, once the
+    mission begins, the effects' - with its VBlank, channel, sample, length, period, volume
+    and instant, the port's against the original's; then timer A, its calls and the handler
+    at the level-4 vector where the run ends (re/notes/music.md)."""
     machine = headless_run(run_name)
     replay(ported, machine)
-    want = original_music(machine)
-    got = port_music(ported)
-    assert got[:len(want)] == want, 'port %s, original %s' % (got[:6], want[:6])
+    want, got = original_events(machine), port_events(ported)
+    songs = [e for e in want if e[3] == 'wofsongs']
+    assert len(songs) > 50, 'the original played %d notes' % len(songs)
+    n = next((i for i, (a, b) in enumerate(zip(got, want)) if a != b), min(len(got), len(want)))
+    assert got == want, 'event %d: port %s, original %s' % (n, got[n:n + 2], want[n:n + 2])
+    timer = ported.paula_state()[39:48]
+    latch, counter, running, oneshot, nxt, vector, level4, calls = machine.paula.snapshot()[4]
+    assert timer == [latch, counter, running, oneshot, nxt & 0xFFFFFFFF, nxt >> 32, vector,
+                     level4, calls]
 
 
 @pytest.mark.parametrize('run_name', ['front-end-idle', 'front-end-fire'])
@@ -149,8 +169,8 @@ def test_the_front_end_opens_the_same_files_at_the_same_vblanks(ported, run_name
 
 
 @pytest.mark.parametrize('run_name, mission_at', [
-    ('front-end-idle', 6923),       # left alone, the front end takes this long
-    ('front-end-fire', 130),        # with the five taps of fire the tests use
+    ('front-end-idle', 7235),       # left alone, the front end takes this long
+    ('front-end-fire', 442),        # with the five taps of fire the tests use
 ])
 def test_the_mission_begins_at_the_same_vblank(ported, run_name, mission_at):
     """Where the original reaches mission_display_setup, the port reaches the mission

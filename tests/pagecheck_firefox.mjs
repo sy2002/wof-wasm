@@ -24,7 +24,7 @@ import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRun, walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, WEAPON_VIEW,
-         enemyFlight, weaponRun } from './pagemeasure.mjs';
+         enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -224,14 +224,15 @@ try {
 
     await fire();
     /* The logo comes up in a palette of its own and only then fades to the picture's own
-       colours, so it is looked at once it has (re/notes/frontend.md's timetable). */
-    await sleep(3400);
+       colours, so it is looked at once it has (re/notes/frontend.md's timetable); before it
+       the scroller's song fades out, which the game waits for, about two seconds. */
+    await sleep(5500);
     report.front.logo = await settle();
     await sleep(3200);
     report.front.title = await settle();
 
     await fire();
-    await sleep(1500);
+    await sleep(3600);                              /* the title's song fades out first */
     report.front.ranks = await settle();
     report.picture = report.front.ranks;
 
@@ -432,9 +433,9 @@ try {
     await holdIn(KEY_SPACE, 250);                   /* the scroller */
     await sleep(6600);
     await holdIn(KEY_SPACE, 250);                   /* the title sequence */
-    await sleep(2500);
+    await sleep(4600);                              /* and the fade of its song */
     await press(flightTab, KEY_ENTER);              /* the first rank */
-    await sleep(3000);
+    await sleep(5100);                              /* the music's fade, then the briefing */
     await holdIn(KEY_SPACE, 250);                   /* the briefing */
     /* The first press in the hold comes as soon as the mission scene is there, which is when
        the player's x leaves 0 (step S): the tick does not run the weapon menu for its first
@@ -497,6 +498,9 @@ try {
     flight.pcm = await evaluateIn(flightTab, "document.getElementById('overlay').textContent");
     await keyAction(flightTab, 'keyUp', KEY_UP);
     await keyAction(flightTab, 'keyUp', KEY_RIGHT);
+    flight.mute = await muteRun(() => press(flightTab, 'm'),
+                                () => evaluateIn(flightTab, "document.getElementById('overlay').textContent"),
+                                sleep);
     await press(flightTab, 'p');
     await sleep(600);
     flight.paused1 = await player();
@@ -551,11 +555,11 @@ try {
     await enemyKeys.tap('space', 250);               /* the scroller */
     await sleep(6600);
     await enemyKeys.tap('space', 250);               /* the title sequence */
-    await sleep(2500);
+    await sleep(4600);                               /* and the fade of its song */
     await press(enemyTab, KEY_DOWN);                 /* the second rank */
     await sleep(400);
     await press(enemyTab, KEY_ENTER);
-    await sleep(3000);
+    await sleep(5100);                               /* the music's fade, then the briefing */
     await enemyKeys.tap('space', 250);               /* the briefing */
     const enemyPlayer = () => evaluateIn(enemyTab, PLAYER);
     for (let waited = 0; waited < 20000; waited += 100) {

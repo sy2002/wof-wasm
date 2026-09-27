@@ -25,6 +25,10 @@
  *                sound handle in the port (uint32_t, WOF_SOUND: the file's index in
  *                sound_files plus one in the top byte, the offset into the file below it),
  *                0 on both sides for none
+ *   WOF_K_SONG   a pointer into the song data, wofsongs's DATA hunk, in the original (4 bytes),
+ *                the offset into that hunk in the port (uint32_t), 0 on both sides for none
+ *   WOF_K_VECTOR a level-4 interrupt vector in the original (4 bytes), in the port the handler
+ *                it names (uint32_t, WOF_L4_*), 0 on both sides for none
  *
  * The fields of a record tile it exactly; tests/test_mission.py holds every record to that.
  */
@@ -277,3 +281,111 @@ WOF_RECORD_END(sound_channel)
 WOF_RECORD(soundptr, 0x04)
 WOF_FIELD(soundptr, p,          uint32_t, 0x00, WOF_K_SOUND)
 WOF_RECORD_END(soundptr)
+
+/* ------------------------------------------------ the music player (M8 part 2, re/notes/music.md)
+ * songplay's DATA hunk, 0x3DC bytes, lies where LoadSeg put it; the port keeps its variables
+ * in four parts (src/mission.def), and the constants between them - the resource's and the
+ * interrupt's names, note_clocks and durations - come from re/tables.toml.  Offsets are
+ * those of the hunk, 0x1000 below re/songplay.lst's addresses. */
+
+/* +0x000: the track's channel bits, the resource, the timer's Interrupt node, the vector
+ * the player found at 0x70 */
+WOF_RECORD(plhead, 0x44)
+WOF_FIELD(plhead, dma_on,       uint16_t, 0x00, WOF_K_PLAIN)
+WOF_FIELD(plhead, dma_off,      uint16_t, 0x02, WOF_K_PLAIN)
+WOF_FIELD(plhead, int_on,       uint16_t, 0x04, WOF_K_PLAIN)
+WOF_FIELD(plhead, track_number, uint16_t, 0x06, WOF_K_PLAIN)
+WOF_FIELD(plhead, ciaa_base,    uint16_t, 0x08, WOF_K_POOL)
+WOF_FIELD_ARRAY(plhead, ciaa_name, uint8_t, 14, 0x0C, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_succ,    uint32_t, 0x1A, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_pred,    uint32_t, 0x1E, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_type,    uint8_t,  0x22, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_pri,     int8_t,   0x23, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_name,    uint16_t, 0x24, WOF_K_POOL)
+WOF_FIELD(plhead, node_data,    uint32_t, 0x28, WOF_K_PLAIN)
+WOF_FIELD(plhead, node_code,    uint16_t, 0x2C, WOF_K_POOL)
+WOF_FIELD_ARRAY(plhead, timer_name, uint8_t, 16, 0x30, WOF_K_PLAIN)
+WOF_FIELD(plhead, saved_level4_vector, uint32_t, 0x40, WOF_K_VECTOR)
+WOF_RECORD_END(plhead)
+
+/* +0x27C: the player's state (the file's own symbols) */
+WOF_RECORD(plvars, 0x2E)
+WOF_FIELD(plvars, play_state,   uint16_t, 0x00, WOF_K_PLAIN)   /* PlayState */
+WOF_FIELD(plvars, track_state,  uint32_t, 0x02, WOF_K_PLAIN)   /* TrackState */
+WOF_FIELD(plvars, sfx_state,    uint16_t, 0x06, WOF_K_PLAIN)   /* SfxState */
+WOF_FIELD(plvars, sfx_music_vol, uint16_t, 0x08, WOF_K_PLAIN)  /* SfxMusicVol */
+WOF_FIELD(plvars, song_addr,    uint32_t, 0x0A, WOF_K_SONG)    /* SongAddr */
+WOF_FIELD(plvars, fade_count,   int16_t,  0x0E, WOF_K_PLAIN)   /* FadeCount */
+WOF_FIELD(plvars, fade_speed,   int16_t,  0x10, WOF_K_PLAIN)   /* FadeSpeed */
+WOF_FIELD(plvars, paused,       uint16_t, 0x12, WOF_K_PLAIN)   /* Paused */
+WOF_FIELD(plvars, sound_ptr,    uint16_t, 0x14, WOF_K_POOL)    /* SoundPtr */
+WOF_FIELD(plvars, sound_channel, uint16_t, 0x18, WOF_K_PLAIN)  /* SoundChannel */
+WOF_FIELD(plvars, sound_volume, uint16_t, 0x1A, WOF_K_PLAIN)   /* SoundVolume */
+WOF_FIELD(plvars, sound_count,  uint16_t, 0x1C, WOF_K_PLAIN)   /* SoundCount */
+WOF_FIELD_ARRAY(plvars, track_info, uint16_t, 4, 0x1E, WOF_K_POOL) /* TrackInfo: the four tracks */
+WOF_RECORD_END(plvars)
+
+/* +0x2AA: a track, Track0Info to Track3Info.  +0x28 to +0x34 hold the addresses of the
+ * channel's AUDxVOL, AUDxPER, AUDxLC and AUDxLEN, which the player writes through. */
+WOF_RECORD(track, 0x4A)
+WOF_FIELD(track, active,     uint16_t, 0x00, WOF_K_PLAIN)
+WOF_FIELD(track, seq,        uint32_t, 0x02, WOF_K_SONG)    /* the track's sequence */
+WOF_FIELD(track, pos,        uint32_t, 0x06, WOF_K_SONG)    /* the next event of its pattern */
+WOF_FIELD(track, seq_index,  uint32_t, 0x0A, WOF_K_PLAIN)   /* the sequence entry's offset */
+WOF_FIELD(track, dur,        uint16_t, 0x0E, WOF_K_PLAIN)   /* ticks the note has left */
+WOF_FIELD(track, release,    uint16_t, 0x10, WOF_K_PLAIN)   /* the tick of its release */
+WOF_FIELD(track, irq,        int16_t,  0x12, WOF_K_PLAIN)   /* 1 started, 0 off at the next, -1 done */
+WOF_FIELD(track, vhdr,       uint32_t, 0x14, WOF_K_SONG)    /* the voice's VHDR */
+WOF_FIELD(track, body,       uint32_t, 0x18, WOF_K_SONG)    /* and BODY */
+WOF_FIELD(track, octave_div, uint16_t, 0x1C, WOF_K_PLAIN)
+WOF_FIELD(track, volume,     uint16_t, 0x1E, WOF_K_PLAIN)
+WOF_FIELD(track, base_period, uint16_t, 0x20, WOF_K_PLAIN)
+WOF_FIELD(track, loop_words, uint16_t, 0x22, WOF_K_PLAIN)   /* the repeat part's words */
+WOF_FIELD(track, loop_start, uint32_t, 0x24, WOF_K_SONG)    /* and its first byte */
+WOF_FIELD(track, reg_vol,    uint32_t, 0x28, WOF_K_PLAIN)
+WOF_FIELD(track, reg_per,    uint32_t, 0x2C, WOF_K_PLAIN)
+WOF_FIELD(track, reg_lc,     uint32_t, 0x30, WOF_K_PLAIN)
+WOF_FIELD(track, reg_len,    uint32_t, 0x34, WOF_K_PLAIN)
+WOF_FIELD(track, hold,       uint16_t, 0x38, WOF_K_PLAIN)
+WOF_FIELD(track, tie,        uint16_t, 0x3A, WOF_K_PLAIN)
+WOF_FIELD(track, voice,      uint32_t, 0x3C, WOF_K_SONG)
+WOF_FIELD(track, note,       uint16_t, 0x40, WOF_K_PLAIN)
+WOF_FIELD(track, cur_period, uint16_t, 0x42, WOF_K_PLAIN)
+WOF_FIELD(track, vib_step,   int16_t,  0x44, WOF_K_PLAIN)
+WOF_FIELD(track, sfx,        uint16_t, 0x46, WOF_K_PLAIN)
+WOF_FIELD(track, sfx_count,  int16_t,  0x48, WOF_K_PLAIN)
+WOF_RECORD_END(track)
+
+/* +0x3D2: the song _ReadInstruments chose and its voice table */
+WOF_RECORD(plsong, 0x0A)
+WOF_FIELD(plsong, song_ptr,    uint32_t, 0x00, WOF_K_SONG)
+WOF_FIELD(plsong, voice_table, uint32_t, 0x04, WOF_K_SONG)
+WOF_FIELD(plsong, w3da,        uint16_t, 0x08, WOF_K_PLAIN)
+WOF_RECORD_END(plsong)
+
+/* A voice of the song data, 0x2E bytes at 0xCC + 0x2E x n of wofsongs's DATA hunk, n 0 to
+ * 6: the only part of the song data the player writes. */
+WOF_RECORD(voice, 0x2E)
+WOF_FIELD(voice, vhdr,       uint32_t, 0x00, WOF_K_SONG)    /* _ReadInstruments: past "VHDR" */
+WOF_FIELD(voice, body,       uint32_t, 0x04, WOF_K_SONG)    /* and past "BODY" */
+WOF_FIELD(voice, octave_div, uint16_t, 0x08, WOF_K_PLAIN)   /* 0x53 / ctOctave */
+WOF_FIELD(voice, form,       uint32_t, 0x0A, WOF_K_SONG)    /* the sample's 8SVX FORM */
+WOF_FIELD(voice, l0e,        uint32_t, 0x0E, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_hi,     uint16_t, 0x12, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_lo,     uint16_t, 0x14, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_step,   int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_every,  uint16_t, 0x18, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_first,  uint16_t, 0x1A, WOF_K_PLAIN)
+WOF_FIELD(voice, vib_count,  int16_t,  0x1C, WOF_K_PLAIN)
+WOF_FIELD(voice, vibrato,    uint16_t, 0x1E, WOF_K_PLAIN)
+WOF_FIELD(voice, w20,        uint16_t, 0x20, WOF_K_PLAIN)
+WOF_FIELD(voice, arpeggio,   uint16_t, 0x22, WOF_K_PLAIN)
+WOF_FIELD_ARRAY(voice, arp,  int16_t, 4, 0x24, WOF_K_PLAIN)
+WOF_FIELD(voice, arp_index,  uint16_t, 0x2C, WOF_K_PLAIN)
+WOF_RECORD_END(voice)
+
+/* A pointer the game keeps to one of the music's segments or to the song data: the port
+ * keeps whether it is set. */
+WOF_RECORD(segptr, 0x04)
+WOF_FIELD(segptr, set,        uint16_t, 0x00, WOF_K_POOL)
+WOF_RECORD_END(segptr)

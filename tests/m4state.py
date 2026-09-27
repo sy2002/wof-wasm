@@ -8,7 +8,9 @@ the port's two structs, and compares the two field by field with names.
 
 A pointer travels by the kind its field has: a shape pointer becomes a handle, a pointer
 into the map a byte offset, a pointer to an allocation the port keeps at a fixed place a
-flag (src/records.def).  The table of a pool is found through its pointer global.
+flag, a pointer into the song data its offset, a level-4 vector the handler it names
+(src/records.def).  The table of a pool is found through its pointer global; the music's
+through the segment the game loaded (SEGMENT_TABLES).
 """
 import bisect
 import ctypes
@@ -16,7 +18,60 @@ import struct
 
 DATA_START, DATA_END = 0x023000, 0x028004
 
-K_PLAIN, K_SHAPE, K_MAP, K_POOL, K_SOUND = 0, 1, 2, 3, 4
+K_PLAIN, K_SHAPE, K_MAP, K_POOL, K_SOUND, K_SONG, K_VECTOR = 0, 1, 2, 3, 4, 5, 6
+POINTER_KINDS = (K_SHAPE, K_MAP, K_POOL, K_SOUND, K_SONG, K_VECTOR)
+
+# The music's tables (src/mission.def), found through what the game keeps of its segments:
+# the player's DATA hunk is the second hunk of its segment list at 0x0255EA, the song data
+# is what song_data (0x02742C) holds; each table lies at an offset into its hunk (src/wof.h,
+# WOF_PLAYER_* and WOF_VOICES_AT).
+PLAYER_SEGLIST, SONG_DATA, PLAYER_ENTRY = 0x0255EA, 0x02742C, 0x0255EE
+SEGMENT_TABLES = {'player_head': 0x000, 'player_vars': 0x27C, 'player_tracks': 0x2AA,
+                  'player_song': 0x3D2}
+SONG_TABLES = {'song_voices': 0x0CC}
+AUDIO_IRQ, SONGINT_HANDLER = 0x01EBAA, 0x0848
+SONG_FILE = 8                          # WOF_SONG_FILE
+
+
+def player_data(memory):
+    """The address of the player's DATA hunk: the segment list's first hunk links to the
+    second, whose contents start a long after the link (tools/headless_os.py, LoadSeg)."""
+    seglist = memory.u(PLAYER_SEGLIST, 4)
+    if not seglist:
+        return 0
+    link = memory.u(seglist << 2, 4)
+    return (link << 2) + 4 if link else 0
+
+
+def vector_code(memory, vector):
+    """A level-4 vector as the port names it (src/wof.h, WOF_L4_*)."""
+    if vector == 0:
+        return 0
+    if vector == AUDIO_IRQ:
+        return 1
+    entry = memory.u(PLAYER_ENTRY, 4)
+    if entry and vector == entry + SONGINT_HANDLER:
+        return 2
+    return 0xFFFF
+
+
+# Every song data the game has loaded, (base, size): a channel's LC keeps pointing into the
+# song data after music_stop has unloaded it, and the headless original's allocator never
+# hands that memory out again, so the pointer still names the sample.
+SEEN_SONGS = set()
+
+
+def song_handle(memory, pointer):
+    """The port's handle for a pointer into a song data's DATA hunk, or None."""
+    base = memory.u(SONG_DATA, 4)
+    if base:
+        region = memory.region(base)
+        if region is not None:
+            SEEN_SONGS.add((base, region + memory.size_of(region) - base))
+    for base, size in SEEN_SONGS:
+        if base <= pointer < base + size:
+            return ((SONG_FILE + 1) << 24) | (pointer - base)
+    return None
 
 # The pointers sounds_load (0x013368) keeps to the eight sound effects, and each one's file
 # as its index in sound_files (0x0236D7), which is how the port's sound handle names it
@@ -38,6 +93,9 @@ def sound_handle(memory, pointer):
     now, else one they held before - and the offset from there; None when it lies in none."""
     if pointer == 0:
         return 0
+    song = song_handle(memory, pointer)
+    if song is not None:
+        return song
     best = None
     for where, index in SOUND_POINTERS.items():
         start = memory.u(where, 4)
@@ -159,7 +217,7 @@ class Layout:
         for i in range(lib.wt_field_count()):
             record = lib.wt_field(i, ctypes.byref(field), numbers).decode()
             orig, elem, count, port, kind = numbers[0], numbers[1], numbers[2], numbers[3], numbers[4]
-            orig_elem = 4 if kind in (K_SHAPE, K_MAP, K_POOL, K_SOUND) else elem
+            orig_elem = 4 if kind in POINTER_KINDS else elem
             for k in range(count):
                 name = field.value.decode() + ('[%d]' % k if count > 1 else '')
                 self.records[record]['fields'].append(
@@ -207,6 +265,16 @@ class Layout:
         rec = self.records[table['record']]
         if not table['pool']:
             return table['addr'], table['count']
+        if table['name'] in SEGMENT_TABLES or table['name'] in SONG_TABLES:
+            if table['name'] in SEGMENT_TABLES:
+                hunk, offset = player_data(memory), SEGMENT_TABLES[table['name']]
+            else:
+                hunk, offset = memory.u(SONG_DATA, 4) or 0, SONG_TABLES[table['name']]
+            region = memory.region(hunk) if hunk else None
+            if region is None:
+                return 0, 0
+            end = region + memory.size_of(region)
+            return hunk + offset, min((end - hunk - offset) // rec['orig_size'], table['count'])
         # The game's allocator puts a header of its own in front of what it hands out, so
         # the pointer lies inside the harness's allocation, not at its start.
         base = memory.u(table['addr'], 4) or 0
@@ -216,8 +284,9 @@ class Layout:
         end = region + memory.size_of(region)
         return base, min((end - base) // rec['orig_size'], table['count'])
 
-    def expected(self, memory, shapes=None):
-        """The original's state converted: (globals bytes, mission bytes, problems)."""
+    def expected(self, memory, shapes=None, tables=None):
+        """The original's state converted: (globals bytes, mission bytes, problems); with
+        `tables`, only the tables named there."""
         shapes = shapes or Shapes(memory)
         problems = []
         g = bytearray(self.globals_bytes)
@@ -232,7 +301,10 @@ class Layout:
                 g[offset + k * elem:offset + (k + 1) * elem] = bytes(raw)[::-1]
         m = bytearray(self.mission_bytes)
         map_base = memory.u(0x024628, 4) or 0
+        song_base = memory.u(SONG_DATA, 4) or 0
         for table in self.tables:
+            if tables is not None and table['name'] not in tables:
+                continue
             rec = self.records[table['record']]
             base, count = self.table_base(table, memory)
             if not count:
@@ -264,6 +336,10 @@ class Layout:
                             problems.append('%s[%d].%s: %08x is in no sound' % (table['name'], i, fname, v))
                             h = 0xFFFFFFFF
                         v = h
+                    elif kind == K_SONG:
+                        v = (v - song_base) & 0xFFFFFFFF if v else 0
+                    elif kind == K_VECTOR:
+                        v = vector_code(memory, v)
                     else:
                         v = 1 if v else 0
                     m[port_at + port:port_at + port + elem] = v.to_bytes(elem, 'little')

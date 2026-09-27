@@ -63,6 +63,7 @@ def test_the_model_changes_no_step_of_a_silent_run():
     for paula in (True, False):
         description = m6_scripts.script('flight')
         description['paula'] = paula
+        description['music'] = False        # the player answered as idle: the model alone
         description['stop'] = {'ticks': 400}
         machine = Steps(description)
         m5_scripts.install_pokes(machine, {OPT_MUSIC_OFF: (1, 0xFF)})

@@ -38,6 +38,15 @@ choose_night decides, who writes view_step, and where ingame_keys is entered fro
                                             every script of M4, M5 and M6 (tools/m6_scripts.py)
     .venv/bin/python tools/reach_observe.py --m6-only --load REACH.json --markdown TABLE.md
 
+The music player (M8 part 2), a segment the game loads with LoadSeg, is watched the same way
+from its load on: its routines by re/songplay_names.txt and the file's symbols, at the
+offsets of re/songplay.lst, and with --blocks its basic blocks.
+
+    .venv/bin/python tools/reach_observe.py --m6-only --load REACH.json --player-markdown TABLE.md
+                                            the player's routines, entries by part of the run
+    .venv/bin/python tools/reach_observe.py --cold REACH.json   also the never-run regions of
+                                            every player routine src/music.c ports
+
 An entry is the execution of a routine's first instruction.  A routine that branches back
 to its own first instruction would count each round; the tool finds those statically and
 names them.  A routine that another one falls into is entered by the fall, which is how
@@ -47,6 +56,7 @@ import argparse
 import bisect
 import collections
 import csv
+import functools
 import glob
 import json
 import os
@@ -131,6 +141,9 @@ class Reach(headless.Headless):
     def __init__(self, run, blocks=False, **options):
         super().__init__(run, **options)
         self.window = 'front'
+        self.block_hooks = blocks
+        self.player_entries = collections.Counter()   # (window, phase, routine) -> entries
+        self.player_blocks = collections.Counter()    # (window, phase, offset, size) -> executions
         self.blocks = collections.Counter()       # (window, phase, block, size) -> executions
         self.entries = collections.Counter()      # (window, phase, routine) -> entries
         self.draws = collections.Counter()        # (window, phase, caller) -> entropy reads
@@ -151,6 +164,31 @@ class Reach(headless.Headless):
             uc.hook_add(UC_HOOK_BLOCK, self._block, begin=0x010000, end=0x022F4B)
 
     _last_entry = None
+
+    def segment_loaded(self, name):
+        """The player's routines and, with --blocks, its blocks, from the load on; its CODE
+        hunk is fresh memory, so hooks added now fire (re/notes/headless.md, Unicorn)."""
+        super().segment_loaded(name)
+        if name != 'songplay':
+            return
+        base, size, _ = self.loaded[name][0]
+        for offset, routine in player_routines():
+            self.uc.hook_add(UC_HOOK_CODE, functools.partial(self._player_entry, routine),
+                             begin=base + offset, end=base + offset)
+        if self.block_hooks:
+            self.uc.hook_add(UC_HOOK_BLOCK, functools.partial(self._player_block, base),
+                             begin=base, end=base + size - 1)
+
+    def _player_entry(self, routine, uc, address, size, user):
+        stack = uc.reg_read(UC_M68K_REG_A7)
+        if self._refire == address and self._last_entry == (address, stack):
+            self._refire = None
+            return
+        self._last_entry = (address, stack)
+        self.player_entries[(self.window, self.phase(), routine)] += 1
+
+    def _player_block(self, base, uc, address, size, user):
+        self.player_blocks[(self.window, self.phase(), address - base, size)] += 1
 
     def _block(self, uc, address, size, user):
         self.blocks[(self.window, self.phase(), address, size)] += 1
@@ -315,6 +353,9 @@ def record_of(m, first):
                      'missions': m.missions, 'entropy': len(m.entropy_log)},
         'self_looping': self_looping(m, m.table) if first else None,
         'blocks': [[w, p, a, size, n] for (w, p, a, size), n in sorted(m.blocks.items())],
+        'player_entries': [[w, p, r, n] for (w, p, r), n in sorted(m.player_entries.items())],
+        'player_blocks': [[w, p, a, size, n]
+                          for (w, p, a, size), n in sorted(m.player_blocks.items())],
     }
 
 
@@ -337,18 +378,7 @@ def collect(names, verbose=True, blocks=False, setups=False, jobs=1):
                                                                                 blocks=blocks))
                      for letter, rm in sorted(setup_runs().items())]
     for name, make in machines:
-        m = make()
-        out[name] = {
-            'entries': [[w, p, r, n] for (w, p, r), n in sorted(m.entries.items())],
-            'draws': [[w, p, r, n] for (w, p, r), n in sorted(m.draws.items())],
-            'line_calls': m.line_calls,
-            'view_step_writes': m.view_step_writes,
-            'night': m.night,
-            'counters': {'vblanks': m.vblanks, 'passes': m.passes, 'ticks': m.ticks,
-                         'missions': m.missions, 'entropy': len(m.entropy_log)},
-            'self_looping': self_looping(m, m.table) if names and name == names[0] else None,
-            'blocks': [[w, p, a, size, n] for (w, p, a, size), n in sorted(m.blocks.items())],
-        }
+        out[name] = record_of(make(), bool(names) and name == names[0])
     return out
 
 
@@ -366,7 +396,7 @@ LISTS = [
 ]
 
 
-CODE_WORD = re.compile(r"(?<![`\w])((?:[A-Za-z][\w.]*_[\w.]*[\w])|(?:0x[0-9A-Fa-f]+))(?![`\w])")
+CODE_WORD = re.compile(r"(?<![`\w])((?:_?[A-Za-z][\w.]*_[\w.]*[\w])|(?:_[A-Za-z]\w*)|(?:0x[0-9A-Fa-f]+))(?![`\w])")
 
 
 def code_words(text):
@@ -430,6 +460,152 @@ def markdown(data, names):
 SOUND_ROUTINES = {0x011F4E, 0x011F64, 0x011F76, 0x012066, 0x012132, 0x0122CE, 0x0122F6, 0x012306,
                   0x012324, 0x01233E, 0x012354, 0x012380, 0x0123AC, 0x013368, 0x01344E, 0x01346C,
                   0x0134A4, 0x01B9CC} | set(range(0x01E8B8, 0x01ED7A))
+
+
+# ------------------------------------------------------------------ the music player
+
+PLAYER_CODE_SIZE = 0x0A88
+
+
+def player_routines():
+    """(offset, name) of every routine of the player's CODE hunk: re/songplay_names.txt over
+    the file's own symbols, at the offsets of re/songplay.lst."""
+    import disasm_player
+    import hunk
+    segs = hunk.load(disasm_player.PLAYER, bases=disasm_player.BASES)
+    names = disasm_player.names_of(segs, disasm_player.load_names())
+    return sorted((a, n) for a, n in names.items() if a < PLAYER_CODE_SIZE)
+
+
+def player_spans():
+    """{offset: (span, name)} of the player's routines: each up to the next."""
+    table = player_routines()
+    ends = [a for a, _ in table[1:]] + [PLAYER_CODE_SIZE]
+    return {a: (end - a, n) for (a, n), end in zip(table, ends)}
+
+
+def player_markdown(data, names):
+    """The reach map of the music player: per part of the run, the entries of each of its
+    routines summed over the scripts, and the number of scripts that entered it."""
+    names = [n for n in names if not n.startswith('setup-')]
+    order = {n: a for a, n in player_routines()}
+    windows = ['front', 'outer', 'rank', 'pre-briefing', 'briefing', 'setup', 'mission',
+               'between', 'after']
+    totals = collections.defaultdict(collections.Counter)
+    runs = collections.Counter()
+    for name in names:
+        seen = set()
+        for w, p, r, n in data[name].get('player_entries', ()):
+            totals[r][w] += n
+            seen.add(r)
+        for r in seen:
+            runs[r] += 1
+    used = [w for w in windows if any(totals[r][w] for r in totals)]
+    lines = ['| Routine | Offset | ' + ' | '.join('`%s`' % w for w in used) + ' | Runs |',
+             '|---|---|' + '---|' * (len(used) + 1)]
+    for routine in sorted(totals, key=lambda r: order.get(r, 1 << 20)):
+        lines.append('| `%s` | `%04x` | %s | %d |' % (
+            routine, order.get(routine, 0), ' | '.join(str(totals[routine][w]) for w in used),
+            runs[routine]))
+    never = [n for a, n in player_routines() if n not in totals]
+    lines.append('')
+    lines.append('Never entered: %s.' % ', '.join('`%s`' % n for n in never))
+    return lines
+
+
+# What a region of a player routine that no run executed is, by its first offset; each
+# test named asserts that its cases executed the region.
+PLAYER_REGION_NOTES = {
+    0x04CC: 'ported from reading; tests/test_oracle_m8.py, the tick: a song no track has started '
+            'a note of, which ends it',
+    0x050E: 'ported from reading; tests/test_oracle_m8.py, track_step: the arpeggio\'s next '
+            'offset, which no voice of wofsongs has on',
+    0x0538: 'ported from reading; tests/test_oracle_m8.py, track_step: the arpeggio\'s note',
+    0x054E: 'ported from reading; tests/test_oracle_m8.py, track_step: the vibrato between its '
+            'limits, which no voice of wofsongs has on',
+    0x0646: 'ported from reading; tests/test_oracle_m8.py, the variant song data: a hold and a '
+            'command byte passed over, which no song gives',
+    0x0682: 'ported from reading; tests/test_oracle_m8.py, the variant song data: a track\'s end',
+    0x06C2: 'ported from reading; tests/test_oracle_m8.py, the variant song data: the latch\'s '
+            'low byte',
+    0x06FC: 'ported from reading; tests/test_oracle_m8.py, the variant song data: a hold',
+    0x0748: 'ported from reading; tests/test_oracle_m8.py, the variant song data: a sample of '
+            'three octaves, a note in a lower one\'s part',
+    0x07B0: 'ported from reading; tests/test_oracle_m8.py, note_start: the volume scaled while an '
+            'effect of command 7 plays',
+    0x0808: 'ported from reading; tests/test_oracle_m8.py, the note lookup: a note above the '
+            'sample\'s octaves',
+    0x0916: 'ported from reading; tests/test_oracle_m8.py, the level-4 handler: a channel an '
+            'effect of command 7 has',
+}
+
+PLAYER_ORIG = re.compile(r'orig songplay\+(0x[0-9A-Fa-f]{4})')
+PLAYER_STANDIN = re.compile(r'WOF_STANDIN\("((M\d+) STAND-IN: songplay(?:\+(0x[0-9A-Fa-f]{4}))?[^"]*)"\)')
+
+
+def player_cold_table(data, names):
+    """(Markdown rows, unclassified count): every region of a player routine src/music.c
+    ports that no run executed, with the stand-in marker at its offset or its note from
+    PLAYER_REGION_NOTES; then the markers of routines src/music.c does not port, and those
+    that name no region."""
+    import disasm_player
+    import hunk
+    code = bytes(hunk.load(disasm_player.PLAYER, bases=disasm_player.BASES)[0]['data'])
+    spans = player_spans()
+    starts = sorted(spans)
+    with open(os.path.join(ROOT, 'src', 'music.c')) as handle:
+        text = handle.read()
+    ported = set()
+    for m in PLAYER_ORIG.finditer(text):
+        offset = int(m.group(1), 16)
+        i = bisect.bisect_right(starts, offset) - 1
+        if i >= 0:
+            ported.add(starts[i])
+    markers = [(int(m.group(3), 16) if m.group(3) else None, m.group(1), m.group(2))
+               for m in PLAYER_STANDIN.finditer(text)]
+    seen = set()
+    for name in names:
+        for w, p, offset, size, n in data[name].get('player_blocks', ()):
+            seen.update(range(offset, offset + size))
+    md = Cs(CS_ARCH_M68K, CS_MODE_M68K_000)
+    rows = ['| Routine | Region no run executed | Stand-in marker, or what it is | Owed to |',
+            '|---|---|---|---|']
+    used, unclassified = set(), 0
+    for start in sorted(ported):
+        span, name = spans[start]
+        cold, first = [], None
+        for ins in md.disasm(code[start:start + span], start):
+            if ins.address in seen:
+                if first is not None:
+                    cold.append((first, ins.address))
+                    first = None
+            elif first is None:
+                first = ins.address
+        if first is not None:
+            cold.append((first, start + span))
+        for lo, hi in cold:
+            inside = [mk for mk in markers if mk[0] is not None and lo <= mk[0] < hi]
+            where, region = '`%s` `%04x`' % (name, start), '`%04x`-`%04x`' % (lo, hi - 1)
+            if inside:
+                for mk in inside:
+                    used.add(mk)
+                    rows.append('| %s | %s | %s | %s |' % (where, region,
+                                                             code_words(mk[1].split(': ', 1)[1]), mk[2]))
+            elif lo in PLAYER_REGION_NOTES:
+                rows.append('| %s | %s | %s | |' % (where, region, code_words(PLAYER_REGION_NOTES[lo])))
+            else:
+                unclassified += 1
+                rows.append('| %s | %s | **unclassified** | |' % (where, region))
+    for mk in sorted((m for m in markers if m not in used), key=lambda m: (m[0] is None, m[0] or 0)):
+        if mk[0] is None:
+            where = 'no region: a value'
+        elif bisect.bisect_right(starts, mk[0]) - 1 >= 0 and \
+                starts[bisect.bisect_right(starts, mk[0]) - 1] not in ported:
+            where = 'a routine not ported, never entered'
+        else:
+            where = 'run by the original'
+        rows.append('| | %s | %s | %s |' % (where, code_words(mk[1].split(': ', 1)[1]), mk[2]))
+    return rows, unclassified
 
 
 def sound_markdown(data, names):
@@ -522,6 +698,8 @@ def main():
     parser.add_argument('--markdown')
     parser.add_argument('--sound-markdown', default=None,
                         help='the tables of the sound engine\'s routines (M8), summed by milestone')
+    parser.add_argument('--player-markdown', default=None,
+                        help='the table of the music player\'s routines (M8 part 2)')
     parser.add_argument('--json')
     parser.add_argument('--blocks', action='store_true',
                         help='also record every basic block executed, by window and phase (slow)')
@@ -554,6 +732,10 @@ def main():
         with open(args.sound_markdown, 'w') as f:
             f.write('\n'.join(sound_markdown(data, args.runs)) + '\n')
         print('%s written' % args.sound_markdown)
+    if args.player_markdown:
+        with open(args.player_markdown, 'w') as f:
+            f.write('\n'.join(player_markdown(data, args.runs)) + '\n')
+        print('%s written' % args.player_markdown)
     if args.markdown:
         with open(args.markdown, 'w') as f:
             f.write('\n'.join(markdown(data, args.runs)) + '\n')
@@ -980,6 +1162,13 @@ def cold_main(argv):
             data.update(json.load(handle))
     rows, unclassified = cold_table(data, sorted(data))
     print('\n'.join(rows))
+    if any(data[n].get('player_blocks') for n in data):
+        rows, more = player_cold_table(data, sorted(data))
+        print()
+        print('The music player (src/music.c):')
+        print()
+        print('\n'.join(rows))
+        unclassified += more
     if unclassified:
         print('%d regions are unclassified: give each a marker or a REGION_NOTES entry'
               % unclassified, file=sys.stderr)

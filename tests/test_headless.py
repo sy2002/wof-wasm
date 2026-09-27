@@ -130,7 +130,9 @@ def test_another_input_gives_other_dumps(first, other_input, dumps):
     parted = same.index(False)
     assert parted > 100
     assert not any(same[parted:])
-    vblank_of_parting = sum(segment[0] for segment in FRONT + TAKE_OFF[:4])
+    # The script's VBlanks, and those of the music's fades, while which the script waits
+    # (re/notes/headless.md, "The fade's wait"); every fade comes before the mission.
+    vblank_of_parting = sum(segment[0] for segment in FRONT + TAKE_OFF[:4]) + first.spin_vblanks
     heads = headless_dump.steps(str(dumps / 'first.dump'))
     assert heads[parted]['vblank'] >= vblank_of_parting, 'the dumps part before the scripts do'
     assert heads[parted]['vblank'] <= vblank_of_parting + 8, 'the dumps part long after the scripts do'
