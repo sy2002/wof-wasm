@@ -5,6 +5,7 @@
 const BIT_NAMES = ['up', 'down', 'right', 'left', 'fire'];      /* bit 0 first, SPEC 6.1 */
 
 export function createOverlay(element, core, clock, audio, input, video) {
+    let page = null;
     let visible = false;
     let lastPaint = 0;
 
@@ -51,6 +52,8 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'pcm          ' + a.emulated + ' frames, ' + a.audible + ' audible, peak ' + a.peak +
                 ', padded ' + a.padded + ', dropped ' + a.dropped + '\n' +
             'stereo       ' + Math.round(a.width * 100) + '% width\n' +
+            'page         ' + (page.fullscreen ? 'fullscreen' : 'windowed') + ', hidden ' +
+                page.hides + ' times, the last for ' + Math.round(page.lastHiddenMs) + ' ms\n' +
             (a.note ? 'note         ' + a.note.slice(0, 48) + '\n' : '') +
             'core         ' + core.width + 'x' + core.height + ', ' + core.paletteCount +
                 ' palettes, ' + c.files + ' files\n' +
@@ -77,7 +80,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
     return {
         paint,
         toggle,
-        attach(value) { clock = value; },
+        attach(value, pageState) { clock = value; page = pageState; },
         visible: () => visible,
     };
 }

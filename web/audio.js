@@ -68,6 +68,7 @@ export function createAudio(core, width = 1) {
     let underruns = 0;
     let nextTime = 0;
     let fresh = true;          /* the next pump starts the queue: the core's backlog goes */
+    let held = false;          /* suspended by the shell for a hidden page */
     const counts = { emulated: 0, audible: 0, padded: 0, dropped: 0, peak: 0 };
 
     /* Every browser's autoplay policy wants the context created and resumed while the page
@@ -272,16 +273,27 @@ export function createAudio(core, width = 1) {
         }
     }
 
+    /* A hidden page holds the sound.  Whether it was held is the shell's own flag, never
+       ctx.state: the suspend takes effect on the audio thread some milliseconds after the
+       call, and the state reads running until then. */
     function suspend() {
-        if (ctx && ctx.state === 'running') {
-            ctx.suspend();
+        if (ctx && !held) {
+            held = true;
+            ctx.suspend().catch(() => undefined);
         }
     }
 
     /* Coming back from a hidden page.  The page has been activated long before, so this is
-       an ordinary resume; the queue starts again, because its clock moved on. */
+       an ordinary resume; the queue starts again, because its clock moved on.
+       A page hidden and shown again within a few milliseconds comes back before its suspend
+       has landed.  A resume made only once the state read suspended was then never made, the
+       suspend landed after the page was back, and the sound stayed off until the page was
+       loaded again: in Firefox a hidden phase of 1 to 5 ms did that in 9 of 12 tries, idle
+       and beside a headless-original run alike.  The context carries out suspend and resume
+       in the order they were called, so resuming on the flag always ends running. */
     function resumeFromHidden() {
-        if (ctx && ctx.state === 'suspended') {
+        if (ctx && held) {
+            held = false;
             nextTime = 0;
             fresh = true;
             resume();

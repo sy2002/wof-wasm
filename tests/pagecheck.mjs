@@ -17,6 +17,8 @@ import { resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
+import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRound, fullscreenRun,
+         walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, WEAPON_VIEW,
          enemyFlight, weaponRun } from './pagemeasure.mjs';
 
@@ -609,6 +611,62 @@ try {
     report.enemy.console = channel(enemySession).console;
     report.enemy.overlay = await evaluateIn(enemySession,
         "document.getElementById('overlay').textContent");
+
+    /* Fullscreen, and a page hidden for a moment (pagefullscreen.mjs), in a session of its
+       own whose VBlanks are counted (tests/corewatch.mjs): the browser's own fullscreen by
+       the window-state command, the kind the owner used, and then an element's, which
+       Chrome grants to a script run as a user gesture. */
+    const fullTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const fullSession = (await cdp.send('Target.attachToTarget', {
+        targetId: fullTarget.targetId, flatten: true,
+    })).sessionId;
+    await open(fullSession, 'file://' + pagePath, [CORE_WATCH, VISIBILITY_WATCH]);
+    const fullNames = { backquote: 'backquote', space: 'space', enter: 'enter', p: 'keyP' };
+    const fullTap = async (name, ms = 80) => {
+        await cdp.hold(fullSession, fullNames[name]);
+        await sleep(ms);
+        await cdp.release(fullSession, fullNames[name]);
+    };
+    const fullHold = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullSession, PLAYER),
+                                         sleep);
+    /* The tab put in front for a while is a blank one; the page's own comes back. */
+    const blankTarget = await cdp.send('Target.createTarget', { url: 'about:blank', background: true });
+    const { windowId } = await cdp.send('Browser.getWindowForTarget', { targetId: fullTarget.targetId });
+    const windowState = async (state) => {
+        await cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: state } });
+        const { bounds } = await cdp.send('Browser.getWindowBounds', { windowId });
+        return { state: bounds.windowState, width: bounds.width, height: bounds.height };
+    };
+    const asGesture = async (expression) => (await cdp.send('Runtime.evaluate', {
+        expression, awaitPromise: true, userGesture: true, returnByValue: true,
+    }, fullSession)).result.value;
+    const fullDriver = {
+        look: () => evaluateIn(fullSession, FULLSCREEN_LOOK),
+        tap: fullTap,
+        sleep,
+        geometry: () => evaluateIn(fullSession, GEOMETRY),
+        flip: async (ms) => {
+            await cdp.send('Target.activateTarget', { targetId: blankTarget.targetId });
+            if (ms) {
+                await sleep(ms);
+            }
+            await cdp.send('Target.activateTarget', { targetId: fullTarget.targetId });
+        },
+        enter: () => windowState('fullscreen'),
+        leave: () => windowState('normal'),
+    };
+    report.fullscreen = await fullscreenRun(fullDriver);
+    report.fullscreen.hold = fullHold;
+    /* Escape through the protocol reaches the page as a key but leaves no fullscreen, so the
+       element's fullscreen is left by exitFullscreen, which is what Escape does. */
+    report.fullscreenElement = await fullscreenRound({
+        ...fullDriver,
+        enter: async () => ({ state: await asGesture(
+            "document.documentElement.requestFullscreen().then(() => 'fullscreen', (e) => 'refused: ' + e.message)") }),
+        leave: async () => ({ state: await evaluateIn(fullSession,
+            "document.exitFullscreen().then(() => 'normal', (e) => 'refused: ' + e.message)") }),
+    });
+    report.fullscreen.console = channel(fullSession).console;
 } finally {
     await stopChrome(browser);
 }

@@ -19,7 +19,10 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture,
                      big_enough_blocks)
-from conftest import (ROOT, assert_an_enemy_aircraft_comes_up,
+from conftest import (ROOT, assert_a_moment_hidden_changes_nothing,
+                      assert_a_real_absence_comes_back_paused,
+                      assert_an_enemy_aircraft_comes_up,
+                      assert_fullscreen_keeps_the_page_going,
                       assert_the_mission_is_flown_from_the_keyboard,
                       assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
@@ -32,7 +35,8 @@ from conftest import (ROOT, assert_an_enemy_aircraft_comes_up,
                       assert_the_stick_keys_give_the_bits_of_the_spec,
                       assert_web_audio_waits_for_a_gesture,
                       assert_the_front_end_is_silent, assert_the_mission_is_heard,
-                      measured_box, overlay_audio, overlay_number)
+                      measured_box, overlay_audio, overlay_number,
+                      window_could_not_enter_fullscreen)
 
 # What the shell was showing when each measurement was taken.
 STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL',
@@ -351,3 +355,45 @@ def test_the_visible_window_shows_it_in_the_display_aspect(loaded_firefox_visibl
             loaded_firefox_visible['box'][name]['geometry'], 'PAL', name)
         assert_the_box_is_the_largest_that_fits(
             loaded_firefox_visible['box'][name]['geometry'], 'PAL', name)
+
+
+# ------------------------------------------------------ fullscreen and a page hidden for a moment
+#
+# The owner's finding of 2026-09-26 (tests/pagefullscreen.mjs, tests/conftest.py): Firefox put
+# into fullscreen during a mission, the picture stood still and the sound was gone from then
+# on.  Driven in a tab of its own from the hold, where the sea plays for ever.
+
+def test_a_moment_hidden_leaves_the_mission_and_its_sound_going(loaded_firefox):
+    assert_a_moment_hidden_changes_nothing(loaded_firefox['fullscreen'])
+
+
+def test_a_real_absence_comes_back_paused(loaded_firefox):
+    assert_a_real_absence_comes_back_paused(loaded_firefox['fullscreen'])
+
+
+def test_fullscreen_keeps_the_clock_the_picture_and_the_sound(loaded_firefox):
+    """The browser's own fullscreen, by the driver's window-state command; headless Firefox
+    gives the window the size of its virtual screen."""
+    report = loaded_firefox['fullscreen']
+    assert_fullscreen_keeps_the_page_going(report, report['before']['size'])
+
+
+def test_a_moment_hidden_leaves_the_mission_and_its_sound_going_in_a_visible_window(
+        loaded_firefox_visible):
+    assert_a_moment_hidden_changes_nothing(loaded_firefox_visible['fullscreen'])
+
+
+def test_a_real_absence_comes_back_paused_in_a_visible_window(loaded_firefox_visible):
+    assert_a_real_absence_comes_back_paused(loaded_firefox_visible['fullscreen'])
+
+
+def test_fullscreen_keeps_the_clock_the_picture_and_the_sound_in_a_visible_window(
+        loaded_firefox_visible):
+    """The same in a real window, where fullscreen is macOS's own: the window moves into a
+    space of its own at the screen's size and density."""
+    report = loaded_firefox_visible['fullscreen']
+    if window_could_not_enter_fullscreen(report):
+        pytest.skip('the window did not enter fullscreen (the driver answered %r) and the page '
+                    'was hidden throughout: on macOS a window cannot move into its fullscreen '
+                    'space while the screen is locked' % report['enter'])
+    assert_fullscreen_keeps_the_page_going(report, report['before']['size'])

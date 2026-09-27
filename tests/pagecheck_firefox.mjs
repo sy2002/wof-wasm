@@ -22,6 +22,7 @@ import { join, resolve } from 'node:path';
 
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
+import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRun, walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, WEAPON_VIEW,
          enemyFlight, weaponRun } from './pagemeasure.mjs';
 
@@ -569,6 +570,58 @@ try {
                                      () => evaluateIn(enemyTab, SKY_PNG), sleep);
     report.enemy.overlay = await evaluateIn(enemyTab,
         "document.getElementById('overlay').textContent");
+
+    /* Fullscreen, and a page hidden for a moment (pagefullscreen.mjs), in a tab of its own
+       whose VBlanks are counted (tests/corewatch.mjs).  It comes last: in a visible window
+       whose screen is locked, macOS cannot bring the window into its fullscreen space, and
+       Firefox then reports the page hidden until the window is closed. */
+    const fullTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    for (const watch of [CORE_WATCH, VISIBILITY_WATCH]) {
+        await send(socket, 'script.addPreloadScript', { functionDeclaration: watch, contexts: [fullTab] });
+    }
+    await send(socket, 'browsingContext.activate', { context: fullTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: fullTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+    await evaluateIn(fullTab, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
+    await send(socket, 'browsingContext.reload', { context: fullTab, wait: 'complete' });
+    await sleep(1500);
+    const fullKeys = { backquote: KEY_BACKQUOTE, space: KEY_SPACE, enter: KEY_ENTER, p: 'p' };
+    const fullTap = async (name, ms = 80) => {
+        await keyAction(fullTab, 'keyDown', fullKeys[name]);
+        await sleep(ms);
+        await keyAction(fullTab, 'keyUp', fullKeys[name]);
+    };
+    const hold = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullTab, PLAYER), sleep);
+    /* The tab put in front for a while is a blank one; the page's own tab comes back. */
+    const blankTab = (await send(socket, 'browsingContext.create', { type: 'tab', background: true })).context;
+    const clientWindow = async () => (await send(socket, 'browser.getClientWindows', {})).clientWindows[0];
+    const windowState = async (state) => {
+        const answer = await send(socket, 'browser.setClientWindowState', {
+            clientWindow: (await clientWindow()).clientWindow, state,
+        });
+        return { state: answer.state, width: answer.width, height: answer.height };
+    };
+    report.fullscreen = await fullscreenRun({
+        look: () => evaluateIn(fullTab, FULLSCREEN_LOOK),
+        tap: fullTap,
+        sleep,
+        flip: async (ms) => {
+            await send(socket, 'browsingContext.activate', { context: blankTab });
+            if (ms) {
+                await sleep(ms);
+            }
+            await send(socket, 'browsingContext.activate', { context: fullTab });
+        },
+        /* The browser's own fullscreen, the kind the owner used, by the driver's
+           window-state command: a page cannot ask for it, and Firefox refuses an element's
+           fullscreen to a window it drives, which never holds the focus. */
+        enter: () => windowState('fullscreen'),
+        leave: () => windowState('normal'),
+        geometry: () => evaluateIn(fullTab, GEOMETRY),
+    });
+    report.fullscreen.hold = hold;
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

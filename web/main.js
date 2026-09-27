@@ -128,6 +128,9 @@ async function boot() {
         width = STEREO_WIDTHS[0];
     }
     const audio = createAudio(core, width);
+    /* What the page itself went through, for the diagnostics overlay: how often it was
+       hidden, for how long the last time, and whether it is in fullscreen. */
+    const page = { hides: 0, lastHiddenMs: 0, fullscreen: false };
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
@@ -138,8 +141,8 @@ async function boot() {
     });
 
     /* The overlay needs the clock and the clock needs the overlay's paint function; the
-       overlay is told about the clock once both exist. */
-    overlay.attach(clock);
+       overlay is told about the clock, and about the page record, once both exist. */
+    overlay.attach(clock, page);
 
     const gesture = document.getElementById('gesture');
     const hint = document.getElementById('hint');
@@ -233,16 +236,53 @@ async function boot() {
         }
     });
 
+    /* A hidden page stops (SPEC 6.2, Pause): no animation frame reaches it, so the clock is
+       stopped outright and the sound is held, and a mission comes back from a real absence
+       paused.  A page can also be hidden for a few milliseconds only and shown again; a
+       pause asked for on the way out then stopped the mission and its sound for an absence
+       the player never made.  So the pause is asked for on the way back, and only after an
+       absence of HIDDEN_PAUSE_MS or more.  No VBlank runs while the page is hidden, so the
+       request reaches the same pass as one made on the way out. */
+    const HIDDEN_PAUSE_MS = 1000;
+    let hiddenSince = document.hidden ? performance.now() : -1;
+    page.hides = document.hidden ? 1 : 0;
+
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            core.requestPause();             /* a mission comes back paused */
+            hiddenSince = performance.now();
+            page.hides++;
             clock.stop();
             audio.suspend();
         } else {
+            if (hiddenSince >= 0) {
+                page.lastHiddenMs = performance.now() - hiddenSince;
+                if (page.lastHiddenMs >= HIDDEN_PAUSE_MS) {
+                    core.requestPause();     /* a mission comes back paused */
+                }
+            }
+            hiddenSince = -1;
             audio.resume();
             clock.start();
         }
     });
+
+    /* Leaving fullscreen asks for the pause (SPEC 6.2, Input): a browser takes Escape to
+       leave the fullscreen of an element and a page cannot prevent it.  The browser's own
+       fullscreen, the one its window control and menu give, sets no fullscreen element; it
+       is followed through the display-mode media query, which Firefox and Chrome match
+       there. */
+    const fullscreenQuery = window.matchMedia('(display-mode: fullscreen)');
+    const inFullscreen = () => fullscreenQuery.matches || !!document.fullscreenElement;
+    page.fullscreen = inFullscreen();
+    function followFullscreen() {
+        const now = inFullscreen();
+        if (page.fullscreen && !now) {
+            core.requestPause();
+        }
+        page.fullscreen = now;
+    }
+    fullscreenQuery.addEventListener('change', followFullscreen);
+    document.addEventListener('fullscreenchange', followFullscreen);
 
     clock.start();
 }

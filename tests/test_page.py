@@ -18,7 +18,10 @@ import pytest
 from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
-from conftest import (assert_an_enemy_aircraft_comes_up,
+from conftest import (assert_a_moment_hidden_changes_nothing,
+                      assert_a_real_absence_comes_back_paused,
+                      assert_an_enemy_aircraft_comes_up,
+                      assert_fullscreen_keeps_the_page_going,
                       assert_the_mission_is_flown_from_the_keyboard,
                       assert_a_tap_as_soon_as_the_hold_appears_steps_once,
                       assert_the_weapon_menu_steps_once_per_tap,
@@ -446,3 +449,30 @@ def test_the_high_score_screen_is_a_picture_and_a_slab(loaded):
     """Two viewports of different depths, 320 x 75 at line 0 and 640 x 145 at line 76, each
     faded up to its own colours (re/notes/display.md)."""
     assert loaded['storage']['highScores']['colours'] >= 16, loaded['storage']['highScores']
+
+
+# ------------------------------------------------------ fullscreen and a page hidden for a moment
+#
+# The owner's finding of 2026-09-26 (tests/pagefullscreen.mjs, tests/conftest.py), in Chrome:
+# a session of its own driven from the hold, where the sea plays for ever.
+
+def test_a_moment_hidden_leaves_the_mission_and_its_sound_going(loaded):
+    assert_a_moment_hidden_changes_nothing(loaded['fullscreen'])
+
+
+def test_a_real_absence_comes_back_paused(loaded):
+    assert_a_real_absence_comes_back_paused(loaded['fullscreen'])
+
+
+def test_fullscreen_keeps_the_clock_the_picture_and_the_sound(loaded):
+    """The browser's own fullscreen, by the window-state command of the DevTools protocol;
+    headless Chrome gives the window the size of its virtual screen."""
+    report = loaded['fullscreen']
+    assert_fullscreen_keeps_the_page_going(report, report['before']['size'])
+
+
+def test_an_elements_fullscreen_keeps_the_clock_the_picture_and_the_sound(loaded):
+    """An element's fullscreen, asked for by a script run as a user gesture and left by
+    exitFullscreen, which is what Escape does there."""
+    assert_fullscreen_keeps_the_page_going(loaded['fullscreenElement'],
+                                           loaded['fullscreen']['continued']['size'])
