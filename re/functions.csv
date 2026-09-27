@@ -1,7 +1,7 @@
 addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,strings,status
 010000,entry,asm,6,,,-32766,0,c_startup,,0,,todo
 010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sound_slots_clear open_libraries install_vblank_server map_load load_ship_shapes sounds_load init_assets campaign_reset mission_reset_tables player_restart_state build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select demo_end mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys dashboard_invalidate crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",partial
-01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets sub_012470 sub_0134d8,,1,,todo
+01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets music_stop sub_0134d8,,1,,todo
 010228,frame_update,asm,228,,,,1,weapon_marker draw_objects smoke_draw snapshot_for_draw draw_game_over player_lost_restart draw_world soldiers_draw map_window clip_playfield splashes_draw balloons_draw cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,ported
 01030c,flip_buffers,asm,56,,,,1,flip_view,,4,,ported
 010344,weapon_marker,asm,98,,,,1,shape_blit blit_begin blit_end,,5,,ported
@@ -67,8 +67,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 012354,sound_clang,asm,44,,,-32646,1,,,9,,verified
 012380,sound_screech,asm,44,,,-32640,1,,,9,,verified
 0123ac,sound_scream,asm,48,,,,1,loudness_at,,9,,verified
-0123dc,music_start,asm,148,,,,3,,dos.LoadSeg,8,"""songplay""",todo
-012470,sub_012470,asm,108,,,,3,fatal_exit,dos.UnLoadSeg,7,,todo
+0123dc,music_start,asm,148,,,,3,,dos.LoadSeg,8,"""songplay""",ported
+012470,music_stop,asm,108,,,,3,fatal_exit,dos.UnLoadSeg,7,,ported
 0124dc,sub_0124dc,asm,4,,,,2,,,0,,todo
 0124e0,mem_free_var,asm,34,,,,9,mem_free,,0,,replace
 012502,shapes_free,asm,28,,,,3,mem_free_var,,0,,todo
@@ -256,7 +256,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01816c,sub_01816c,C,40,0,,-32340,2,exit_game,,0,"""User requested abort.""",todo
 018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 key_available key_get gfx_WaitTOF,,0,,verified
 018228,wait_input_release,C,58,2,,,3,poll_fire poll_joy_dir8 key_available gfx_WaitTOF,,0,,verified
-018262,rank_select,C,712,80,,-32334,1,music_start sub_012470 load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",ported
+018262,rank_select,C,712,80,,-32334,1,music_start music_stop load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",ported
 01852a,demo_end,C,70,0,,-32328,1,sub_0124dc save_file,,4,,partial
 018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,ported
 018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",ported
@@ -265,7 +265,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait enemy_frames mem_free,,13,,ported
 018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,ported
 018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,ported
-018b96,load_save_dialog,C,1778,266,8,,2,sub_012470 free_map sound_engine_load sound_engine_free save_game_read save_game_write text_input path_sanitise screen_dialog exit_game view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen strcmp bcopy strcat os_dos_delete_file os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",ported
+018b96,load_save_dialog,C,1778,266,8,,2,music_stop free_map sound_engine_load sound_engine_free save_game_read save_game_write text_input path_sanitise screen_dialog exit_game view_show_wait fade_to fade_out menu_input wait_input_release dialog_file_list draw_set_target_c clip_set_full strlen strcmp bcopy strcat os_dos_delete_file os_gfx_draw os_gfx_move os_gfx_rect_fill os_gfx_set_apen os_gfx_set_drmd os_gfx_text,,8,"""Load"" | ""Save"" | ""wof."" | ""Loading game..."" | ""Saving game...""",ported
 019288,high_score_save,C,38,0,,,2,save_file,,1,"""highscore""",verified
 0192ae,high_score_reset_unused,C,114,2,,,0,high_score_save strncpy,,1,"""Colin was here!""",drop
 019320,high_score_sort,C,172,40,,,1,,,1,,verified
@@ -376,9 +376,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01e94c,sound_shutdown,asm,70,,,-32196,1,channels_stop,dos.Delay exec.RemIntServer,4,,drop
 01e992,sound_play_rate,asm,76,,,,0,channel_play,,0,,drop
 01e9de,sound_wait_music,asm,22,,,-32190,0,,,1,,drop
-01e9f4,channel2_to_music,asm,36,,,-32184,1,channel_stop,dos.Delay,4,,todo
+01e9f4,channel2_to_music,asm,36,,,-32184,1,channel_stop,dos.Delay,4,,drop
 01ea18,channel2_from_music,asm,16,,,-32178,0,channel_stop,,2,,drop
-01ea28,channel_play,asm,140,,,-32172,2,channel2_to_music channel_stop channel_busy,,1,,partial
+01ea28,channel_play,asm,140,,,-32172,2,channel2_to_music channel_stop channel_busy,,1,,verified
 01eab4,channels_stop,asm,12,,,-32166,1,channel_stop,,0,,drop
 01eac0,channel_stop,asm,110,,,-32160,5,,,3,,verified
 01eb2e,channel_busy,asm,30,,,-32154,1,,,1,,verified

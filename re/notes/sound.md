@@ -2,8 +2,8 @@
 
 How the game plays its eight sound effects: the slots the tick fills, the channel layer
 under them, the audio interrupt and the VBlank server, and what each effect is played with.
-The music player, `songplay` with the song data `wofsongs`, is a separate executable and not
-part of this note (M8 part 2). Addresses use the standard load layout; how the port takes the
+The music player, `songplay` with the song data `wofsongs`, is a separate executable and has
+a note of its own, `re/notes/music.md`. Addresses use the standard load layout; how the port takes the
 engine is in `re/notes/porting-m8.md`.
 
 Every finding is marked **observed**, with the instrument that shows it, or **read**, from

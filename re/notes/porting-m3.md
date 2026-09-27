@@ -160,7 +160,7 @@ original runs after VBlank `N`.
 That holds only if the port starts where the original starts: `wof_init` runs the
 coroutine up to its first wait, which is the one inside `display_init`. The music call of
 the title sequence then falls on VBlank 1, as it does in the original, and everything after
-it follows (`test_the_music_calls_fall_on_the_same_vblanks`).
+it follows (`test_the_music_plays_the_same_notes_at_the_same_instants`, since M8 part 2).
 
 `src/coro.h` has the macros and the two rules the switch trick imposes: a local that must
 survive a wait belongs in the context struct, and no `CO_` macro may sit inside a switch of

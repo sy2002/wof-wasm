@@ -346,7 +346,10 @@
                             ;   0 OpenTimerInt, 1 ReadInstruments, 2 PlaySong, 3 StopSong, 4 close the timer,
                             ;   5 GetSongStat, 6 FadeSong, 7 PlaySfx, 8 StopSfx, 9 SfxStat, 10 PauseMusic,
                             ;   11 RestartMusic, 12 AdjustSfx
-0255f2 song_number
+0255f2 song_number           ; long: the song music_start was asked for, handed to the player in D1
+012470 music_stop            ; asm. the song faded and its end waited for (not with opt_music_off), the timer closed, both segments unloaded
+027430 music_playing         ; word: music_start sets its first byte after command 2, music_stop clears it; nothing reads it
+0123f7 music_fade_speed      ; the fade speed music_start gives command 6 (the byte of moveq #2,d1; music_stop's at 0x01247F)
 
 # ---- front end
 018022 title_sequence        ; C. story scroller, then three pictures with fades; fire skips

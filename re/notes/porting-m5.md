@@ -96,7 +96,10 @@ reached as the M4 setups reach them, with `mission_number` poked at the rank sel
 end (`POKES`), because winning the missions before is M7's. `balloons_c` also pokes
 `balloons_on` after the mission's reset of its tables (`0x0100D6`, on both sides): that is
 the state the promotion after a rank's last mission leaves for the flight back to the
-carrier, and winning map c is out of the autopilot's reach (below).
+carrier, and winning map c is out of the autopilot's reach (below). Since the music plays
+(M8 part 2), `high_a`, `island_a` and `bomb_b` also set `vblank_total` back at the rank
+selection's end to 97, what it is there without the fades' waits, because the soldiers'
+timers run off it (`re/notes/porting-m8.md`, "The event log").
 
 | Script | What it flies | Ticks |
 |---|---|---|

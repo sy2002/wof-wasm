@@ -6,8 +6,10 @@ The instrument of milestone M2 (`SPEC.md` section 8): the original executable's 
 tools/headless.py        the machine, the schedule, the run description, the command line
 tools/headless_os.py     the operating system: one Python method per library call
 tools/headless_dump.py   the dump format, its reader, names for addresses, state comparison
-tools/headless_paula.py  Paula's audio side: the channels, their interrupts, the sound event log
-tests/test_headless.py   the tests, part of the suite; the audio model's are in tests/test_sound.py
+tools/headless_paula.py  Paula's audio side: the channels, their interrupts, the sound event log,
+                         and CIA-A's timer A, which drives the music
+tests/test_headless.py   the tests, part of the suite; the audio model's are in tests/test_sound.py,
+                         the music's in tests/test_music.py
 ```
 
 ## What runs and what does not
@@ -20,9 +22,10 @@ Not run, and replaced by something that records or answers:
 |---|---|---|
 | The operating system | library calls | `tools/headless_os.py`, table below |
 | The crack's text screen | `crack_text_screen` `0x01F41A` | returns 1 at once. It draws entropy the port never draws |
-| The music player and the song data | `music_start` `0x0123DC`, through `LoadSeg` | two fake segments; every call into them is recorded with its registers, VBlank, pass and tick, and answered with 0, which the game reads as "idle" |
+| The music player and the song data | `music_start` `0x0123DC`, through `LoadSeg` | nothing: `LoadSeg` loads `songplay` and `wofsongs` as dos does, and the player runs, its tick from CIA-A's timer A (below). Every call into either segment is recorded with its registers, VBlank, pass and tick. With `"music": false` they are two fake segments that answer every call with 0, which the game reads as "idle" |
 | The blitter, the copper | custom-chip space | plain memory. Busy waits fall through, because bit 6 of `DMACONR` reads as 0 |
-| Paula's audio side | `DMACON`, `INTENA`, `INTREQ`, `AUD0` to `AUD3`; level 4, vector at `0x70` | a model, below: the four channels play in a time of their own, and their interrupts call the handler `sound_init` put at `0x70`, `audio_irq` |
+| Paula's audio side | `DMACON`, `INTENA`, `INTREQ`, `AUD0` to `AUD3`; level 4, vector at `0x70` | a model, below: the four channels play in a time of their own, and their interrupts call the handler at `0x70`: `audio_irq`, which `sound_init` put there, or the music player's own while it is loaded |
+| CIA-A's timer A | `TALO`, `TAHI`, `CRA`; `ciaa.resource` | a model in the channels' time, below; its underflow calls the vector the player gave `AddICRVector` |
 
 The three habits of the game's code that the stubs have to know about:
 
@@ -68,8 +71,9 @@ The main program blocks and the VBlank interrupt is asynchronous; an emulator th
 | `graphics.WaitTOF` | one |
 | `dos.Delay(n)` | n x `video_hz` / 50 |
 | entry of `frame_update` (`0x010228`), the start of a pass | as many as are still owed so that `vblanks_per_pass` lie between this pass's start and the previous one's; at least one if the flag is clear |
+| a round of the fade's wait in `music_start` (`0x012406`) or `music_stop` (`0x012492`): `GetSongStat` answered other than 0 | four, below |
 
-A VBlank is: deliver the audio channels' events of the VBlank that has passed (below), set `JOY1DAT` and CIA-A PRA from the script, deliver the script's keys, then call every server the game installed with `AddIntServer(5, ...)`, highest priority first, as a nested call on a stack of its own with A1 = `is_Data`, A5 = `is_Code`, A0 = `0xDFF000`, A6 = `SysBase`, and after each server the audio requests it made deliverable. The servers are `soundfx_vblank` (`0x01EC64`, priority 30) and `vblank_server` (`0x011754`, priority −10). All other registers are the parked program's, as in a real interrupt. The servers may call the operating system (`input_queue_pop` uses `Disable` and `Enable`).
+A VBlank is: deliver the audio channels' and timer A's events of the VBlank that has passed (below), set `JOY1DAT` and CIA-A PRA from the script, deliver the script's keys, then call every server the game installed with `AddIntServer(5, ...)`, highest priority first, as a nested call on a stack of its own with A1 = `is_Data`, A5 = `is_Code`, A0 = `0xDFF000`, A6 = `SysBase`, and after each server the audio requests it made deliverable. The servers are `soundfx_vblank` (`0x01EC64`, priority 30) and `vblank_server` (`0x011754`, priority −10). All other registers are the parked program's, as in a real interrupt. The servers may call the operating system (`input_queue_pop` uses `Disable` and `Enable`).
 
 ### The audio channels
 
@@ -114,7 +118,66 @@ the definitions here are the port's too (`SPEC.md` section 6.5).
 The model only observes where nothing sounds: a flight with the music switched off gives
 the same steps with and without it, except `0x027F1E`, where `soundfx_vblank` keeps
 `INTENAR`'s audio bits, which plain memory reads as 0 (`tests/test_sound.py`). `"paula":
-false` in the run description leaves the audio registers plain memory.
+false` in the run description leaves the audio registers plain memory, and the player is
+then answered as idle, since it needs the model's timer.
+
+**The registers that can only be read** - `DMACONR`, `ADKCONR`, `INTENAR`, `INTREQR` - ignore
+a write, as on the machine: a write hook keeps what was there and a read hook puts it back
+before the next read, `INTENAR` and `INTREQR` being the model's in any case. The music player
+writes `0x0780` to `INTREQR` in `_OpenTimerInt` and in its stop path (songplay `0x0A3C` and
+`0x04E2`), evidently meaning to clear the audio requests; on the machine the two writes do
+nothing and the requests stay pending, and so here (`tests/test_music.py`).
+
+### The music's timer
+
+The music player (`re/notes/music.md`) takes CIA-A's timer A through `ciaa.resource`: its tick,
+`SongInt`, is the timer's interrupt. The model is part of the channels' time and the port's
+(`src/audio.c`) is the same.
+
+- **Counting.** Timer A counts down at the E clock, the colour clock divided by five: one tick
+  is 5 x hz units, 250 on PAL and 300 on NTSC. Loaded with N it underflows N + 1 ticks later, a
+  load of 0 counting as 1; at the underflow it reloads from its latch and, in continuous mode,
+  counts on, so a latch of L gives a tick every (L + 1) x 5 x hz units from the instant the
+  timer was started.
+- **The registers.** `TALO` and `TAHI` write the latch's bytes. A write of `TAHI` while the
+  timer stands loads the counter too, and in one-shot mode starts it; while it runs it loads
+  only the latch. `CRA` bit 0 starts and stops the timer, bit 3 picks one-shot, bit 4 loads the
+  counter from the latch. A start of a running timer without that load leaves it counting; a
+  stop keeps in the counter the ticks left to the underflow, less one.
+- **Power-up.** Latch and counter hold `0xFFFF`. This is the 8520's reset state and an
+  assumption about what the machine holds when the game starts: nothing in the game or the
+  player writes the latch's low byte, so every song runs with it. With `0xFF` the songs' tick
+  is (`0x38FF` + 1) E cycles, 20.57 ms on PAL; with `0x00` it would be `0x3801` cycles, and
+  every song's tempo 1.8 percent faster. The first tick after `_OpenTimerInt` comes at the
+  power-up latch, 65,536 cycles after the timer starts.
+- **Delivery.** An underflow is an event like a channel's: those in `[T_k, T_k+1)` are
+  delivered at VBlank k+1 before its servers, in time order with the channels' events, and at
+  an equal instant after them, because the channels' interrupt is level 4 and the timer's
+  level 2. The vector the player gave `AddICRVector`, `SongInt`, runs as a nested server with
+  A1 = `is_Data`, A5 = `is_Code`, A0 = `0xDFF000`, A6 = `SysBase`, and its writes happen at the
+  underflow's instant; the audio requests it made deliverable are delivered after it.
+- **The level-4 vector.** `_OpenTimerInt` puts the player's `SongIntHandler` at `0x70` and
+  keeps what it found there, `audio_irq`; `_CloseTimerInt` puts it back. The rank selection
+  ends with `music_stop`, so every mission begins with `audio_irq` there and the timer without
+  a vector (`tests/test_music.py`: the vector and the timer's state at step `S`).
+- **The event log** carries the songs' sample starts and restarts like the effects', the file
+  `wofsongs` and the offset into its DATA hunk, where the samples lie.
+
+### The fade's wait
+
+`music_start` and `music_stop` fade the playing song (command 6) and then call
+`GetSongStat` (command 5) again and again until it answers 0, a spin with no wait in it
+(`0x012402`, `0x01248E`); on the machine the timer's ticks end the fade while it spins. The
+harness gives each round of that spin four VBlanks: the round's call answers other than 0,
+four VBlanks happen, and the next call is made. Four keeps the phase of `vblank_server`'s
+input sample, whose divider (`0x027362`) counts four and is never reset. While the rounds
+run the script waits: those VBlanks carry neutral input and do not advance it, and a stop
+after `vblanks` counts the script's VBlanks only. A real machine leaves the spin within one
+VBlank of the fade's end, so the model's front end waits up to three VBlanks longer per fade,
+which nothing on the screen shows. A fade of the rank selection's song takes 26 rounds, 104
+VBlanks. The port waits the same way (`src/music.c`), and the front end's comparison holds it.
+The run with the music and the run with the player answered as idle are the same from step
+`S` on, the state's VBlank counts less the fades' VBlanks (`tests/test_music.py`).
 
 Consequences:
 
@@ -125,7 +188,7 @@ Consequences:
 
 ### The front end runs for real
 
-The title sequence, the rank selection and the briefing are not stubbed. They wait through `WaitTOF`, `wait_vblank` and `Delay`, poll the button and the key buffer, and the scripted controller carries them along. A run without any input also works: the title sequence runs out, `rank_select` (`0x018262`) gives up after 1800 VBlanks in `menu_input` (`0x018194`) and asks for demo playback, `wofdemo` is not on the disk, `demo_mode` falls back to 0 and a mission begins, after 6925 VBlanks. The load and save dialog runs too, with the directory `Lock` and `ExNext` below. What the whole front end does, screen by screen and VBlank by VBlank, is in `re/notes/frontend.md`.
+The title sequence, the rank selection and the briefing are not stubbed. They wait through `WaitTOF`, `wait_vblank` and `Delay`, poll the button and the key buffer, and the scripted controller carries them along. A run without any input also works: the title sequence runs out, `rank_select` (`0x018262`) gives up after 1800 VBlanks in `menu_input` (`0x018194`) and asks for demo playback, `wofdemo` is not on the disk, `demo_mode` falls back to 0 and a mission begins, after 7237 VBlanks, 312 of them the three fades' waits. The load and save dialog runs too, with the directory `Lock` and `ExNext` below. What the whole front end does, screen by screen and VBlank by VBlank, is in `re/notes/frontend.md`.
 
 ## Input
 
@@ -152,15 +215,16 @@ Observed: `0x01CAC8`, reached from the player reset `0x013684`, reads once when 
 | `0x000000`–`0x1FFFFF` | RAM of `tools/oracle.py`; the executable at `0x010000`, `0x023000`, `0x028000`; address 4 holds `SysBase` |
 | `0x0C0000`–`0x0C9FFF` | library bases, `0x2000` each, in this order: exec, dos, graphics, intuition, and one for both devices. Every jump-table slot is an `rts`; a code hook over the range parks the program |
 | `0x0CE000` | `mathffp.library`: its slots jump into the ROM, outside the hooked range |
-| `0x0D0000`–`0x0D0FFF` | fake segments for `LoadSeg`, `0x100` each |
+| `0x0D0000`–`0x0D0FFF` | fake segments for `LoadSeg` with `"music": false`, `0x100` each |
 | `0x0D8000` | records the stubs hand out: the Task, its trap handler's first long, an InputEvent |
 | up to `0x0F0000` | the main program's stack |
 | up to `0x0FF000` | stacks of nested calls, `0x2000` per level |
 | `0x0FFF00`, `0x0FFF10` | where `main` and nested calls return to |
 | `0x200000`–`0x9FFFFF` | `AllocMem`: a bump allocator, memory is never reused, so every address is reproducible and fresh memory is zero. `FreeMem` takes the block out of the dumps |
 | `0xA00000`–`0xAFFFFF` | what `display_alloc_chip` (`0x0165CC`) asks for: planes, copper lists, `MaskBuffer`. Not dumped; CPU reads are logged |
-| `0xBFD000`–`0xBFEFFF` | the CIAs, plain memory except PRA of CIA-A |
-| `0xDFF000`–`0xDFFFFF` | custom chips, plain memory except `VHPOSR` and `JOY1DAT`, and the audio side: `INTENAR` and `INTREQR` follow the model of the audio channels |
+| `0xB00000`–`0xBEFFFF` | the hunks `LoadSeg` loads, bump-allocated and never reused like the heap, so that loading the music moves no allocation of the game's; dumped while they are loaded |
+| `0xBFD000`–`0xBFEFFF` | the CIAs, plain memory except PRA of CIA-A and timer A's `TALO`, `TAHI` and `CRA` |
+| `0xDFF000`–`0xDFFFFF` | custom chips, plain memory except `VHPOSR` and `JOY1DAT`, and the audio side: `INTENAR` and `INTREQR` follow the model of the audio channels, and the four read-back registers ignore writes |
 | `0xFC0000`–`0xFFFFFF` | the Kickstart ROM, if present |
 
 The whole run is in supervisor mode, so no instruction can trap for privilege.
@@ -199,7 +263,11 @@ A call for which `headless_os.py` has no method ends the run with the library, t
 | `dos.Read`, `Write`, `Seek`, `Close`, `UnLock`, `IoErr`, `DeleteFile` | as dos does; nothing is ever written to `original/`, and a deleted file is remembered so that it stays gone for the rest of the run | |
 | `device.RawKeyConvert` | the ROM's own, see above | the number of characters |
 | `dos.Delay` | VBlanks, see above | |
-| `dos.LoadSeg`, `UnLoadSeg` | a fake segment, see above | a BPTR; −1 |
+| `dos.LoadSeg` | each hunk of the file into memory of its own, with its size and the BPTR of the next in front, relocated, BSS zeroed; the segment's entry watched (above). With `"music": false` a fake segment | the BPTR of the first hunk's link; 0 for a missing file |
+| `dos.UnLoadSeg` | every hunk of the list freed | −1 |
+| `exec.OpenResource` | | the base of `ciaa.resource`; 0 for any other name |
+| `ciaa.AddICRVector` | bit 0, timer A, only: its vector, `is_Code` and `is_Data` of the Interrupt node | 0, success |
+| `ciaa.RemICRVector` | the vector removed; the timer runs on | |
 
 Stops inside the original, all of them observers except the first:
 
@@ -207,6 +275,9 @@ Stops inside the original, all of them observers except the first:
 |---|---|
 | `0x01F41A` | `crack_text_screen` is left at once with D0 = 1 |
 | `0x01EC62` | the `rte` of `audio_irq`, which the driver executes (below) |
+| the player's `SongIntHandler` `rte` (songplay `0x08AC`) | the same, found in the loaded hunk |
+| `0x012406`, `0x012492` | the fade's wait: a round of four VBlanks while `GetSongStat` answers other than 0 |
+| the entry of each loaded segment | records the call |
 | `0x01010A` | once per mission, just before the inner loop: step `S` |
 | `0x010228` | a pass begins: the owed VBlanks, the pass count |
 | `0x010192` | `frame_update` and `flip_buffers` have returned: step `P` |
@@ -231,6 +302,7 @@ JSON; every key is optional.
   "video_hz":         50           only Delay depends on it
   "vblanks_per_pass": 2
   "paula":            true         the audio model; false leaves the audio registers plain memory
+  "music":            true         the real player and song data; false, or no model, answers it as idle
   "raw":              [[30, ""], [3, "F"], [460, "R"], [100, "RU"], [1, "", [68]]]
                       segments of [VBlanks, letters of U D L R F, optional raw key codes
                       delivered at the segment's first VBlank]; neutral after the last
@@ -240,7 +312,7 @@ JSON; every key is optional.
 }
 ```
 
-The counters of `stop` are totals since the program's start; `vblanks` is checked between wait points and may overshoot by the length of one wait.
+The counters of `stop` are totals since the program's start, except that `vblanks` leaves out the VBlanks of the fade's wait; it is checked between wait points and may overshoot by the length of one wait.
 
 ### Dump
 
@@ -335,7 +407,7 @@ Names: an address with an entry in `re/names.txt` gets it; any other gets the li
 
 From Python: `headless.Headless(description, track_writes=False)`, then `run(until=...)` with `'inner'`, `'pass'`, `'tick'`, `'step'` or nothing for the description's stop; `o` is the oracle for reading memory, `regions()` the state, `schedule`, `entropy_log`, `step_hashes`, `player_calls`, `files_log`, `plane_reads`, `os_calls` the records.
 
-The scripts the tests use: five presses of fire, three VBlanks each and thirty apart, carry the front end along and the mission begins at VBlank 132. On the deck a press of fire brings the aircraft up on the lift, stick right rolls it along the deck, and stick right and forward (`RU`) after 460 VBlanks of rolling lifts it off; without the push forward, or pulled back instead, the aircraft rolls over the bow and the player is reset.
+The scripts the tests use: five presses of fire, three VBlanks each and thirty apart, carry the front end along and the mission begins at VBlank 444, 312 of them the three fades' waits, while which the script waits. On the deck a press of fire brings the aircraft up on the lift, stick right rolls it along the deck, and stick right and forward (`RU`) after 460 VBlanks of rolling lifts it off; without the push forward, or pulled back instead, the aircraft rolls over the bow and the player is reset.
 
 For the open points of `SPEC.md` section 10:
 
@@ -364,9 +436,10 @@ Stick right against stick left on the deck, 85 ticks after the scripts part, dif
 - The condition codes cannot be read out of the emulator. Unicorn keeps them lazily, and `reg_read(UC_M68K_REG_SR)` hands back whatever was last materialised, both after `emu_start` stops and inside a code hook: `addq.w #1` on `0x7FFF` reports N without V, and `tst.w` on `0x00010000` reports nothing at all. `Oracle.call(ccr=True)` and the return observers read them by running a move from SR inside the emulation, which costs no register and no flag. Anything that wants flags out of a run has to go the same way.
 - The watchdog is wall-clock time and only ever ends a run with an error; it does not influence one. The emulation runs in slices of two seconds of wall time, though, and a slice that runs out can stop after a code hook has run and before its instruction: the next slice starts on that instruction and runs the hook again. A machine that is busy with other work meets this; it once put a draw call twice into the observed list of a pass. The observers and the reach's entry counter therefore ignore a hook that fires again at the address a timed-out slice stopped on, with the same stack pointer as the entry before it. Run with slices of 3 ms, the observed calls of a key run are the unhurried run's exactly; without the guard the same run records 95 calls too many.
 
-- `rte` is not executed: Unicorn raises `UC_ERR_EXCEPTION` on it. The one the game's
-  interrupt handler ends with, `audio_irq`'s at `0x01EC62`, is a stop where the driver pops
-  the status register and the return address from the exception frame itself.
+- `rte` is not executed: Unicorn raises `UC_ERR_EXCEPTION` on it. The ones the level-4
+  handlers end with, `audio_irq`'s at `0x01EC62` and the music player's in its loaded hunk, are
+  stops where the driver pops the status register and the return address from the exception
+  frame itself.
 
 - A memory-form shift is arithmetic or logical by bit 3 of the opcode instead of by its type
   field (Unicorn 2.1.4): `asr.w d16(An)` shifts logically (`0xFFFD` to `0x7FFE`) and
@@ -383,8 +456,6 @@ On the development machine: the front end with fire presses 0.4 s, without any i
 
 ## Not covered
 
-- **The music.** The player is not run (M8 part 2). The effects engine runs with the audio
-  model above; what it plays is in `re/notes/sound.md`.
 - **The case of a saved file's name.** The overlay keys its files in lower case, so a game saved
   under a name typed with capitals is listed by the dialog in lower case, where the real file
   system keeps the case the file was created with. Nothing the harness is used for depends on it,

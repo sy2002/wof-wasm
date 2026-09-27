@@ -21,25 +21,32 @@ One run, PAL, two VBlanks per pass, no input, from the first instruction to the 
 
 | VBlank | What happens |
 |---|---|
-| 1 | `title_sequence` (`0x018022`) starts. `music_start("wofsongs", 2)`, then `story_screen` |
+| 1 | `title_sequence` (`0x018022`) starts. `music_start("wofsongs", 2)`: the song data and the player loaded, song 2 started; then `story_screen` |
 | 1 | `screen_story`: 640 x 200 x 1, 230 rows shown from line 5 |
 | 3 | the first story line is drawn; the scroller runs |
 | 3 … 2915 | 53 story lines, one every **56 VBlanks** |
-| 3791 | the scroller ends. `music_start("wofsongs", 1)`; `screen_picture`: 320 x 200 x 5 |
-| 3793 | `load_picture_black("shapes/broderbund")`, then `view_show_wait` |
-| 3794 | `fade_to(logo_fade_palette 0x02594C)` — the publisher logo comes up in a fixed palette |
-| 3854 | after 60 rounds: `fade_to(the picture's own colours)`; `load_picture_black("shapes/wingstitle")` into the other buffer |
-| 3974 | after 120 rounds: `fade_out`, `view_show_wait`, `fade_to(the title's colours)`; `load_picture_black("shapes/creditscreen")` |
-| 4275 | after 300 rounds: `fade_out`, `view_show_wait`, `fade_to(the credits' colours)` |
-| 4876 | after 600 rounds: `fade_out`. `rank_select` (`0x018262`) starts: `music_start("wofsongs", 4)`, `screen_picture` |
-| 4878 | `load_picture_black("shapes/selectrank")`, the rank shapes from `shapes/selectrank.shp` |
-| 4879 | `fade_to(the picture's colours)`, then `menu_input(1)` |
-| 6680 | after 1800 rounds `menu_input` gives up: `fade_out`, and the game asks for demo playback. `mission_briefing` (`0x018590`) starts: `screen_hires3`, 640 x 147 x 3 |
-| 6683 | `fade_to(briefing_palette 0x02592C)` |
-| 6923 | after 240 rounds: `fade_out`; `mission_display_setup`, and the mission begins |
+| 3791 | the scroller ends. `music_start("wofsongs", 1)`: song 2 fades out, and the game waits for the fade's end |
+| 3895 | song 1 starts; `screen_picture`: 320 x 200 x 5 |
+| 3897 | `load_picture_black("shapes/broderbund")`, then `view_show_wait` |
+| 3898 | `fade_to(logo_fade_palette 0x02594C)` — the publisher logo comes up in a fixed palette |
+| 3958 | after 60 rounds: `fade_to(the picture's own colours)`; `load_picture_black("shapes/wingstitle")` into the other buffer |
+| 4078 | after 120 rounds: `fade_out`, `view_show_wait`, `fade_to(the title's colours)`; `load_picture_black("shapes/creditscreen")` |
+| 4379 | after 300 rounds: `fade_out`, `view_show_wait`, `fade_to(the credits' colours)` |
+| 4980 | after 600 rounds: `fade_out`. `rank_select` (`0x018262`) starts: `music_start("wofsongs", 4)`: song 1 fades out, the wait for its end |
+| 5084 | song 4 starts; `screen_picture` |
+| 5086 | `load_picture_black("shapes/selectrank")`, the rank shapes from `shapes/selectrank.shp` |
+| 5087 | `fade_to(the picture's colours)`, then `menu_input(1)` |
+| 6888 | after 1800 rounds `menu_input` gives up: `fade_out`, and the game asks for demo playback. `music_stop`: song 4 fades out, the wait for its end, the player's timer closed, both files unloaded |
+| 6992 | `mission_briefing` (`0x018590`) starts: `screen_hires3`, 640 x 147 x 3 |
+| 6995 | `fade_to(briefing_palette 0x02592C)` |
+| 7235 | after 240 rounds: `fade_out`; `mission_display_setup`, and the mission begins |
 
-With the five taps of fire the tests use, the mission begins at **VBlank 132**
-(`test_fire_skips_the_front_end`).
+With the five taps of fire the tests use, the mission begins at **VBlank 444**
+(`test_fire_skips_the_front_end`), 312 of them the three fades' waits.
+
+Each change of song fades the playing one and waits for the fade's end: 104 VBlanks here,
+under the harness's rule for that wait (`re/notes/headless.md`, "The fade's wait"), about two
+seconds on the machine, during which the screen stands still (`re/notes/music.md`).
 
 The rounds above are rounds of `wait_frames_or_fire` (`0x016EEE`) or of `menu_input`, each one
 `graphics.WaitTOF`, so one round is one VBlank. **The fades take no time in the harness and their
