@@ -150,6 +150,26 @@ step where each shows:
 In `kills_a` the guns never fire over the engine, so the exchanged pair shows nowhere there;
 `guns_a` fires at pass 1120.
 
+### The page and the fullscreen finding
+
+The user's finding of 2026-09-26, Firefox put into fullscreen during a mission: the picture
+stood still and the sound was gone from then on. Measured with `tests/pagefullscreen.mjs`
+(**observed**): a page hidden and shown again within 1 to 5 ms, as a window's change of
+state does, got the pause the shell asked for on the way out, and its audio context,
+suspended on the way out with the resume made only once the state read suspended, stayed
+suspended for good when the suspend landed after the page was back: 9 of 12 tries in
+Firefox, idle and beside a headless-original run alike, 5 of 6 in the M6 build, 7 of 8
+headless; a hidden phase of 6 ms or longer never. The fix (`web/audio.js`, `web/main.js`):
+the suspend and the resume go by the shell's own record, the pause is asked for on the way
+back after an absence of a second or more, and leaving fullscreen asks for the pause as
+`SPEC.md` 6.2 says, the browser's own fullscreen followed through the `display-mode` media
+query. The page is driven through a moment hidden, a real absence and the browser's
+fullscreen in both browsers, each span held to the clock, the picture, the pause and the
+sound (`tests/test_page.py`, `tests/test_firefox.py`, `assert_the_page_goes_on`); the visible
+fullscreen check needs an unlocked screen. Not a stall: at a Retina fullscreen size the
+two-step scaling costs 32 ms a frame, half the frame rate, with the clock and the sound
+holding (M9's scaling options).
+
 ## The event log
 
 `tools/sound_observe.py` over the 75 scripts (**observed**): per script its VBlanks, the
