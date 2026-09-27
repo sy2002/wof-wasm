@@ -30,6 +30,15 @@ import music_steps                 # noqa: E402
 import pass_observe                # noqa: E402
 import test_front_port             # noqa: E402
 
+@pytest.fixture(autouse=True)
+def a_fresh_core_after(request):
+    """The runs here leave the port in a mission, its shapes mirrored in place; the tests
+    after them take the core as wof_init leaves it."""
+    yield
+    if 'ported' in request.fixturenames:
+        request.getfixturevalue('ported').reset_core()
+
+
 # The scripts whose missions are held to the player's absence: a kill of the enemy plane
 # counter, the guns over map a's island, the take-off from the deck.
 MISSIONS = ['kills_a', 'guns_a', 'deck']
