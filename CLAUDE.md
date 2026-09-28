@@ -14,7 +14,10 @@ Run from the repository root. Always use the project environment, never the syst
 .venv/bin/python tools/reach_observe.py   # which routines and blocks the mission scripts execute in the original; --cold lists the stand-ins owed
 .venv/bin/python tools/mdcheck.py SPEC.md # Markdown safety check, run on every .md that was edited
 .venv/bin/python tools/build.py --native  # build dist/wof.html, dist/core.wasm and tests/libwofcore.dylib
-.venv/bin/python -m pytest tests/         # full suite; page tests use Chrome and Firefox and skip a missing browser
+.venv/bin/python -m pytest tests/         # full suite, serially; page tests use Chrome and Firefox and skip a missing browser
+.venv/bin/python -m pytest tests/ --slow -m "not page" -n 8 --dist loadgroup   # phase 1: the emulator tests over the cores (about 50 min)
+.venv/bin/python -m pytest tests/ --slow -m page                               # phase 2, after it, never beside it: the page tests alone (about 11 min)
+.venv/bin/python tools/junit_compare.py REF.xml PHASE1.xml PHASE2.xml          # the outcome sets of two runs from --junitxml files; re/notes/testing.md
 WOF_FIREFOX_VISIBLE=1 .venv/bin/python -m pytest tests/test_firefox.py   # also opens a real Firefox window
 ```
 
