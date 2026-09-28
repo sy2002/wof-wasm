@@ -253,6 +253,39 @@ def test_the_timer_keeps_its_e_cycles_over_a_change_of_standard(ported):
     assert instant == pal_now + left * 5 * 50 + 5, 'back on PAL the underflow moved'
 
 
+def test_music_start_loaded_and_switched_off_reaches_its_stand_in(ported):
+    """0x0123FE: music_start with the music loaded and opt_music_off set loads a second
+    player in the original, which the port's state cannot hold (src/music.c, re/notes/music.md,
+    "The game's calls").  Nothing reaches it in play; forced here, the port counts its stand-in
+    and goes on as with the music off: no command 2, whose block sets music_playing."""
+    lib = ported.lib
+    lib.wt_music_start.argtypes = [ctypes.c_int]
+    lib.wt_standin_count.restype = ctypes.c_int
+    lib.wt_standin.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)]
+    lib.wt_standin.restype = ctypes.c_char_p
+    marker = ("M8 STAND-IN: music_start at 0x0123FE, the music loaded and opt_music_off set: "
+              "a second player, which the port's state cannot hold")
+
+    def standins():
+        out = {}
+        for i in range(lib.wt_standin_count()):
+            count = ctypes.c_uint()
+            name = lib.wt_standin(i, ctypes.byref(count)).decode()
+            out[name] = count.value
+        return out
+
+    ported.reset_core()
+    lib.wt_standins_reset()
+    assert lib.wt_music_start(4) == 0                      # loaded and started, as at the title
+    assert ported.g('music_playing') >> 8 == 0xFF
+    assert standins() == {}
+    ported.set_g('opt_music_off', 0xFF)
+    ported.set_g('music_playing', 0)
+    assert lib.wt_music_start(4) == 0, 'music_start waited for the fade with the music off'
+    assert standins() == {marker: 1}
+    assert ported.g('music_playing') == 0, "command 2's block ran with the music off"
+
+
 # ------------------------------------------------------------------ the outer loop
 
 # The front end with fire, five aircraft rolled over the bow, the game over and the high-score

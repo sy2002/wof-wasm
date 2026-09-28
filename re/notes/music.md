@@ -45,9 +45,10 @@ gives only 0, 1, 2, 4, 5 and 6 (**observed**, `tools/sound_observe.py` over ever
   and `high_score_screen`): with the files not loaded, it
   loads `wofsongs` and `songplay` with `LoadSeg`, calls the song data's entry for its address,
   and gives command 0; with them loaded, it gives command 6 with D1 2, a fade at speed 2, and
-  then, unless `opt_music_off` is set, gives command 5 again and again until it answers 0.
-  Then command 1 with the song number and the song data, and, unless `opt_music_off` is set,
-  command 2 and `0x027430` set.
+  then gives command 5 again and again until it answers 0, or, with `opt_music_off` set,
+  takes the path of files not loaded (the branch at `0x0123FE`, below). Then command 1 with
+  the song number and the song data, and, unless `opt_music_off` is set, command 2 and
+  `0x027430` set.
 - **`music_stop`** (`0x012470`, from `rank_select`, `load_save_dialog` and `fatal_exit`): with
   the files loaded, command 6 with 2, `0x027430` cleared, the same wait unless
   `opt_music_off` is set, command 4, and both files unloaded (`0x01249E`).
@@ -72,6 +73,28 @@ while it is set is not played: `music_start` reads the song's voices but gives n
 and skips the fade's wait. The outer loop clears the flag before the rank selection, so it
 can silence only the high-score screen of the game it was set in (**read**). A way to mute
 the title's music would be the shell's, not the game's.
+
+The branch at `0x0123FE` (**read**, `re/Wings.lst`, `re/songplay.lst`): with the files loaded
+and `opt_music_off` set, `music_start` gives the fade and then takes the path of files not
+loaded, `0x01240E`. It loads `wofsongs` and `songplay` a second time, the first copies
+leaking, and gives the new player command 0 and command 1, no command 2. The new player's
+`_OpenTimerInt` (`songplay+0x09BC`) ignores what `AddICRVector` answers: timer A keeps the
+first player's `timer_node`, so every underflow runs the first player's `SongInt` on its own
+DATA hunk, fading under command 6, while `0x70` gets the new player's handler and the first
+player's goes into the new one's `saved_level4_vector`. Two players' DATA hunks are live then,
+one under the timer and one under the level-4 handler. A later `music_stop` gives command 4 to
+the new player: `RemICRVector` takes the first player's node off timer A, and `0x70` gets
+back the first player's handler, inside a segment that leaked but still holds its code, so
+`audio_irq` never comes back to `0x70`. Nothing reaches it. `opt_music_off` has two writers,
+`not.b` at `0x01CD5A` in `ingame_keys`, in flight, where the music is not loaded (`rank_select`
+unloads it at `0x0184D6` before every mission), and `clr.b` at `0x01006A` in `main`, which
+every return to the rank selection passes: the outer loop goes back to `0x010066`, and the
+game over reaches it through `high_score_screen` and `bra 0x010066`. `music_start` has four
+callers, `title_sequence` at `0x01802E` and `0x018040`, `rank_select` at `0x018272` and
+`high_score_screen` at `0x019868`; the last, the only one that can find the flag set, finds
+the music unloaded and takes the path of files not loaded by the first test. The port holds
+one player and marks the branch as a stand-in (`src/music.c`), going on as with the music
+off: command 1 and no command 2 (`tests/test_music.py`).
 
 ## The timer
 

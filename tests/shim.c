@@ -632,6 +632,17 @@ void wt_paula_state(uint32_t *out)
 /* The music's wait for a fade: VBlanks left of the round it is in, 0 when it is in none. */
 int wt_music_spin(void)         { return wof_f.music_spin; }
 
+/* music_start called as the game calls it, resumed until it returns: how many times it
+ * waited, which is 0 unless it waited for a fade. */
+int wt_music_start(int song)
+{
+    int waits = 0;
+
+    while (wof_music_start((uint16_t)song) != WOF_CO_DONE)
+        waits++;
+    return waits;
+}
+
 /* Where the front end stands: which screen, which viewports, what is on the output. */
 int wt_front_line(void)         { return wof_f.co_main.line; }
 int wt_front_vport_field(int which, int field)

@@ -481,6 +481,7 @@ path now marked dead.
 | | no region: a value | songplay, a note outside `note_clocks` (+`0x0816`) | M8 |
 | | no region: a value | songplay, a length past the durations (+`0x0712`) | M8 |
 | | no region: a value | songplay, a sample without its chunk (+`0x099C`) | M8 |
+| `music_start` `0123dc` | no region: the branch at `0123fe`, whose target the other path reaches | `music_start` at `0x0123FE`, the music loaded and `opt_music_off` set: a second player, which the port's state cannot hold | nothing reaches it (re/notes/music.md, "The game's calls") |
 
 ### What stands in, and where
 
@@ -491,6 +492,10 @@ path now marked dead.
 - Guards that name no region, each for a value no song or state of the game produces: a voice
   pointer that names no voice, a division by zero, a note outside `note_clocks`, a length
   past the durations, a sample without its chunks, a voice read as bytes.
+- `M8 STAND-IN: music_start at 0x0123FE`: the music loaded and `opt_music_off` set, where the
+  original loads a second player beside the first, both then live, one under the timer and
+  one under the level-4 handler, which the port's state, one player's, cannot hold. Nothing
+  reaches it (re/notes/music.md, "The game's calls"); `tests/test_music.py` forces it.
 
 ### What the model leaves out
 
