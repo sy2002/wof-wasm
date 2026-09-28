@@ -2,15 +2,20 @@
 
     .venv/bin/python -m pytest tests/
 
+The suite also runs in two phases, the emulator tests spread over the cores with
+pytest-xdist and the browser tests alone afterwards (re/notes/testing.md).
+
 The suite exercises the same C sources through both targets they have to compile for: the
 WebAssembly core in Node (tests/wasm_harness.mjs) and the native shared library through
 ctypes, which is the path every later milestone's oracle tests will use.
 """
 import base64
 import ctypes
+import fcntl
 import io
 import json
 import math
+import os
 import pathlib
 import re
 import subprocess
@@ -39,10 +44,13 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.addinivalue_line('markers', 'slow: a long differential run, only with --slow')
+    # The browser tests measure the page's clock against the video standard's rate and take
+    # screenshots, and load from outside has failed them (re/notes/testing.md): they carry
+    # `page` and run alone, `-m page`, after the emulator tests, `-m 'not page'`.
+    config.addinivalue_line('markers', 'page: opens a browser; run alone, never beside the parallel phase')
 
 
 def pytest_collection_modifyitems(config, items):
-    import os
     if config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1':
         return
     skip = pytest.mark.skip(reason='slow; run with --slow or WOF_SLOW=1')
@@ -55,10 +63,47 @@ def run(command, **kwargs):
     return subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True, **kwargs)
 
 
+def once_per_run(tmp_path_factory, needed, make):
+    """make() if needed(), once per run of the suite however many processes run it.
+
+    Under pytest-xdist every worker is a process of its own with a session of its own, and
+    would make the same thing again, over files the others are reading.  The workers take a
+    lock in the directory they all share and ask needed() while they hold it, so the first
+    one makes and the others find it made.  Without xdist it is the plain call."""
+    if not os.environ.get('PYTEST_XDIST_WORKER'):
+        if needed():
+            make()
+        return
+    with open(tmp_path_factory.getbasetemp().parent / 'wof-once.lock', 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if needed():
+            make()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def listing_made(tmp_path_factory):
+    """re/Wings.lst is not versioned (CLAUDE.md).  Two modules make it with tools/disasm.py
+    when it is missing, which rewrites re/functions.csv in place as well, and every headless
+    original reads that file; so it is made here, before any test of any process runs."""
+    listing = ROOT / 're' / 'Wings.lst'
+    once_per_run(tmp_path_factory, lambda: not listing.is_file(),
+                 lambda: run([sys.executable, 'tools/disasm.py']))
+
+
 @pytest.fixture(scope='session')
-def built():
-    """dist/wof.html, dist/core.wasm and tests/libwofcore.dylib, from the real build."""
-    run([sys.executable, 'tools/build.py', '--native', '--quiet'])
+def built(tmp_path_factory):
+    """dist/wof.html, dist/core.wasm and tests/libwofcore.dylib, from the real build, once per
+    run of the suite.  The build writes the library in place, and a process that has it
+    loaded while another rewrites it can crash or read a torn file: so one process builds
+    and leaves a marker in the shared directory that the others find (once_per_run)."""
+    worker = os.environ.get('PYTEST_XDIST_WORKER')
+    done = tmp_path_factory.getbasetemp().parent / 'wof-build.done'
+
+    def build():
+        run([sys.executable, 'tools/build.py', '--native', '--quiet'])
+        if worker:
+            done.write_text(worker)
+    once_per_run(tmp_path_factory, lambda: not worker or not done.exists(), build)
     assert PAGE.exists() and WASM.exists() and DYLIB.exists()
     return PAGE
 

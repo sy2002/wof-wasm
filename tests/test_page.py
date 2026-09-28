@@ -42,7 +42,10 @@ STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL
 
 CHROME = os.environ.get('WOF_CHROME', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
 
-pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason='Google Chrome is not installed')
+# `page`: a browser test, run alone and never beside the parallel emulator phase
+# (re/notes/testing.md).
+pytestmark = [pytest.mark.page,
+              pytest.mark.skipif(not os.path.exists(CHROME), reason='Google Chrome is not installed')]
 
 
 # The two pictures the scale-factor run photographs.

@@ -45,7 +45,10 @@ STANDARD_OF = {'default': 'PAL', 'ntsc': 'NTSC', 'palAgain': 'PAL', 'wide': 'PAL
 FIREFOX = os.environ.get('WOF_FIREFOX', '/Applications/Firefox.app/Contents/MacOS/firefox')
 HARNESS = ROOT / 'tests' / 'pagecheck_firefox.mjs'
 
-pytestmark = pytest.mark.skipif(not os.path.exists(FIREFOX), reason='Firefox is not installed')
+# `page`: a browser test, run alone and never beside the parallel emulator phase
+# (re/notes/testing.md).
+pytestmark = [pytest.mark.page,
+              pytest.mark.skipif(not os.path.exists(FIREFOX), reason='Firefox is not installed')]
 
 
 def run_firefox(page, visible):
