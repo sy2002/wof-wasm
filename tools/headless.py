@@ -84,6 +84,9 @@ JOY1DAT  = 0xDFF00C
 CIAA_PRA = 0xBFE001
 
 # ---- the original
+SLICE_INSNS        = 1_000_000   # a slice of emulation, in instructions (Headless._drive)
+STUCK_SECONDS      = 10.0        # this long in wall time without a wait point is Stuck
+
 MAIN               = 0x010006
 TICK_RETURNS       = (0x0100F6, 0x0114F4, 0x01CE02)   # behind the three calls of logic_tick: main's own
                                                       # at a mission's start, run_queued_ticks, the key handler
@@ -288,8 +291,12 @@ def load_run(source):
 class Headless(AmigaOS):
     def __init__(self, run=None, track_writes=False, verbose=False, observe=(),
                  observe_returns=False, watch=None, watch_for=None, summary=False,
-                 read_owners=(), read_ranges=(), read_detail=False, keep_report=True):
+                 read_owners=(), read_ranges=(), read_detail=False, keep_report=True,
+                 slice_insns=SLICE_INSNS):
         self.run_spec = run = load_run(run or {})
+        self.slice_insns = slice_insns        # the length of a slice in instructions (_drive)
+        self.slices_out = 0                   # slices that ended without a wait point
+        self.stuck_seconds = STUCK_SECONDS
         self.verbose = verbose
         self.names = dump.Names(ROOT)
         self.fd = disasm.load_fd(os.path.join(HERE, 'fd'))
@@ -413,7 +420,8 @@ class Headless(AmigaOS):
         self._deadline = time.time() + 600.0
         self._fault = None
         self._skip = None
-        self._refire = None                   # where a slice that ran out of time stopped
+        self._refire = None                   # always None: no slice ends between a code hook
+                                              # and its instruction (_drive); tools/reach_observe.py asks
         self._reason = None
         self._pause = None
         self.depth = 0
@@ -655,15 +663,9 @@ class Headless(AmigaOS):
 
     def _observe(self, uc, address, size, user):
         """An observer: record and let the program run on.  Nothing is written, so the run is
-        the same one it would be without it.  A slice of emulation that runs out of time can
-        stop after an observer's hook has run and before its instruction; the slice after it
-        starts on that instruction and runs the hook again, which is not a second call."""
+        the same one it would be without it.  Every call fires it once: a slice never ends
+        between a code hook and its instruction (_drive)."""
         stack = self.reg('a7')
-        if self._refire == address:
-            self._refire = None
-            last = self.observed[-1] if self.observed else None
-            if last is not None and last['address'] == address and last['a7'] == stack:
-                return
         record = {
             'routine': self.observing[address], 'address': address,
             'vblank': self.vblanks, 'pass': self.passes, 'tick': self.ticks,
@@ -792,13 +794,26 @@ class Headless(AmigaOS):
         return self._drive(END_TRAP)
 
     def _drive(self, end):
-        idle = 0
+        """Run the program from self.pc until it reaches `end` or a stop parks it.
+
+        The emulation runs in slices of `slice_insns` instructions.  Unicorn ends a slice in
+        its instruction counter, a code hook it runs ahead of every other one, so a slice ends
+        before an instruction whose own hooks have not run yet, and where it ends depends on
+        the program alone: a run is the same whatever the slices.  Wall time never ends a
+        slice; it only says when a run is Stuck.  A slice may not end by Unicorn's timeout: a
+        timeout stops the emulation from a timer thread, asynchronously, and two things
+        followed from that (re/notes/headless.md, "Unicorn, as it behaves here").  Landing
+        while a memory hook ran, the stop reported the instruction that made the access with
+        the access already made, and the next slice made it again: a subq to memory counted
+        twice, a beam read took a second value.  Landing between Unicorn's two stop flags,
+        it left every code hook silent for the next slice, and the program spun in
+        wait_vblank for ever."""
+        waited = time.time()
         while True:
             self._reason = self._fault = None
             self.o.fault = None
-            before = self.progress
             try:
-                self.uc.emu_start(self.pc, end, timeout=2_000_000)
+                self.uc.emu_start(self.pc, end, count=self.slice_insns)
             except UcError as error:
                 pc = self.uc.reg_read(UC_M68K_REG_PC)
                 raise HarnessError('%s: %s at %06x in %s' % (error, self.o.fault, pc, self.names.routine(pc))) from None
@@ -806,20 +821,19 @@ class Headless(AmigaOS):
             if self._fault:
                 raise HarnessError(self._fault)
             address = self._reason
-            self._refire = self.pc if address is None else None
             if address is None:
                 if self.pc == end:
                     if self.depth == 0:
                         self.finished = True
                     return 'end'
-                idle = idle + 1 if self.progress == before else 0
-                if idle >= 5 or time.time() > self._deadline:
+                self.slices_out += 1
+                now = time.time()
+                if now - waited >= self.stuck_seconds or now > self._deadline:
                     raise Stuck('no wait point for %d s: %06x in %s, called from %s' % (
-                        2 * idle, self.pc, self.names.routine(self.pc),
+                        now - waited, self.pc, self.names.routine(self.pc),
                         ' < '.join(self.names.routine(a) for a in self.callers())))
                 continue
             self.progress += 1
-            idle = 0
             self._pause = None
             if LIB_AREA <= address < SEG_AREA:
                 self._os_call(address)
@@ -835,7 +849,8 @@ class Headless(AmigaOS):
                     self._skip = address
             if self._pause and self.depth == 0:
                 return self._pause
-            if time.time() > self._deadline:
+            waited = time.time()
+            if waited > self._deadline:
                 raise Stuck('wall clock limit reached at %06x in %s' % (self.pc, self.names.routine(self.pc)))
 
     def leave(self, d0=None):
@@ -911,11 +926,8 @@ class Headless(AmigaOS):
 
     def _segment_entry(self, name, uc, address, size, user):
         """A call into a loaded segment: recorded with its registers, VBlank, pass and tick,
-        as the fake segments' calls were; the code then runs.  A hook that fires again where
-        a timed-out slice stopped is not a second call (see _observe)."""
+        as the fake segments' calls were; the code then runs."""
         stack = self.reg('a7')
-        if self._refire == address and self.player_calls and self.player_calls[-1][-1] == stack:
-            return
         self.player_calls.append((name, self.reg('d0') & 0xFFFF, self.reg('d1'), self.reg('d2'),
                                   self.vblanks, self.passes, self.ticks, stack))
 
