@@ -12,7 +12,8 @@ The layout, as the player reads it (re/songplay.lst):
 
     songs     5 longs: song n
     song      4 longs: the sequences of tracks 0 to 3; at +0x10 the voice table, voice n at
-              +0x10 + 4n, ended by a zero long
+              +0x10 + 4n, ended by a zero long; voice 0 is in every song the rest voice, a
+              record without a sample, which a pattern selects with 0xDC 0
     sequence  entries of 6 bytes: a long, the pattern, and a word, the transpose
     pattern   events of 2 bytes: a note below 0xD9 (bit 7 ties it to the one before) with the
               index of its length in the player's durations; or a command:
@@ -71,8 +72,9 @@ class Songs:
         return [self.l(song + 4 * t) for t in range(4)]
 
     def voices(self, song):
-        out, at = {}, song + 0x14
-        n = 1
+        """The song's voice table by number, voice 0 the rest voice included."""
+        out, at = {}, song + 0x10
+        n = 0
         while self.l(at):
             out[n] = self.l(at)
             at += 4
@@ -103,7 +105,10 @@ class Songs:
                 return out
 
     def form(self, at):
-        """(name, VHDR fields, BODY offset, BODY length) of an 8SVX FORM."""
+        """(name, VHDR fields, BODY offset, BODY length) of an 8SVX FORM; for a voice without a
+        sample, the rest voice, ('no sample', None, None)."""
+        if at == 0:
+            return 'no sample', None, None
         assert self.data[at:at + 4] == b'FORM' and self.data[at + 8:at + 12] == b'8SVX', hex(at)
         end = at + 8 + self.l(at + 4)
         p, vhdr, body, name = at + 12, None, None, None
@@ -160,9 +165,9 @@ def describe(s, events_of=None):
                          if e[0] == 'note' else '%s %d' % (e[0], e[1])) for e in evs)))
         for k, v in s.voices(song).items():
             name, vhdr, body = s.form(s.voice(v)['form'])
-            out.append('  voice %d at %05x: %s' % (k, v, name))
+            out.append('  voice %d at %05x: %s%s' % (k, v, name, ', the rest' if vhdr is None else ''))
     out.append('')
-    forms = sorted({s.voice(v)['form'] for song in s.songs() for v in s.voices(song).values()})
+    forms = sorted({s.voice(v)['form'] for song in s.songs() for v in s.voices(song).values()} - {0})
     for f in forms:
         name, vhdr, body = s.form(f)
         one, rep, cyc, rate, octaves, comp, vol = vhdr

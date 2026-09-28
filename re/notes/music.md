@@ -48,7 +48,9 @@ gives only 0, 1, 2, 4, 5 and 6 (**observed**, `tools/sound_observe.py` over ever
   then gives command 5 again and again until it answers 0, or, with `opt_music_off` set,
   takes the path of files not loaded (the branch at `0x0123FE`, below). Then command 1 with
   the song number and the song data, and, unless `opt_music_off` is set, command 2 and
-  `0x027430` set.
+  `0x027430` set. The game passes the song number and the song data in D1 and D2 to command 2
+  as well; `_PlaySong` (`songplay+0x092A`) ignores them and plays the song command 1 set up
+  (**read**).
 - **`music_stop`** (`0x012470`, from `rank_select`, `load_save_dialog` and `fatal_exit`): with
   the files loaded, command 6 with 2, `0x027430` cleared, the same wait unless
   `opt_music_off` is set, command 4, and both files unloaded (`0x01249E`).
@@ -152,8 +154,12 @@ event log shows a start and then restarts at the repeat part's offset).
 The period: `note_clocks` (DATA `0x1044`, 132 longs) gives per note the colour clocks of one
 cycle of the waveform, a semitone apart; the note indexes it at `0x1134 + 4 x (note - 0x1B)`,
 so notes from 0x1B less 60 on reach it. The period is that divided by the voice's
-`samplesPerHiCycle` shifted by the octave (**read**; **observed**: note 427, the first
-period of song 2, is `0x3572` / 32).
+`samplesPerHiCycle` shifted by the octave (**read**; **observed**: the period 427, the first
+of song 2, is `0x3572` / 32). The table holds NTSC colour clocks: read with 3,579,545 Hz its
+notes are equal temperament at A 440 Hz within 0.3 cents on average, with PAL's 3,546,895 Hz
+every one is 0.91 percent, 15.9 cents, flat (**observed**, the table against both clocks). So
+on a PAL machine the music plays that much flat, as on a PAL Amiga; the port plays the table as
+it stands.
 
 ## The song format (wofsongs's DATA hunk)
 
@@ -164,7 +170,7 @@ harness plays, **observed**).
 | Part | Layout |
 |---|---|
 | songs | 5 longs, song 0 to 4; song 3 is song 1 again |
-| song | 4 longs, the sequences of tracks 0 to 3; at +0x10 the voice table, voice n at +0x10 + 4n, ended by 0 (voice 0 is never used) |
+| song | 4 longs, the sequences of tracks 0 to 3; at +0x10 the voice table, voice n at +0x10 + 4n, ended by 0. Voice 0 is in every song the rest voice, the record at `0x000CC` without a sample, whose note takes its length from the durations and starts nothing (`note_start` skips to `0x07DC` when the track has no VHDR); two patterns select it with `0xDC 0`, `0x003AC` in song 0's track 0 (sequence entries 0, 2, 8 and 10) and `0x00A02` in song 2's track 3 (all 20 entries) (**observed**, `tools/song_decode.py`) |
 | sequence | entries of 6 bytes: the pattern (long) and a transpose (word) |
 | pattern | events of 2 bytes. A byte below `0xD9` is a note, bit 7 tying it to the one before; the second byte is its length's index into the player's durations. `0xD9` next sequence entry, `0xDA` the track ends, `0xDB` the sequence from its start, `0xDC` voice n, `0xDD` timer A's latch high byte, `0xDE` its low byte, `0xDF` volume, `0xE0` hold (1 keeps a note past its release); from `0xE1` on the pair is skipped |
 | voice | `0x2E` bytes: +0 VHDR and +4 BODY of its sample, +8 notes per octave (the player writes `0x53 / ctOctave` there), +0xA the sample's 8SVX FORM, +0x12 to +0x2C vibrato and arpeggio, both off in every voice |
