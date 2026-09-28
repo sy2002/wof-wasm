@@ -413,6 +413,12 @@ def assert_p_and_escape_pause_under_the_sign(report):
     for key in ('p', 'escape'):
         assert_the_pause_sign_stands(report['paused_' + key], key)
         assert_the_page_goes_on(report['resumed_' + key], key + ' again')
+
+
+def assert_the_pause_sign_fits_a_small_window(report):
+    """Paused in a window of 420 x 320: the sign stays centred on the picture and a tenth of
+    it at most, its letters at their minimum or more.  The run takes this after the
+    fullscreen, because Firefox keeps a viewport through a later change of the window."""
     small = report['pausedSmall']
     assert_the_pause_sign_stands(small, 'a small window')
     assert small['size'][0] <= 420 and small['signLast']['titleSize'] >= 16, small['signLast']

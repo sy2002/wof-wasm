@@ -22,6 +22,7 @@ from picture import (assert_the_blocks_have_hard_edges,
 from conftest import (ROOT, assert_a_moment_hidden_changes_nothing,
                       assert_no_pause_sign_outside_a_mission,
                       assert_p_and_escape_pause_under_the_sign,
+                      assert_the_pause_sign_fits_a_small_window,
                       assert_a_real_absence_comes_back_paused,
                       assert_an_enemy_aircraft_comes_up,
                       assert_fullscreen_keeps_the_page_going,
@@ -426,9 +427,25 @@ def test_no_pause_sign_outside_a_mission(loaded_firefox):
     assert_no_pause_sign_outside_a_mission(loaded_firefox['fullscreen'])
 
 
+def test_the_pause_sign_fits_a_small_window(loaded_firefox):
+    assert_the_pause_sign_fits_a_small_window(loaded_firefox['fullscreen'])
+
+
 def test_p_and_escape_pause_under_the_sign_in_a_visible_window(loaded_firefox_visible):
     assert_p_and_escape_pause_under_the_sign(loaded_firefox_visible['fullscreen'])
 
 
 def test_no_pause_sign_outside_a_mission_in_a_visible_window(loaded_firefox_visible):
     assert_no_pause_sign_outside_a_mission(loaded_firefox_visible['fullscreen'])
+
+
+def test_the_pause_sign_fits_a_small_window_in_a_visible_window(loaded_firefox_visible):
+    """The small window comes after the fullscreen in the run, and a window that could not
+    enter fullscreen leaves the page hidden from then on (the fullscreen test's skip)."""
+    report = loaded_firefox_visible['fullscreen']
+    if window_could_not_enter_fullscreen(report):
+        pytest.skip('the window did not enter fullscreen (the driver answered %r) and the page '
+                    'stayed hidden, so the small window after it measures nothing: on macOS a '
+                    'window cannot move into its fullscreen space while the screen is locked'
+                    % report['enter'])
+    assert_the_pause_sign_fits_a_small_window(report)

@@ -21,6 +21,7 @@ from picture import (assert_the_blocks_have_hard_edges,
 from conftest import (assert_a_moment_hidden_changes_nothing,
                       assert_no_pause_sign_outside_a_mission,
                       assert_p_and_escape_pause_under_the_sign,
+                      assert_the_pause_sign_fits_a_small_window,
                       assert_a_real_absence_comes_back_paused,
                       assert_an_enemy_aircraft_comes_up,
                       assert_fullscreen_keeps_the_page_going,
@@ -502,3 +503,7 @@ def test_p_and_escape_pause_under_the_sign(loaded):
 
 def test_no_pause_sign_outside_a_mission(loaded):
     assert_no_pause_sign_outside_a_mission(loaded['fullscreen'])
+
+
+def test_the_pause_sign_fits_a_small_window(loaded):
+    assert_the_pause_sign_fits_a_small_window(loaded['fullscreen'])
