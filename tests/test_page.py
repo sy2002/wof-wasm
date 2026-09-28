@@ -19,6 +19,8 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
 from conftest import (assert_a_moment_hidden_changes_nothing,
+                      assert_no_pause_sign_outside_a_mission,
+                      assert_p_and_escape_pause_under_the_sign,
                       assert_a_real_absence_comes_back_paused,
                       assert_an_enemy_aircraft_comes_up,
                       assert_fullscreen_keeps_the_page_going,
@@ -487,3 +489,16 @@ def test_an_elements_fullscreen_keeps_the_clock_the_picture_and_the_sound(loaded
     exitFullscreen, which is what Escape does there."""
     assert_fullscreen_keeps_the_page_going(loaded['fullscreenElement'],
                                            loaded['fullscreen']['continued']['size'])
+
+
+# ------------------------------------------------------------------------ the pause sign
+#
+# The owner's wish of 2026-09-27: whenever the game is paused, PAUSED and below it "Press P to
+# continue" over the picture.  The absence and the fullscreen left check it too.
+
+def test_p_and_escape_pause_under_the_sign(loaded):
+    assert_p_and_escape_pause_under_the_sign(loaded['fullscreen'])
+
+
+def test_no_pause_sign_outside_a_mission(loaded):
+    assert_no_pause_sign_outside_a_mission(loaded['fullscreen'])

@@ -94,7 +94,8 @@ async function boot() {
     const blob = decodeBase64(document.getElementById('wof-fs').textContent);
 
     const core = await loadCore(wasm, blob, SEED);
-    const video = createVideo(document.getElementById('screen'), core);
+    const video = createVideo(document.getElementById('screen'), core,
+                              document.getElementById('paused'));
     const input = createInput(window, core);
 
     /* The vertical flip is the owner's, not the game's: hand the remembered value over
@@ -134,6 +135,7 @@ async function boot() {
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
+        video.showPaused(core.paused());          /* the pause sign, after the VBlanks */
         overlay.paint(now);
         checkAudioStarted();
         rememberInvert();

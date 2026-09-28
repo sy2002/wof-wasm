@@ -31,7 +31,11 @@ export const STANDARDS = {
     ntsc: { name: 'NTSC', hz: 60, boxWidth: 800, boxHeight: 642 },
 };
 
-export function createVideo(canvas, core) {
+/* The pause sign's big line as a share of the picture's height, and its smallest size. */
+const SIGN_SHARE = 0.06;
+const SIGN_MIN_PX = 16;
+
+export function createVideo(canvas, core, sign = null) {
     const w = core.width;
     const h = core.height;
 
@@ -100,6 +104,8 @@ export function createVideo(canvas, core) {
         /* Resizing a canvas resets its context, so the smoothing settings are made again. */
         dctx.imageSmoothingEnabled = true;
 
+        placeSign();
+
         /* The smallest whole numbers whose enlargement is at least as large as the box. */
         kx = Math.max(1, Math.ceil(deviceWidth / w));
         ky = Math.max(1, Math.ceil(deviceHeight / h));
@@ -120,6 +126,27 @@ export function createVideo(canvas, core) {
         }
         mctx.drawImage(source, 0, 0, scaled.width, scaled.height);
         dctx.drawImage(scaled, 0, 0, box.deviceWidth, box.deviceHeight);
+    }
+
+    /* The pause sign (web/index.html) sits over the middle of the picture, its size a share of
+       the picture's height, so that it covers the same small central part at any size. */
+    function placeSign() {
+        if (!sign) {
+            return;
+        }
+        sign.style.left = ((box.left + box.deviceWidth / 2) / dpr) + 'px';
+        sign.style.top = ((box.top + box.deviceHeight / 2) / dpr) + 'px';
+        sign.style.fontSize = Math.max(SIGN_MIN_PX, box.deviceHeight / dpr * SIGN_SHARE) + 'px';
+    }
+
+    /* Shown while the game is paused, whatever asked for the pause; the shell asks every
+       animation frame (web/main.js). */
+    let signShown = false;
+    function showPaused(paused) {
+        if (sign && paused !== signShown) {
+            signShown = paused;
+            sign.classList.toggle('off', !paused);
+        }
     }
 
     function present() {
@@ -185,5 +212,5 @@ export function createVideo(canvas, core) {
        tests of SPEC section 8 need both them and the canvas the browser really shows. */
     window.__wofVideo = { source, scaled, display: canvas, geometry, present };
 
-    return { present, fit, setStandard, geometry, standard: () => standard };
+    return { present, fit, setStandard, geometry, showPaused, standard: () => standard };
 }

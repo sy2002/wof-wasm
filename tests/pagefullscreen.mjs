@@ -52,6 +52,22 @@ export const FULLSCREEN_LOOK = `(() => {
         width: innerWidth,
         height: innerHeight,
         hash,
+        sign: (() => {
+            const sign = document.getElementById('paused');
+            if (!sign || sign.classList.contains('off') || getComputedStyle(sign).display === 'none') {
+                return null;
+            }
+            const rect = (e) => { const r = e.getBoundingClientRect();
+                                  return { left: r.left, top: r.top, width: r.width, height: r.height }; };
+            const title = sign.querySelector('.title');
+            const more = sign.querySelector('.continue');
+            return {
+                title: title ? title.textContent : null, more: more ? more.textContent : null,
+                titleSize: title ? parseFloat(getComputedStyle(title).fontSize) : 0,
+                moreSize: more ? parseFloat(getComputedStyle(more).fontSize) : 0,
+                rect: rect(sign), box: rect(document.getElementById('screen')),
+            };
+        })(),
     };
 })()`;
 
@@ -90,6 +106,9 @@ async function span(look, ms, sleep, stepMs = 250) {
         fullscreenSeen: samples.some((s) => s.fullscreen),
         audioAtEnd: last.audio,
         page: last.page,
+        signSeen: samples.some((s) => s.sign),
+        signAlways: samples.every((s) => s.sign),
+        signLast: last.sign,
         hides: changes.filter((c) => c[1] === 'hidden').length,
         lastHiddenMs: phases.length ? phases[phases.length - 1] : null,
         size: [last.width, last.height],
@@ -102,6 +121,17 @@ async function span(look, ms, sleep, stepMs = 250) {
 export async function fullscreenRun(d) {
     const out = {};
     out.before = await span(d.look, 2000, d.sleep);
+
+    /* P pauses the mission: the pause sign comes up and the picture stands still; P again
+       takes both away.  Escape, the game's other pause key, the same. */
+    for (const key of ['p', 'escape']) {
+        await d.tap(key);
+        await d.sleep(600);
+        out['paused_' + key] = await span(d.look, 1500, d.sleep);
+        await d.tap(key);
+        await d.sleep(600);
+        out['resumed_' + key] = await span(d.look, 2000, d.sleep);
+    }
 
     /* Hidden and shown again at once: the mission goes on, and so does its sound. */
     await d.flip(0);
@@ -117,6 +147,19 @@ export async function fullscreenRun(d) {
     out.afterAbsence = await span(d.look, 3000, d.sleep);
 
     Object.assign(out, await fullscreenRound(d));
+
+    /* The sign in a small window: in the picture's middle still, its letters no smaller than
+       their minimum.  Last, because Firefox keeps a viewport it was given through a later
+       change of the window's state; d.viewport(null) gives the tab its size back. */
+    await d.viewport(420, 320);
+    await d.sleep(600);
+    await d.tap('p');
+    await d.sleep(600);
+    out.pausedSmall = await span(d.look, 1000, d.sleep);
+    await d.tap('p');
+    await d.sleep(400);
+    await d.viewport(null);
+    await d.sleep(800);
     return out;
 }
 
@@ -127,6 +170,13 @@ export async function fullscreenRound(d) {
     await d.sleep(500);
     out.fullscreen = await span(d.look, 5000, d.sleep);
     out.fullscreenGeometry = d.geometry ? await d.geometry() : null;
+
+    /* Paused in fullscreen: the sign at the fullscreen picture's size; P again goes on. */
+    await d.tap('p');
+    await d.sleep(600);
+    out.pausedInFullscreen = await span(d.look, 1000, d.sleep);
+    await d.tap('p');
+    await d.sleep(600);
 
     /* Out of it again: the shell asks the core to pause (SPEC 6.2), and P continues. */
     out.leave = await d.leave();
@@ -139,15 +189,24 @@ export async function fullscreenRound(d) {
 }
 
 /* The front end walked to the first rank's mission and into the hold, as the flight tabs
-   do; keys.tap(name, ms) with the names backquote, space and enter.  The overlay comes up
-   with the first key, which is also the page's gesture. */
-export async function walkToTheHold(keys, player, sleep) {
+   do; keys.tap(name, ms) with the names backquote, space, enter and p.  The overlay comes up
+   with the first key, which is also the page's gesture.  On the way the page is looked at
+   (look evaluates FULLSCREEN_LOOK) at the title and in the rank menu, before and after a
+   press of P, which the menu reads as Escape and lets fall through: outside a mission the
+   game is never paused.  Returns the hold's player and those looks. */
+export async function walkToTheHold(keys, player, sleep, look) {
+    const outside = [];
     await keys.tap('backquote', 50);
     await sleep(800);
     await keys.tap('space', 250);                   /* the scroller */
     await sleep(6600);
+    outside.push(['title', await look()]);
     await keys.tap('space', 250);                   /* the title sequence */
     await sleep(4600);                              /* and the fade of its song */
+    outside.push(['ranks', await look()]);
+    await keys.tap('p', 80);
+    await sleep(600);
+    outside.push(['ranks after P', await look()]);
     await keys.tap('enter', 80);                    /* the first rank */
     await sleep(5100);                              /* the music's fade, then the briefing */
     await keys.tap('space', 250);                   /* the briefing */
@@ -159,5 +218,5 @@ export async function walkToTheHold(keys, player, sleep) {
         await sleep(100);
     }
     await sleep(1500);
-    return player();
+    return { hold: await player(), outside };
 }

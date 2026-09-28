@@ -59,7 +59,31 @@ html, body {
     pointer-events: none;
 }
 
-#gesture.off, #overlay.off, #hint.off {
+/* The pause sign.  web/video.js puts its centre on the picture's and sets its font size from
+   the picture's height, so everything here is in ems of that size: the block keeps the same
+   small part of the picture at any size.  The colours are the key hint's and the shell's. */
+#paused {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    padding: 0.3em 0.8em 0.4em;
+    text-align: center;
+    color: var(--ink);
+    background: rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+    line-height: 1.3;
+    pointer-events: none;
+}
+
+#paused .title {
+    letter-spacing: 0.15em;
+}
+
+#paused .continue {
+    font-size: max(0.6em, 11px);
+    color: var(--dim);
+}
+
+#gesture.off, #overlay.off, #hint.off, #paused.off {
     display: none;
 }
 

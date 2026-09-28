@@ -375,6 +375,7 @@ def assert_the_page_goes_on(seen, where, hz=50):
     changing, the game not paused, and the sound flowing - PCM taken from the core, most of
     it audible (the sea aboard plays for ever), little of it silence the shell had to add."""
     assert not seen['pausedSeen'], '%s: the mission was paused: %s' % (where, seen)
+    assert not seen['signSeen'], '%s: the pause sign was up: %s' % (where, seen['signLast'])
     assert abs(seen['vblankRate'] - hz) <= 2.5, (
         '%s: %.1f VBlanks a second, want %d: %s' % (where, seen['vblankRate'], hz, seen))
     assert seen['pictures'] >= 3, '%s: the picture stood still: %s' % (where, seen)
@@ -384,6 +385,46 @@ def assert_the_page_goes_on(seen, where, hz=50):
         '%s: the sound did not flow: %s' % (where, seen))
     assert seen['padded'] <= seen['emulated'] / 4, (
         '%s: the shell had to fill the queue with silence: %s' % (where, seen))
+
+
+def assert_the_pause_sign_stands(seen, where):
+    """A span in which the mission is paused: the pause sign is up all through it, PAUSED over
+    a smaller 'Press P to continue', centred on the picture and covering a small part of it,
+    and the picture stands still."""
+    assert seen['pausedAtEnd'], '%s: the mission is not paused: %s' % (where, seen)
+    assert seen['signAlways'], '%s: the pause sign was not up all the time: %s' % (where, seen)
+    sign = seen['signLast']
+    assert (sign['title'], sign['more']) == ('PAUSED', 'Press P to continue'), (where, sign)
+    assert sign['titleSize'] > sign['moreSize'] >= 11, (where, sign)
+    rect, box = sign['rect'], sign['box']
+    for axis, size in (('left', 'width'), ('top', 'height')):
+        centre = rect[axis] + rect[size] / 2
+        assert abs(centre - (box[axis] + box[size] / 2)) <= 2, (
+            '%s: the sign is not centred on the picture: %s' % (where, sign))
+    assert rect['width'] * rect['height'] <= 0.1 * box['width'] * box['height'], (
+        '%s: the sign covers more than a tenth of the picture: %s' % (where, sign))
+    assert seen['pictures'] == 1, '%s: the picture moved under the pause: %s' % (where, seen)
+
+
+def assert_p_and_escape_pause_under_the_sign(report):
+    """In the hold of a mission, P pauses: the sign comes up and the picture stands still;
+    P again takes both away and the mission goes on.  Escape, the game's other pause key,
+    the same (SPEC 6.2)."""
+    for key in ('p', 'escape'):
+        assert_the_pause_sign_stands(report['paused_' + key], key)
+        assert_the_page_goes_on(report['resumed_' + key], key + ' again')
+    small = report['pausedSmall']
+    assert_the_pause_sign_stands(small, 'a small window')
+    assert small['size'][0] <= 420 and small['signLast']['titleSize'] >= 16, small['signLast']
+
+
+def assert_no_pause_sign_outside_a_mission(report):
+    """At the title and in the rank menu the game is never paused, P or not, and the sign
+    never shows."""
+    looked = dict(report['outside'])
+    assert set(looked) == {'title', 'ranks', 'ranks after P'}, list(looked)
+    for where, seen in looked.items():
+        assert not seen['paused'] and seen['sign'] is None, (where, seen['sign'], seen['paused'])
 
 
 def assert_a_moment_hidden_changes_nothing(report):
@@ -403,6 +444,7 @@ def assert_a_real_absence_comes_back_paused(report):
     assert absence['lastHiddenMs'] is not None and absence['lastHiddenMs'] >= 1000, absence
     assert absence['pausedAtEnd'], (
         'a mission hidden for %.0f ms came back running: %s' % (absence['lastHiddenMs'], absence))
+    assert_the_pause_sign_stands(absence, 'back from the absence')
     assert_the_page_goes_on(report['afterAbsence'], 'P after the absence')
 
 
@@ -427,10 +469,12 @@ def assert_fullscreen_keeps_the_page_going(report, windowed_size, standard='PAL'
         'the window kept its size %s in fullscreen' % windowed_size)
     assert_the_page_goes_on(seen, 'in fullscreen')
     assert_the_box_is_the_largest_that_fits(report['fullscreenGeometry'], standard, 'fullscreen')
+    assert_the_pause_sign_stands(report['pausedInFullscreen'], 'paused in fullscreen')
 
     assert report['leave']['state'] == 'normal', report['leave']
     left = report['left']
     assert left['pausedAtEnd'], 'leaving fullscreen did not pause the mission: %s' % left
+    assert_the_pause_sign_stands(left, 'fullscreen left')
     assert_the_page_goes_on(report['continued'], 'P after leaving fullscreen')
 
 

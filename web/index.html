@@ -8,7 +8,8 @@
 <style>@@WOF_CSS@@</style>
 </head>
 <body>
-<div id="stage"><canvas id="screen"></canvas></div>
+<!-- The pause sign, shown while the game is paused (web/video.js lays it out on the picture). -->
+<div id="stage"><canvas id="screen"></canvas><div id="paused" class="off"><div class="title">PAUSED</div><div class="continue">Press P to continue</div></div></div>
 <div id="gesture">press any key for sound</div>
 <div id="overlay" class="off"></div>
 <!-- The diagnostics key is named by where it is, not by the character on it: the shell

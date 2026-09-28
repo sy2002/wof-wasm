@@ -625,14 +625,15 @@ try {
         targetId: fullTarget.targetId, flatten: true,
     })).sessionId;
     await open(fullSession, 'file://' + pagePath, [CORE_WATCH, VISIBILITY_WATCH]);
-    const fullNames = { backquote: 'backquote', space: 'space', enter: 'enter', p: 'keyP' };
+    const fullNames = { backquote: 'backquote', space: 'space', enter: 'enter', p: 'keyP',
+                        escape: 'escape' };
     const fullTap = async (name, ms = 80) => {
         await cdp.hold(fullSession, fullNames[name]);
         await sleep(ms);
         await cdp.release(fullSession, fullNames[name]);
     };
-    const fullHold = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullSession, PLAYER),
-                                         sleep);
+    const walked = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullSession, PLAYER),
+                                       sleep, () => evaluateIn(fullSession, FULLSCREEN_LOOK));
     /* The tab put in front for a while is a blank one; the page's own comes back. */
     const blankTarget = await cdp.send('Target.createTarget', { url: 'about:blank', background: true });
     const { windowId } = await cdp.send('Browser.getWindowForTarget', { targetId: fullTarget.targetId });
@@ -658,9 +659,14 @@ try {
         },
         enter: () => windowState('fullscreen'),
         leave: () => windowState('normal'),
+        viewport: (width, height) => (width === null
+            ? cdp.send('Emulation.clearDeviceMetricsOverride', {}, fullSession)
+            : cdp.send('Emulation.setDeviceMetricsOverride',
+                       { width, height, deviceScaleFactor: 0, mobile: false }, fullSession)),
     };
     report.fullscreen = await fullscreenRun(fullDriver);
-    report.fullscreen.hold = fullHold;
+    report.fullscreen.hold = walked.hold;
+    report.fullscreen.outside = walked.outside;
     /* Escape through the protocol reaches the page as a key but leaves no fullscreen, so the
        element's fullscreen is left by exitFullscreen, which is what Escape does. */
     report.fullscreenElement = await fullscreenRound({

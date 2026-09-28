@@ -591,15 +591,18 @@ try {
     await evaluateIn(fullTab, "(window.localStorage.removeItem('wof:invertVertical'), 0)");
     await send(socket, 'browsingContext.reload', { context: fullTab, wait: 'complete' });
     await sleep(1500);
-    const fullKeys = { backquote: KEY_BACKQUOTE, space: KEY_SPACE, enter: KEY_ENTER, p: 'p' };
+    const fullKeys = { backquote: KEY_BACKQUOTE, space: KEY_SPACE, enter: KEY_ENTER, p: 'p',
+                       escape: '\uE00C' };
     const fullTap = async (name, ms = 80) => {
         await keyAction(fullTab, 'keyDown', fullKeys[name]);
         await sleep(ms);
         await keyAction(fullTab, 'keyUp', fullKeys[name]);
     };
-    const hold = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullTab, PLAYER), sleep);
+    const walked = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullTab, PLAYER), sleep,
+                                       () => evaluateIn(fullTab, FULLSCREEN_LOOK));
     /* The tab put in front for a while is a blank one; the page's own tab comes back. */
     const blankTab = (await send(socket, 'browsingContext.create', { type: 'tab', background: true })).context;
+    let fullViewport = null;                        /* the tab's own size, before a small one */
     const clientWindow = async () => (await send(socket, 'browser.getClientWindows', {})).clientWindows[0];
     const windowState = async (state) => {
         const answer = await send(socket, 'browser.setClientWindowState', {
@@ -624,8 +627,18 @@ try {
         enter: () => windowState('fullscreen'),
         leave: () => windowState('normal'),
         geometry: () => evaluateIn(fullTab, GEOMETRY),
+        viewport: async (width, height) => {
+            if (width !== null && !fullViewport) {
+                fullViewport = await evaluateIn(fullTab, '[innerWidth, innerHeight]');
+            }
+            const [w, h] = width === null ? fullViewport : [width, height];
+            await send(socket, 'browsingContext.setViewport', {
+                context: fullTab, viewport: { width: w, height: h },
+            });
+        },
     });
-    report.fullscreen.hold = hold;
+    report.fullscreen.hold = walked.hold;
+    report.fullscreen.outside = walked.outside;
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {
