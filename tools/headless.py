@@ -88,6 +88,8 @@ SLICE_INSNS        = 1_000_000   # a slice of emulation, in instructions (Headle
 STUCK_SECONDS      = 60.0        # this long in wall time without a wait point is Stuck: the
                                  # longest legitimate stretch measured, 8 s under the suite's
                                  # parallel phase (re/notes/testing.md), stays far below it
+WALL_LIMIT         = 1800.0      # a whole run that takes longer is Stuck: the longest the suite
+                                 # makes took 327 s under its parallel phase with 8 workers
 
 MAIN               = 0x010006
 TICK_RETURNS       = (0x0100F6, 0x0114F4, 0x01CE02)   # behind the three calls of logic_tick: main's own
@@ -419,7 +421,7 @@ class Headless(AmigaOS):
         # control
         self.stops = {}
         self._until = None
-        self._deadline = time.time() + 600.0
+        self._deadline = time.time() + WALL_LIMIT
         self._fault = None
         self._skip = None
         self._refire = None                   # always None: no slice ends between a code hook
@@ -788,7 +790,7 @@ class Headless(AmigaOS):
 
     # ------------------------------------------------------------------ the driver
 
-    def run(self, until=None, wall_limit=600.0):
+    def run(self, until=None, wall_limit=WALL_LIMIT):
         """Run the main program.  until: 'inner' (the inner loop is reached), 'pass', 'tick',
         'step', or None for the stop condition of the run description.  Returns why it stopped."""
         self._until = until
