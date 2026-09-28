@@ -214,6 +214,45 @@ def test_the_ports_timer_follows_the_definition(ported):
     assert timer() == (0x38FF, 0x38FF, 0, 0, 0)
 
 
+def test_the_timer_keeps_its_e_cycles_over_a_change_of_standard(ported):
+    """A CIA counts E cycles, the colour clock over 5, which differs between PAL and NTSC
+    (709,379 and 715,909 Hz): switched mid-count, the timer keeps its count and the E cycles
+    left to its underflow, the instant recomputed in the new units, 5 x hz of them a cycle -
+    not the seconds left, which would move the underflow by 0.9 percent of a cycle's count."""
+    lib = ported.lib
+    lib.wt_paula_put.argtypes = lib.wt_timer_put.argtypes = [ctypes.c_void_p]
+    ported.reset_core()
+    lib.wof_set_video_hz(50)
+    words = ported.paula_state()[:39]
+    words[38] = 10                                         # ten VBlanks have happened
+    lib.wt_paula_put((ctypes.c_uint32 * 39)(*words))
+    pal_now = 10 * 3546895
+    left = 1000                                            # E cycles to the underflow
+    at = pal_now + left * 5 * 50 + 5                       # and 5 units into a cycle, which
+                                                           # carry over exactly: 6 on NTSC
+    lib.wt_timer_put((ctypes.c_uint32 * 9)(0xFFFF, 0x1234, 1, 0, at & 0xFFFFFFFF, at >> 32,
+                                            0, 0, 0))
+
+    def timer():
+        state = ported.paula_state()
+        return state[40], state[41], state[43] | state[44] << 32
+
+    lib.wof_set_video_hz(60)
+    ntsc_now = 10 * 3579545
+    counter, running, instant = timer()
+    assert (counter, running) == (0x1234, 1), 'the count changed with the standard'
+    assert instant == ntsc_now + (left * 5 * 50 + 5) * 60 // 50, (
+        'the underflow is %d units after the switch, want %d E cycles of %d' % (
+            instant - ntsc_now, left, 5 * 60))
+    seconds = (left * 5 * 50 + 5) * (3579545 * 60) // (3546895 * 50)
+    assert instant - ntsc_now != seconds
+
+    lib.wof_set_video_hz(50)
+    counter, running, instant = timer()
+    assert (counter, running) == (0x1234, 1)
+    assert instant == pal_now + left * 5 * 50 + 5, 'back on PAL the underflow moved'
+
+
 # ------------------------------------------------------------------ the outer loop
 
 # The front end with fire, five aircraft rolled over the bow, the game over and the high-score

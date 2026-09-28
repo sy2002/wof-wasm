@@ -547,11 +547,13 @@ void wof_paula_boundary(void)
 
 /* The video standard changed (the shell sets it once at start, and its diagnostics overlay
  * can switch it): the units change with it, so what is left of each running channel's
- * current byte is carried over into the new ones. */
+ * current byte is carried over into the new ones, and so is what is left of timer A's
+ * count. */
 void wof_paula_rate(uint16_t hz)
 {
     uint64_t old_now = now(), old_scale = (uint64_t)clock_of(P.hz) * P.hz;
     uint64_t new_scale = (uint64_t)clock_of(hz) * hz;
+    uint64_t old_tick = e_tick();
 
     if (P.hz == hz)
         return;
@@ -563,10 +565,14 @@ void wof_paula_rate(uint16_t hz)
         if (ch->on)
             ch->next = now() + left * new_scale / old_scale;
     }
+    /* A CIA counts E cycles, and the E clock is the colour clock over 5, which differs
+     * between the standards (709,379 and 715,909 Hz): the timer's time left is carried over
+     * as E cycles, not as seconds, the count unchanged and the underflow's instant
+     * recomputed in the new units, e_tick() of them a cycle. */
     if (C.running) {
         uint64_t left = C.next > old_now ? C.next - old_now : 0;
 
-        C.next = now() + left * new_scale / old_scale;
+        C.next = now() + left * e_tick() / old_tick;
     }
 }
 

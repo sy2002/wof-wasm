@@ -403,7 +403,9 @@ instant, calling `SongInt` at the underflow's instant. The handler at `0x70` is 
 state, `WOF_L4_SYSTEM`, `WOF_L4_AUDIO_IRQ` or `WOF_L4_SONGINT`: `sound_init` puts `audio_irq`
 there, `_OpenTimerInt` the player's handler and `_CloseTimerInt` back what it found, and
 `wof_paula_deliver` calls whichever holds it. A change of the video standard carries the
-timer's next underflow over into the new units. The four read-back registers ignore a write,
+timer's count over as E cycles, the colour clock over 5, which differs between the standards
+(709,379 and 715,909 Hz): the count stays and the next underflow is recomputed in the new
+units, 5 x hz of them a cycle (`test_the_timer_keeps_its_e_cycles_over_a_change_of_standard`). The four read-back registers ignore a write,
 so the player's writes to `INTREQR` do nothing, as on the machine. The state version is 11.
 
 **The page** plays the music through the same queue as the effects; nothing in the shell
