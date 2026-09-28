@@ -172,6 +172,10 @@ fullscreen check needs an unlocked screen. Not a stall: at a Retina fullscreen s
 two-step scaling costs 32 ms a frame, half the frame rate, with the clock and the sound
 holding (M9's scaling options).
 
+### The pause sign
+
+The owner's wish of 2026-09-27: whenever the game is paused, "PAUSED" over the picture and below it, a little smaller, "Press P to continue". It shows the core's own pause, `wof_paused`, which the shell reads once every animation frame after the VBlanks (`web/main.js`), so it comes up whatever asked for the pause - P, Escape, fullscreen left, the page back from a real absence - and goes with it; outside a mission the core is never paused and the sign never shows. It is a DOM element over the displayed canvas, `#paused` in `web/index.html`, in the key hint's font and colours; `web/video.js` puts its centre on the picture's and sets its size from the picture's height on every change of the box (PAUSED 6 percent of it, the second line 0.6 of that, at least 16 and 11 px), so it keeps to about a twentieth of the picture at any size. The diagnostics overlay, the key hint and the sound prompt lie above it and are untouched. No picture test is affected: every comparison of a screenshot or of the displayed canvas with the source canvas is made in the front end, where nothing is paused, and the mission's pictures are read off the source canvas, which no element covers. Tested in both browsers from the hold of a mission (`tests/pagefullscreen.mjs`, `assert_the_pause_sign_stands`): P and Escape each bring the sign up with the picture standing still and take it away with the mission going on; the absence of 1.5 s and the fullscreen left show it; paused in fullscreen and in a window of 420 x 320 it stays centred, a tenth of the picture at most, its letters at their minimum or more; at the title and in the rank menu, P or not, it never shows.
+
 ## The event log
 
 `tools/sound_observe.py` over the 75 scripts, with the music (**observed**): per script its
