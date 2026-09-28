@@ -424,8 +424,6 @@ class Headless(AmigaOS):
         self._deadline = time.time() + WALL_LIMIT
         self._fault = None
         self._skip = None
-        self._refire = None                   # always None: no slice ends between a code hook
-                                              # and its instruction (_drive); tools/reach_observe.py asks
         self._reason = None
         self._pause = None
         self.depth = 0
