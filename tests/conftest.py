@@ -50,7 +50,28 @@ def pytest_configure(config):
     config.addinivalue_line('markers', 'page: opens a browser; run alone, never beside the parallel phase')
 
 
+# The loop tests of one script share its recording (tests/test_world.py, recorded), which is
+# made once per process.  Under pytest-xdist with --dist loadgroup they go to one worker, so
+# that the script is recorded once and not by every worker that runs one of them.
+RECORDING_MODULES = ('test_world', 'test_weapons', 'test_enemy')
+
+
+def recording_group(item):
+    """'recording:<script>:<rate>' for a test whose parameters name a recorded script."""
+    if item.module.__name__.rsplit('.', 1)[-1] not in RECORDING_MODULES:
+        return None
+    callspec = getattr(item, 'callspec', None)
+    if callspec is None or 'name' not in callspec.params:
+        return None
+    return 'recording:%s:%d' % (callspec.params['name'], callspec.params.get('rate', 2))
+
+
+@pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
+    for item in items:
+        group = recording_group(item)
+        if group:
+            item.add_marker(pytest.mark.xdist_group(group))
     if config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1':
         return
     skip = pytest.mark.skip(reason='slow; run with --slow or WOF_SLOW=1')
@@ -1095,6 +1116,54 @@ class Ported:
 @pytest.fixture(scope='session')
 def ported(built, blob):
     return Ported(blob)
+
+
+# ------------------------------------------------------------ a fresh core for every test
+
+_SETTINGS = {}
+
+
+def fresh_settings():
+    """The core's settings that live beside its state and survive wof_init - the VBlanks of a
+    fade step and of a pass, the test hooks of tests/shim.c - put back to what the process
+    held before any test ran, read off the core at the first call.  The audio output rate
+    survives too and is left alone: every test that renders names its rate before the
+    VBlanks it takes, and a new rate empties the queue."""
+    lib = _SETTINGS.get('lib')
+    if lib is None:
+        lib = ctypes.CDLL(str(DYLIB))
+        for name, argtypes, restype in (('wof_fade_vblanks', [], ctypes.c_int),
+                                        ('wof_set_fade_vblanks', [ctypes.c_int], None),
+                                        ('wof_vblanks_per_pass', [], ctypes.c_int),
+                                        ('wt_set_vblanks_per_pass', [ctypes.c_int], None),
+                                        ('wt_set_tick_hook', [ctypes.c_void_p], None),
+                                        ('wt_set_step_s_hook', [ctypes.c_void_p], None),
+                                        ('wt_set_pass_hook', [ctypes.c_void_p], None)):
+            function = getattr(lib, name)
+            function.argtypes = argtypes
+            function.restype = restype
+        _SETTINGS.update(lib=lib, fade=lib.wof_fade_vblanks(), per_pass=lib.wof_vblanks_per_pass())
+    lib.wof_set_fade_vblanks(_SETTINGS['fade'])
+    lib.wt_set_vblanks_per_pass(_SETTINGS['per_pass'])
+    for hook in ('wt_set_tick_hook', 'wt_set_step_s_hook', 'wt_set_pass_hook'):
+        getattr(lib, hook)(None)
+
+
+@pytest.fixture(autouse=True)
+def fresh_core(request):
+    """Every test that takes the core starts from a fresh one, whatever ran before it in its
+    process.  A process holds one copy of the core's statics, which `ported` and NativeCore
+    share, and a test that leaves them changed - a mission's setup left behind, the shapes
+    mirrored, a file deleted - would hand that to whichever test its process runs next,
+    which under pytest-xdist is another one each run (re/notes/testing.md).  So a test that
+    takes `ported`, itself or through a fixture built on it, gets reset_core and the
+    settings back before it runs; a test that makes its own NativeCore gets the settings,
+    and NativeCore makes its state itself.  A test without the core pays nothing."""
+    names = request.fixturenames
+    if 'ported' in names or 'native_core_factory' in names:
+        fresh_settings()
+    if 'ported' in names:
+        request.getfixturevalue('ported').reset_core()
 
 
 # ------------------------------------------------- the display box, SPEC 6.2 bullet Video

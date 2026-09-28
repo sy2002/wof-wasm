@@ -85,7 +85,9 @@ CIAA_PRA = 0xBFE001
 
 # ---- the original
 SLICE_INSNS        = 1_000_000   # a slice of emulation, in instructions (Headless._drive)
-STUCK_SECONDS      = 10.0        # this long in wall time without a wait point is Stuck
+STUCK_SECONDS      = 60.0        # this long in wall time without a wait point is Stuck: the
+                                 # longest legitimate stretch measured, 8 s under the suite's
+                                 # parallel phase (re/notes/testing.md), stays far below it
 
 MAIN               = 0x010006
 TICK_RETURNS       = (0x0100F6, 0x0114F4, 0x01CE02)   # behind the three calls of logic_tick: main's own

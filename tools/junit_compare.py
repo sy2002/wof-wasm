@@ -7,9 +7,11 @@ the suite's two-phase run is held to a serial one (re/notes/testing.md): the emu
 and the page phase each write a file, and their union must be the serial run's outcome set.
 
 A test is its junit id, `module::name[parameters]`; its outcome is passed, failed, error or
-skipped, a skip with its reason.  Printed: the counts of both sides, every test only one side
-has, every test whose outcome differs, and a test that appears twice in one set.  The exit
-status is 0 when the two sets are identical and 1 otherwise.
+skipped, a skip with its reason.  pytest-xdist's `--dist loadgroup` appends `@<group>` to the
+id of a test in a group (the suite groups the loop tests of one recorded script); that suffix
+says where the test ran, not what it is, and is dropped.  Printed: the counts of both sides,
+every test only one side has, every test whose outcome differs, and a test that appears
+twice in one set.  The exit status is 0 when the two sets are identical and 1 otherwise.
 """
 import argparse
 import collections
@@ -23,7 +25,7 @@ def outcomes(paths):
     twice = []
     for path in paths:
         for case in ET.parse(path).getroot().iter('testcase'):
-            test = '%s::%s' % (case.get('classname'), case.get('name'))
+            test = '%s::%s' % (case.get('classname'), case.get('name').split('@', 1)[0])
             outcome = 'passed'
             for child in case:
                 if child.tag in ('failure', 'error'):
