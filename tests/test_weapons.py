@@ -196,12 +196,14 @@ def test_every_address_the_m5_scripts_write_is_compared_or_excluded(ported, requ
     """T3 over the M5 scripts: every address the original writes during their missions is a
     registered field, compared by another check, or on an exclusion list with its reason and
     milestone.  The two long scripts are taken with --slow; island_a goes on into the next
-    mission of its campaign, whose rows are M7's."""
+    mission of its campaign, whose setup loads the ships' containers again (M6's rows) and
+    whose window between the missions is M7's."""
     slow = request.config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1'
     coverage = m4complete.Coverage(m4state.Layout(ported),
                                    excluded=(m4complete.EXCLUDED + m4complete.M5_EXCLUDED +
-                                             m4complete.M7_EXCLUDED),
-                                   heap=m4complete.HEAP + m4complete.M5_HEAP + m4complete.M7_HEAP)
+                                             m4complete.M6_EXCLUDED + m4complete.M7_EXCLUDED),
+                                   heap=(m4complete.HEAP + m4complete.M5_HEAP +
+                                         m4complete.M6_HEAP + m4complete.M7_HEAP))
     for name in SCRIPTS:
         if name in SLOW and not slow:
             continue

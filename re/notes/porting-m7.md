@@ -215,9 +215,10 @@ The oracle tests catch the changes to `mission_won`, `choose_night` and the walk
 
 `test_every_address_the_m7_scripts_write_is_compared_or_excluded` takes the rows of M4 to M6
 and adds these (`tests/m4complete.py`, `M7_EXCLUDED` and `M7_HEAP`) for what the window
-between two missions and the save write; the M5 list takes them too, because `island_a`
-now runs on into its next mission and the recorder follows it (`tests/m4compare.py`). None
-is owed to part 1:
+between two missions and the save write; the M5 list takes them too, and M6's rows
+beside them, because `island_a` now runs on into its next mission, whose setup loads the
+ships' containers again, and the recorder follows it (`tests/m4compare.py`). None is owed
+to part 1:
 
 | Address | Writers | What it is | How the port carries it | Owed to |
 |---|---|---|---|---|
