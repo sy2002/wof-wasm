@@ -86,6 +86,30 @@ void wof_port_key(uint8_t code, uint16_t qualifier)
     wof_key(code, qualifier);
 }
 
+/* ------------------------------------------------------------------ the help screen */
+
+/* The shell's help screen pauses a running mission with wof_request_pause and, when it
+ * closes, continues it with this (SPEC 6.2).  A pause asked for and not yet taken is simply
+ * withdrawn; a mission the request did pause gets the Escape that KeyP gives, so the next
+ * ingame_keys continues it exactly as P would.  Outside a mission, or with nothing paused,
+ * there is nothing to continue.  The shell only calls it for a pause the help asked for
+ * itself: a pause the player made stays. */
+void wof_request_continue(void)
+{
+    if (wof_g.outside_mission)
+        return;
+    wof_f.pause_request = 0;
+    if (wof_g.pause_flag)
+        wof_key(RAW_ESCAPE, 0);
+}
+
+/* The line editor has the keys (text_input, src/dialog.c): the high-score name and the
+ * dialog's file names.  Read-only. */
+int wof_line_editor_active(void)
+{
+    return wof_f.editing ? 1 : 0;
+}
+
 /* ------------------------------------------------------------------ the vertical flip */
 
 void wof_set_invert_vertical(int on)

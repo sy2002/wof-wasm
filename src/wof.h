@@ -97,6 +97,10 @@ WOF_API(wof_dev_player)        const int16_t  *wof_dev_player(void);   /* x, y, 
  * pass of a mission pauses the game as Escape does.  Outside a mission it is dropped. */
 WOF_API(wof_request_pause)     void            wof_request_pause(void);
 WOF_API(wof_paused)            int             wof_paused(void);
+/* The help screen's two (src/portkeys.c): the continue that ends a pause the help asked for,
+ * and whether the line editor has the keys, in which H is a letter and opens no help. */
+WOF_API(wof_request_continue)  void            wof_request_continue(void);
+WOF_API(wof_line_editor_active) int            wof_line_editor_active(void);
 WOF_API(wof_pass)              void            wof_pass(void);
 WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);
