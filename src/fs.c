@@ -381,6 +381,18 @@ int wof_fs_write(const char *name, const uint8_t *data, uint32_t len)
     return 1;
 }
 
+/* dos.Open with MODE_NEWFILE as far as a writer asks it: whether a file of that name can
+ * be written, which is when it is there already or the overlay has a free slot. */
+int wof_fs_can_write(const char *name)
+{
+    if (written_find(name))
+        return 1;
+    for (uint32_t i = 0; i < FS_WRITE_MAX; i++)
+        if (!fs_written[i].used)
+            return 1;
+    return 0;
+}
+
 /* orig dos.DeleteFile.  Control-C deletes the high-score file with no further check
  * (re/notes/highscore.md), and a save over an edited name deletes the file it was edited
  * from (re/notes/frontend.md). */

@@ -143,7 +143,12 @@ def compare_passes(replay, chart, stop=None):
         if paula:
             found.add('tick paula', k, paula[:4])
 
-    passes = replay.run(on_pass=on_pass, on_tick=on_tick)
+    try:
+        passes = replay.run(on_pass=on_pass, on_tick=on_tick)
+    except AssertionError as error:
+        # The port has run on where the original's run has no step (a control that loads
+        # another map): what differed before it is the finding.
+        raise AssertionError('%s\n%s' % (error, found)) from None
     return passes, found
 
 

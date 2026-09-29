@@ -579,6 +579,7 @@ int32_t  wof_dos_ioerr(void);
  * state: a save state is a snapshot of the running game and must not un-write a file. */
 void        wof_fs_writes_reset(void);
 int         wof_fs_write(const char *name, const uint8_t *data, uint32_t len);
+int         wof_fs_can_write(const char *name);   /* Open with MODE_NEWFILE would succeed */
 int         wof_fs_delete(const char *name);          /* orig dos.DeleteFile */
 const uint8_t *wof_fs_written_data(uint32_t index, uint32_t *len);
 const char *wof_fs_dir_entry(uint32_t index);         /* the `wof.` files in ExNext order */
@@ -1158,6 +1159,7 @@ void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank s
 void     wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_poke_after_reset(void);         /* and after the mission's reset (0x0100D6) */
 void     wof_test_poke_map(uint32_t offset, uint32_t size, uint32_t value);
+void     wof_test_poke_at(uint32_t offset, uint32_t size, uint32_t value, uint32_t point);
 void     wof_test_poke_after_map(void);           /* and after a campaign's first map_load (0x0100AE) */
 void     wof_test_map_addresses(const uint32_t *list, uint32_t n);   /* the machine's, per map load */
 uint32_t wof_env_map_address(void);

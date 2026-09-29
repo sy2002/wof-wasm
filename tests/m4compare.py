@@ -218,6 +218,7 @@ class Replay:
                 ('wt_poke_address', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint],
                  None),
                 ('wt_poke_map', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
+                ('wt_poke_at', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
@@ -368,16 +369,20 @@ class Replay:
         for at, items in m5_scripts.poke_points(self.pokes).items():
             assert at in points, hex(at)
             poke, point = points[at]
-            for address, size, value in items:
+            for address, size, value, once in items:
                 # A global, or an element of a global array (the wrecks' words of
                 # tools/m6_scripts.py's wrecks_a): the element's offset in the port's struct;
-                # else a record of a table (burning_a's aircraft), by its address.
+                # else a record of a table (burning_a's aircraft), by its address.  A poke
+                # made once (tools/m7_scripts.py's night_again) goes by the point's number
+                # with the flag that spends it.
                 entry = next((e for e in self.layout.globals
                               if e[1] <= address < e[1] + e[2] * e[3]), None)
                 if entry is None:
-                    self.lib.wt_poke_address(address, size, value, point)
-                    continue
-                poke(entry[4] + (address - entry[1]), size, value)
+                    self.lib.wt_poke_address(address, size, value, point | (8 if once else 0))
+                elif once:
+                    self.lib.wt_poke_at(entry[4] + (address - entry[1]), size, value, point | 8)
+                else:
+                    poke(entry[4] + (address - entry[1]), size, value)
         # The address the harness's allocator gave the map list at every map load, which the
         # port takes as it takes the entropy stream (re/notes/porting-m5.md, "The wreck").
         addresses = self.map_addresses()

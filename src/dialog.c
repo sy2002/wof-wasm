@@ -211,24 +211,25 @@ static void save_walk(void (*put)(uint32_t addr, uint32_t len, uint16_t flag))
 }
 
 /* orig 0x015E8A save_game_write - the file opened new (0x3EE), the walker with the write
- * callback, the file closed; 1.  The original returns 0 without writing when the file
- * cannot be opened, and its caller ignores the result; the port's file system refuses a
- * file only when its overlay is full.  The file's handle, save_handle (0x026C60), is the
- * file system's own in the port. */
+ * callback, the file closed; 1.  When the file cannot be opened the original returns 0
+ * without walking (0x015EBE), and its caller ignores the result; the port's file system
+ * refuses a file only when its overlay is full.  The file's handle, save_handle
+ * (0x026C60), is the file system's own in the port. */
 int16_t wof_save_game_write(const char *name)
 {
     uint32_t mark = wof_arena_mark();
-    int      done = 0;
 
+    if (!wof_fs_can_write(name))
+        return 0;
     save_data = (uint8_t *)wof_scratch_alloc(WOF_SAVE_MAX);
     save_at   = 0;
     if (save_data) {
         save_walk(save_put);
-        done = wof_fs_write(name, save_data, save_at <= WOF_SAVE_MAX ? save_at : WOF_SAVE_MAX);
+        wof_fs_write(name, save_data, save_at <= WOF_SAVE_MAX ? save_at : WOF_SAVE_MAX);
     }
     wof_arena_release(mark);
     save_data = 0;
-    return (int16_t)(done ? 1 : 0);
+    return 1;
 }
 
 /* ------------------------------------------------------------------ the line editor */

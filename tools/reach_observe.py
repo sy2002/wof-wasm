@@ -1089,9 +1089,9 @@ REGION_NOTES = {
     0x01B1DC: 'ported from reading; tests/test_oracle_m4.py, the attitude levelling out',
     0x01BD86: 'ported from reading; tests/test_oracle_m4.py, the deck state',
     # M7 part 1: the saved game's writer.
-    0x015EBE: 'ported from reading: the file cannot be opened, nothing is written and 0 comes '
-              'back, which the dialog ignores; the port\'s file system refuses a file only when '
-              'its overlay is full',
+    0x015EBE: 'ported from reading; tests/test_oracle_m7.py, a save that cannot be opened: '
+              'nothing is walked or written and 0 comes back, which the dialog ignores; the '
+              'port\'s file system refuses a file only when its overlay is full',
     # M8 part 1: the effects engine's regions no script runs (tests/test_oracle_m8.py).
     0x01ECBE: 'ported from reading; tests/test_oracle_m8.py, soundfx_vblank: the music\'s flags '
               'for channel 2, which only the uncalled 0x01E9F4 sets',

@@ -5,8 +5,12 @@ Every script of tools/m7_scripts.py is recorded under the headless original and 
 the port by tests/m4compare.py in the closed loop (T2): the port runs on its own from the
 program's start with nothing handed over but the entropy and the map list's addresses, and
 after every tick and every pass it agrees with the original and reaches no stand-in, through
-the mission won, the fade, the next map, its briefing, its setup and its first ticks, and
-through the save in the hold.
+the mission won, the fade, the next map, its briefing, its setup and its first ticks, the
+promotions and the rank's cap, the next campaign after a game lost at night, and the save in
+the hold.  The open loop (T1) holds every step alone, and the chain of ships_j holds at one
+and three VBlanks per pass.  Beside them: the saved file of save_a against the original's
+byte for byte but for its pointers, and every address the M7 scripts write accounted for
+(tests/m4complete.py).
 """
 import os
 import sys

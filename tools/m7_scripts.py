@@ -37,7 +37,7 @@ RANK_END, MISSION_RESET = m5_scripts.RANK_END, m5_scripts.MISSION_RESET
 
 # The scripts in the order the tests take them; those built on island_a's win of map a run
 # some 4,500 ticks before the next mission and run only with --slow.
-SCRIPTS = ['save_a', 'ships_j', 'chain_a', 'promote_a', 'cap_a']
+SCRIPTS = ['save_a', 'ships_j', 'night_again', 'chain_a', 'promote_a', 'cap_a']
 SLOW = {'chain_a', 'promote_a', 'cap_a'}
 
 try:

@@ -1045,6 +1045,7 @@ void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(off
 void wt_poke_reset(unsigned offset, unsigned size, unsigned value) { wof_test_poke_reset(offset, size, value); }
 void wt_poke_address(unsigned addr, unsigned size, unsigned value, unsigned point) { wof_test_poke_address(addr, size, value, point); }
 void wt_poke_map(unsigned offset, unsigned size, unsigned value) { wof_test_poke_map(offset, size, value); }
+void wt_poke_at(unsigned offset, unsigned size, unsigned value, unsigned point) { wof_test_poke_at(offset, size, value, point); }
 void wt_map_addresses(const uint32_t *list, unsigned n) { wof_test_map_addresses(list, n); }
 
 /* Port-side counters and settings the comparisons read. */

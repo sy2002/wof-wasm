@@ -392,19 +392,27 @@ POKES = {'bomb_b': {MISSION_NUMBER: (2, 2), **WITHOUT_THE_FADES}, 'bomb_c': {MIS
 
 
 def poke_points(pokes):
-    """{point: [(address, size, value)]} of a script's pokes."""
+    """{point: [(address, size, value, once)]} of a script's pokes.  An entry is (size,
+    value), (size, value, point) or (size, value, point, 'once'); a poke made once is made
+    only the first time its point is reached (tools/m7_scripts.py's night_again)."""
     out = {}
     for address, entry in (pokes or {}).items():
         at = entry[2] if len(entry) > 2 else RANK_END
-        out.setdefault(at, []).append((address, entry[0], entry[1]))
+        once = len(entry) > 3 and entry[3] == 'once'
+        out.setdefault(at, []).append((address, entry[0], entry[1], once))
     return out
 
 
 def install_pokes(machine, pokes):
     """Make a script's pokes in a headless original at their points."""
     for at, items in poke_points(pokes).items():
-        machine.stop_at(at, lambda items=items: [machine.o.write(a, v.to_bytes(s, 'big'))
-                                                 for a, s, v in items])
+        def poke(items=items, made=set()):
+            for a, s, v, once in items:
+                if once and a in made:
+                    continue
+                made.add(a)
+                machine.o.write(a, v.to_bytes(s, 'big'))
+        machine.stop_at(at, poke)
 
 SCRIPTS = list(RUNS)
 

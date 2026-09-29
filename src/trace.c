@@ -215,6 +215,8 @@ void wof_test_step_s(uint32_t mission)
  * (0x01009E, 0x0100D6, 0x0100AE). */
 #define POKES_MAX 32                 /* more than any script pokes; a poke past it would be lost */
 #define POKE_BY_ADDRESS 4u           /* beside the point, 0 to 2, in `point` */
+#define POKE_ONCE 8u                 /* made only the first time its point is reached */
+#define POKE_SPENT 16u               /* a poke made once, made */
 
 static struct { uint32_t offset, size, value, point; } pokes[POKES_MAX];
 static uint32_t poke_count;
@@ -245,12 +247,18 @@ void wof_test_poke_map(uint32_t offset, uint32_t size, uint32_t value)
     poke_add(offset, size, value, 2);
 }
 
+/* A poke of a global at any point, `point` 0 to 2 with POKE_ONCE beside it. */
+void wof_test_poke_at(uint32_t offset, uint32_t size, uint32_t value, uint32_t point)
+{
+    poke_add(offset, size, value, point & (3u | POKE_ONCE));
+}
+
 /* A poke by the original's address, big-endian as the original's memory holds it, into
  * whatever registered global or fixed table covers it (src/core.c): the tables' records,
- * which have no offset in the globals.  `point` is 0, 1 or 2 as above. */
+ * which have no offset in the globals.  `point` is 0, 1 or 2 as above, with POKE_ONCE. */
 void wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t point)
 {
-    poke_add(addr, size, value, (point & 3u) | POKE_BY_ADDRESS);
+    poke_add(addr, size, value, (point & (3u | POKE_ONCE)) | POKE_BY_ADDRESS);
 }
 
 void wof_test_pokes_clear(void)
@@ -263,8 +271,10 @@ static void pokes_apply(uint32_t point)
     for (uint32_t i = 0; i < poke_count; i++) {
         uint8_t *at = (uint8_t *)&wof_s.g + pokes[i].offset;
 
-        if ((pokes[i].point & 3u) != point)
+        if ((pokes[i].point & 3u) != point || (pokes[i].point & POKE_SPENT))
             continue;
+        if (pokes[i].point & POKE_ONCE)
+            pokes[i].point |= POKE_SPENT;
         if (pokes[i].point & POKE_BY_ADDRESS) {
             for (uint32_t b = 0; b < pokes[i].size; b++)
                 wof_original_store8(pokes[i].offset + b,

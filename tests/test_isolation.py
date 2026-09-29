@@ -22,8 +22,8 @@ MAP_LIST_ADDRESS = 0x0024F404            # WOF_MAP_LIST_ADDRESS, src/wof.h
 
 def test_the_fresh_core_leaves_no_test_state_behind(ported):
     """Everything the instrumentation can hold, set, then the fixture's reset, then none of
-    it left: a poke of a global and one by the original's address applied at both points
-    change nothing, the map list's address is the default one, no stand-in is counted, the
+    it left: a poke of a global and one by the original's address applied at their three
+    points, once or every time, change nothing, the map list's address is the default one, no stand-in is counted, the
     trace holds what wof_init records and no more, a tick's end calls no hook, and the
     snapshots of the front end's end, of step S and of a pass's end are gone: reading one
     fails instead of answering with the old one."""
@@ -32,6 +32,8 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
             ('wt_poke', [ctypes.c_uint] * 3, None),
             ('wt_poke_reset', [ctypes.c_uint] * 3, None),
             ('wt_poke_address', [ctypes.c_uint] * 4, None),
+            ('wt_poke_map', [ctypes.c_uint] * 3, None),
+            ('wt_poke_at', [ctypes.c_uint] * 4, None),
             ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
             ('wt_set_tick_hook', [ctypes.c_void_p], None),
             ('wof_standin', [ctypes.c_char_p], None),
@@ -39,6 +41,7 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
             ('wt_trace_count', [], ctypes.c_int),
             ('wof_test_poke_after_rank', [], None),
             ('wof_test_poke_after_reset', [], None),
+            ('wof_test_poke_after_map', [], None),
             ('wof_test_tick_end', [ctypes.c_uint32], None),
             ('wof_env_map_address', [], ctypes.c_uint32),
             ('wof_trace_add', [ctypes.c_char_p] + [ctypes.c_int32] * 4 + [ctypes.c_char_p,
@@ -59,6 +62,8 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
     lib.wt_poke(offset, 2, 3)
     lib.wt_poke_reset(offset, 2, 4)
     lib.wt_poke_address(address, 2, 5, 0)
+    lib.wt_poke_map(offset, 2, 6)
+    lib.wt_poke_at(offset, 2, 7, 2 | 8)                  # at the map's load, once
     addresses = (ctypes.c_uint32 * 1)(0x00300000)
     lib.wt_map_addresses(addresses, 1)
     marker = ctypes.create_string_buffer(b'TEST STAND-IN: set by tests/test_isolation.py')
@@ -85,6 +90,7 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
     ported.set_g('rank_played', 2)
     lib.wof_test_poke_after_rank()
     lib.wof_test_poke_after_reset()
+    lib.wof_test_poke_after_map()
     assert (ported.g('mission_number'), ported.g('rank_played')) == (1, 2), 'a poke outlived its test'
     assert lib.wof_env_map_address() == MAP_LIST_ADDRESS, 'a map address outlived its test'
     assert lib.wt_standin_count() == 0, 'a stand-in count outlived its test'

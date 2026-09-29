@@ -37,7 +37,7 @@ The test instrumentation `tests/shim.c` sets lives in `src/trace.c`, beside the 
 |---|---|---|
 | the VBlanks of a fade step and of a pass (`src/fade.c`, `src/core.c`) | `wof_set_fade_vblanks`, `wt_set_vblanks_per_pass` | `fresh_settings`, to the process's own values |
 | the tick, pass and step-S hooks | `wt_set_tick_hook`, `wt_set_pass_hook`, `wt_set_step_s_hook` | `fresh_settings`, and a replay's end |
-| the pokes | `wt_poke`, `wt_poke_reset`, `wt_poke_address` | `fresh_settings` (`wt_pokes_clear`), and a replay's end |
+| the pokes | `wt_poke`, `wt_poke_reset`, `wt_poke_map`, `wt_poke_at`, `wt_poke_address` | `fresh_settings` (`wt_pokes_clear`), and a replay's end |
 | the map list's addresses | `wt_map_addresses` | `fresh_settings` (`wt_map_addresses` with none), and a replay's end |
 | the stand-ins reached | the core, `WOF_STANDIN` | `fresh_settings` (`wt_standins_reset`) |
 | the trace records and the globals' snapshot of the front end's end | the core, `WOF_TRACE` | `fresh_settings` and `reset_core` (`wt_trace_reset`); `g_at_mission` fails without the snapshot instead of answering 0 |

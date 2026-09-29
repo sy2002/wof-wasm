@@ -86,7 +86,7 @@ run executed" at the end of this note, and it is what decides which routine is `
   from one mission of a campaign to the next: the first mission of the program's first
   campaign is day, whatever the map (read, and observed as the only writer in the write
   summary); nothing clears the flag between campaigns, so a campaign begun after one lost
-  at night begins at night (read, `re/notes/campaign.md`). The maps
+  at night begins at night (observed in M7's `night_again`, `re/notes/campaign.md`). The maps
   that can be night are those above 6, so of the first missions of the seven ranks, maps
   8, 10, 11 and 12 could be night only when reached as a later mission (read, from
   `mission_map_table`). The night mission is therefore reached by a poke; see "Night".

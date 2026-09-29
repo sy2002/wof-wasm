@@ -31,8 +31,9 @@ from test_oracle_m5 import TickDifferential, check    # noqa: E402
 from test_oracle_m6 import Reached, ShipsDifferential  # noqa: E402
 
 MISSION_WON, CHOOSE_NIGHT = 0x015694, 0x0111FC
-SAVE_WALK, SAVE_WRITE_PART = 0x015EC2, 0x015DDE
+SAVE_WALK, SAVE_WRITE_PART, SAVE_GAME_WRITE = 0x015EC2, 0x015DDE, 0x015E8A
 DOS_WRITE_SLOT = 0x0233FC                # the far-call slot of os_dos_write, -$7c02(a4)
+DOS_OPEN_SLOT = 0x0233EA                 # and of os_dos_open, -$7c14(a4)
 RANK_PLAYED, MISSION_NUMBER = 0x0253BE, 0x0253C0
 TICKER_TEXT = 0x02716A
 MAP_LENGTH, MAP_EXTENT, MAP_RECORDS_END = 0x0253C6, 0x024630, 0x02462C
@@ -44,6 +45,7 @@ COUNT_F, COUNT_3, COUNT_4, SOLDIER_COUNT = 0x025385, 0x025386, 0x025387, 0x0253C
 COLD = {
     MISSION_WON: [0x0156B2, 0x0156C6, 0x0156E8],           # the promotion, the cap, the next
     CHOOSE_NIGHT: [0x011218, 0x01122E],                    # the night draw, the day
+    SAVE_GAME_WRITE: [0x015EBE],                           # the file that cannot be opened
 }
 
 
@@ -228,6 +230,32 @@ def test_the_saved_games_walker_writes_what_the_original_writes(saving):
     reached.close()
     assert reached.missing([0x015F5A, 0x015F86, 0x015D62]) == [], 'no case reached these regions'
     assert len(sizes) > 300, len(sizes)
+
+
+def test_a_save_that_cannot_be_opened_writes_nothing(saving):
+    """save_game_write (0x015E8A) when the file cannot be opened: the original's Open answers
+    0 (its far-call slot made `moveq #0,d0; rts`), nothing is written and 0 comes back
+    (0x015EBE); the port's file system refuses a file when its overlay is full, and the port
+    writes nothing and answers 0 too.  The dialog ignores the answer on both sides."""
+    d, lib = saving, saving.ported.lib
+    lib.wof_save_game_write.argtypes = [ctypes.c_char_p]
+    lib.wof_save_game_write.restype = ctypes.c_int16
+    reached = Reached(d.o)
+    d.o.write(DOS_OPEN_SLOT, bytes.fromhex('70004E754E71'))
+    name = d.o.alloc_bytes(b'wof.oracle\0')
+    d.written = bytearray()
+    d.load_port()
+    assert d.o.call(SAVE_GAME_WRITE, d.o.L(name)) & 0xFFFF == 0
+    assert d.written == bytearray(), 'the original wrote without a file'
+    d.ported.fs_reset()
+    names = ['wof.full%d' % i for i in range(12)]
+    for n in names:
+        assert d.ported.fs_write(n, b'x')
+    assert lib.wof_save_game_write(b'wof.oracle') == 0
+    assert sorted(n for n, _ in d.ported.fs_written()) == sorted(names)
+    check(d, 'a save that cannot be opened')
+    reached.close()
+    assert reached.missing(COLD[SAVE_GAME_WRITE]) == [], 'no case reached these regions'
 
 
 def test_the_disks_saved_game_is_map_c_as_the_first_ranks_last_mission():

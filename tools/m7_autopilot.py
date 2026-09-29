@@ -2,11 +2,13 @@
 
 tools/m6_autopilot.py flies one mission of any map.  M7 needs a mission that follows
 another: a mission won goes on, in the hold, to the campaign's next one (main 0x010132 to
-0x01018D), with the ticker's message, the fade, the next map, its briefing and its setup.
-A plan here either starts from a script that already wins its mission, `after`, whose raw
-schedule it replays up to the step S of the mission named by `switch` and 40 VBlanks into
-its hold, and flies that mission with the plan of tools/m6_autopilot.py; or it flies a
-mission of its own from the front end as an M6 plan does.  Beside the legs and the landing
+0x01018D), with the ticker's message, the fade, the next map, its briefing and its setup,
+and a game lost goes on to the next campaign.  A plan here either starts from a script of
+M4 to M6 whose run goes on to another mission, `after` (island_a's win, gameover's game
+over), whose raw schedule it replays up to the step S of the mission named by `switch` and
+40 VBlanks into its hold, and flies that mission with the plan of tools/m6_autopilot.py or
+waits in the hold (`hold`); or it flies a mission of its own from the front end as an M6
+plan does.  Beside the legs and the landing
 of M6 a plan can save the game in the hold (`save`): Control-G, the dialog's cursor moved to
 an empty slot, a name typed and Return, as the manual's page 11 has it; and poke at the point
 where main has run map_load for a campaign's first mission (0x0100AE), which is how a map
@@ -59,7 +61,8 @@ LETTER_KEYS = {'a': 0x20, 's': 0x21, 'd': 0x22, 'f': 0x23, 'g': 0x24, 'h': 0x25,
 
 
 def cut(raw, n):
-    """The first `n` VBlanks of a raw schedule, a run split where the cut falls in it."""
+    """The first `n` VBlanks of a raw schedule, a run split where the cut falls in it, and
+    the neutral VBlanks after its end where `n` runs past it."""
     out = []
     left = n
     for entry in raw:
@@ -71,6 +74,8 @@ def cut(raw, n):
         else:
             out.append([left] + list(entry[1:]))
             left = 0
+    if left > 0:
+        out.append([left, ''])
     return out
 
 
@@ -113,15 +118,8 @@ class Campaign(m6_autopilot.Enemy):
             pokes[address] = entry
         self.pokes = pokes
         m4_autopilot.Pilot.__init__(self, prefix, m6_autopilot.policy, **options)
-        due = {}
-        for address, entry in pokes.items():
-            at = entry[2] if len(entry) > 2 else RANK_END
-            due.setdefault(at, []).append((address, entry[0], entry[1]))
-        for at, items in due.items():
-            def poke(items=items):
-                for a, n, v in items:
-                    self.o.write(a, (v & ((1 << (8 * n)) - 1)).to_bytes(n, 'big'))
-            self.stop_at(at, poke)
+        import m5_scripts
+        m5_scripts.install_pokes(self, pokes)
         self.leg = 0
         self.tap = 0
         self.cool = 0
@@ -153,6 +151,9 @@ class Campaign(m6_autopilot.Enemy):
     def _next_raw(self):
         if self._frozen:
             return 0, []                      # the fade's wait: the script stands
+        if self.switched and self.o.read(OUTSIDE_MISSION, 1)[0]:
+            self._pause = 'over'              # the game is over: the flight ends here
+            return 0, []
         if not self.switched:
             if not self._switch_now():
                 self.consumed += 1
@@ -289,6 +290,13 @@ PLANS = {
                 'pokes': {0x02546C: (2, 0, MISSION_RESET), 0x02548A: (2, 0, MISSION_RESET),
                           0x0254A8: (2, 0, MISSION_RESET), 0x0254C6: (2, 0, MISSION_RESET),
                           0x025383: (1, 0, MISSION_RESET)}, 'legs': []},
+    # M4's game over (tools/pass_observe.py, gameover: every aircraft lost) as a night
+    # mission, night_flag poked to 1 at the first rank selection's end only, then nothing:
+    # the high-score screen and the rank selection run out by themselves (1800 rounds each,
+    # and wofdemo is not on the disk), and the next campaign's first mission begins; the
+    # flight ends 400 VBlanks into it, in the hold.
+    'night_again': {'after': 'gameover', 'switch': 2, 'hold': True, 'until_mission': 2,
+                    'until_vblanks': 400, 'pokes': {0x025390: (2, 1, RANK_END, 'once')}},
     # island_a's win of map a, then map b won as well: both islands bombed and their soldiers
     # hunted, sortie after sortie with a landing in between, until the map's last island is
     # neutralised; the lives poked to 9 after map_load (0x0100AE), because island_a comes to
@@ -321,8 +329,6 @@ def fly(plan, max_ticks=40000, verbose=False):
     m = Campaign(plan)
     trail = []
     while m.ticks < max_ticks:
-        # No tick for 4,000 VBlanks: the game is over and waits in the front end.
-        m.run_spec['stop']['vblanks'] = m.vblanks - m.spin_vblanks + 4000
         try:
             if m.run(until='tick', wall_limit=1800.0) != 'tick':
                 break

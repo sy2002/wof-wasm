@@ -126,8 +126,12 @@ on: the new map's number from `mission_map_table`; at 6 or below `night_flag` (`
 is 0, above it (maps h to o) `rand_beam` is drawn four times and bit 15 of the fourth
 decides (read; observed in `cap_a`: map m, four draws by `0x0111FC`, night). It is the only
 writer of `night_flag` (read), which nothing clears between campaigns: the first mission of
-the program's first campaign is day because the DATA hunk starts with 0 there, and a new
-campaign after a game lost at night would begin at night (read, not observed).
+the program's first campaign is day because the DATA hunk starts with 0 there, and **a new
+campaign after a game lost at night begins at night** (observed in `night_again`: M4's game
+over flown as a night mission, the flag poked once at the first rank selection's end;
+after the high scores and the rank selection the next campaign's first mission, map a, has
+`night_flag` 1 at its step S, the night dashboard and the night palettes, on both sides and
+in every pass of the closed loop).
 
 ## The briefing's numbers
 
@@ -263,6 +267,17 @@ original's byte for byte, and the list of differing bytes is exactly these four 
 - The raw part comes back whole, the three shape pointers and the carrier's gun-list
   pointer among it, as the saving machine held them; the enemy ships' gun-list pointers are
   replaced by the new blocks.
+- **The loader must derive the four pointer fields and never trust them**: a file from a
+  real Amiga holds that machine's addresses (`wof.mission 3`: the player's shape pointer
+  `0x0005FB4A`), and the port's own files hold its handles and flags. Each follows from
+  something the file holds as plain data (read, `frame_select` `0x01C378`, which the tick
+  runs): the player's shape (`+0x04`) is the shape of `hellcat.shp` named by the frame
+  name at `+0x08`, and `torpedo_shape` (`0x02541E`) the shape of `Torpedo.shp` of the same
+  name, both set again by every tick's `frame_select`; `0x02541A` is the shape of
+  `hellcat.shp` named by `0x025422`, which `frame_select` sets again only on some of its
+  paths (the aircraft level on the deck or in the air), so it must be derived at the load;
+  an enemy ship's gun list (`+0x06`) is the block the walker reads for it (set where the
+  ship's `+4` and `+0x12` are set) and none where no block was read, as for the carrier.
 - `opt_invert_vertical` comes back with the game (`SPEC.md` section 6.1: the port restores
   the owner's preference over it).
 - The loaded game's path is `0x019152` from the rank selection and `0x01CDD4` in flight;
