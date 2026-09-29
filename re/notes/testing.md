@@ -40,11 +40,11 @@ The test instrumentation `tests/shim.c` sets lives in `src/trace.c`, beside the 
 | the pokes | `wt_poke`, `wt_poke_reset`, `wt_poke_address` | `fresh_settings` (`wt_pokes_clear`), and a replay's end |
 | the map list's addresses | `wt_map_addresses` | `fresh_settings` (`wt_map_addresses` with none), and a replay's end |
 | the stand-ins reached | the core, `WOF_STANDIN` | `fresh_settings` (`wt_standins_reset`) |
-| the trace records and the globals' snapshot | the core, `WOF_TRACE` | `fresh_settings` and `reset_core` (`wt_trace_reset`) |
+| the trace records and the globals' snapshot of the front end's end | the core, `WOF_TRACE` | `fresh_settings` and `reset_core` (`wt_trace_reset`); `g_at_mission` fails without the snapshot instead of answering 0 |
 | the sound event log | the core | `wof_init` (`wof_audio_init`) |
 | the files written | the core | `wof_init` (`wof_fs_writes_reset`) |
 | the audio output rate (`src/audio.c`) | `wof_audio_render` | left: every test that renders names its rate first |
-| the step-S snapshot and the end-of-pass snapshot (`src/trace.c`) | the core, at step S and at a pass's end | nothing: no entry clears them; a test that read one it had not taken would read another test's |
+| the step-S snapshot and the end-of-pass snapshot (`src/trace.c`) | the core, at step S and at a pass's end | `fresh_settings` (`wt_snapshots_reset`) only, never a reset inside a test, because the step-S snapshot must outlive a replay's trace resets until the setup comparison; a test that reads one it has not taken finds none and fails there (`port_mission`, `port_globals`, `g_at_mission`) |
 
 ## Shared state, audited
 

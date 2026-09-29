@@ -1159,6 +1159,7 @@ int32_t  wof_test_enemy_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);
+void     wof_trace_snapshots_reset(void);         /* both snapshots forgotten, between tests */
 void     wof_test_set_tick_hook(void (*hook)(uint32_t tick));
 void     wof_test_tick_end(uint32_t tick);        /* calls the test's hook, if any */
 void     wof_test_set_step_s_hook(void (*hook)(uint32_t mission));

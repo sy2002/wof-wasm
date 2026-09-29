@@ -1149,7 +1149,10 @@ class Ported:
     def g_at_mission(self, name, index=0):
         """A global as it stood where the front end ended, which is the moment the harness
         calls step S.  The outer loop runs on into the next rank selection in the same pass
-        while the mission is a stand-in, so the value has to be taken there."""
+        while the mission is a stand-in, so the value has to be taken there.  Without that
+        snapshot - the run never reached the front end's end - the read fails."""
+        assert self.lib.wt_globals_at_mission_taken(), (
+            'no snapshot of the front end\'s end to read %s from (step S not reached?)' % name)
         return self.lib.wt_global_get_at_mission(self._global_index(name), index)
 
     # --------------------------------------------------------------------- blit
@@ -1178,9 +1181,10 @@ def fresh_settings():
     held before any test ran (re/notes/testing.md, "A fresh core for every test"): the
     VBlanks of a fade step and of a pass, read off the core at the first call, and the test
     instrumentation tests/shim.c sets in src/trace.c - the three hooks, the pokes, the map
-    list's addresses, the stand-ins reached and the trace records.  The audio output rate
-    survives too and is left alone: every test that renders names its rate before the
-    VBlanks it takes, and a new rate empties the queue."""
+    list's addresses, the stand-ins reached, the trace records and the snapshots at step S
+    and at a pass's end, which only this reset forgets, never one inside a test.  The audio
+    output rate survives too and is left alone: every test that renders names its rate
+    before the VBlanks it takes, and a new rate empties the queue."""
     lib = _SETTINGS.get('lib')
     if lib is None:
         lib = ctypes.CDLL(str(DYLIB))
@@ -1194,7 +1198,8 @@ def fresh_settings():
                                         ('wt_pokes_clear', [], None),
                                         ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
                                         ('wt_standins_reset', [], None),
-                                        ('wt_trace_reset', [], None)):
+                                        ('wt_trace_reset', [], None),
+                                        ('wt_snapshots_reset', [], None)):
             function = getattr(lib, name)
             function.argtypes = argtypes
             function.restype = restype
@@ -1207,6 +1212,7 @@ def fresh_settings():
     lib.wt_map_addresses(None, 0)
     lib.wt_standins_reset()
     lib.wt_trace_reset()
+    lib.wt_snapshots_reset()
 
 
 @pytest.fixture(autouse=True)

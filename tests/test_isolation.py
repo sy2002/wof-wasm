@@ -24,7 +24,9 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
     """Everything the instrumentation can hold, set, then the fixture's reset, then none of
     it left: a poke of a global and one by the original's address applied at both points
     change nothing, the map list's address is the default one, no stand-in is counted, the
-    trace holds what wof_init records and no more, and a tick's end calls no hook."""
+    trace holds what wof_init records and no more, a tick's end calls no hook, and the
+    snapshots of the front end's end, of step S and of a pass's end are gone: reading one
+    fails instead of answering with the old one."""
     lib = ported.lib
     for name, argtypes, restype in (
             ('wt_poke', [ctypes.c_uint] * 3, None),
@@ -40,7 +42,12 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
             ('wof_test_tick_end', [ctypes.c_uint32], None),
             ('wof_env_map_address', [], ctypes.c_uint32),
             ('wof_trace_add', [ctypes.c_char_p] + [ctypes.c_int32] * 4 + [ctypes.c_char_p,
-                                                                          ctypes.c_uint16], None)):
+                                                                          ctypes.c_uint16], None),
+            ('wof_trace_globals', [], None),
+            ('wof_trace_mission', [], None),
+            ('wof_trace_pass_end', [], None),
+            ('wt_globals_get', [ctypes.c_int, ctypes.c_void_p, ctypes.c_int], ctypes.c_int),
+            ('wt_pass_view', [ctypes.c_int], ctypes.c_int)):
         function = getattr(lib, name)
         function.argtypes = argtypes
         function.restype = restype
@@ -61,8 +68,15 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
     lib.wt_set_tick_hook(ctypes.cast(hook, ctypes.c_void_p))
     lib.wof_test_tick_end(7)
     lib.wof_trace_add(b'test', 1, 2, 3, 4, b'', 0)
+    ported.set_g('mission_number', 9)
+    lib.wof_trace_globals()                              # the front end's end
+    lib.wof_trace_mission()                              # step S
+    lib.wof_trace_pass_end()                             # a pass's end
+    state = ctypes.create_string_buffer(ported.globals_bytes())
     assert ticks == [7] and lib.wt_standin_count() == 1 and lib.wt_trace_count() >= 1, (
         'the instrumentation took nothing')
+    assert ported.g_at_mission('mission_number') == 9
+    assert lib.wt_globals_get(1, state, len(state)) == len(state) and lib.wt_pass_view(1) >= 0
 
     conftest.fresh_settings()
     ported.reset_core()
@@ -77,6 +91,10 @@ def test_the_fresh_core_leaves_no_test_state_behind(ported):
     assert lib.wt_trace_count() == fresh_trace, 'a trace record outlived its test'
     lib.wof_test_tick_end(8)
     assert ticks == [7], 'a hook outlived its test'
+    assert lib.wt_globals_get(1, state, len(state)) == -1, 'the step-S snapshot outlived its test'
+    assert lib.wt_pass_view(1) == -1, "a pass's snapshot outlived its test"
+    with pytest.raises(AssertionError, match='step S not reached'):
+        ported.g_at_mission('mission_number')
 
 
 @pytest.mark.slow

@@ -166,6 +166,16 @@ const wof_state_t *wof_trace_pass_state(void)
     return pass_snapshot_taken ? &pass_snapshot : 0;
 }
 
+/* The two snapshots forgotten, between two tests (tests/conftest.py, fresh_settings) and
+ * never inside one: the step-S snapshot must survive the trace resets a replay makes until
+ * the setup comparison reads it.  A test that reads one it has not taken then finds none,
+ * not another test's. */
+void wof_trace_snapshots_reset(void)
+{
+    mission_snapshot_taken = 0;
+    pass_snapshot_taken    = 0;
+}
+
 /* A test's hook at the end of every tick (the stand-in's and main's own), which is where
  * the half-closed comparison hands the port what the original's tick wrote. */
 static void (*tick_hook)(uint32_t tick);

@@ -1034,6 +1034,11 @@ const char *wt_standin(int i, unsigned *count)
 
 void wt_standins_reset(void) { wof_trace_standins_reset(); }
 
+/* The snapshots at step S and at a pass's end forgotten, between two tests; and whether the
+ * globals' snapshot of the front end's end exists, which wt_global_get_at_mission reads. */
+void wt_snapshots_reset(void) { wof_trace_snapshots_reset(); }
+int  wt_globals_at_mission_taken(void) { return wof_trace_globals_at() != 0; }
+
 /* The hooks of the M4 comparisons (src/trace.c). */
 void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
 void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
