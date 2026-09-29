@@ -31,6 +31,21 @@ A process holds one copy of the core's statics, shared by the `ported` fixture a
 
 `fresh_core` (autouse, `tests/conftest.py`) closes the class: a test that takes `ported`, itself or through a fixture built on it (`request.fixturenames`), gets `reset_core` before it runs, and a test that takes `native_core_factory` gets the settings back; tests without the core pay nothing and never build one. The settings are what `wof_init` leaves alone: the VBlanks of a fade step and of a pass, and the test hooks of `tests/shim.c`, which are ctypes callbacks a finished test may have left behind. They are read off the core at the first test of a process and put back before every such test. The audio output rate survives `wof_init` too and is left alone: every test that renders names its rate before the VBlanks it takes, and a new rate empties the queue. One fresh core costs 4.7 ms, and 557 tests take the core: about 2.6 s over the suite. `tests/test_music.py` keeps its own reset after its tests; it is redundant now and harmless.
 
+The test instrumentation `tests/shim.c` sets lives in `src/trace.c`, beside the core's state, and survives `wof_init` as the settings do; the shim itself keeps no state but constant tables. A replay's pokes once outlived it: `bomb_c`'s closed loop poked `mission_number` 3 at the rank selection's end, and a worker that ran the front end's hand-over after it met the poke there (`mission_number: port 3, original 1`); serially `tests/test_front_port.py` runs first. A replay now clears what it set when it ends, normally or by an exception (`tests/m4compare.py`, `Replay.run`), and `fresh_settings` clears all of it before every test that takes the core. `tests/test_isolation.py` sets every item, resets, and finds none left; its slow test runs the finding's pair in one process. Item by item:
+
+| State beside the core's | Set by | Put back |
+|---|---|---|
+| the VBlanks of a fade step and of a pass (`src/fade.c`, `src/core.c`) | `wof_set_fade_vblanks`, `wt_set_vblanks_per_pass` | `fresh_settings`, to the process's own values |
+| the tick, pass and step-S hooks | `wt_set_tick_hook`, `wt_set_pass_hook`, `wt_set_step_s_hook` | `fresh_settings`, and a replay's end |
+| the pokes | `wt_poke`, `wt_poke_reset`, `wt_poke_address` | `fresh_settings` (`wt_pokes_clear`), and a replay's end |
+| the map list's addresses | `wt_map_addresses` | `fresh_settings` (`wt_map_addresses` with none), and a replay's end |
+| the stand-ins reached | the core, `WOF_STANDIN` | `fresh_settings` (`wt_standins_reset`) |
+| the trace records and the globals' snapshot | the core, `WOF_TRACE` | `fresh_settings` and `reset_core` (`wt_trace_reset`) |
+| the sound event log | the core | `wof_init` (`wof_audio_init`) |
+| the files written | the core | `wof_init` (`wof_fs_writes_reset`) |
+| the audio output rate (`src/audio.c`) | `wof_audio_render` | left: every test that renders names its rate first |
+| the step-S snapshot and the end-of-pass snapshot (`src/trace.c`) | the core, at step S and at a pass's end | nothing: no entry clears them; a test that read one it had not taken would read another test's |
+
 ## Shared state, audited
 
 - **Files a test writes**: all under `tmp_path` or a per-process `tempfile.mkdtemp` - the recordings of `tests/test_world.py` (`RECORDING_DIR`), the `oil_d` dump of the enemy templates in `tests/conftest.py`, the dumps of `test_mission`, `test_headless` and `test_state_m4`, the programs `test_oracle_ffp` compiles. The `tests/m*_renders.py` scripts write `dist/m*-part*/` and `dist/m8-sound/`, but no test imports them.

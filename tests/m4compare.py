@@ -327,7 +327,21 @@ class Replay:
         port to the original's state at the end of every step, so that every pass and every
         tick starts from the original's state before it, owed VBlanks included; the closed
         loop hands over nothing.  A pass may begin without a VBlank before it - after the
-        restart's waits in the tick - so none of this can be tied to the VBlank entries."""
+        restart's waits in the tick - so none of this can be tied to the VBlank entries.
+
+        What the replay sets up in the port's test instrumentation - its pokes, the map
+        list's addresses, its three hooks - ends with it, however it ends, so that none of
+        it reaches another run of the core in the same process (re/notes/testing.md)."""
+        try:
+            return self._run(on_pass, on_setup, files, on_tick, raw, on_reset)
+        finally:
+            self.lib.wt_set_tick_hook(None)
+            self.lib.wt_set_step_s_hook(None)
+            self.lib.wt_set_pass_hook(None)
+            self.lib.wt_pokes_clear()
+            self.lib.wt_map_addresses(None, 0)
+
+    def _run(self, on_pass, on_setup, files, on_tick, raw, on_reset):
         ported = self.ported
         keys = collections.defaultdict(list)
         for vblank, code, qualifier in self.machine.key_log:
