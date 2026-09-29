@@ -19,7 +19,7 @@ import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRound, fullscreenRun,
          walkToTheHold } from './pagefullscreen.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, WEAPON_VIEW,
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, VIDEO, WEAPON_VIEW,
          enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
@@ -62,7 +62,11 @@ try {
         }
     });
 
+    /* Every page this run opens, so that each can say at the end which renderer drew it. */
+    const opened = [];
+
     async function open(session, url, watches = []) {
+        opened.push({ session, url });
         for (const domain of ['Page.enable', 'Runtime.enable', 'Log.enable', 'Network.enable']) {
             await cdp.send(domain, {}, session);
         }
@@ -712,6 +716,13 @@ try {
             "document.exitFullscreen().then(() => 'normal', (e) => 'refused: ' + e.message)") }),
     });
     report.fullscreen.console = channel(fullSession).console;
+
+    /* Which renderer drew each page of the run (web/video.js), with its reason for a
+       fallback: every one of them is meant to be WebGL. */
+    report.video = [];
+    for (const { session, url } of opened) {
+        report.video.push({ url: url.replace(/^.*\//, ''), ...(await evaluateIn(session, VIDEO)) });
+    }
 } finally {
     await stopChrome(browser);
 }

@@ -140,6 +140,7 @@ async function boot() {
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
+        video.noteFrame(now);                            /* the frame interval, for the overlay */
         video.showPaused(core.paused() && !helpShown);   /* the pause sign, after the VBlanks */
         overlay.paint(now);
         checkAudioStarted();
@@ -326,6 +327,7 @@ async function boot() {
             }
             hiddenSince = -1;
             audio.resume();
+            video.restartFrames();                   /* the time away is no frame */
             clock.start();
         }
     });

@@ -1403,3 +1403,86 @@ def assert_the_screenshot_shows_the_picture(encoded, geometry, display, note='')
         assert max(got) <= BLACK, (
             '%s: outside the box, at (%.0f, %.0f) css, the screenshot is %s, not black'
             % (note, css_x, css_y, list(got)))
+
+
+# ------------------------------------------------ the renderer and the frame rate, SPEC 6.2 Video
+
+def assert_drawn_with(seen, path, note=''):
+    """Which renderer drew the page (web/video.js): a check meant for the WebGL path must not
+    pass on a page that fell back to Canvas 2D, and a check of the fallback must really have
+    had it.  `seen` is anything the page harnesses read with the shell's `path` in it."""
+    assert seen.get('path') == path, (
+        '%s: the page was drawn by %r, not %r%s'
+        % (note, seen.get('path'), path, (' (%s)' % seen['note']) if seen.get('note') else ''))
+
+
+# The frame-time test of M9 (tests/pageframes.mjs, re/notes/page-video.md): a mission at a
+# screen-sized window, every animation frame's interval against the display's refresh, and the
+# time present() takes on the main thread.  At the owner's screen the two-step 2D path took
+# 32 ms a frame in a visible Firefox, 224 of 313 frames longer than 1.5 refreshes, present()
+# 32.8 ms; the WebGL path takes 16.7 with none longer, present() 0.3 ms.  The limits sit far
+# from both.
+FRAME_LONG = 1.5            # a frame longer than this many refreshes has missed one
+FRAME_LONG_ALLOWED = 5      # the handful allowed in the span, about 300 frames at 60 Hz
+FRAME_MEAN_LIMIT = 1.05     # the mean interval, in refreshes
+PRESENT_LIMIT_MS = 1.0      # present()'s mean time
+
+
+def _median(values):
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+
+
+def frame_numbers(report):
+    """The measurement's figures: the refresh from the blank page, the frames of the span."""
+    refresh = _median([b - a for a, b in zip(report['refreshFrames'], report['refreshFrames'][1:])])
+    measured = report['measured']
+    frames = measured['frames']
+    intervals = [b - a for a, b in zip(frames, frames[1:])]
+    ordered = sorted(intervals)
+    return {
+        'refresh': refresh,
+        'frames': len(intervals),
+        'mean': sum(intervals) / len(intervals),
+        'p95': ordered[int(len(ordered) * 0.95)],
+        'max': ordered[-1],
+        'long': sum(1 for interval in intervals if interval > FRAME_LONG * refresh),
+        'presentMs': measured['presentMs'],
+        'presents': measured['presents'],
+        'presentBy': measured['presentBy'],
+        'path': measured['path'],
+        'note': measured.get('note', ''),
+        'window': measured['window'],
+        'backing': measured['backing'],
+        'dpr': measured['dpr'],
+        'hidden': measured['hidden'],
+    }
+
+
+def assert_the_picture_keeps_the_frame_rate(report, path='webgl', where=''):
+    """M9's acceptance, measured: at the size of the screen the picture reaches it at the
+    display's refresh, bar a handful of frames, and present() costs well under a millisecond.
+    Every figure is judged, and all that fail are named at once, so that a negative control
+    says how far off it is."""
+    assert not report.get('error'), report.get('error')
+    numbers = frame_numbers(report)
+    problems = []
+    if numbers['mean'] > FRAME_MEAN_LIMIT * numbers['refresh']:
+        problems.append('the mean frame is %.2f ms against a refresh of %.2f'
+                        % (numbers['mean'], numbers['refresh']))
+    if numbers['long'] > FRAME_LONG_ALLOWED:
+        problems.append('%d of %d frames are longer than %.1f refreshes'
+                        % (numbers['long'], numbers['frames'], FRAME_LONG))
+    if numbers['presentMs'] > PRESENT_LIMIT_MS:
+        problems.append('present() takes %.2f ms' % numbers['presentMs'])
+    if numbers['path'] != path:
+        problems.append('the page was drawn by %r, not %r' % (numbers['path'], path))
+    screen = report['screen']
+    if (numbers['window']['width'], numbers['window']['height']) != (screen['width'], screen['height']):
+        problems.append('the window is %s, not the screen %s' % (numbers['window'], screen))
+    if numbers['hidden']:
+        problems.append('the page was hidden')
+    if not report['rolled'] or report['rolled']['x'] == report['hold']['x']:
+        problems.append('the aircraft did not move: %s, then %s' % (report['hold'], report['rolled']))
+    assert not problems, '%s: %s - %s' % (where, '; '.join(problems), numbers)
+    return numbers

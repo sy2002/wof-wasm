@@ -18,7 +18,8 @@ import pytest
 from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture)
-from conftest import (assert_a_moment_hidden_changes_nothing,
+from conftest import (assert_a_moment_hidden_changes_nothing, assert_drawn_with,
+                      assert_the_picture_keeps_the_frame_rate,
                       assert_no_pause_sign_outside_a_mission,
                       assert_p_and_escape_pause_under_the_sign,
                       assert_the_pause_sign_fits_a_small_window,
@@ -55,19 +56,38 @@ pytestmark = [pytest.mark.page,
 SCALED = ('title', 'ranks')
 
 
-@pytest.fixture(scope='session')
-def scaled(built):
-    """The same page under a true scale factor of 2, which is what a Retina display gives.
+@pytest.fixture(scope='session', params=['webgl', '2d'])
+def scaled(built, request):
+    """The same page under a true scale factor of 2, which is what a Retina display gives,
+    once on each of the shell's renderers: WebGL, and Canvas 2D asked for by ?video=2d.
 
     An emulated devicePixelRatio is not the same thing: Chrome then places the canvas on
     whole CSS pixels, so where a box edge falls on half a CSS pixel the picture is shifted by
     a device pixel or resampled a third time (SPEC 8, row Page).  That artefact would hide a
     real one, so the picture itself is judged here and not in the emulated run."""
     from conftest import ROOT
+    query = 'video=2d' if request.param == '2d' else ''
     finished = subprocess.run(
-        ['node', str(ROOT / 'tests' / 'pagescale.mjs'), str(built), CHROME],
+        ['node', str(ROOT / 'tests' / 'pagescale.mjs'), str(built), CHROME, query],
         cwd=ROOT, capture_output=True, text=True)
     assert finished.returncode == 0, 'tests/pagescale.mjs failed:\n%s' % finished.stderr
+    report = json.loads(finished.stdout)
+    report['expected'] = request.param
+    return report
+
+
+@pytest.fixture(scope='session')
+def frames(built):
+    """M9's frame-time measurement (tests/pageframes.mjs) in headless Chrome on its GPU,
+    under a true scale factor of 2 at the owner's screen, 1792 x 1120.  WOF_FRAMES_PAGE
+    measures another build instead, which is how the negative control is run."""
+    from conftest import ROOT
+    page = os.environ.get('WOF_FRAMES_PAGE', str(built))
+    finished = subprocess.run(
+        ['node', str(ROOT / 'tests' / 'pageframes.mjs'), page, 'chrome', CHROME],
+        cwd=ROOT, capture_output=True, text=True)
+    assert finished.returncode == 0, 'tests/pageframes.mjs failed:\n%s\n%s' % (
+        finished.stdout[-2000:], finished.stderr)
     return json.loads(finished.stdout)
 
 
@@ -198,11 +218,12 @@ def test_a_retina_backing_store_is_the_css_size_times_two(loaded):
 
 
 def test_the_canvas_on_the_page_shows_the_picture(loaded):
-    """The exact pixels live on the source canvas now; what the page shows is the two-step
-    scaling of them.  Sample points at the centres of framebuffer pixels, taken where the
-    framebuffer is flat so that the smooth step has nothing to blend, must carry the colour
-    that belongs there - on the title picture, on the play screen and at every size."""
+    """The exact pixels exist nowhere on the page; what it shows is the picture scaled.
+    Sample points at the centres of framebuffer pixels, taken where the framebuffer is flat
+    so that the smooth step has nothing to blend, must carry the colour that belongs there -
+    on the title picture, on the play screen and at every size, drawn by WebGL."""
     for name in STANDARD_OF:
+        assert_drawn_with(loaded['box'][name]['display'], 'webgl', name)
         assert_the_canvas_shows_the_picture(loaded['box'][name]['display'], name)
 
 
@@ -213,11 +234,51 @@ def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded):
     assert sorted(shot) == ['default', 'ranks', 'retina', 'tall', 'wide'], shot
     for name in shot:
         seen = loaded['box'][name]
+        assert_drawn_with(seen['geometry'], 'webgl', name)
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)
 
 
 # ------------------------------------------- the picture itself, under a true scale factor
+
+def test_every_page_of_the_run_draws_with_webgl(loaded):
+    """The shell's main renderer is WebGL (web/video.js), and headless Chrome on its GPU
+    gives it: every page the run opened says so, the fallback's reason empty.  Without this a
+    page that fell back to Canvas 2D would pass every other test here under the wrong name."""
+    assert len(loaded['video']) == 7, [page['url'] for page in loaded['video']]
+    for page in loaded['video']:
+        assert_drawn_with(page, 'webgl', page['url'])
+
+
+def test_the_scale_factor_run_draws_with_the_renderer_it_asked_for(scaled):
+    """WebGL by default, Canvas 2D under ?video=2d, whose reason says it was asked for."""
+    assert_drawn_with(scaled['video'], scaled['expected'], scaled['query'])
+    for name in SCALED:
+        assert_drawn_with(scaled[name]['geometry'], scaled['expected'], name)
+    if scaled['expected'] == '2d':
+        assert scaled['video']['note'] == 'asked for by ?video=2d', scaled['video']
+
+
+def test_a_lost_context_comes_back_or_falls_back(scaled):
+    """web/video.js on webglcontextlost: a context the browser gives back is drawn with
+    again, and one it does not give back within two seconds leaves the page on Canvas 2D,
+    on a new canvas in the old one's place, showing the picture as before."""
+    if scaled['expected'] != 'webgl':
+        pytest.skip('the 2D path has no WebGL context to lose')
+    assert scaled['lost']['video']['note'] == 'WebGL context lost, waiting for it', scaled['lost']
+    restored = scaled['restored']
+    assert_drawn_with(restored['video'], 'webgl', 'given back')
+    assert restored['video']['note'] == 'WebGL context lost and given back', restored['video']
+    assert_the_canvas_shows_the_picture(restored['display'], 'given back')
+    fell = scaled['fellBack']
+    assert_drawn_with(fell['video'], '2d', 'not given back')
+    assert fell['video']['note'] == 'WebGL context lost and not given back', fell['video']
+    assert_the_canvas_shows_the_picture(fell['display'], 'not given back')
+    assert_the_screenshot_shows_the_picture(fell['screenshot'], fell['geometry'], fell['display'],
+                                            'not given back')
+    assert_the_screenshot_is_the_picture(fell['sourcePng'], fell['screenshot'], fell['geometry'],
+                                         'not given back')
+
 
 def test_the_scale_factor_run_puts_a_box_edge_on_half_a_css_pixel(scaled):
     """The case that shows whether the picture is really laid out in device pixels, and the
@@ -243,11 +304,23 @@ def test_the_scale_factor_run_is_the_same_page(scaled):
         assert scaled[name]['hintVisible'] is False
 
 
+def test_the_scaled_canvas_shows_the_picture(scaled):
+    """The displayed canvas read back, and a screenshot of it, at the sample points - on
+    both renderers, at a real scale factor of 2."""
+    for name in SCALED:
+        seen = scaled[name]
+        assert_drawn_with(seen['display'], scaled['expected'], name)
+        assert_the_canvas_shows_the_picture(seen['display'], name)
+        assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
+                                                seen['display'], name)
+
+
 def test_the_screenshot_is_the_picture_pixel_for_pixel(scaled):
     """Every one of the 136,960 framebuffer pixels, at the centre of the block it is shown
     as, against a screenshot of what the compositor put on the screen."""
     for name in SCALED:
         seen = scaled[name]
+        assert_drawn_with(seen['geometry'], scaled['expected'], name)
         assert_the_screenshot_is_the_picture(seen['sourcePng'], seen['screenshot'],
                                              seen['geometry'], name)
 
@@ -258,6 +331,7 @@ def test_the_picture_lies_where_the_dom_says(scaled):
     and a rectangle read off the DOM both agree to."""
     for name in SCALED:
         seen = scaled[name]
+        assert_drawn_with(seen['geometry'], scaled['expected'], name)
         assert_the_picture_lies_where_the_dom_says(seen['sourcePng'], seen['screenshot'],
                                                    seen['geometry'], name)
 
@@ -267,6 +341,7 @@ def test_the_blocks_have_hard_edges(scaled):
     blocks of different colour there is almost nothing that is neither colour."""
     for name in SCALED:
         seen = scaled[name]
+        assert_drawn_with(seen['geometry'], scaled['expected'], name)
         assert_the_blocks_have_hard_edges(seen['sourcePng'], seen['screenshot'],
                                           seen['geometry'], name)
 
@@ -544,3 +619,14 @@ def test_the_help_screen(loaded):
     assert not paused['closed']['help'], paused
     assert paused['closed']['paused'] and paused['closed']['sign'], paused
     assert loaded['storage']['helpInEditor'] is False, 'H opened the help in the line editor'
+
+
+# ------------------------------------------------- the frame rate at a screen's size, M9
+
+def test_the_picture_keeps_the_frame_rate_at_a_screen_size(frames):
+    """M9: during a mission at the owner's screen, 3573 x 2240 device pixels, the picture
+    reaches the screen at every refresh bar a handful, and present() costs well under a
+    millisecond, drawn by WebGL.  In Chrome on its GPU the two-step 2D path held this too;
+    the negative control that fails is the visible Firefox window (tests/test_firefox.py,
+    re/notes/page-video.md)."""
+    assert_the_picture_keeps_the_frame_rate(frames, 'webgl', 'Chrome at a scale factor of 2')

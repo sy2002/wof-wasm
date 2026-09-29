@@ -23,8 +23,8 @@ import { join, resolve } from 'node:path';
 import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRun, walkToTheHold } from './pagefullscreen.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, WEAPON_VIEW,
-         enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, VIDEO,
+         WEAPON_VIEW, enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -338,6 +338,60 @@ try {
     await keepRanks();
     report.box.ranks = await look('ranks', true);
 
+    /* The same pictures on the Canvas 2D path, asked for by ?video=2d (web/video.js): the
+       fallback where WebGL is refused or lost, and in a visible window the path the
+       putImageData fault lives on.  In a tab of its own, walked to the rank selection, at
+       the window's size and at the large viewport. */
+    const flatTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'browsingContext.activate', { context: flatTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: flatTab, url: 'file://' + pagePath + '?video=2d', wait: 'complete',
+    });
+    await sleep(1500);
+    const flatFire = async () => {
+        await keyAction(flatTab, 'keyDown', KEY_SPACE);
+        await sleep(250);
+        await keyAction(flatTab, 'keyUp', KEY_SPACE);
+    };
+    const flatSettle = async () => {
+        let last = null;
+        for (let waited = 0; waited < 8000; waited += 300) {
+            await sleep(300);
+            const now = await evaluateIn(flatTab, PICTURE);
+            if (last && now.hash === last.hash) {
+                return now;
+            }
+            last = now;
+        }
+        return last;
+    };
+    const flatLook = async (label) => {
+        await flatSettle();
+        const seen = { label, geometry: await evaluateIn(flatTab, GEOMETRY),
+                       display: await evaluateIn(flatTab, DISPLAY),
+                       sourcePng: await evaluateIn(flatTab, SOURCE_PNG) };
+        seen.screenshot = (await send(socket, 'browsingContext.captureScreenshot',
+                                      { context: flatTab })).data;
+        return seen;
+    };
+    await press(flatTab, KEY_BACKQUOTE);            /* the sound, and the overlay */
+    await sleep(2500);
+    await press(flatTab, KEY_BACKQUOTE);            /* nothing over the picture */
+    await sleep(300);
+    await flatFire();                               /* the scroller */
+    await sleep(8700);                              /* the logo, then the title */
+    await flatFire();
+    await sleep(3600);
+    report.flat = { picture: await flatSettle(), box: {} };
+    report.flat.box.default = await flatLook('2d default');
+    await send(socket, 'browsingContext.setViewport', {
+        context: flatTab, viewport: { width: 1960, height: 1250 } });
+    await sleep(500);
+    report.flat.box.large = await flatLook('2d large');
+    await send(socket, 'browsingContext.setViewport', {
+        context: flatTab, viewport: { width: windowSize.width, height: windowSize.height } });
+    report.flat.video = await evaluateIn(flatTab, VIDEO);
+
     /* A modifier on its own is the case that cost a session of silence: Command, pressed to
        open the console, is a keydown that activates nothing.  The page must build no
        AudioContext there and must go on saying that sound is off; the next real key must
@@ -639,6 +693,18 @@ try {
     });
     report.fullscreen.hold = walked.hold;
     report.fullscreen.outside = walked.outside;
+
+    /* Which renderer drew each page of the run (web/video.js), with its reason for a
+       fallback: every one but the 2D tab's is meant to be WebGL.  The blank tab has none. */
+    report.video = [];
+    for (const tab of (await send(socket, 'browsingContext.getTree', {})).contexts) {
+        try {
+            report.video.push({ url: tab.url.replace(/^.*\//, ''),
+                                ...(await evaluateIn(tab.context, VIDEO)) });
+        } catch {
+            report.video.push({ url: tab.url, path: null });
+        }
+    }
 } catch (err) {
     report.error = err && err.message ? err.message : String(err);
 } finally {

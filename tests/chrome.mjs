@@ -120,12 +120,17 @@ async function waitForPort(directory, deadlineMs) {
 }
 
 /* Starts Chrome on a fresh profile and connects to it.  extraArgs is where a harness puts
-   what makes it different, such as --window-size or --force-device-scale-factor. */
+   what makes it different, such as --window-size or --force-device-scale-factor.
+
+   Headless, but on the GPU: the page draws with WebGL (web/video.js), which headless Chrome
+   gives only with its GPU.  Without it (--disable-gpu) there is no WebGL at all, or with
+   --enable-unsafe-swiftshader one in software that takes 68 ms a frame at the tests' Retina
+   size, which the shell refuses (failIfMajorPerformanceCaveat) for its 2D path; the tests
+   would then test the fallback under the main path's name (re/notes/page-video.md). */
 export async function startChrome(chromePath, extraArgs = []) {
     const profile = mkdtempSync(join(tmpdir(), 'wof-chrome-'));
     const chrome = spawn(chromePath, [
         '--headless=new',
-        '--disable-gpu',
         '--no-first-run',
         '--no-default-browser-check',
         '--disable-extensions',

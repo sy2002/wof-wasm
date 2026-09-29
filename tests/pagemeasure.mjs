@@ -7,11 +7,13 @@
  * about itself.  The shell's own numbers travel as `shellSays` for a failure message only.
  */
 
-/* The exact framebuffer pixels.  Since the picture is scaled in two steps (SPEC 6.2) they
-   exist only on the source canvas, which the shell names for these tests; the canvas on the
-   page carries the same picture resampled, and is checked separately by DISPLAY. */
+/* The exact framebuffer pixels.  After scaling (SPEC 6.2) they exist nowhere on the page, so
+   the shell hands them to these tests as a 640 x 214 canvas: the 2D path's source canvas,
+   or on the WebGL path one it fills from the framebuffer and the palettes on demand.  The
+   canvas on the page carries the same picture scaled, and is checked separately by DISPLAY.
+   `path` says which of the two renderers drew the page. */
 export const PICTURE = `(() => {
-    const canvas = window.__wofVideo.source;
+    const canvas = window.__wofVideo.picture();
     const ctx = canvas.getContext('2d');
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     const colours = new Set();
@@ -29,6 +31,7 @@ export const PICTURE = `(() => {
         return n;
     };
     return {
+        path: window.__wofVideo.path,
         width: canvas.width,
         height: canvas.height,
         colours: colours.size,
@@ -52,6 +55,7 @@ export const GEOMETRY = `(() => {
         window: { width: window.innerWidth, height: window.innerHeight },
         rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
         backing: { width: canvas.width, height: canvas.height },
+        path: window.__wofVideo.path,
         shellSays: window.__wofVideo.geometry(),
     };
 })()`;
@@ -71,10 +75,13 @@ export const GEOMETRY = `(() => {
  * picture. */
 export const DISPLAY = `(() => {
     const video = window.__wofVideo;
-    const source = video.source;
-    const display = video.display;
+    const source = video.picture();
     const src = source.getContext('2d').getImageData(0, 0, source.width, source.height).data;
-    const dst = display.getContext('2d').getImageData(0, 0, display.width, display.height).data;
+    /* What the displayed canvas holds, read back by the shell: a WebGL canvas keeps no
+       drawing buffer once composited, so it is drawn again and read in the same task. */
+    const shown = video.readDisplay();
+    const display = { width: shown.width, height: shown.height };
+    const dst = shown.data;
 
     const at = (data, width, x, y) => {
         const i = (y * width + x) * 4;
@@ -131,7 +138,7 @@ export const DISPLAY = `(() => {
     for (let i = 0; i < dst.length; i += 4) {
         colours.add(dst[i] << 16 | dst[i + 1] << 8 | dst[i + 2]);
     }
-    return { points, displayColours: colours.size };
+    return { points, displayColours: colours.size, path: video.path };
 })()`;
 
 /* One present() at the size the page currently has, timed in the page.  The first calls warm
@@ -152,10 +159,59 @@ export const PRESENT_COST = `(() => {
     };
 })()`;
 
-/* The source canvas itself, as a PNG, so that the pytest side can compare every one of the
+/* The exact picture itself, as a PNG, so that the pytest side can compare every one of the
    136,960 framebuffer pixels with a screenshot instead of a few sample points.  A data URL
    rather than the pixels: the same bytes, a fiftieth of the JSON. */
-export const SOURCE_PNG = "window.__wofVideo.source.toDataURL('image/png')";
+export const SOURCE_PNG = "window.__wofVideo.picture().toDataURL('image/png')";
+
+/* Which renderer draws the page and what it costs (web/video.js): the path, the reason for
+   a fallback, and the frame and present() times the diagnostics overlay shows. */
+export const VIDEO = 'window.__wofVideo.stats()';
+
+/* The frame-time measurement of M9 (re/notes/page-video.md): every animation frame's time
+   over ms, from a loop of this expression's own, so that it measures any page, the shell's
+   earlier ones included; and the time present() took over the same span, from the shell's
+   own count where it keeps one.  Where it keeps none, present() is timed by calling it,
+   which a page of any age offers the tests. */
+export const frameTimes = (ms) => `new Promise((done) => {
+    const video = window.__wofVideo;
+    const before = video.stats ? video.stats() : null;
+    const frames = [];
+    const step = (t) => {
+        frames.push(t);
+        if (frames.length < 2 || t - frames[0] < ${ms}) {
+            requestAnimationFrame(step);
+            return;
+        }
+        const after = before ? video.stats() : null;
+        const out = {
+            frames,
+            path: video.path || 'none',
+            note: after ? after.note : '',
+            dpr: devicePixelRatio,
+            window: { width: innerWidth, height: innerHeight },
+            backing: { width: video.display.width, height: video.display.height },
+            hidden: document.hidden,
+        };
+        if (after) {
+            out.presents = after.presents - before.presents;
+            out.presentMs = (after.presentMs - before.presentMs) / Math.max(1, out.presents);
+            out.presentBy = 'the shell';
+        } else {
+            const times = [];
+            for (let i = 0; i < 24; i++) {
+                const start = performance.now();
+                video.present();
+                times.push(performance.now() - start);
+            }
+            out.presents = 20;
+            out.presentMs = times.slice(4).reduce((a, b) => a + b, 0) / 20;
+            out.presentBy = 'calls';
+        }
+        done(out);
+    };
+    requestAnimationFrame(step);
+})`;
 
 /* What the shell has put into browser storage: the game's own written files, under the
    wof: prefix (SPEC 6.2, Storage).  Read as the page left it, not as the core holds it. */
@@ -187,7 +243,7 @@ export const PLAYER = `(() => {
    a burst in the water, the splash of a weapon (the native pictures of a drop show none
    there in any other pass). */
 export const WEAPON_VIEW = `(() => {
-    const ctx = window.__wofVideo.source.getContext('2d');
+    const ctx = window.__wofVideo.picture().getContext('2d');
     const counter = ctx.getImageData(32, 180, 48, 13).data;
     let hash = 0;
     for (let i = 0; i < counter.length; i++) {
@@ -261,7 +317,7 @@ export async function weaponRun(view, player, click, hold, sleep) {
    bursts round the aircraft and the ships' and the carrier's paint share the fighter's. */
 export const SKY_ROWS = 150;
 export const SKY_PNG = `(() => {
-    const source = window.__wofVideo.source;
+    const source = window.__wofVideo.picture();
     const canvas = document.createElement('canvas');
     canvas.width = 640;
     canvas.height = ${SKY_ROWS};

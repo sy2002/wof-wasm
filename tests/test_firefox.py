@@ -19,7 +19,8 @@ from picture import (assert_the_blocks_have_hard_edges,
                      assert_the_picture_lies_where_the_dom_says,
                      assert_the_screenshot_is_the_picture,
                      big_enough_blocks)
-from conftest import (ROOT, assert_a_moment_hidden_changes_nothing,
+from conftest import (ROOT, assert_a_moment_hidden_changes_nothing, assert_drawn_with,
+                      assert_the_picture_keeps_the_frame_rate,
                       assert_no_pause_sign_outside_a_mission,
                       assert_p_and_escape_pause_under_the_sign,
                       assert_the_pause_sign_fits_a_small_window,
@@ -72,6 +73,35 @@ def loaded_firefox_visible(built):
     if os.environ.get('WOF_FIREFOX_VISIBLE') != '1':
         pytest.skip('opens a window; set WOF_FIREFOX_VISIBLE=1 to run it')
     return run_firefox(built, visible=True)
+
+
+@pytest.fixture(scope='session')
+def frames_firefox_visible(built):
+    """M9's frame-time measurement (tests/pageframes.mjs) in a visible Firefox window, the
+    owner's case: the viewport the size of the screen, at the screen's own density.
+    WOF_FRAMES_PAGE measures another build instead, which is how the negative control is
+    run."""
+    if os.environ.get('WOF_FIREFOX_VISIBLE') != '1':
+        pytest.skip('opens a window; set WOF_FIREFOX_VISIBLE=1 to run it')
+    page = os.environ.get('WOF_FRAMES_PAGE', str(built))
+    finished = subprocess.run(
+        ['node', str(ROOT / 'tests' / 'pageframes.mjs'), page, 'firefox', '--visible', FIREFOX],
+        cwd=ROOT, capture_output=True, text=True)
+    assert finished.returncode == 0, 'tests/pageframes.mjs failed:\n%s\n%s' % (
+        finished.stdout[-2000:], finished.stderr)
+    return json.loads(finished.stdout)
+
+
+def assert_every_page_draws_with_webgl(report):
+    """Every tab of the run says which renderer drew it: WebGL, but for the tab that asked
+    for Canvas 2D with ?video=2d.  A page that fell back would otherwise pass every picture
+    test under the wrong name."""
+    pages = [page for page in report['video'] if page['path'] is not None]
+    assert len(pages) >= 6, report['video']
+    for page in pages:
+        assert_drawn_with(page, '2d' if page['url'].endswith('?video=2d') else 'webgl',
+                          page['url'])
+    assert any(page['url'].endswith('?video=2d') for page in pages), report['video']
 
 
 def test_page_makes_no_network_request(loaded_firefox):
@@ -189,7 +219,35 @@ def test_the_picture_follows_a_resize(loaded_firefox):
 
 def test_the_canvas_on_the_page_shows_the_picture(loaded_firefox):
     for name in STANDARD_OF:
+        assert_drawn_with(loaded_firefox['box'][name]['display'], 'webgl', name)
         assert_the_canvas_shows_the_picture(loaded_firefox['box'][name]['display'], name)
+
+
+def test_every_page_of_the_run_draws_with_webgl(loaded_firefox):
+    """Headless Firefox gives WebGL on this machine; if it ever does not, this fails rather
+    than letting the fallback be tested as the main path."""
+    assert_every_page_draws_with_webgl(loaded_firefox)
+
+
+def check_the_2d_path(report, note):
+    """The Canvas 2D path, asked for by ?video=2d: the displayed canvas read back and the
+    screenshot at the sample points, and every framebuffer pixel where the blocks are large
+    enough to judge."""
+    flat = report['flat']
+    assert_drawn_with(flat['video'], '2d', note)
+    assert flat['video']['note'] == 'asked for by ?video=2d', flat['video']
+    assert flat['picture']['colours'] >= 8, flat['picture']
+    for name, seen in flat['box'].items():
+        assert_drawn_with(seen['display'], '2d', name)
+        assert_the_canvas_shows_the_picture(seen['display'], name)
+    default = flat['box']['default']
+    assert_the_screenshot_shows_the_picture(default['screenshot'], default['geometry'],
+                                            default['display'], '2d default')
+    return check_the_picture(flat, note, '2d')
+
+
+def test_the_2d_path_shows_the_picture(loaded_firefox):
+    check_the_2d_path(loaded_firefox, 'headless 2d')
 
 
 def test_a_screenshot_shows_the_picture_in_the_box_and_black_around_it(loaded_firefox):
@@ -209,13 +267,14 @@ def measurable(report):
             and big_enough_blocks(seen['geometry'], seen['screenshot'])]
 
 
-def check_the_picture(report, note):
+def check_the_picture(report, note, path='webgl'):
     names = measurable(report)
     assert names, ('no screenshot in this run shows the framebuffer large enough to judge '
                    'it pixel by pixel: %s' % list(report['box']))
     for name in names:
         seen = report['box'][name]
         where = '%s %s' % (note, name)
+        assert_drawn_with(seen['geometry'], path, where)
         assert_the_screenshot_is_the_picture(seen['sourcePng'], seen['screenshot'],
                                              seen['geometry'], where)
         assert_the_picture_lies_where_the_dom_says(seen['sourcePng'], seen['screenshot'],
@@ -355,6 +414,26 @@ def test_the_visible_compositor_shows_the_picture(loaded_firefox_visible):
         seen = loaded_firefox_visible['box'][name]
         assert_the_screenshot_shows_the_picture(seen['screenshot'], seen['geometry'],
                                                 seen['display'], name)
+
+
+def test_every_page_of_the_run_draws_with_webgl_in_a_visible_window(loaded_firefox_visible):
+    assert_every_page_draws_with_webgl(loaded_firefox_visible)
+
+
+def test_the_2d_path_shows_the_picture_in_a_visible_window(loaded_firefox_visible):
+    """The fallback in a real window, the only place the putImageData fault could show: the
+    picture its source canvas holds has its colours, and the screen shows it."""
+    assert loaded_firefox_visible['flat']['picture']['colours'] >= 8
+    check_the_2d_path(loaded_firefox_visible, 'visible 2d')
+
+
+def test_the_picture_keeps_the_frame_rate_in_a_visible_window(frames_firefox_visible):
+    """M9: during a mission at the screen's size, 3573 x 2240 device pixels on the owner's
+    Retina screen, the picture reaches the screen at every refresh bar a handful and
+    present() costs well under a millisecond, drawn by WebGL.  The two-step 2D path took
+    32 ms a frame here, and fails this (re/notes/page-video.md)."""
+    assert_the_picture_keeps_the_frame_rate(frames_firefox_visible, 'webgl',
+                                            'a visible Firefox window')
 
 
 def test_the_visible_screenshot_is_the_picture_pixel_for_pixel(loaded_firefox_visible):

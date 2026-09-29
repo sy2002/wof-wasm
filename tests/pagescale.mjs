@@ -7,7 +7,10 @@
  * behaves like a real display, which is what a person has, so that is what the picture is
  * judged on (SPEC.md section 8, row Page).
  *
- *     node tests/pagescale.mjs <page.html> [chrome-binary]
+ *     node tests/pagescale.mjs <page.html> [chrome-binary] [query]
+ *
+ * The query, video=2d, runs the same photographs on the shell's Canvas 2D path, which is
+ * otherwise drawn only where WebGL is refused (web/video.js).
  *
  * The window size is chosen so that the box does land on half a CSS pixel, because that is
  * the case worth measuring; the test asserts that it still does rather than trusting it.
@@ -17,12 +20,13 @@
 import { resolve } from 'node:path';
 
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
-import { GEOMETRY, PICTURE, SOURCE_PNG } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, SOURCE_PNG, VIDEO } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
+const query = process.argv[4] || '';
 
-const report = { chrome: chromePath, page: pagePath, console: [] };
+const report = { chrome: chromePath, page: pagePath, query, console: [] };
 
 const browser = await startChrome(chromePath, [
     '--force-device-scale-factor=2',
@@ -48,7 +52,8 @@ try {
         await cdp.send(domain, {}, sessionId);
     }
     await cdp.send('Page.bringToFront', {}, sessionId);
-    await cdp.send('Page.navigate', { url: 'file://' + pagePath }, sessionId);
+    await cdp.send('Page.navigate', { url: 'file://' + pagePath + (query ? '?' + query : '') },
+                   sessionId);
     await sleep(2000);
 
     /* The backquote is the gesture that starts the sound, and the prompt that lies over the
@@ -89,6 +94,7 @@ try {
             geometry: await cdp.evaluate(sessionId, GEOMETRY),
             picture: await cdp.evaluate(sessionId, PICTURE),
             sourcePng: await cdp.evaluate(sessionId, SOURCE_PNG),
+            display: await cdp.evaluate(sessionId, DISPLAY),
         };
         seen.screenshot = (await cdp.send('Page.captureScreenshot',
                                           { format: 'png' }, sessionId)).data;
@@ -110,6 +116,26 @@ try {
     await fire();
     await sleep(3600);                    /* the title's song fades out first */
     report.ranks = await look('ranks');
+    report.video = await cdp.evaluate(sessionId, VIDEO);
+
+    /* A lost WebGL context (web/video.js): given back, the page draws with WebGL again;
+       not given back within two seconds, it draws with Canvas 2D on a new canvas.  The
+       browser's own extension loses and restores it, which is what a GPU reset does. */
+    if (report.video.path === 'webgl') {
+        const lose = "(window.__wofLose = window.__wofVideo.display.getContext('webgl')"
+            + ".getExtension('WEBGL_lose_context'), window.__wofLose.loseContext(), 0)";
+        await cdp.evaluate(sessionId, lose);
+        await sleep(300);
+        report.lost = { video: await cdp.evaluate(sessionId, VIDEO) };
+        await cdp.evaluate(sessionId, '(window.__wofLose.restoreContext(), 0)');
+        await sleep(800);
+        report.restored = { video: await cdp.evaluate(sessionId, VIDEO),
+                            display: await cdp.evaluate(sessionId, DISPLAY) };
+        await cdp.evaluate(sessionId, lose);
+        await sleep(2800);
+        report.fellBack = await look('fell back');
+        report.fellBack.video = await cdp.evaluate(sessionId, VIDEO);
+    }
 } finally {
     await stopChrome(browser);
 }

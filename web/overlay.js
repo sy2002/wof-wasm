@@ -18,6 +18,21 @@ export function createOverlay(element, core, clock, audio, input, video) {
         return raw.toString(2).padStart(5, '0') + '  ' + text.trim();
     }
 
+    /* The path the picture takes and what it costs, averaged over the last second: the
+       interval between animation frames, which is the display's refresh when nothing is
+       late, and the time present() takes on the main thread. */
+    function videoLine() {
+        const v = video.timing();
+        const ms = (n) => n.toFixed(n < 10 ? 2 : 1);
+        const cost = v.lastSecond
+            ? ', frame ' + ms(v.lastSecond.frameMs) + ' ms (max ' + ms(v.lastSecond.frameMaxMs) +
+              '), present ' + ms(v.lastSecond.presentMs) + ' ms (max ' +
+              ms(v.lastSecond.presentMaxMs) + ')'
+            : '';
+        return 'video        ' + v.path + cost + '\n' +
+            (v.note ? 'video note   ' + v.note.slice(0, 48) + '\n' : '');
+    }
+
     function paint(now) {
         if (!visible || now - lastPaint < 200) {
             return;
@@ -46,6 +61,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'box          ' + css(g.cssWidth) + 'x' + css(g.cssHeight) + ' css, ' +
                 g.deviceWidth + 'x' + g.deviceHeight + ' device, dpr ' + g.dpr + '\n' +
             'enlarged     kx ' + g.kx + '  ky ' + g.ky + ', then reduced smoothly\n' +
+            videoLine() +
             'input        ' + bits() + '\n' +
             'audio        ' + a.backend + ', ' + a.state + ', ' + Math.round(a.rate) + ' Hz\n' +
             'buffer       ' + a.queuedMs.toFixed(0) + ' ms queued, ' + a.underruns + ' underruns\n' +

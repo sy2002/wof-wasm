@@ -33,7 +33,7 @@ export const FULLSCREEN_LOOK = `(() => {
     const o = document.getElementById('overlay').textContent;
     const pcm = o.match(/pcm\\s+(\\d+) frames, (\\d+) audible, peak (\\d+), padded (\\d+), dropped (\\d+)/);
     const player = (o.match(/^player\\s+(.*)$/m) || [null, ''])[1];
-    const c = window.__wofVideo.source;
+    const c = window.__wofVideo.picture();
     const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
     let hash = 0;
     for (let i = 0; i < d.length; i += 4) {
@@ -52,6 +52,7 @@ export const FULLSCREEN_LOOK = `(() => {
         width: innerWidth,
         height: innerHeight,
         hash,
+        path: window.__wofVideo.path,
         sign: (() => {
             const sign = document.getElementById('paused');
             if (!sign || sign.classList.contains('off') || getComputedStyle(sign).display === 'none') {
