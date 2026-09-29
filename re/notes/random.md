@@ -38,4 +38,9 @@ The program never reads `VBlankFrequency` or `PowerSupplyFrequency` from ExecBas
 ## Open
 
 - What each of the 43 call sites does with the value (mask, modulo, comparison), which belongs to the notes of the subsystems that call it.
-- How the front end derives the seed it passes to `rand_set_seed`, and whether demo playback uses a fixed one.
+- How the front end derives the seed it passes to `rand_set_seed`, and whether demo playback
+  uses a fixed one. Read in `rank_select` (`0x01847A`): the generator is seeded only when a
+  demo is recorded or played back, from the beam position `read_vhposr` gives at that moment,
+  and the demo file keeps no seed (its first byte is the rank), so on the machine a demo's
+  playback runs with another seed than its recording; in normal play `rand_seed_const` keeps
+  the DATA hunk's value. What the port makes of it is M7 part 2's.

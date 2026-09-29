@@ -4,8 +4,8 @@
 Every script of tools/m5_scripts.py is recorded under the headless original and replayed
 through the port by tests/m4compare.py.  In the closed loop (T2) the port runs on its own
 from the program's start and every tick and every pass must agree, with no stand-in
-reached; island_a alone runs into a campaign's next mission, M7's, at its end, and is
-compared up to it.  In the open loop (T1) every step starts from the original's state
+reached; island_a runs on through its win into the campaign's next mission (M7), and is
+compared to its end.  In the open loop (T1) every step starts from the original's state
 before it, and a step may differ only where it reached a stand-in of M6 or M7.  Both loops
 also compare the map's draws with tools/map_decode.py's prediction from the original's
 live record list, which the hits rewrite.  Beside them: the closed loop at one and three
@@ -34,9 +34,7 @@ SCRIPTS = list(m5_scripts.SCRIPTS)
 # The long ones run with --slow: the island cleared of its soldiers, and the low passes
 # until the engine seizes.
 SLOW = {'island_a', 'hit_a'}
-LATER = ('M6 STAND-IN', 'M7 STAND-IN')
-# Where island_a's won mission goes on to the next one, which the port ends there.
-NEXT_MISSION = 'M7 STAND-IN: 0x010132-0x01018D, the next mission of a campaign'
+LATER = ('M6 STAND-IN', 'M7 STAND-IN', 'M7 PART 2 STAND-IN')
 
 
 def later(marker):
@@ -138,8 +136,9 @@ def closed_loop(ported, name, rate=2):
                               pokes=m5_scripts.POKES.get(name))
 
     def stop(r):
-        if NEXT_MISSION in dict(r.standins()):
-            return 'the port reached the next mission of a campaign (M7) in tick %d' % r.ticks
+        reached = dict(r.standins())
+        if reached:
+            return 'the port reached %s in tick %d' % (sorted(reached), r.ticks)
         return None
 
     passes, found = test_world.compare_passes(replay, replay.live_chart, stop=stop)
@@ -149,16 +148,12 @@ def closed_loop(ported, name, rate=2):
 def assert_closed(machine, name, passes, found, standins, stopped):
     want = max(h[2] for h in machine.step_hashes if h[0] == 'P')
     assert not found, 'closed loop:\n%s' % found
+    assert stopped is None and standins == [], 'the closed loop reached %s' % standins
+    assert passes >= want - 1, 'only %d of %d passes compared' % (passes, want)
     if name == 'island_a':
         # The mission is won, the aircraft comes down, and back in the hold main goes on to
-        # the next mission (0x010132), which is M7's: the port reaches its stand-in there, and
-        # a step after it would end the loop (`stopped`); the recording ends with it.
-        assert dict(standins) == {NEXT_MISSION: 1}, (stopped, standins)
-        end = machine.next_mission_pass
-        assert passes >= end, 'compared up to pass %d, the next mission at %d' % (passes, end)
-    else:
-        assert stopped is None and standins == [], 'the closed loop reached %s' % standins
-        assert passes >= want - 1, 'only %d of %d passes compared' % (passes, want)
+        # the campaign's next mission (0x010132, M7): map b's briefing, setup and hold.
+        assert machine.missions == 2, machine.missions
 
 
 @pytest.mark.parametrize('name', [n if n not in SLOW else
@@ -200,11 +195,13 @@ def test_every_pass_agrees_and_every_other_difference_is_owed(ported, name):
 def test_every_address_the_m5_scripts_write_is_compared_or_excluded(ported, request):
     """T3 over the M5 scripts: every address the original writes during their missions is a
     registered field, compared by another check, or on an exclusion list with its reason and
-    milestone.  The two long scripts are taken with --slow."""
+    milestone.  The two long scripts are taken with --slow; island_a goes on into the next
+    mission of its campaign, whose rows are M7's."""
     slow = request.config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1'
     coverage = m4complete.Coverage(m4state.Layout(ported),
-                                   excluded=m4complete.EXCLUDED + m4complete.M5_EXCLUDED,
-                                   heap=m4complete.HEAP + m4complete.M5_HEAP)
+                                   excluded=(m4complete.EXCLUDED + m4complete.M5_EXCLUDED +
+                                             m4complete.M7_EXCLUDED),
+                                   heap=m4complete.HEAP + m4complete.M5_HEAP + m4complete.M7_HEAP)
     for name in SCRIPTS:
         if name in SLOW and not slow:
             continue

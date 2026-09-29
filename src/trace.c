@@ -207,22 +207,25 @@ void wof_test_step_s(uint32_t mission)
 }
 
 /* Pokes a run applies to the registered globals at the rank selection's end, which is how
- * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night"), or
- * after the mission's reset of its tables, which is how a state the promotion leaves is
- * reached (re/notes/porting-m5.md, "The scripts").  The headless original's run gets the
- * same pokes at the same points (0x01009E, 0x0100D6). */
+ * the night mission is reached in the comparison (re/notes/porting-m4.md, "Night"), after
+ * the mission's reset of its tables, which is how a state the promotion leaves is reached
+ * (re/notes/porting-m5.md, "The scripts"), or where main has run map_load for a campaign's
+ * first mission, which is how a map is won as a rank's last mission (re/notes/porting-m7.md,
+ * "The scripts").  The headless original's run gets the same pokes at the same points
+ * (0x01009E, 0x0100D6, 0x0100AE). */
 #define POKES_MAX 32                 /* more than any script pokes; a poke past it would be lost */
+#define POKE_BY_ADDRESS 4u           /* beside the point, 0 to 2, in `point` */
 
-static struct { uint32_t offset, size, value, reset; } pokes[POKES_MAX];
+static struct { uint32_t offset, size, value, point; } pokes[POKES_MAX];
 static uint32_t poke_count;
 
-static void poke_add(uint32_t offset, uint32_t size, uint32_t value, uint32_t reset)
+static void poke_add(uint32_t offset, uint32_t size, uint32_t value, uint32_t point)
 {
     if (poke_count < POKES_MAX) {
         pokes[poke_count].offset = offset;
         pokes[poke_count].size   = size;
         pokes[poke_count].value  = value;
-        pokes[poke_count].reset  = reset;
+        pokes[poke_count].point  = point;
         poke_count++;
     }
 }
@@ -237,12 +240,17 @@ void wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value)
     poke_add(offset, size, value, 1);
 }
 
+void wof_test_poke_map(uint32_t offset, uint32_t size, uint32_t value)
+{
+    poke_add(offset, size, value, 2);
+}
+
 /* A poke by the original's address, big-endian as the original's memory holds it, into
  * whatever registered global or fixed table covers it (src/core.c): the tables' records,
- * which have no offset in the globals. */
-void wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t reset)
+ * which have no offset in the globals.  `point` is 0, 1 or 2 as above. */
+void wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t point)
 {
-    poke_add(addr, size, value, (reset & 1u) | 2u);
+    poke_add(addr, size, value, (point & 3u) | POKE_BY_ADDRESS);
 }
 
 void wof_test_pokes_clear(void)
@@ -250,14 +258,14 @@ void wof_test_pokes_clear(void)
     poke_count = 0;
 }
 
-static void pokes_apply(uint32_t reset)
+static void pokes_apply(uint32_t point)
 {
     for (uint32_t i = 0; i < poke_count; i++) {
         uint8_t *at = (uint8_t *)&wof_s.g + pokes[i].offset;
 
-        if ((pokes[i].reset & 1u) != reset)
+        if ((pokes[i].point & 3u) != point)
             continue;
-        if (pokes[i].reset & 2u) {
+        if (pokes[i].point & POKE_BY_ADDRESS) {
             for (uint32_t b = 0; b < pokes[i].size; b++)
                 wof_original_store8(pokes[i].offset + b,
                                     (uint8_t)(pokes[i].value >> (8 * (pokes[i].size - 1u - b))));
@@ -271,6 +279,11 @@ static void pokes_apply(uint32_t reset)
 void wof_test_poke_after_rank(void)
 {
     pokes_apply(0);
+}
+
+void wof_test_poke_after_map(void)
+{
+    pokes_apply(2);
 }
 
 void wof_test_poke_after_reset(void)

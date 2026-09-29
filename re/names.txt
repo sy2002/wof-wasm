@@ -437,7 +437,7 @@
 01aa3e wait_vblank           ; asm. busy-waits for vblank_flag, then clears it
 01030c flip_buffers          ; asm. frame_update falls into it: COLOR01 flash poke, then flip_view
 0150b0 flip_view             ; asm. view_show(back view)
-0111fc choose_night          ; asm. night_flag = 0, or a random bit when the map number from mission_map_table is above 6
+0111fc choose_night          ; asm. night_flag = 0, or bit 15 of the fourth of four rand_beam when the map number from mission_map_table is above 6; only between two missions of a campaign
 01f72c os_view_build_unused  ; asm. MakeVPort + MrgCop over a View; nothing references it
 01f79c os_viewport_new_unused ; asm. InitVPort, GetColorMap, RastPort, BitMap, AllocMem planes; nothing references it
 01f8a2 os_viewport_free_unused
@@ -541,8 +541,8 @@
 
 # ---- the outer loop's state  (see re/notes/frontend.md)
 0253c0 mission_number        ; word: the number the briefing draws
-025382 briefing_number_1     ; byte: one digit at the start of a campaign; what it counts is M7
-025370 briefing_number_2     ; byte: the same
+025382 briefing_islands      ; byte: the islands with targets (map_scan 0x012E82), never counted down; the briefing's first number
+025370 briefing_ships        ; byte: the enemy ships (map_scan), one fewer when one is gone (0x011DB8); the briefing's second number
 0253be rank_played           ; word: the rank the run is played at; high_score_entry writes it into the entry
 025558 rank_chosen           ; word: the rank the cursor chose
 026d40 loaded_game           ; word: set when the load dialog loaded a game
@@ -582,8 +582,13 @@
 027c7e dialog_names          ; six 29-byte slot names, the part after "wof."
 027d2c dialog_names_copy     ; the same names as the list found them; a save compares against it
 016e96 exit_game             ; C. the dialog's "Exit Game": frees and calls fatal_exit. Not ported
-015e1a save_game_read        ; C. (name) reads a saved game; its layout belongs to M7
-015e8a save_game_write       ; C. (name) writes one; the same
+015d62 save_nothing          ; C. empty; the walker calls it between the ships' gun lists and the targets
+015d7c save_read_part        ; C. (file, address, length, flag) the walker's read callback: flag 1 allocates the block, reads into it and stores its pointer at the address
+015dde save_write_part       ; C. (file, address, length, flag) the walker's write callback: flag 1 writes the block the long at the address points to
+015e1a save_game_read        ; C. (name) reads a saved game through save_walk and save_read_part (re/notes/campaign.md)
+015e8a save_game_write       ; C. (name) writes one through save_walk and save_write_part; 1, or 0 when the file cannot be opened
+015ec2 save_walk             ; C. (callback, file) the saved game's layout: 0x024CAE-0x0254F8, map_length, the map, the ships' gun lists, the four target and soldier tables (re/notes/campaign.md)
+026c60 save_handle           ; long: the saved game's file handle while save_game_read or save_game_write runs
 021e9a strcmp                ; C library
 022aca os_dos_delete_file    ; dos.DeleteFile thunk
 025084 player_on_deck        ; word: 1 while the aircraft is on the carrier, 0 in the air; Control-G saves only when it is 1

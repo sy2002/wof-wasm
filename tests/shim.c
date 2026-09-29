@@ -1043,7 +1043,8 @@ int  wt_globals_at_mission_taken(void) { return wof_trace_globals_at() != 0; }
 void wt_pokes_clear(void)                  { wof_test_pokes_clear(); }
 void wt_poke(unsigned offset, unsigned size, unsigned value) { wof_test_poke(offset, size, value); }
 void wt_poke_reset(unsigned offset, unsigned size, unsigned value) { wof_test_poke_reset(offset, size, value); }
-void wt_poke_address(unsigned addr, unsigned size, unsigned value, unsigned reset) { wof_test_poke_address(addr, size, value, reset); }
+void wt_poke_address(unsigned addr, unsigned size, unsigned value, unsigned point) { wof_test_poke_address(addr, size, value, point); }
+void wt_poke_map(unsigned offset, unsigned size, unsigned value) { wof_test_poke_map(offset, size, value); }
 void wt_map_addresses(const uint32_t *list, unsigned n) { wof_test_map_addresses(list, n); }
 
 /* Port-side counters and settings the comparisons read. */

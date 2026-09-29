@@ -72,8 +72,9 @@ What the M5 scripts executed that no M4 script did, by phase, over the joined ru
   (`0x011C24`), which any hit of a target's gun starts, and the compare at `0x0116BE` to
   `0x0116C9`, which the empty airfield records of map a meet whenever the aircraft flies
   west of x 480.
-- **Phase M:** `main`'s next mission (`0x010132` on, M7's), which `island_a` reaches, and
-  blocks of the pause and the flip that the key runs reach in M4's ported code.
+- **Phase M:** `main`'s next mission (`0x010132` on, M7's, ported in M7 part 1), which
+  `island_a` reaches, and blocks of the pause and the flip that the key runs reach in M4's
+  ported code.
 
 The enemy aircraft stay away: every script keeps the enemy's countdown (`0x01BC02`) from
 running out by holding the button inside its turns, where the button neither fires nor
@@ -131,7 +132,9 @@ What the scripts do not reach after a real attempt is the promotion itself (`0x0
 rockets, bombs and the guns, destroyed island 2's two pillboxes and killed 35 of the 70
 soldiers in 15,395 ticks before its sorties ran out; the dug-outs keep taking soldiers from
 the barracks, and island 1's pillboxes stood. The balloons the promotion releases are
-reached with the poke instead.
+reached with the poke instead. M7's `promote_a` and `cap_a` reach the promotion itself,
+with map a won as a rank's last mission by a poke of the mission number
+(`re/notes/porting-m7.md`).
 
 ## The left-overs of section 10 (point 3, point 6 and point 2)
 
@@ -162,10 +165,12 @@ which clears it (the harness's poke is not an instruction).
   their dug-outs and barracks and the guns kill. (read, and the reach map: `0x0156B2` to
   `0x0156E7` is cold.) Maps b and a promote nobody: `island_a` wins map a and takes
   `0x0156E8`, the next mission's message.
-- **The balloons fly from the promotion until the aircraft is back on the deck** (read):
-  `mission_won` also sets `0x0253BC`, `main` takes the next mission only while the weapon
-  menu is up with `0x0253BC` set, and on that way it gives the extra life of `0x010154` and
-  runs `mission_reset_tables` again, which clears `balloons_on`. With `balloons_on` poked
+- **The balloons fly from the promotion until the next mission's reset** (read, and
+  observed in M7's `promote_a`): `mission_won` also sets `0x0253BC`, `main` takes the next
+  mission only while the weapon menu is up with `0x0253BC` set, and on that way it gives
+  the extra life of `0x01015C` and runs `mission_reset_tables` again, which clears
+  `balloons_on`. The records in use then stay in use, neither drawn nor moved, until a
+  later promotion (`re/notes/campaign.md`). With `balloons_on` poked
   (`balloons_c`, observed), `balloons_draw` fills all twenty records within the first 60
   ticks and fills each again as soon as `balloons_step` frees it at height `0xAA`.
 
@@ -510,7 +515,7 @@ M4 and M5 pass with the correction as they did without it.
 
 | Check | Test | What it covers |
 |---|---|---|
-| T2 | `tests/test_weapons.py::test_every_tick_and_pass_agrees_in_the_closed_loop[...]` | every M5 script in the closed loop, from the program's start with nothing handed over but the entropy and the map list's address: after every tick and every pass the registered state, the drawing calls, the entropy with its callers, the view, the palette of every row, the markers and the map draws agree, and no stand-in is reached; `island_a` runs into the next mission of a campaign (M7's stand-in at `0x010132`) after its last compared step, which the test states (`island_a` and `hit_a` with `--slow`) |
+| T2 | `tests/test_weapons.py::test_every_tick_and_pass_agrees_in_the_closed_loop[...]` | every M5 script in the closed loop, from the program's start with nothing handed over but the entropy and the map list's address: after every tick and every pass the registered state, the drawing calls, the entropy with its callers, the view, the palette of every row, the markers and the map draws agree, and no stand-in is reached; `island_a` runs on through its win into the campaign's next mission, map b, which M7 ports (`island_a` and `hit_a` with `--slow`) |
 | T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[1, 3][bomb_a, hit_a]` (slow) | the closed loop at one and three VBlanks per pass against the original run at the same rate |
 | T1, attributed | `test_every_pass_agrees_and_every_other_difference_is_owed[...]` | the open loop over every M5 script: a step that differs must have reached a stand-in of M6 or M7 in that same step, and no other stand-in may be reached (none differs) |
 | map | both loops | the map draws against `tools/map_decode.py`'s prediction from the original's live record list (`Replay.live_chart`: the allocation behind `0x024628`, `map_length` long), which the hits rewrite |
@@ -582,8 +587,8 @@ table of one object record), `drop_debug` (`0x026F8A`), `map_list_address` (`0x0
 `draw_player_x_frac` (`0x026E5E`), the word behind `draw_player_x` that the long reads of
 it take as its fraction (`0x0154E0`, `0x010B04`) and that nothing writes;
 M4's row for `0x026F8A` and part 1's for `0x027700` are gone. A mission won goes on to the
-campaign's next mission at `0x010132`, M7's; the recorder of `tests/m4compare.py` records
-nothing after it.
+campaign's next mission at `0x010132`, which M7 ports; since then the recorder of
+`tests/m4compare.py` records the window between the missions and the next mission too.
 
 Neither part adds a table of its own beside `crash_object`: the targets, the soldiers, the
 pools and the object records are M4's, at the capacities `test_the_pools_hold_every_map`

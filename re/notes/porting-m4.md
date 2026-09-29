@@ -83,8 +83,10 @@ run executed" at the end of this note, and it is what decides which routine is `
   ticker message runs.
 - **Day and night.** `night_flag` (`0x025390`) is 0 at step S in all five. Its only writer
   is `choose_night` (`0x0111FC`), and its only caller is `main` at `0x010160`, on the path
-  from one mission of a campaign to the next: the first mission of every campaign is day,
-  whatever the map (read, and observed as the only writer in the write summary). The maps
+  from one mission of a campaign to the next: the first mission of the program's first
+  campaign is day, whatever the map (read, and observed as the only writer in the write
+  summary); nothing clears the flag between campaigns, so a campaign begun after one lost
+  at night begins at night (read, `re/notes/campaign.md`). The maps
   that can be night are those above 6, so of the first missions of the seven ranks, maps
   8, 10, 11 and 12 could be night only when reached as a later mission (read, from
   `mission_map_table`). The night mission is therefore reached by a poke; see "Night".
@@ -111,8 +113,10 @@ file log and of the port's trace, which the comparison holds equal):
 
 1. **After the rank selection** (`0x01009E`): `load_dash_assets` loads `dash.shp` or
    `nightdash.shp` and the dashboard picture by `night_flag`, and `map_load` opens the map
-   that `mission_map_table[rank * 4 + mission]` names, allocates its record list and runs
-   `map_scan`. Then the briefing.
+   whose index is the sum of `missions_per_rank` below the rank and the mission less one,
+   the number `mission_map_table[rank * 4 + mission]` holds as well
+   (`re/notes/campaign.md`), allocates its record list and runs `map_scan`. Then the
+   briefing.
 2. **After the briefing** (`0x0100B2`, and `0x010170` for a later mission of a campaign):
    `dashboard_invalidate`, `mission_display_setup` (the game screen, the colour tables, the
    dashboard picture into both views), `load_ship_shapes`, `build_master_lists`,
@@ -354,8 +358,8 @@ any stand-in reached. In the release build a reached stand-in does the least har
 it can: it skips what it stands for. The release core has no test hook
 (`test_the_release_core_has_no_test_hooks` reads the name section of `dist/core.wasm`).
 
-- **The next mission of a campaign** (`0x010132` to `0x01018D`) is M7's and ends the
-  campaign instead. Its condition, `0x0253BC`, is set only by `0x015694`, which only the
+- **The next mission of a campaign** (`0x010132` to `0x01018D`) was M7's and ended the
+  campaign; M7 part 1 ports it (`re/notes/porting-m7.md`). Its condition, `0x0253BC`, is set only by `0x015694`, which only the
   last target destroyed (`0x0146DC`, `soldiers_draw`, M5) or a ship sunk (`0x011CD8`, M6)
   reaches.
 - **A saved game loaded** is M7's (`0x019152` in the dialog, `0x01CDD4` in `ingame_keys`):
@@ -522,7 +526,7 @@ fades out, ends a demo and, unless one was played, shows the high scores with th
 entry; **the restart** (Control-R, the port's R while paused), which sets `end_of_mission`
 and `quit_flag` and goes straight back to the rank selection; and the cheat's `q`, which in
 the original ends the program and in the port goes on as a game over does. A mission won
-goes on to the next mission, which is M7's.
+goes on to the next mission, which M7 part 1 ports (`re/notes/campaign.md`).
 
 ## `ingame_keys` and the pause
 

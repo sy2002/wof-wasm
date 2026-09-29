@@ -342,7 +342,7 @@ class EnemyDifferential(ShipsDifferential):
             w(o, ship + 0x18, rng.choice([0, 1, 20]))
         o.write(0x025371, bytes([rng.choice([1, 1, 2, 0x80, 0])]))    # ships_left
         o.write(0x025383, bytes([rng.choice([0, 0, 1])]))              # islands_left
-        o.write(0x025370, bytes([rng.randrange(0, 4)]))                # briefing_number_2
+        o.write(0x025370, bytes([rng.randrange(0, 4)]))                # briefing_ships
         w(o, 0x025394, rng.choice([0, 1, 1, 2, 3]))                    # aboard
         o.write(0x025364, bytes([rng.choice([0, 0xFF])]))              # the weapon menu
         o.write(0x0255C2, bytes([rng.choice([0, 5])]))                 # game_over_count

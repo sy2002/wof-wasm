@@ -82,8 +82,9 @@ def entropy_state(seed, n):
 # mission of a campaign and for the next ones), where its inner loop begins (step S), and
 # where a mission is over (tools/reach_observe.py, WINDOW_MARKS).
 MAP_LIST_POINTER = 0x024628
+MAP_LOADED = 0x0100AE              # main has run map_load for a campaign's first mission
 MISSION_WINDOW = {0x0100B2: 'setup', 0x010170: 'setup', 0x01010A: 'mission',
-                  0x010132: None, 0x0101C6: None}
+                  0x010132: 'between', 0x0101C6: None}
 
 
 class Recorder(headless.Headless):
@@ -114,13 +115,11 @@ class Recorder(headless.Headless):
         m5_scripts.install_pokes(self, self.pokes)
 
     def _window(self, uc, address, size, user):
-        # A mission won goes on to the campaign's next one at 0x010132, which is M7's (the
-        # port's stand-in ends the campaign there); nothing after it is recorded as a mission.
-        if address == 0x010132:
-            if not getattr(self, 'won', False):
-                self.next_mission_pass = self.passes      # the last pass of the won mission
-            self.won = True
-        self.window = None if getattr(self, 'won', False) else MISSION_WINDOW[address]
+        # A mission won goes on to the campaign's next one at 0x010132 (M7): the fade, the
+        # next map, its briefing ('between') and its setup, which joins the first one's.
+        if address == 0x010132 and not hasattr(self, 'next_mission_pass'):
+            self.next_mission_pass = self.passes          # the last pass of the won mission
+        self.window = MISSION_WINDOW[address]
         if self.window == 'mission':
             self.at_s.append(bytes(self.o.read(headless.DATA_START,
                                                headless.DATA_END - headless.DATA_START)))
@@ -164,8 +163,8 @@ class Recorder(headless.Headless):
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
     """One script under the headless original, dumped to `dump_path`."""
-    import m6_scripts
-    description = m6_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
+    import m7_scripts
+    description = m7_scripts.script(name, vblanks_per_pass=rate, **(more or {}))
     machine = Recorder(description, pokes=pokes)
     machine.open_dump(dump_path)
     try:
@@ -218,6 +217,7 @@ class Replay:
                 ('wt_poke_reset', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_poke_address', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint, ctypes.c_uint],
                  None),
+                ('wt_poke_map', [ctypes.c_uint, ctypes.c_uint, ctypes.c_uint], None),
                 ('wt_map_addresses', [ctypes.c_void_p, ctypes.c_uint], None),
                 ('wt_standin_count', [], ctypes.c_int),
                 ('wt_standin', [ctypes.c_int, ctypes.POINTER(ctypes.c_uint)], ctypes.c_char_p),
@@ -360,9 +360,14 @@ class Replay:
         self.lib.wt_set_vblanks_per_pass(self.rate)
         self.lib.wt_standins_reset()
         self.lib.wt_pokes_clear()
+        # The three points a run pokes at: the rank selection's end, the mission's reset of
+        # its tables, and a campaign's first map_load (tools/m7_scripts.py, MAP_LOADED).
+        points = {m5_scripts.RANK_END: (self.lib.wt_poke, 0),
+                  m5_scripts.MISSION_RESET: (self.lib.wt_poke_reset, 1),
+                  MAP_LOADED: (self.lib.wt_poke_map, 2)}
         for at, items in m5_scripts.poke_points(self.pokes).items():
-            poke = self.lib.wt_poke if at == m5_scripts.RANK_END else self.lib.wt_poke_reset
-            assert at in (m5_scripts.RANK_END, m5_scripts.MISSION_RESET), hex(at)
+            assert at in points, hex(at)
+            poke, point = points[at]
             for address, size, value in items:
                 # A global, or an element of a global array (the wrecks' words of
                 # tools/m6_scripts.py's wrecks_a): the element's offset in the port's struct;
@@ -370,8 +375,7 @@ class Replay:
                 entry = next((e for e in self.layout.globals
                               if e[1] <= address < e[1] + e[2] * e[3]), None)
                 if entry is None:
-                    self.lib.wt_poke_address(address, size, value,
-                                             0 if at == m5_scripts.RANK_END else 1)
+                    self.lib.wt_poke_address(address, size, value, point)
                     continue
                 poke(entry[4] + (address - entry[1]), size, value)
         # The address the harness's allocator gave the map list at every map load, which the

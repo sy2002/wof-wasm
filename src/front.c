@@ -346,9 +346,9 @@ static wof_co_t mission_briefing(void)
         wof_gfx_move(v, 0x154, 0x49);
         wof_text_draw_line(v, number, wof_number(number, wof_g.mission_number));
         wof_gfx_move(v, 0x154, 0x77);
-        wof_text_draw_line(v, number, wof_number(number, wof_g.briefing_number_1));
+        wof_text_draw_line(v, number, wof_number(number, wof_g.briefing_islands));
         wof_gfx_move(v, 0x154, 0x83);
-        wof_text_draw_line(v, number, wof_number(number, wof_g.briefing_number_2));
+        wof_text_draw_line(v, number, wof_number(number, wof_g.briefing_ships));
     }
 
     CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
@@ -478,7 +478,7 @@ static wof_co_t ingame_keys(void)
                 wof_g.loaded_game = 0;
                 CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(0));
                 if (wof_f.dialog_result == 0) {
-                    WOF_STANDIN("M7 STAND-IN: 0x01CDD4, a loaded game: the briefing and the mission again");
+                    WOF_STANDIN("M7 PART 2 STAND-IN: 0x01CDD4, a loaded game: the briefing and the mission again");
                     continue;
                 }
                 wof_load_dash_assets();
@@ -644,7 +644,7 @@ static wof_co_t run_queued_ticks(void)
 
     CO_BEGIN(c);
     if (wof_g.g_026d44)
-        WOF_STANDIN("M7 STAND-IN: 0x0114E0, run_queued_ticks, demo playback and recording");
+        WOF_STANDIN("M7 PART 2 STAND-IN: 0x0114E0, run_queued_ticks, demo playback and recording");
     if ((int8_t)wof_g.pause_flag < 0)
         CO_RETURN(c);
     while ((int16_t)wof_g.input_queue_count > 0)
@@ -653,9 +653,11 @@ static wof_co_t run_queued_ticks(void)
     CO_END(c);
 }
 
-/* The setup after the briefing and the inner loop, main from 0x0100B6 to 0x0101C2.  It
- * returns with wof_f.mission_end saying how the loop was left: 1 for quit_flag, which goes
- * on to the high scores, 2 for end_of_mission, which goes straight back to the outer loop. */
+/* The setup after the briefing and the inner loop, main from 0x0100B6 to 0x0101C2, with a
+ * campaign's next mission (0x010132 to 0x01018D), which goes back into the setup at its
+ * reset (0x0100D2).  It returns with wof_f.mission_end saying how the loop was left: 1 for
+ * quit_flag, which goes on to the high scores, 2 for end_of_mission or the next mission's
+ * briefing left with Control-R, both of which go straight back to the outer loop. */
 static wof_co_t mission(void)
 {
     wof_ctx_t *c = &wof_f.co_mission;
@@ -670,6 +672,7 @@ static wof_co_t mission(void)
     wof_build_master_lists();
     wof_sounds_load();
     if (!wof_g.loaded_game) {
+next_mission:                                                 /* orig 0x0100D2 */
         wof_mission_reset_tables();                           /* orig 0x0135A8 */
         wof_test_poke_after_reset();
         wof_player_restart_state();                           /* orig 0x013684 */
@@ -702,12 +705,34 @@ static wof_co_t mission(void)
             continue;
         }
         if (wof_g.g_025364 && wof_g.g_0253bc) {
-            /* 0x010132: the mission is won and the next one follows.  0x0253BC is set only
-             * by 0x015694, which only the last target destroyed (0x0146DC, soldiers_draw,
-             * M5) or a ship sunk (0x011CD8, M6) reaches. */
-            WOF_STANDIN("M7 STAND-IN: 0x010132-0x01018D, the next mission of a campaign");
-            wof_g.quit_flag = 0xFF;
-            break;
+            /* 0x010132: the mission is won (0x0253BC, set only by mission_won 0x015694) and
+             * the aircraft is back in the hold with the weapon menu up: the campaign's next
+             * mission.  mission_won has already counted the mission on, or the rank with the
+             * promotion, whose balloons_on gives the extra Hellcat here (the manual, page 8). */
+            wof_g.g_0253bc = 0;
+            wof_g.g_025364 = 0;
+            wof_sound_slots_clear();                          /* orig 0x011F4E */
+            wof_g.ticker_message = 0;
+            wof_ticker_clear();
+            CO_CALL(c, &wof_f.co_fade, wof_fade_out_pair());
+            wof_free_mission_assets();
+            if (wof_g.balloons_on)
+                wof_g.lives++;                                /* 0x01015C: addq.b */
+            wof_choose_night();                               /* orig 0x0111FC */
+            wof_dashboard_invalidate();
+            wof_map_load();
+            CO_CALL(c, &wof_f.co_stage, mission_briefing());
+            if (wof_f.briefing_result) {                      /* 0x010172: tst.b d0 */
+                wof_f.mission_end = 2;
+                CO_RETURN(c);
+            }
+            wof_load_dash_assets();
+            wof_trace_add("mission", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
+            CO_CALL(c, &wof_f.co_setup, wof_mission_display_setup());
+            wof_load_ship_shapes();
+            wof_build_master_lists();
+            wof_sounds_load();
+            goto next_mission;                                /* 0x01018A: bra 0x0100D2 */
         }
         CO_CALL(c, &wof_f.co_pass, wof_frame_update());
         CO_CALL(c, &wof_f.co_ticks, run_queued_ticks());
@@ -761,6 +786,7 @@ wof_co_t wof_front(void)
         wof_load_dash_assets();
         if (!wof_g.loaded_game)
             wof_map_load();
+        wof_test_poke_after_map();                            /* 0x0100AE */
         CO_CALL(c, &wof_f.co_stage, mission_briefing());
         if (wof_f.briefing_result)
             continue;

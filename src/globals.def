@@ -130,7 +130,8 @@ WOF_GLOBAL(g_0253b4,           int16_t,  0x0253B4)
 WOF_GLOBAL(g_0253b6,           int16_t,  0x0253B6)
 WOF_GLOBAL(g_0253b8,           int16_t,  0x0253B8)
 WOF_GLOBAL(g_0253ba,           int16_t,  0x0253BA)
-WOF_GLOBAL(g_0253bc,           int16_t,  0x0253BC)
+WOF_GLOBAL(g_0253bc,           int16_t,  0x0253BC)  /* the mission is won: mission_won sets it, main's
+                                                     * next mission (0x010132) clears it */
 WOF_GLOBAL(g_0253fc,           int16_t,  0x0253FC)
 WOF_GLOBAL(g_0253fe,           int16_t,  0x0253FE)
 WOF_GLOBAL(pitch_target,       int16_t,  0x025402)
@@ -262,8 +263,8 @@ WOF_GLOBAL(pause_flag,         uint8_t,  0x025556)
 WOF_GLOBAL_ARRAY(key_buffer,   uint8_t,  10, 0x026C98)
 WOF_GLOBAL(quit_flag,          uint8_t,  0x0253C2)
 WOF_GLOBAL(end_of_mission,     uint8_t,  0x0255C0)
-WOF_GLOBAL(briefing_number_1,  uint8_t,  0x025382)  /* one digit at the start of a campaign */
-WOF_GLOBAL(briefing_number_2,  uint8_t,  0x025370)
+WOF_GLOBAL(briefing_islands,   uint8_t,  0x025382)  /* the islands with targets, map_scan; the briefing */
+WOF_GLOBAL(briefing_ships,     uint8_t,  0x025370)  /* the enemy ships not yet gone; the briefing */
 WOF_GLOBAL(demo_was_played,    uint8_t,  0x026F8C)  /* skips the high-score screen */
 WOF_GLOBAL(outside_mission,    uint8_t,  0x02464E)  /* vblank_server then skips the ticker */
 WOF_GLOBAL(opt_invert_vertical, uint8_t, 0x0254F6)  /* the flip, read by read_joy_bits */

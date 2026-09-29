@@ -331,7 +331,7 @@ static void score(void)
     }
     text[7] = 0;
     if ((int32_t)wof_g.player_score < 0)
-        WOF_STANDIN("M7 STAND-IN: a negative score, in 0x01F26A");
+        WOF_STANDIN("M7 PART 2 STAND-IN: a negative score, in 0x01F26A");
     for (int i = 0; i < 8; i++)
         wof_g.score_text[i] = (uint8_t)text[i];
     for (int i = 0; text[i]; i++, x = (int16_t)(x + 0x0E))

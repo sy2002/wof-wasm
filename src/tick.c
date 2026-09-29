@@ -523,7 +523,7 @@ static void ship_launches(void)
  * at 100.  An enemy ship scores at ten rows, the ticker says so (0x015640), one ship fewer
  * is left, and with none and no island left the mission is won.  At 0x78 rows a ship's map
  * records are cleared: the carrier is gone (+0x04 0, 0x0255C1 set), an enemy ship's hits
- * become -1 and briefing_number_2 one less.  The first test after the row's step is of the
+ * become -1 and briefing_ships one less.  The first test after the row's step is of the
  * score: the move.w of +0x12 sets the flags the beq reads, not the cmpi before it. */
 static void ship_sinking(wof_ship_t *s)
 {
@@ -555,7 +555,7 @@ static void ship_sinking(wof_ship_t *s)
     if (s->w12 != 0) {
         if (s->w14 < 0x78)
             return;
-        wof_g.briefing_number_2--;
+        wof_g.briefing_ships--;
         s->w0c = -1;
     } else {
         if (s->w14 < 0x21)

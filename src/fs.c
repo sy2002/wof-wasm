@@ -51,7 +51,7 @@ static uint8_t lower(uint8_t c)
 /* The overlay in front of the disk: a file the game has written shadows the disk's own of
  * the same name, and a deleted one hides it.  What fills it is at the end of this file. */
 #define FS_WRITE_MAX 12u          /* six slots of the dialog, the high scores, and room */
-#define FS_FILE_MAX  8192u        /* a saved game is 4,258 bytes on this disk */
+#define FS_FILE_MAX  WOF_SAVE_MAX /* a saved game: 4,258 bytes on map a, 11,516 on map m */
 
 typedef struct {
     char     name[FS_NAME_MAX + 1];

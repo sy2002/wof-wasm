@@ -37,6 +37,9 @@ choose_night decides, who writes view_step, and where ingame_keys is entered fro
     .venv/bin/python tools/reach_observe.py --m6 --blocks --setups --jobs 12 --json REACH.json
                                             every script of M4, M5 and M6 (tools/m6_scripts.py)
     .venv/bin/python tools/reach_observe.py --m6-only --load REACH.json --markdown TABLE.md
+    .venv/bin/python tools/reach_observe.py --m7-only --blocks --jobs 4 --json REACH7.json
+                                            M7's scripts (tools/m7_scripts.py); --m7 with all
+                                            of M4 to M6 beside them
 
 The music player (M8 part 2), a segment the game loads with LoadSeg, is watched the same way
 from its load on: its routines by re/songplay_names.txt and the file's symbols, at the
@@ -243,10 +246,20 @@ def m6_scripts_list():
     return list(m6_scripts.SCRIPTS)
 
 
+def m7_scripts_list():
+    """M7's scripts (tools/m7_scripts.py): the campaign's next mission, the promotion, the
+    rank's cap and the saved game."""
+    import m7_scripts
+    return list(m7_scripts.SCRIPTS)
+
+
 def description_of(name, **more):
     import m4_scripts
     import m5_scripts
     import m6_scripts
+    import m7_scripts
+    if name in m7_scripts.RUNS:
+        return m7_scripts.script(name, **more)
     if name in m6_scripts.RUNS:
         return m6_scripts.script(name, **more)
     if name.startswith('run:'):
@@ -263,8 +276,11 @@ def pokes_of(name):
     """{address: (size, value[, point])} poked for a script (tools/m5_scripts.py, POKES)."""
     import m5_scripts
     import m6_scripts
+    import m7_scripts
     if name == 'night':
         return {NIGHT_POKE[0]: (2, NIGHT_POKE[1])}
+    if name in m7_scripts.POKES:
+        return m7_scripts.POKES[name]
     return m6_scripts.POKES.get(name) or m5_scripts.POKES.get(name, {})
 
 
@@ -381,6 +397,8 @@ LISTS = [
     ('A VBlank during a mission (phase V)', ('mission',), 'V'),
     ('The inner loop beside frame_update during a mission (phase M)', ('mission',), 'M'),
     ('The tick during a mission (phase T)', ('mission',), 'T'),
+    ('Between two missions: the fade, the next map and its briefing\'s start, main program '
+     '(phase M)', ('between',), 'M'),
 ]
 
 
@@ -679,6 +697,9 @@ def main():
     parser.add_argument('--m6', action='store_true',
                         help="M6's scripts (tools/m6_scripts.py) beside every script of M4 and M5")
     parser.add_argument('--m6-only', action='store_true', help="M6's scripts alone")
+    parser.add_argument('--m7', action='store_true',
+                        help="M7's scripts (tools/m7_scripts.py) beside every script of M4 to M6")
+    parser.add_argument('--m7-only', action='store_true', help="M7's scripts alone")
     parser.add_argument('--jobs', type=int, default=1,
                         help='run the scripts in this many processes')
     parser.add_argument('--load', nargs='+',
@@ -704,13 +725,17 @@ def main():
         args.runs = PART2_SCRIPTS + m5_scripts_list() + m6_scripts_list()
     if args.m6_only:
         args.runs = m6_scripts_list()
+    if args.m7:
+        args.runs = PART2_SCRIPTS + m5_scripts_list() + m6_scripts_list() + m7_scripts_list()
+    if args.m7_only:
+        args.runs = m7_scripts_list()
     if args.load:
         data = {}
         for path in args.load:
             with open(path) as handle:
                 data.update(json.load(handle))
         wanted = args.runs if (args.m5 or args.m5_only or args.m6 or args.m6_only or
-                               args.part2) else list(data)
+                               args.m7 or args.m7_only or args.part2) else list(data)
         data = {name: data[name] for name in wanted if name in data}
         args.runs = list(data)
     else:
@@ -783,7 +808,9 @@ def cold_ranges(oracle, data, names, routine, windows=('mission',), phases=('F',
 PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/player.c',
               'src/objects.c', 'src/targets.c', 'src/pools.c', 'src/enemy.c', 'src/sound.c']
 M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
-                     'wait_next_vblank', 'screen_game_restore']
+                     'wait_next_vblank', 'screen_game_restore',
+                     # M7 part 1's saved game, beside M3's dialog in src/dialog.c
+                     'save_game_write', 'save_walk', 'save_write_part', 'save_nothing']
 MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']
 STANDIN = re.compile(r'WOF_STANDIN\("((M\d+(?: PART \d)?) STAND-IN: '
                      r'(?:(0x[0-9A-Fa-f]{6})(?:-(0x[0-9A-Fa-f]{6}))?, )?([^"]*))"\)')
@@ -980,7 +1007,6 @@ REGION_NOTES = {
     0x015060: 'ported from reading: the barracks west of the dug-out, the distance negated',
     0x015624: "ported from reading: an island neutralised that is not the map's last, its "
               'message (0x015624)',
-    0x0156B2: "ported from reading: the rank's last mission won, the promotion (map c)",
     0x01F0A4: "ported from reading: the weapon counter's tens drum round after 0x50",
     # M5 part 2: the tick's regions no script reaches, held by tests/test_oracle_m5.py
     0x01081A: 'ported from reading: no weapon left or every object record in use, nothing '
@@ -1020,7 +1046,6 @@ REGION_NOTES = {
               "soldiers' and torpedoes' hits",
     0x011B30: "ported from reading: the extra object record hit; tests/test_oracle_m5.py, the "
               "soldiers' and torpedoes' hits",
-    0x011218: 'ported from reading; reached only between two missions, M7\'s next mission',
     0x011E6E: "ported from reading: a barracks' next soldier's timer from vblank_total, 0 "
               "counting as 3; tests/test_oracle_m5.py, the tick's routines",
     0x014722: "ported from reading: a hit on slot 0x113, which it leaves alone; "
@@ -1063,6 +1088,10 @@ REGION_NOTES = {
     0x01B1BA: 'ported from reading; tests/test_oracle_m4.py, the aircraft down on a ship',
     0x01B1DC: 'ported from reading; tests/test_oracle_m4.py, the attitude levelling out',
     0x01BD86: 'ported from reading; tests/test_oracle_m4.py, the deck state',
+    # M7 part 1: the saved game's writer.
+    0x015EBE: 'ported from reading: the file cannot be opened, nothing is written and 0 comes '
+              'back, which the dialog ignores; the port\'s file system refuses a file only when '
+              'its overlay is full',
     # M8 part 1: the effects engine's regions no script runs (tests/test_oracle_m8.py).
     0x01ECBE: 'ported from reading; tests/test_oracle_m8.py, soundfx_vblank: the music\'s flags '
               'for channel 2, which only the uncalled 0x01E9F4 sets',

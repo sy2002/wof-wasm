@@ -1,6 +1,6 @@
 addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,strings,status
 010000,entry,asm,6,,,-32766,0,c_startup,,0,,todo
-010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sound_slots_clear open_libraries install_vblank_server map_load load_ship_shapes sounds_load init_assets campaign_reset mission_reset_tables player_restart_state build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select demo_end mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys dashboard_invalidate crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",partial
+010006,main,asm,520,,,-32760,1,frame_update choose_night free_mission_assets logic_tick run_queued_ticks input_queue_clear sound_slots_clear open_libraries install_vblank_server map_load load_ship_shapes sounds_load init_assets campaign_reset mission_reset_tables player_restart_state build_master_lists load_dash_assets display_init ticker_clear fade_out_pair title_sequence rank_select demo_end mission_briefing mission_display_setup high_score_screen wait_next_vblank sub_01aa50 sub_01ccb6 ingame_keys dashboard_invalidate crack_text_screen poll_fire,intuition.CloseWorkBench,26,"""wofdemo""",ported
 01020e,fatal_exit,asm,26,,,-32754,3,free_mission_assets music_stop sub_0134d8,,1,,todo
 010228,frame_update,asm,228,,,,1,weapon_marker draw_objects smoke_draw snapshot_for_draw draw_game_over player_lost_restart draw_world soldiers_draw map_window clip_playfield splashes_draw balloons_draw cop_set_split_line wait_vblank draw_dashboard clip_dashboard draw_set_target,,13,,ported
 01030c,flip_buffers,asm,56,,,,1,flip_view,,4,,ported
@@ -24,7 +24,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011126,airfield_at,asm,54,,,,1,,,1,,verified
 01115c,pillbox_between,asm,74,,,,1,,,2,,verified
 0111a6,ship_gun_between,asm,86,,,,1,,,1,,verified
-0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,ported
+0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,verified
 011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sounds_free sub_0134ae,exec.AllocMem,2,,ported
 011256,sub_011256,asm,30,,,-32706,1,mem_free_var sounds_free sub_0134ae,exec.AllocMem,2,,todo
 011274,shot_origin,asm,60,,,,1,,,14,,ported
@@ -175,7 +175,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01557c,balloons_draw,asm,168,,,-32412,1,draw_world_shape rand_beam blit_begin blit_end,,5,,ported
 015624,ticker_say,asm,28,,,-32406,2,format_to ticker_offer,,1,,ported
 015640,ship_sunk_message,asm,84,,,,1,format_to,,3,,verified
-015694,mission_won,asm,124,,,-32400,3,format_to,,9,,ported
+015694,mission_won,asm,124,,,-32400,3,format_to,,9,,verified
 015710,sub_015710,asm,4,,,,7,,,0,,verified
 015714,ground_height,asm,388,,,,1,,,8,,verified
 015898,sub_015898,asm,84,,,,0,,,2,,todo
@@ -204,13 +204,13 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d4c,sub_015d4c,asm,4,,,,1,,,0,,todo
 015d50,load_file_chip_asm,asm,10,,,,3,load_file_chip,,0,,ported
 015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
-015d62,sub_015d62,C,8,2,,,1,,,0,,todo
+015d62,save_nothing,C,8,2,,,1,,,0,,verified
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
-015d7c,sub_015d7c,C,98,4,8 12 16 20,,0,exit_game mem_alloc os_dos_read,,0,,todo
-015dde,sub_015dde,C,60,0,8 12 16 20,,0,os_dos_write,,0,,todo
-015e1a,save_game_read,C,112,6,8,,1,sub_015ec2 exit_game sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
-015e8a,save_game_write,C,56,6,8,,1,sub_015ec2 os_dos_close os_dos_open,,1,,todo
-015ec2,sub_015ec2,C,368,10,8 12,,2,sub_015d62,,14,,todo
+015d7c,save_read_part,C,98,4,8 12 16 20,,0,exit_game mem_alloc os_dos_read,,0,,todo
+015dde,save_write_part,C,60,0,8 12 16 20,,0,os_dos_write,,0,,verified
+015e1a,save_game_read,C,112,6,8,,1,save_walk exit_game sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
+015e8a,save_game_write,C,56,6,8,,1,save_walk os_dos_close os_dos_open,,1,,ported
+015ec2,save_walk,C,368,10,8 12,,2,save_nothing,,14,,verified
 016032,text_caret,C,84,0,8 10,,1,os_gfx_rect_fill os_gfx_set_drmd,,1,,ported
 016086,text_input,C,1206,100,8 12 14 16,-32376,3,text_caret wait_input_release poll_fire poll_joy_dir8 key_to_char key_available key_get strlen os_gfx_move os_gfx_set_apen os_gfx_set_bpen os_gfx_set_drmd os_gfx_text gfx_WaitTOF,,2,,verified
 01653c,load_dash_assets,C,86,6,,,2,fatal_exit shapes_load load_file_public_asm,,8,,ported
@@ -492,7 +492,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 021ce2,ffp_flt,asm,10,,,,3,,,0,,replace
 021cec,ffp_mul,asm,122,,,,3,sub_01816c sub_021d66 sub_021d6e sub_021d7c,,1,"""mathffp.library""",replace
 021d66,sub_021d66,asm,8,,,,2,,dos.Output,1,,todo
-021d6e,sub_021d6e,asm,14,,,,3,,dos.Write,1,,todo
+021d6e,sub_021d6e,asm,14,,,,3,,dos.Write,1,,replace
 021d7c,sub_021d7c,asm,22,,,,2,,exec.OpenLibrary,1,,todo
 021d92,sub_021d92,asm,18,,,,1,,exec.execPrivate9,0,,todo
 021da4,sub_021da4,asm,14,,,,0,sub_021d92,,0,,todo
@@ -563,7 +563,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 022b30,sub_022b30,asm,14,,,,3,,dos.Open,1,,todo
 022b3e,os_dos_read,asm,18,,,-31758,4,,dos.Read,1,,todo
 022b50,os_dos_unlock,asm,16,,,-31752,4,,dos.UnLock,1,,todo
-022b60,os_dos_write,asm,4,,,-31746,2,sub_021d6e,,0,,todo
+022b60,os_dos_write,asm,4,,,-31746,2,sub_021d6e,,0,,replace
 022b64,sub_022b64,asm,24,,,,1,,exec.Alert,1,,todo
 022b7c,os_avail_mem,asm,12,,,,1,,exec.AvailMem,1,,drop
 022b88,sub_022b88,asm,12,,,,1,,exec.CloseDevice,1,,todo

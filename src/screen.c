@@ -382,14 +382,18 @@ void wof_screen_game(void)
 
 /* orig 0x016D32 screen_game_restore - the play screen back after a dialog: each view's
  * playfield linked to its dashboard again, the back view's playfield rebuilt, the front
- * view copied into it, and the ticker ramp on its copper list. */
+ * view copied into it, and the ticker ramp on the copper list view_build_copper builds for
+ * it afresh, which carries no COLOR01 of flip_buffers.  Both views are play screens again:
+ * the front one never stopped being one, and the dialog's was the back one. */
 void wof_screen_game_restore(void)
 {
     VP(WOF_VP_A1)->next = WOF_VP_A2;
     VP(WOF_VP_B1)->next = WOF_VP_B2;
     view_set_game(wof_f.back_view);
     wof_view_copy(wof_f.front_view, wof_f.back_view);
-    wof_cop_add_ticker_ramp(wof_f.back_view);            /* view_build_copper's list */
+    wof_f.colour1_poked[wof_f.back_view & 1] = 0;       /* orig 0x01A0D4 view_build_copper */
+    wof_cop_add_ticker_ramp(wof_f.back_view);
+    wof_f.play_screen = 1;
 }
 
 uint16_t wof_ticker_ramp(uint16_t row)

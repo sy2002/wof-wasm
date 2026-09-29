@@ -130,7 +130,8 @@ plus a copper rebuild, with no wait. The three extra VBlanks between the briefin
   - `Move(340, 73)`, `text_draw(sprintf("%d", 0x0253C0))` — the mission number.
   - `Move(340, 119)`, `text_draw(sprintf("%d", byte at 0x025382))`.
   - `Move(340, 131)`, `text_draw(sprintf("%d", byte at 0x025370))`.
-  What the last two count belongs to M7; they are one digit each at the start of a campaign.
+  The last two are `briefing_islands` and `briefing_ships`, the map's islands with targets
+  and its enemy ships, which `map_scan` counts (`re/notes/campaign.md`).
 - **Colours:** `bcopy(briefing_palette 0x02592C, local, 0x20)` — 16 words — then
   `view_show_wait`, `fade_to(local)`.
 - **Waits** 240 rounds of `WaitTOF`, ending early on fire.
@@ -200,7 +201,8 @@ leaving the editor upward or downward moves to the next slot. On accept, the nam
 
 Observed: saving over a slot that already held a name **writes the new file and deletes the old
 one** (`test_a_save_writes_a_wof_file_and_replaces_the_one_it_was_edited_from`), so editing a name
-renames the save. A save on this disk is **4258 bytes**; its layout belongs to M7.
+renames the save. A save on this disk is **4258 bytes**, a save of map a; the layout and
+the size of a save on every map are in `re/notes/campaign.md`.
 
 **The return from the in-game dialog.** `ingame_keys` calls the dialog, then
 `screen_game_restore` (`0x016D32`), which rebuilds the play screen in the back view and copies
@@ -283,9 +285,10 @@ position `"%d"` at +0, the score `"%-6ld"` at +0x28, the rank name `"%-12s"` fro
   │  │     quit_flag      ───────────────────────────────► end of the mission
   │  │     pause_flag     ── wait_next_vblank ──┐
   │  │     0x025364 and 0x0253BC set  ──► next mission:
-  │  │         ticker_clear, fade_out_pair, free_mission_assets, choose_night,
+  │  │         ticker_clear, fade_out_pair, free_mission_assets,
+  │  │         a life more if balloons_on, choose_night, map_load,
   │  │         mission_briefing ── returns non-zero ──────► outer loop
-  │  │         else reload the assets and go on
+  │  │         else reload the assets and go on at the reset (re/notes/campaign.md)
   │  │     frame_update (one pass)                        │
   │  │     run_queued_ticks                               │
   │  │     end_of_mission 0x0255C0 ──────────────────────────► outer loop

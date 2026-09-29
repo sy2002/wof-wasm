@@ -369,9 +369,9 @@ aboard or on its deck, and the mission won by the last enemy ship sunk; the orac
 assert that their cases execute every one of these regions of the original
 (`tests/test_oracle_m6.py`, `COLD`). Two regions are data, the jump tables of two switches,
 and one is dead, `aircraft_speed`'s floor at 900 (above, "Flags that decide in the tick").
-The markers left in the sources are M7's (a campaign's next mission, a loaded game, a demo,
-a negative score, a ticker message outside the registered state) and M5's value marker for
-the soldiers' table. The sound engine's routines the tick calls (`0x01EA28` to `0x01EB4C`)
+The markers left in the sources are M7's (a campaign's next mission, which M7 part 1 ports,
+and a loaded game, a demo, a negative score and a ticker message outside the registered
+state, M7 part 2's) and M5's value marker for the soldiers' table. The sound engine's routines the tick calls (`0x01EA28` to `0x01EB4C`)
 are M8's: left out with a comment and excluded in the completeness list, without a marker,
 as M4 and M5 leave the engine's slots ("The tick: what part 2 ports"). M8 ports them and
 the rows are gone (`re/notes/porting-m8.md`).
@@ -905,7 +905,9 @@ rank selection as the setups do (re/notes/porting-m4.md, "Appendix: the reach ma
 
 Every region of a ported routine that no run of M4, M5 or M6 executed - M4's scripts, the
 night mission, the key runs, the fifteen setups, the eighteen M5 scripts and the twenty-five
-of M6 - with the stand-in marker that covers it or what it is otherwise; below them, the
+of M6 - with the stand-in marker that covers it or what it is otherwise (M7 part 1's scripts
+execute the rows of `main` at `0x01015C`, `choose_night`'s night branch and `mission_won`'s
+promotion, `re/notes/porting-m7.md`); below them, the
 markers whose region the original did run (M7's) and the markers that stand for
 a value rather than a region. Written by
 

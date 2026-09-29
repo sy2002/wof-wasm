@@ -26,7 +26,10 @@ import pytest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGE = ROOT / 'dist' / 'wof.html'
 WASM = ROOT / 'dist' / 'core.wasm'
-DYLIB = ROOT / 'tests' / 'libwofcore.dylib'
+# A control (tools/m7_controls.py) points the tests at a library built from a changed copy
+# of the sources; every other run takes the build's own.
+DYLIB = (pathlib.Path(os.environ['WOF_CORE_LIBRARY']) if os.environ.get('WOF_CORE_LIBRARY')
+         else ROOT / 'tests' / 'libwofcore.dylib')
 HARNESS = ROOT / 'tests' / 'wasm_harness.mjs'
 
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -53,7 +56,7 @@ def pytest_configure(config):
 # The loop tests of one script share its recording (tests/test_world.py, recorded), which is
 # made once per process.  Under pytest-xdist with --dist loadgroup they go to one worker, so
 # that the script is recorded once and not by every worker that runs one of them.
-RECORDING_MODULES = ('test_world', 'test_weapons', 'test_enemy')
+RECORDING_MODULES = ('test_world', 'test_weapons', 'test_enemy', 'test_campaign')
 
 
 def recording_group(item):
@@ -124,6 +127,8 @@ def built(tmp_path_factory):
         run([sys.executable, 'tools/build.py', '--native', '--quiet'])
         if worker:
             done.write_text(worker)
+    if os.environ.get('WOF_CORE_LIBRARY'):
+        return PAGE             # a control runs on its own library beside the build there is
     once_per_run(tmp_path_factory, lambda: not worker or not done.exists(), build)
     assert PAGE.exists() and WASM.exists() and DYLIB.exists()
     return PAGE
@@ -1134,9 +1139,10 @@ class Ported:
 
     def fs_written(self):
         out = []
-        buffer = (ctypes.c_uint8 * 8192)()
+        size = 1 << 14                          # a saved game is up to 12,412 bytes (WOF_SAVE_MAX)
+        buffer = (ctypes.c_uint8 * size)()
         for i in range(self.lib.wt_fs_written_count()):
-            n = self.lib.wt_fs_written_bytes(i, buffer, 8192)
+            n = self.lib.wt_fs_written_bytes(i, buffer, size)
             out.append((self.lib.wt_fs_written_name(i).decode('latin1'), bytes(buffer[:n])))
         return out
 

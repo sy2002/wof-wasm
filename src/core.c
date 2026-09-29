@@ -252,6 +252,81 @@ void wof_original_store16(uint32_t addr, uint16_t value)
     wof_original_store8(addr + 1u, (uint8_t)value);
 }
 
+/* Byte `off` of a record as the original's memory holds it: a plain field's, big-endian;
+ * a pointer's as a long of what the port keeps in its place, the shape handle or the pool's
+ * flag, because the original's address exists only in its own memory
+ * (re/notes/campaign.md, "What the port writes in the raw part").  Returns 0 in a gap. */
+static int record_read(int rec, const uint8_t *port, uint32_t off, uint8_t *out)
+{
+    switch (rec) {
+#define WOF_RECORD(r, size)                 case rec_##r:
+#define WOF_FIELD(r, n, t, o, k)                                                       \
+        if ((k) == WOF_K_PLAIN && off - (uint32_t)(o) < (uint32_t)sizeof(t)) {         \
+            *out = port[offsetof(wof_##r##_t, n) + sizeof(t) - 1u - (off - (uint32_t)(o))]; \
+            return 1;                                                                  \
+        }                                                                              \
+        if ((k) != WOF_K_PLAIN && off - (uint32_t)(o) < 4u) {                          \
+            t v_;                                                                      \
+                                                                                       \
+            wof_mem_copy(&v_, port + offsetof(wof_##r##_t, n), (uint32_t)sizeof v_);   \
+            *out = (uint8_t)((uint32_t)v_ >> (8u * (3u - (off - (uint32_t)(o)))));     \
+            return 1;                                                                  \
+        }
+#define WOF_FIELD_ARRAY(r, n, t, c, o, k)                                              \
+        if ((k) == WOF_K_PLAIN && off - (uint32_t)(o) < (uint32_t)(sizeof(t) * (c))) { \
+            *out = port[offsetof(wof_##r##_t, n) +                                     \
+                        ((off - (uint32_t)(o)) / sizeof(t)) * sizeof(t) +              \
+                        sizeof(t) - 1u - (off - (uint32_t)(o)) % sizeof(t)];           \
+            return 1;                                                                  \
+        }
+#define WOF_RECORD_END(r)                   return 0;
+#include "records.def"
+#undef WOF_RECORD
+#undef WOF_FIELD
+#undef WOF_FIELD_ARRAY
+#undef WOF_RECORD_END
+    default:
+        return 0;
+    }
+}
+
+/* The byte at an original address as the original's memory would hold it, from the
+ * registered global or the table at a fixed address that covers it (record_read).  Returns
+ * 0 where nothing the port keeps covers the address. */
+int wof_original_load8(uint32_t addr, uint8_t *out)
+{
+    if (wof_global_byte(addr, out))
+        return 1;
+#define WOF_TABLE(n, r, c, a)                                                          \
+    if (addr - (uint32_t)(a) < record_size[rec_##r] * (uint32_t)(c)) {                 \
+        uint32_t at_ = addr - (uint32_t)(a);                                           \
+                                                                                       \
+        return record_read(rec_##r, (const uint8_t *)&wof_m.n[at_ / record_size[rec_##r]], \
+                           at_ % record_size[rec_##r], out);                           \
+    }
+#define WOF_POOL(n, r, c, p)
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
+/* Byte `off` of the allocation whose pointer the original keeps at `pointer`, as the
+ * original's memory holds it: big-endian by the pool's record layout.  Returns 0 past the
+ * port's capacity and for a pointer the port keeps no pool behind. */
+int wof_pool_load8(uint32_t pointer, uint32_t off, uint8_t *out)
+{
+#define WOF_TABLE(n, r, c, a)
+#define WOF_POOL(n, r, c, p)                                                           \
+    if (pointer == (uint32_t)(p) && off < record_size[rec_##r] * (uint32_t)(c))        \
+        return record_read(rec_##r, (const uint8_t *)&wof_m.n[off / record_size[rec_##r]], \
+                           off % record_size[rec_##r], out);
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
 /* ------------------------------------------------------- the music's memory (M8 part 2) */
 
 static uint32_t image_long(const uint8_t *p)

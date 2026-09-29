@@ -173,6 +173,89 @@ M6_HEAP = [
 ]
 
 
+# M7 part 1 (tests/test_campaign.py): a mission won goes on to the next one, whose briefing
+# and setup run between the two missions, and the save in the hold (save_a) opens the dialog
+# on the back view and lays the play screen out again after it.
+M7_EXCLUDED = [
+    (0x02463A, 0x02463D, {'load_dash_assets', 'mem_free_var'},
+     'dash_container: the dashboard\'s container, freed with the mission\'s assets and loaded '
+     'again by the next mission\'s setup',
+     'the port loads every container at start-up (src/assets.c); which dashboard is shown is '
+     'compared as the drawing calls and the palette of every row', 'M1, M4'),
+    (0x0254F8, 0x025507, {'map_scan', 'mem_free_var'},
+     'target_records_4, target_records_3, soldier_records, target_records_f: the pointers to '
+     'map_scan\'s four tables, freed with the old map and allocated again for the next one',
+     'the port keeps the tables at fixed places (src/mission.def) and compares their records '
+     'after every step; a pointer to an allocation is no state of the port', 'M4'),
+    (0x026C60, 0x026C63, {'save_game_write'},
+     'save_handle: the saved game\'s file handle while save_game_write writes it',
+     'the port writes the file through its file system in one piece (src/dialog.c, '
+     'wof_save_game_write), and the file is held byte for byte to the original\'s '
+     '(test_campaign.py)', 'M7'),
+    (0x026D32, 0x026D35, {'sprintf', 'sub_021608'},
+     'the C library\'s sprintf: where its output goes, for the briefing\'s numbers',
+     'the port formats with wof_number; the briefing\'s text is held by the front end\'s '
+     'tests (test_front_port.py)', 'M3'),
+    (0x026D4E, 0x026D51, {'mem_free_var'},
+     'demo_buffer_ptr, which free_mission_assets frees and clears between the missions',
+     'the demo is M7 part 2\'s; the port has no buffer to free', 'M7 part 2'),
+    (0x026E52, 0x026E55, {'load_dash_assets', 'mem_free_var'},
+     'dash_shapes: the dashboard container\'s table of shape pointers',
+     'as dash_container: the port resolves the names into handles at start-up', 'M1, M4'),
+    (0x026F34, 0x026F53, {'load_ship_shapes', 'mem_free_var'},
+     'battleship_container ... cruiseship_shapes, freed between the missions and loaded for '
+     'the next map\'s ships',
+     'as M6\'s row: the port holds every container from start-up and keeps which ships the '
+     'mission loaded in ship_loaded; MasterList\'s slots are compared', 'M4'),
+    (0x02772E, 0x027741, {'text_render'},
+     'text_render\'s work: the glyph it is at and the template\'s size, for the briefing\'s '
+     'text in the game font',
+     'the port draws a text from the font directly (src/font.c); the briefing\'s text is held '
+     'by the front end\'s tests', 'M1, M3'),
+    (0x027744, 0x027747, {'load_dash_assets'},
+     'dash_picture_file: the dashboard picture\'s file as the next mission\'s setup loads it',
+     'the port keeps the picture file in a buffer of its own (src/mission.c)', 'M4'),
+    (0x027748, 0x027A13, {'screen_game', 'view_set_game', 'vport_init_bitmap',
+                          'view_copy_colours', 'draw_set_target', 'screen_dialog',
+                          'screen_game_restore', 'screen_hires3', 'fade_to', 'fade_to_pair'},
+     'vport_a1 ... view_b as the briefing between two missions and the save dialog lay the '
+     'views out for themselves and the setup and screen_game_restore lay the play screen out '
+     'again',
+     'as M4\'s row: the port\'s screen model keeps a viewport as position, size and depth; '
+     'the picture after them is compared as the palette of every row (V1 rows)', 'M3, M4'),
+    (0x027A18, 0x027BD7, {'cmap_file_to_table', 'iff_cmap_to_table', 'mission_display_setup',
+                          'view_poke_colours1', 'view_poke_colours2', 'vport_init_bitmap',
+                          'fade_to', 'fade_to_pair'},
+     'coltab_a1 ... coltab_b1_split, as the fade after a mission won, the briefing\'s fades '
+     'and the save dialog\'s leave them',
+     'compared as the palette of every row at every pass (V1 rows); the fades are held to '
+     'the original by test_the_fades_agree_with_the_original', 'M3, M4'),
+    (0x027C64, 0x027C67, {'fade_to', 'fade_to_pair'},
+     'cop_spare: the third copper buffer, which the fades swap',
+     'the port has no copper lists (M5\'s row for view_b + 2)', 'M3'),
+    (0x027C68, 0x027C6B, {'load_dash_assets'},
+     'the length of the dashboard picture\'s file, beside cop_spare',
+     'as dash_picture_file', 'M4'),
+    (0x027C7E, 0x027DD9, {'dialog_file_list', 'load_save_dialog', 'strncpy', 'text_input',
+                          'strcpy'},
+     'dialog_names and dialog_names_copy: the six file names of the dialog and what they '
+     'were when it opened',
+     'the port keeps them in its front end\'s state (wof_f.dialog_names), held by '
+     'tests/test_front_port.py; the file the save writes is held byte for byte', 'M3'),
+]
+# Display memory: the briefing between two missions draws into the back view.
+M7_HEAP = [
+    ('display_init', {'shape_draw', 'text_render'},
+     'the back view\'s planes, where the briefing between two missions draws the shape `rank` '
+     'and its text',
+     'the headless original runs no blits; the briefing\'s drawing calls are held by the '
+     'front end\'s tests (test_front_port.py) and its state at the next step S', 'M3'),
+    ('sub_0158fe', {'shape_draw', 'text_render'},
+     'MaskBuffer, where text_render builds the briefing\'s text as a template',
+     'the port blits a glyph with the mask kept at load (re/notes/drawing.md)', 'M1, M3'),
+]
+
+
 def _owner(label):
     """'alloc 57 (load_file shapes/wingspalette)' -> 'load_file'."""
     inside = label[label.index('(') + 1:label.rindex(')')] if '(' in label else label

@@ -1,4 +1,5 @@
-/* The load and save dialog and the line editor (re/notes/frontend.md, re/notes/keys.md).
+/* The load and save dialog, the saved game and the line editor (re/notes/frontend.md,
+ * re/notes/campaign.md, re/notes/keys.md).
  *
  * The dialog draws itself entirely with graphics.library in the system font on a 320 x 200
  * screen of four planes, and it is the only place in the front end that lists the game's
@@ -6,8 +7,9 @@
  * alphabet, and that order is behaviour: the port reproduces it from the names alone
  * (src/fs.c, re/notes/frontend.md, "The order of the file list").
  *
- * What a saved game contains is M7.  The routine that would write or read it is a marked
- * stand-in here; what it does instead is what the original does when the load fails, which
+ * A save writes what the walker of the saved game (0x015EC2) hands its write callback, in
+ * the original's layout (re/notes/campaign.md).  Reading one back is M7 part 2's: the load
+ * is a marked stand-in that does what the original does when the load fails, which
  * re/notes/frontend.md observed: the dialog comes back as a cancel and the rank selection
  * rebuilds its picture.
  */
@@ -134,6 +136,99 @@ void wof_path_sanitise(char *name)
     for (; *name; name++)
         if (*name == ':' || *name == '/')
             *name = ' ';
+}
+
+/* ------------------------------------------------------------------ the saved game */
+
+/* The file a save is assembled in: the callback's writes go here in the walker's order and
+ * the whole goes into the file system at the end, which is Open(MODE_NEWFILE), the Writes
+ * and Close as one (src/fs.c).  It is scratch memory at the arena's top only while the save
+ * runs, so the arena does not grow. */
+static uint8_t *save_data;
+static uint32_t save_at;
+
+/* The byte the original's memory holds at `addr`: a registered global's or a fixed table's
+ * (src/core.c), and where the port keeps nothing, the executable's own image, which is what
+ * the original holds where nothing writes. */
+static uint8_t memory_byte(uint32_t addr)
+{
+    uint8_t  b;
+    uint32_t at = addr - 0x023000u;
+
+    if (wof_original_load8(addr, &b))
+        return b;
+    return at < sizeof wof_tbl_data_image ? wof_tbl_data_image[at] : 0;
+}
+
+/* orig 0x015D62 - called by the walker between the ships and the targets; it does nothing. */
+static void save_nothing(void)
+{
+}
+
+/* orig 0x015DDE - the walker's write callback (file, address, length, flag): flag 1 writes
+ * the block the long at the address points to, anything else the memory at the address.
+ * Write's result is not looked at. */
+static void save_put(uint32_t addr, uint32_t len, uint16_t flag)
+{
+    for (uint32_t i = 0; i < len; i++) {
+        uint8_t b = 0;
+
+        if (flag == 1)
+            wof_pool_load8(addr, i, &b);
+        else
+            b = memory_byte(addr + i);
+        if (save_at < WOF_SAVE_MAX)
+            save_data[save_at] = b;
+        save_at++;
+    }
+}
+
+/* orig 0x015EC2 - the walker of the saved game, for the write and the read alike: the
+ * memory from object_records up to target_records_4, map_length, the map's record list,
+ * the gun list of every ship whose +4 and +0x12 are set, and the four tables of map_scan,
+ * each as long as its count says.  After the map it sets map_extent and map_records_end
+ * from map_length, the latter to the list's end where map_load leaves it a word before, so
+ * a save changes the running game there. */
+static void save_walk(void (*put)(uint32_t addr, uint32_t len, uint16_t flag))
+{
+    put(0x024CAEu, 0x0254F8u - 0x024CAEu, 0);
+    put(0x0253C6u, 2u, 0);
+    put(0x024628u, (uint32_t)(int32_t)(int16_t)wof_g.map_length, 1);      /* ext.l */
+    wof_g.map_extent = (uint16_t)(wof_g.map_length << 2);                  /* asl.w #2 */
+    wof_m.map_records_end[0].off = (uint32_t)(int32_t)(int16_t)wof_g.map_length;
+    for (uint32_t i = 0; i < 5u; i++) {
+        const wof_ship_t *ship = &wof_m.ship_records[i];
+
+        if (ship->present != 0 && ship->w12 != 0)                         /* +4, +0x12 */
+            put(0x025460u + 0x1Eu * i + 6u,
+                (uint16_t)((uint32_t)(uint16_t)ship->gun_count * 14u), 1); /* mulu.w */
+    }
+    save_nothing();
+    put(0x025504u, (uint16_t)((uint32_t)(uint16_t)(int16_t)(int8_t)wof_g.target_count_f * 14u), 1);
+    put(0x025500u, (uint16_t)(wof_g.soldier_count << 3), 1);
+    put(0x0254FCu, (uint16_t)((uint16_t)(int16_t)(int8_t)wof_g.target_count_3 << 4), 1);
+    put(0x0254F8u, (uint16_t)((uint16_t)(int16_t)(int8_t)wof_g.target_count_4 << 4), 1);
+}
+
+/* orig 0x015E8A save_game_write - the file opened new (0x3EE), the walker with the write
+ * callback, the file closed; 1.  The original returns 0 without writing when the file
+ * cannot be opened, and its caller ignores the result; the port's file system refuses a
+ * file only when its overlay is full.  The file's handle, save_handle (0x026C60), is the
+ * file system's own in the port. */
+int16_t wof_save_game_write(const char *name)
+{
+    uint32_t mark = wof_arena_mark();
+    int      done = 0;
+
+    save_data = (uint8_t *)wof_scratch_alloc(WOF_SAVE_MAX);
+    save_at   = 0;
+    if (save_data) {
+        save_walk(save_put);
+        done = wof_fs_write(name, save_data, save_at <= WOF_SAVE_MAX ? save_at : WOF_SAVE_MAX);
+    }
+    wof_arena_release(mark);
+    save_data = 0;
+    return (int16_t)(done ? 1 : 0);
 }
 
 /* ------------------------------------------------------------------ the line editor */
@@ -469,10 +564,11 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
         if (!mode) {
             wof_gfx_text(v, wof_tbl_dialog_loading, str_len(wof_tbl_dialog_loading));
             CO_CALL(c, &wof_f.co_music, wof_music_stop());   /* 0x019146 */
-            /* M7 STAND-IN: the loader.  What the original does when the load fails is what
-             * re/notes/frontend.md observed, and what the port does until M7 ports it: the
-             * dialog comes back as a cancel and the rank selection rebuilds its picture. */
-            WOF_STANDIN("M7 STAND-IN: 0x019152, save_game_read: a saved game loaded");
+            /* M7 PART 2 STAND-IN: the loader.  What the original does when the load fails
+             * is what re/notes/frontend.md observed, and what the port does until M7 part 2
+             * ports it: the dialog comes back as a cancel and the rank selection rebuilds
+             * its picture. */
+            WOF_STANDIN("M7 PART 2 STAND-IN: 0x019152, save_game_read: a saved game loaded");
             CO_CALL(c, &wof_f.co_fade, wof_fade_out());
             CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
             wof_f.dialog_result = 0xFFFF;
@@ -481,9 +577,7 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
         }
 
         wof_gfx_text(v, wof_tbl_dialog_saving, str_len(wof_tbl_dialog_saving));
-        /* M7 STAND-IN: what a saved game holds.  The file is written so that the dialog,
-         * the list and the rename below are the real thing; its contents are not. */
-        wof_fs_write(wof_f.dialog_path, (const uint8_t *)wof_f.hiscore, 16);
+        wof_save_game_write(wof_f.dialog_path);                 /* 0x019174 */
 
         /* A save over a slot whose name was edited renames: the file the name came from is
          * deleted (re/notes/frontend.md). */

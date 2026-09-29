@@ -518,6 +518,9 @@ int  wof_global_byte(uint32_t orig_address, uint8_t *out);   /* a registered glo
 int  wof_original_store8(uint32_t orig_address, uint8_t value);     /* a byte to a registered
                                                                        global or fixed table */
 void wof_original_store16(uint32_t orig_address, uint16_t value);   /* a word, big-endian */
+int  wof_original_load8(uint32_t orig_address, uint8_t *out);       /* the byte the original's
+                                                                       memory would hold there */
+int  wof_pool_load8(uint32_t pointer, uint32_t off, uint8_t *out);  /* a byte of an allocation */
 
 /* ------------------------------------------------------------- the marked stand-ins (M4)
  *
@@ -912,6 +915,11 @@ void     wof_front_init(void);
 uint16_t wof_number(char *dst, int32_t value);               /* the sprintf("%d") in use */
 void     wof_view_set_picture(uint8_t view);                 /* orig 0x016A98 */
 wof_co_t wof_load_save_dialog(uint16_t mode);                /* orig 0x018B96 */
+int16_t  wof_save_game_write(const char *name);               /* orig 0x015E8A */
+/* The largest saved game the port's capacities allow (src/mission.def): the raw part
+ * (0x84A), map_length, the record list, four ships' gun lists, the pillboxes, the soldiers
+ * and the two target tables (re/notes/campaign.md). */
+#define WOF_SAVE_MAX (0x84Au + 2u + 3576u * 2u + 4u * 16u * 14u + 32u * 14u + 160u * 8u + 2u * 16u * 16u)
 wof_co_t wof_high_score_screen(void);                        /* orig 0x019856 */
 void     wof_load_picture_black(const char *name, uint16_t *palette_out);  /* orig 0x017422 */
 void     wof_load_picture_black_into(uint8_t vport, const char *name, uint16_t *palette_out);
@@ -1144,11 +1152,13 @@ void     wof_crash_hit(uint32_t at);             /* orig 0x0146C6 */
 #ifdef WOF_TRACE
 void     wof_test_poke(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_pokes_clear(void);
-void     wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t reset);
+void     wof_test_poke_address(uint32_t addr, uint32_t size, uint32_t value, uint32_t point);
 const wof_state_t *wof_trace_mission_state(void);
 void     wof_test_poke_after_rank(void);          /* a run's pokes at the rank selection's end */
 void     wof_test_poke_reset(uint32_t offset, uint32_t size, uint32_t value);
 void     wof_test_poke_after_reset(void);         /* and after the mission's reset (0x0100D6) */
+void     wof_test_poke_map(uint32_t offset, uint32_t size, uint32_t value);
+void     wof_test_poke_after_map(void);           /* and after a campaign's first map_load (0x0100AE) */
 void     wof_test_map_addresses(const uint32_t *list, uint32_t n);   /* the machine's, per map load */
 uint32_t wof_env_map_address(void);
 int32_t  wof_test_player_call(uint32_t orig, int32_t a);   /* src/player.c, the oracle tests */
@@ -1173,6 +1183,7 @@ void     wof_test_step_s(uint32_t mission);
 #define wof_test_tick_end(tick) ((void)0)
 #define wof_test_poke_after_rank() ((void)0)
 #define wof_test_poke_after_reset() ((void)0)
+#define wof_test_poke_after_map() ((void)0)
 #define wof_env_map_address() WOF_MAP_LIST_ADDRESS
 #define wof_trace_mission() ((void)0)
 #endif

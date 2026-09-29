@@ -30,7 +30,7 @@ import test_world                  # noqa: E402
 
 SCRIPTS = list(m6_scripts.SCRIPTS)
 SLOW = set(m6_scripts.SLOW)
-LATER = ('M7 STAND-IN', 'M8 STAND-IN')
+LATER = ('M7 STAND-IN', 'M7 PART 2 STAND-IN', 'M8 STAND-IN')
 
 
 def later(marker):

@@ -147,7 +147,7 @@ void wof_ticker_clear(void)
 void wof_demo_end(void)
 {
     if (wof_g.demo_mode == 2)
-        WOF_STANDIN("M7 STAND-IN: 0x018536, saving a recorded demo");
+        WOF_STANDIN("M7 PART 2 STAND-IN: 0x018536, saving a recorded demo");
     wof_g.demo_mode = 0;
 }
 
@@ -371,13 +371,16 @@ void wof_campaign_reset(void)
     wof_mission_reset_tables();
 }
 
-/* orig 0x0111FC choose_night - the map number of the next mission; above 6 four draws of
- * rand_beam, of which the last one's top bit decides.  main calls it only between two
- * missions of a campaign, so the first mission is day whatever the map. */
+/* orig 0x0111FC choose_night - the map number of the next mission, mission_map_table
+ * (0x02345F) by rank_played x 4 + mission_number, read by address as the original indexes
+ * it (a word index, signed); above 6 four draws of rand_beam, of which the last one's top
+ * bit decides.  main calls it only between two missions of a campaign, after mission_won
+ * has counted on, so the first mission is day whatever the map (re/notes/campaign.md). */
 void wof_choose_night(void)
 {
-    uint8_t  map = wof_tbl_mission_map_table[(uint16_t)(wof_g.rank_played * 4u + wof_g.mission_number) % 29u];
-    uint16_t d0  = 0;
+    uint16_t index = (uint16_t)((uint16_t)(wof_g.rank_played << 2) + wof_g.mission_number);
+    uint8_t  map   = wof_image8(0x02345Fu + (uint32_t)(int32_t)(int16_t)index);
+    uint16_t d0    = 0;
 
     if ((int8_t)map > 6) {
         wof_rand_beam(0x0111FC);
@@ -582,7 +585,7 @@ static void map_scan(void)
             wof_g.island_count++;
             if (wof_g.g_025600) {
                 wof_g.g_025600 = 0;
-                wof_g.briefing_number_1++;
+                wof_g.briefing_islands++;
                 wof_g.islands_left++;
             }
             break;
@@ -591,7 +594,7 @@ static void map_scan(void)
                 wof_ship_t *s = &wof_m.ship_records[SHIP_BATTLESHIP];
 
                 wof_g.has_battleship = 0xFF;
-                wof_g.briefing_number_2++;
+                wof_g.briefing_ships++;
                 wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 0x0E;
@@ -608,7 +611,7 @@ static void map_scan(void)
                 wof_ship_t *s = &wof_m.ship_records[SHIP_JAPCARRIER];
 
                 wof_g.has_japcarrier = 0xFF;
-                wof_g.briefing_number_2++;
+                wof_g.briefing_ships++;
                 wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 0x0F;
@@ -626,7 +629,7 @@ static void map_scan(void)
                 wof_ship_t *s = &wof_m.ship_records[SHIP_DESTROYER];
 
                 wof_g.has_destroyer = 0xFF;
-                wof_g.briefing_number_2++;
+                wof_g.briefing_ships++;
                 wof_g.ships_left++;
                 s->present = -1;
                 s->gun_count = 8;
@@ -644,7 +647,7 @@ static void map_scan(void)
                 wof_ship_t *s = &wof_m.ship_records[SHIP_CRUISESHIP];
 
                 wof_g.has_cruiseship = 0xFF;
-                wof_g.briefing_number_2++;
+                wof_g.briefing_ships++;
                 wof_g.ships_left++;
                 s->present = -1;
                 s->w0e = 0x1C;
@@ -780,10 +783,10 @@ void wof_map_load(void)
     airfields_clear();
     wof_g.quit_flag = 0;                      /* clr.w */
     wof_g.g_0253c3 = 0;
-    wof_g.briefing_number_2 = 0;
+    wof_g.briefing_ships = 0;
     wof_g.ships_left = 0;
     wof_g.island_count = 0;
-    wof_g.briefing_number_1 = 0;
+    wof_g.briefing_islands = 0;
     wof_g.islands_left = 0;
 
     for (uint16_t r = 0; r < wof_g.rank_played && r < 7; r++)
