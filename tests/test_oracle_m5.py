@@ -253,7 +253,9 @@ def test_a_soldier_out_matches_the_original(targets):
 
 def test_a_dug_out_refilled_matches_the_original(targets):
     """0x014FEE with 0x015034: the nearest barracks of the island with two soldiers or
-    more gives one up, which runs to the dug-out."""
+    more gives one up, which runs to the dug-out; D1, which it does not save, is left the
+    direction as a long, or as it came when no barracks gave one, and its upper word goes
+    on through the pass (M7's finding at one VBlank a pass)."""
     d = targets
     rng = random.Random(0x14FE)
     ran = 0
@@ -263,10 +265,11 @@ def test_a_dug_out_refilled_matches_the_original(targets):
         if count == 0:
             continue
         index = rng.randrange(0, 12)
+        d1 = rng.randrange(1 << 32)
         d.load_port()
-        d.o.call(0x014FEE, regs={'a0': d.t3 + 0x10 * index})
-        d.port(0x014FEE, index)
-        check(d, 'case %d' % n)
+        d.o.call(0x014FEE, regs={'a0': d.t3 + 0x10 * index, 'd1': d1})
+        got, _ = d.port(0x014FEE, index, d1 >> 16)
+        check(d, 'case %d' % n, d.o.reg('d1') >> 16, got & 0xFFFF)
         ran += 1
     assert ran > 300
 
@@ -317,7 +320,8 @@ def test_a_targets_frame_and_fire_match_the_original(targets):
     """target_frame (0x014D50) and target_fire (0x014F5C) with the aircraft on the deck, in
     the eighth-scale view and at full scale near and far, low and high, with the cheat's
     0x026F72 and without; target_fire gets the registers targets_3_draw leaves: D2 with
-    rand_beam's upper word, D1 with 0."""
+    rand_beam's upper word, D1 with 0 (another upper word, after a refill or a pillbox's
+    smoke in the same pass, is tests/test_oracle_m7.py's)."""
     d = targets
     rng = random.Random(0x14F5)
     o = d.o

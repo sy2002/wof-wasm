@@ -135,9 +135,13 @@ def test_the_ships_guns_match_the_original(ships):
     rng = random.Random(0x14C3E)
     for n in range(1500):
         d.randomise_ships(rng)
+        # D1's upper word as the targets' layers hand it on: 0 mostly, the direction a
+        # dug-out's refill leaves, a pillbox smoke's 0x11 (M7's finding).
+        high = rng.choice([0, 0, 0, 0xFFFF, 0x11, rng.randrange(0x10000)])
         d.load_port()
-        d.o.call(SHIP_GUNS_DRAW, regs={'d1': 0, 'd2': 0, 'd7': 0})
-        d.m6(SHIP_GUNS_DRAW)
+        d.o.call(SHIP_GUNS_DRAW, regs={'d1': (high << 16) | rng.randrange(0x10000), 'd2': 0,
+                                       'd7': 0})
+        d.m6(SHIP_GUNS_DRAW, high)
         check(d, 'case %d' % n)
 
 

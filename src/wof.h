@@ -1105,8 +1105,8 @@ uint16_t wof_table_entry(int table, int16_t index);
 
 void     wof_soldier_out(const wof_gtarget_t *t, uint8_t d0, int16_t d1);   /* orig 0x011E82 */
 void     wof_island_flag(int table, int16_t d4);            /* orig 0x013B52 */
-void     wof_targets_3_draw(int table);                    /* orig 0x013D78 */
-void     wof_targets_f_draw(int table);                    /* orig 0x013DE8 */
+uint16_t wof_targets_3_draw(int table, uint16_t d1_high); /* orig 0x013D78 */
+uint16_t wof_targets_f_draw(int table, uint16_t d1_high); /* orig 0x013DE8 */
 void     wof_soldiers_draw(void);                          /* orig 0x013EEE */
 int      wof_target_records(int16_t x, uint16_t out[4]);   /* orig 0x014AE4 */
 void    *wof_target_of(int16_t x);                         /* orig 0x014B54 */
@@ -1114,7 +1114,7 @@ int16_t  wof_target_frame(int16_t x);                      /* orig 0x014D50 */
 int16_t  wof_target_range_frame(int16_t d0, int16_t d1, int16_t d2);   /* orig 0x014DB8 */
 void     wof_burnt_barracks(int16_t d4);                   /* orig 0x014E18 */
 void     wof_target_fire(int16_t x, uint16_t d1_high, uint16_t d2_high);                       /* orig 0x014F5C */
-void     wof_target_refill(wof_gtarget_t *a0);             /* orig 0x014FEE */
+uint16_t wof_target_refill(wof_gtarget_t *a0, uint16_t d1_high);   /* orig 0x014FEE */
 void     wof_ticker_format(uint32_t format, uint32_t value, uint16_t at);   /* orig 0x015078 */
 void     wof_ticker_say(uint32_t format, uint32_t value);  /* orig 0x015624 */
 void     wof_ship_sunk_message(const wof_ship_t *s);       /* orig 0x015640 */

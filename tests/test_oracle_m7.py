@@ -27,7 +27,7 @@ from unicorn import UC_HOOK_CODE                     # noqa: E402
 
 import savegame                                       # noqa: E402
 from test_oracle_m4 import w                          # noqa: E402
-from test_oracle_m5 import TickDifferential, check    # noqa: E402
+from test_oracle_m5 import PLAYER, TickDifferential, check  # noqa: E402
 from test_oracle_m6 import Reached, ShipsDifferential  # noqa: E402
 
 MISSION_WON, CHOOSE_NIGHT = 0x015694, 0x0111FC
@@ -119,6 +119,57 @@ def test_choose_night_matches_the_original(tick):
     reached.close()
     assert reached.missing(COLD[CHOOSE_NIGHT]) == [], 'no case reached these regions'
     assert 100 < nights < 1900, nights
+
+
+# ------------------------------------------- D1's upper word through the targets' layers
+
+@pytest.fixture
+def layers(ported):
+    d = ShipsDifferential(ported)
+    yield d
+    d.restore()
+
+
+@pytest.mark.parametrize('address', [0x013D78, 0x013DE8], ids=['targets_3_draw', 'targets_f_draw'])
+def test_the_targets_layers_hand_d1_on_as_the_original(layers, address):
+    """targets_3_draw (0x013D78) and targets_f_draw (0x013DE8) over 1,500 states each, with
+    dug-outs whose refill falls due and destroyed pillboxes whose smoke falls due: neither
+    saves D1, so a refill leaves the direction's upper word there and a pillbox's smoke
+    0x11, and target_fire's smoke at the engine takes it after the exchange.  Found in
+    save_a at one VBlank a pass, where a refill before a dug-out's fire changed the smoke's
+    x; the state and the upper word D1 leaves are compared."""
+    d = layers
+    rng = random.Random(address)
+    refills = smokes = 0
+    for n in range(1500):
+        d.randomise_tick(rng)
+        for i in range(16):                            # dug-outs empty, refills due
+            at = d.t3 + 0x10 * i
+            if rng.random() < 0.3:
+                d.o.write(at + 8, b'\0')
+                w(d.o, at + 0x0E, rng.choice([1, 1, 2]))
+        for i in range(32):                            # pillboxes destroyed, smoke due
+            at = d.tf + 0x0E * i
+            if rng.random() < 0.3:
+                d.o.write(at + 8, b'\xff')
+                w(d.o, at + 0x0A, rng.choice([2, 5, 0x31]))
+                w(d.o, at + 0x0C, rng.choice([1, 1, 3]))
+        w(d.o, PLAYER + 0x0C, rng.choice([0, 0, 0, 1]))     # now and then on the deck
+        if d.o.read(0x025387, 1)[0] == 0:
+            # No barracks: nearest_barracks' dbra would walk 65,536 records, which no map
+            # asks for (every map with dug-outs has barracks), as M5's test of the refill
+            # leaves it out.
+            d.o.write(0x025387, bytes([rng.randrange(1, 17)]))
+        high = rng.choice([0, 0, 0xFFFF, 0x11, rng.randrange(0x10000)])
+        d.load_port()
+        d.o.call(address, regs={'d1': (high << 16) | rng.randrange(0x10000),
+                                'd7': d.o.r32(0x026F54)})
+        got, _ = d.port(address, 0, high)
+        want = d.o.reg('d1') >> 16
+        check(d, '%06X, case %d' % (address, n), want, got & 0xFFFF)
+        refills += want != high and address == 0x013D78
+        smokes += want == 0x11 and high != 0x11
+    assert refills > 50 or smokes > 50, (refills, smokes)
 
 
 # ------------------------------------------------------------------ the saved game's walker

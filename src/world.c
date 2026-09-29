@@ -459,13 +459,12 @@ static void ship_gun_shell(int16_t x)
  * then it may hit the aircraft (0x014F5C).  A destroyed gun smokes while +0x0A runs, a puff
  * every 0x32 - +0x0A passes as +0x0A counts down, at its x and, as a 16.16 long, the ship's
  * deck less its row with D1's old upper word plus 0x0D as the fraction (the swap comes
- * before the add); smoke_claim raises a height below 16 to 16.  D1's upper word is 0 at
- * the entry (observed at every entry over the M6 scripts, re/notes/porting-m6.md) and is
- * what the smoke's long left it after one; target_fire takes it with D2's, which is 0. */
-static void ship_guns_draw(int table)
+ * before the add); smoke_claim raises a height below 16 to 16.  D1's upper word comes in
+ * from targets_f_draw (0 in every M6 script, re/notes/porting-m6.md; a dug-out refilled or
+ * a pillbox's smoke earlier in the pass leaves another) and is what the smoke's long left
+ * it after one; target_fire takes it with D2's, which is 0. */
+static void ship_guns_draw(int table, uint16_t d1_high)
 {
-    uint16_t d1_high = 0;
-
     if (wof_m.player[0].on_deck != 0)
         return;
     for (int i = 0;; i++) {
@@ -987,9 +986,9 @@ layers:
     lift_aircraft();
     wof_draw_player();
     wof_draw_enemy_aircraft();
-    wof_targets_3_draw(table);
-    wof_targets_f_draw(table);
-    ship_guns_draw(table);
+    /* D1's upper word through the three layers that hand it on; it comes to the first as
+     * draw_enemy_aircraft leaves it, 0 at every entry observed (re/notes/porting-m5.md). */
+    ship_guns_draw(table, wof_targets_f_draw(table, wof_targets_3_draw(table, 0)));
     airfields_draw();
     ship_planes(wof_g.g_026e56);
     islands(ocean());
@@ -1156,7 +1155,7 @@ int32_t wof_test_m6_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t
     (void)b; (void)c; (void)out;
     switch (orig) {
     case 0x014EFC: ship_gun_shell((int16_t)a); return 0;
-    case 0x014C3E: ship_guns_draw(wof_g.view_step == 1 ? T_ATH : T_MASTER); return 0;
+    case 0x014C3E: ship_guns_draw(wof_g.view_step == 1 ? T_ATH : T_MASTER, (uint16_t)a); return 0;
     case 0x01B682: wof_guns(); return 0;
     case 0x01BC02: return wof_test_player_call(orig, 0);
     case 0x011622: case 0x011510: case 0x011CAE:

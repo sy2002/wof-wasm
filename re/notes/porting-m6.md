@@ -202,13 +202,16 @@ The fall on land, the burning and the wreck's word are reached with the poke of
   `(deck - row) << 16 | (D1's upper word + 0x0D)`: the swap comes before the add, so the
   deck is the whole part and the old upper word the fraction; after the claim D1's upper word
   is the deck less the row, or `0x10` when `smoke_claim` raised a lower height. D1's upper
-  word is 0 at every entry of the routine (observed: 1,805 entries in `rockets_f`, and
+  word is 0 at every entry of the routine in the ship scripts (observed: 1,805 entries in
+  `rockets_f`, and
   `tests/test_enemy.py::test_the_ship_guns_find_d1_and_d2_clear_at_their_entry` over four
-  ship scripts), and D2's too.
+  ship scripts), and D2's too; it is what the targets' walks before it left, which a
+  dug-out refilled or a pillbox's smoke in the same pass changes (`re/notes/porting-m5.md`,
+  "Registers that cross a call"), and the port takes it from `wof_targets_f_draw`.
 - **`target_fire`'s exchange.** When the distance is no more than the height it exchanges
   the two longs, so the smoke at the engine takes the caller's D1 upper word as its x
-  fraction instead of D2's. From the targets' draws that is 0 and `rand_beam`'s constant
-  (M5); from the ships' guns D1's upper word as above (observed: 18 of `rockets_f`'s entries
+  fraction instead of D2's. From the targets' draws that is D1's upper word as the walks
+  before left it (0 but after a refill or a pillbox's smoke, M5) and `rand_beam`'s constant; from the ships' guns D1's upper word as above (observed: 18 of `rockets_f`'s entries
   from `ship_guns_draw` came with `0x1C`, after a destroyed gun's smoke) and 0. The port
   hands both upper words to `wof_target_fire`.
 - **D7 into `ship_guns_draw`** is `draw_world`'s table, `MasterList` or `AthList`, which the

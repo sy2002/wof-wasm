@@ -125,8 +125,10 @@ void wof_island_flag(int table, int16_t d4)
 /* orig 0x013D78 - the slot-3 targets: one that holds no soldier (+8 clear) counts +0x0E
  * down and at its end, 200 passes on, takes one from the nearest barracks (0x014FEE); one
  * whose +0x0C runs counts it down and shows nothing meanwhile; the others show the frame
- * 0x014D50 gives them at their world x and height 0x14, and may hit the aircraft. */
-void wof_targets_3_draw(int table)
+ * 0x014D50 gives them at their world x and height 0x14, and may hit the aircraft.  D1 is
+ * not saved: its upper word comes in as d1_high, a refill leaves the direction there, and
+ * target_fire takes it with D2's; what it is at the end goes on to targets_f_draw. */
+uint16_t wof_targets_3_draw(int table, uint16_t d1_high)
 {
     for (uint16_t i = 0; i < wof_g.target_count_3 && i < 16; i++) {
         wof_gtarget_t *t = &wof_m.target_records_3[i];
@@ -136,7 +138,7 @@ void wof_targets_3_draw(int table)
             if (--t->w0e > 0)
                 continue;
             t->w0e = 0xC8;
-            wof_target_refill(t);
+            d1_high = wof_target_refill(t, d1_high);
             continue;
         }
         if (t->w0c != 0) {
@@ -148,17 +150,19 @@ void wof_targets_3_draw(int table)
         if (frame < 0)
             continue;
         wof_draw_world_shape(table, frame, x, 0x14);
-        /* D2 comes to target_fire with rand_beam's upper word (the exg of 0x013DB4) and
-         * D1's upper word is 0 (observed at every entry, re/notes/porting-m5.md). */
-        wof_target_fire(x, 0, (uint16_t)(wof_rand_upper() >> 16));
+        /* D2 comes to target_fire with rand_beam's upper word (the exg of 0x013DC8). */
+        wof_target_fire(x, d1_high, (uint16_t)(wof_rand_upper() >> 16));
     }
+    return d1_high;
 }
 
 /* orig 0x013DE8 - the pillboxes: a destroyed one (+8 set) whose +0x0A has not run out
  * smokes, a puff every 0x32 - +0x0A passes as +0x0A counts down, at its x + 8 and y 0x11 in
  * 16.16 (the moveq #$32 before it leaves D0's upper word 0, so the fraction is 0); a
- * standing one shows its frame at height 0x16 and may hit the aircraft. */
-void wof_targets_f_draw(int table)
+ * standing one shows its frame at height 0x16 and may hit the aircraft.  D1 goes through
+ * as in targets_3_draw: the smoke's y, a long, leaves 0x11 in its upper word, and what it
+ * is at the end goes on to ship_guns_draw. */
+uint16_t wof_targets_f_draw(int table, uint16_t d1_high)
 {
     for (uint16_t i = 0; i < wof_g.target_count_f && i < 32; i++) {
         wof_gtarget_f_t *t = &wof_m.target_records_f[i];
@@ -174,14 +178,16 @@ void wof_targets_f_draw(int table)
                 continue;
             t->w0c = (int16_t)(0x32 - t->w0a);
             wof_smoke_claim((int32_t)((uint32_t)(uint16_t)(x + 8) << 16), 0x110000, 5);
+            d1_high = 0x11;                           /* move.l #$110000,d1 */
             continue;
         }
         frame = wof_target_frame(x);
         if (frame < 0)
             continue;
         wof_draw_world_shape(table, frame, x, 0x16);
-        wof_target_fire(x, 0, (uint16_t)(wof_rand_upper() >> 16));
+        wof_target_fire(x, d1_high, (uint16_t)(wof_rand_upper() >> 16));
     }
+    return d1_high;
 }
 
 /* ------------------------------------------------------------ 0x013EEE, the soldiers */
@@ -674,8 +680,10 @@ void wof_target_fire(int16_t x, uint16_t d1_high, uint16_t d2_high)
 
 /* orig 0x014FEE - an empty dug-out A0 takes a soldier: the barracks of the same island that
  * holds two or more and lies nearest (0x015034) loses one, which runs from it towards the
- * dug-out (0x011E82 with D0 1); with none, nothing. */
-void wof_target_refill(wof_gtarget_t *a0)
+ * dug-out (0x011E82 with D0 1); with none, nothing.  It leaves D1 the direction as a long,
+ * +1 or -1, which the pass's later routines hand on (targets_3_draw): its upper word comes
+ * back, or the one it was given when no barracks gave a soldier. */
+uint16_t wof_target_refill(wof_gtarget_t *a0, uint16_t d1_high)
 {
     wof_gtarget_t *a2 = 0;
     uint32_t       d2 = 0x2710;
@@ -706,12 +714,13 @@ void wof_target_refill(wof_gtarget_t *a0)
         a2 = a1;
     }
     if (d2 == 0x2710 || !a2)
-        return;
+        return d1_high;
     {
         int16_t d1 = (int16_t)(a2->x0 - a0->x0) < 0 ? 1 : -1;
 
         a2->state--;
         wof_soldier_out(a2, 1, d1);
+        return d1 < 0 ? 0xFFFFu : 0;           /* moveq #1 and neg.l: D1 is left a long */
     }
 }
 
@@ -876,7 +885,9 @@ int32_t wof_test_m5_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int32_t
         wof_soldier_out(t, (uint8_t)b, (int16_t)c);
         return 0;
     }
-    case 0x014FEE: wof_target_refill(&wof_m.target_records_3[a & 0xFF]); return 0;
+    case 0x014FEE: return wof_target_refill(&wof_m.target_records_3[a & 0xFF], (uint16_t)b);
+    case 0x013D78: return wof_targets_3_draw(a ? T_ATH : T_MASTER, (uint16_t)b);
+    case 0x013DE8: return wof_targets_f_draw(a ? T_ATH : T_MASTER, (uint16_t)b);
     case 0x015460: return (int32_t)wof_smoke_claim(a, b, (int16_t)c);
     case 0x0152B0: wof_splash_spawn((int16_t)a); return 0;
     case 0x0154E0: wof_smoke_at_player((int16_t)a, (uint16_t)b); return 0;

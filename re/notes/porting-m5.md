@@ -300,6 +300,17 @@ what the state records:
   farther than the aircraft is high, else 0 (the upper words of D0 and D1 at the targets'
   routines were 0 at every entry over `rockets_c` and `guns_a`, observed with observers on
   the entries). The port passes it as an argument.
+- D1's upper word does not stay 0 through the targets' walks: neither `target_refill`
+  (`0x014FEE`) nor the walks save D1. A dug-out refilled from a barracks leaves D1 the
+  soldier's direction as a long (`moveq #1`, then `neg.l` towards the west: `0xFFFF` in the
+  upper word, else 0), and a pillbox's smoke leaves `0x110000`, its y. The next
+  `target_fire` of the pass, in `targets_3_draw`, `targets_f_draw` or `ship_guns_draw`,
+  takes that upper word, and when the distance is no more than the height its exchange hands
+  it to the smoke at the engine as the fraction of its x (observed: `save_a` at one VBlank a
+  pass on entropy seed 1, pass 1,851, the smoke's x `0x314F83F2` in the original). A refill
+  that finds no barracks leaves D1 as it came. The port hands the upper word from walk to
+  walk (`wof_targets_3_draw` and `wof_targets_f_draw` return it, `src/targets.c`), from 0
+  at the first, as `draw_enemy_aircraft` leaves it at every entry observed.
 - A pillbox's smoke (`0x013E24`) takes D0's upper word as the fraction of its x; the
   `moveq #$32` before it makes that 0.
 - A burnt barracks in view (`0x014E18`) searches `target_records_4` for its record with a
