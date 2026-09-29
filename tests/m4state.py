@@ -83,7 +83,10 @@ SOUND_POINTERS = {0x026E3E: 0, 0x026EA8: 1, 0x026EAC: 2, 0x026EB4: 3, 0x026E96: 
 # Every sample the eight pointers have pointed at, by its first byte: a slot keeps a
 # pointer to the engine's sample after the load and save dialog has let the sample go and
 # before sounds_load builds the slots again (re/notes/sound.md), and the headless original's
-# allocator never hands that memory out again, so the pointer still names the sample.
+# allocator never hands that memory out again, so the pointer still names the sample.  It
+# names it within one run: tests/m4compare.py's Replay empties this for every run, because
+# another recording's samples lie elsewhere and one of theirs below a freed sample of this
+# run would be taken for it (M7, save_a at one VBlank a pass after other runs).
 SEEN_SAMPLES = {}
 
 

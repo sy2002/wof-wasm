@@ -7,8 +7,8 @@ program's start with nothing handed over but the entropy and the map list's addr
 after every tick and every pass it agrees with the original and reaches no stand-in, through
 the mission won, the fade, the next map, its briefing, its setup and its first ticks, the
 promotions and the rank's cap, the next campaign after a game lost at night, and the save in
-the hold.  The open loop (T1) holds every step alone, and the chain of ships_j holds at one
-and three VBlanks per pass.  Beside them: the saved file of save_a against the original's
+the hold.  The open loop (T1) holds every step alone, and the chain of ships_j and save_a's
+save hold at one and three VBlanks per pass.  Beside them: the saved file of save_a against the original's
 byte for byte but for its pointers, and every address the M7 scripts write accounted for
 (tests/m4complete.py).
 """
@@ -103,14 +103,18 @@ def test_every_tick_and_pass_agrees_in_the_closed_loop(ported, name):
 
 @pytest.mark.slow
 @pytest.mark.parametrize('rate', [1, 3])
-@pytest.mark.parametrize('name', ['ships_j'])
+@pytest.mark.parametrize('name', ['ships_j', 'save_a'])
 def test_the_closed_loop_holds_at_other_pass_rates(ported, name, rate):
     """The chain of ships_j at one and three VBlanks per pass against the original run at the
     same rate: every mission won in the hold and the next one set up, through four
-    promotions and the rank's cap, whatever a pass's length."""
+    promotions and the rank's cap, whatever a pass's length; and save_a's bombs, landing and
+    save, where at one VBlank a pass a dug-out's refill falls between two of the targets'
+    fire and hands D1's upper word on to the smoke at the engine, and the channel playing
+    the engine's sample the save dialog let go is attributed by this run's samples alone."""
     machine, replay, passes, found, standins, stopped = closed_loop(ported, name, rate)
     assert_closed(machine, replay, passes, found, standins, stopped)
-    assert machine.missions >= 7 and replay.missions == machine.missions, (
+    want = 7 if name == 'ships_j' else 1
+    assert machine.missions >= want and replay.missions == machine.missions, (
         machine.missions, replay.missions)
 
 

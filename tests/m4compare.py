@@ -187,7 +187,11 @@ class Replay:
         self.layout = m4state.Layout(ported)
         # The song data of every load of this run, by where it lay: a channel's LC keeps
         # pointing there after music_stop has let it go (tests/m4state.py, song_handle).
+        # The samples this run's pointers name are this run's alone as well: another
+        # recording in the same process laid its samples out elsewhere, and a start of its
+        # below a freed sample of this one would name the wrong file (sound_handle).
         m4state.SEEN_SONGS.clear()
+        m4state.SEEN_SAMPLES.clear()
         for name, hunks in getattr(machine, 'loaded_history', ()):
             if name == 'wofsongs' and len(hunks) > 1:
                 m4state.SEEN_SONGS.add(hunks[1])

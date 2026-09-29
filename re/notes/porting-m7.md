@@ -180,17 +180,45 @@ What the scripts do not reach, after a real attempt:
   back view's.
 - **The briefing's two numbers** are named by what they count, `briefing_islands`
   (`0x025382`) and `briefing_ships` (`0x025370`).
+- **D1's upper word through the targets' walks** (`src/targets.c`, `src/world.c`):
+  `save_a` at one VBlank a pass on entropy seed 1 refills a dug-out at pass 1,851 and a
+  slot-3 target after it fires at the aircraft with D1's upper word `0xFFFF`, which the
+  smoke at the engine takes as its x's fraction (`smoke_records[3].x` `0x314F83F2` in the
+  original, `0x315083F1` in the port while it assumed 0). `wof_target_refill`,
+  `wof_targets_3_draw` and `wof_targets_f_draw` now hand the upper word on to
+  `ship_guns_draw` as the original's D1 does (`re/notes/porting-m5.md`, "Registers that
+  cross a call"); the oracle holds the refill's D1 and both walks' over 1,500 states each.
+
+## Paula's channel 0 after the save
+
+The save dialog frees the engine's sample and loads it again elsewhere (`sound_engine_free`
+and `sound_engine_load`), and channel 0 plays on through the freed block until its next
+start. The comparison names a pointer into a freed block by the nearest sample start below
+it that the run has seen (`tests/m4state.py`, `sound_handle` and `SEEN_SAMPLES`). That cache
+was the process's, not the run's: after other recordings in the same process, `save_a` at
+one VBlank a pass on seed 7 found at pass 4,221 (tick 1,061) channel 0's pointer `0x258A09`
+in the freed engine block that starts at `0x2580CC`, with a start of `metal.clang.1` at
+`0x2589CC` left over from another run between them. The original's pointer was named
+`0x0600003D` (`metal.clang.1` at `0x3D`), the port's `0x0800093D` (the engine at `0x93D`);
+the start events agreed, because the headless original names those by its own allocation
+table. The difference came from the comparison, not the port, and from the order of the
+runs, not the rate: whether a stale start lies between the freed block's start and the
+channel's pointer depends on which recordings ran before in the process and where they laid
+their samples (observed: seed 7 at one VBlank a pass agreed when run alone, and failed after
+`ships_j` at one and three, `save_a` at two and `night_again` at three). Every `Replay` now
+empties the cache, and the pointer is named `0x0800093D` on both sides, as at pass 4,222
+(`0x258A61`, `0x08000995`).
 
 ## How the port is held to the original
 
 | Check | Test | What it covers |
 |---|---|---|
 | T2 | `tests/test_campaign.py::test_every_tick_and_pass_agrees_in_the_closed_loop[...]` | every M7 script in the closed loop, from the program's start with nothing handed over but the entropy and the map list's addresses: after every tick and every pass the registered state, the drawing calls, the entropy with its callers, the view, the palette of every row, the markers, the map draws, the sound events and Paula agree, and no stand-in is reached, through the win, the fade, the briefing, the next mission's setup and its first ticks to the script's end, and through the save in the hold and the flight after it (the three built on `island_a` with `--slow`) |
-| T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[ships_j-1, ships_j-3]` (slow) | the chain of eight missions at one and three VBlanks per pass against the original run at the same rate; `island_a`'s flight wins only at two (observed: at three it does not win) |
+| T2 at 1 and 3 | `test_the_closed_loop_holds_at_other_pass_rates[ships_j-1, ships_j-3, save_a-1, save_a-3]` (slow) | the chain of eight missions, and `save_a`'s bombs, landing, save and flight, at one and three VBlanks per pass against the original run at the same rate; `island_a`'s flight wins only at two (observed: at three it does not win) |
 | T1, attributed | `test_every_pass_agrees_and_every_other_difference_is_owed[...]` | the open loop over every M7 script: a step that differs must have reached a stand-in of M7 part 2 or of M8 in that same step (none differs, none is reached) |
 | file | `test_the_saved_file_is_the_originals_but_for_its_pointers[save_a]` | `save_a`'s `wof.save` against the file the headless original wrote in the same run, byte for byte, with the differing bytes listed by field and reason: the four pointer fields of `re/notes/campaign.md` and nothing else |
 | T3 | `test_every_address_the_m7_scripts_write_is_compared_or_excluded` | the completeness list over the M7 scripts, below |
-| V6 | `tests/test_oracle_m7.py` | `mission_won` over 2,000 states (every rank with the ranks past the table, the next mission, the promotion, the cap, the message over what `ticker_text` holds); `choose_night` over 2,000 (day, the four draws, the index past the table, the entropy consumed); the walker with the write callback over 600 states of random counts, lengths and ships against the original's own writes captured at `dos.Write` under the oracle, with its side effects; `save_game_write` when the file cannot be opened (`0x015EBE`); touched memory compared, and the cases reach every region the scripts do not |
+| V6 | `tests/test_oracle_m7.py` | `mission_won` over 2,000 states (every rank with the ranks past the table, the next mission, the promotion, the cap, the message over what `ticker_text` holds); `choose_night` over 2,000 (day, the four draws, the index past the table, the entropy consumed); the walker with the write callback over 600 states of random counts, lengths and ships against the original's own writes captured at `dos.Write` under the oracle, with its side effects; `save_game_write` when the file cannot be opened (`0x015EBE`); `targets_3_draw` and `targets_f_draw` over 1,500 states each with dug-outs refilled and pillboxes smoking, D1's upper word in and out; touched memory compared, and the cases reach every region the scripts do not |
 | decode | `test_the_disks_saved_game_is_map_c_as_the_first_ranks_last_mission` | the disk's `wof.mission 3` decoded by the walker's layout: map c, rank 0, mission 3, every table's count, 6,866 bytes exactly |
 | T2, M5 | `tests/test_weapons.py::...[island_a]` (slow) | `island_a` in the closed loop now runs through its win into map b to the recording's end |
 

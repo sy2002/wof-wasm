@@ -435,6 +435,7 @@ class MusicDifferential(SoundDifferential):
         self.pristine = (o.read(self.data, self.player[1][2]), o.read(self.sdata, self.songs[1][2]))
         self.decoded = song_decode.Songs(self.songs_raw)
         m4state.SEEN_SONGS.clear()
+        m4state.SEEN_SAMPLES.clear()
         lib = ported.lib
         lib.wof_test_songplay_call.argtypes = [ctypes.c_uint32] + [ctypes.c_int32] * 3 + [
             ctypes.POINTER(ctypes.c_int32)]

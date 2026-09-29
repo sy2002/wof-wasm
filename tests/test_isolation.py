@@ -113,3 +113,18 @@ def test_a_replays_pokes_do_not_reach_the_front_end_after_it(ported):
     conftest.fresh_settings()
     ported.reset_core()
     test_front_port.test_the_key_buffer_and_the_latches_end_where_the_original_leaves_them(ported)
+
+
+def test_a_replay_attributes_samples_by_its_own_run_alone(ported):
+    """tests/m4state.py's sound_handle takes a pointer into a freed sample for the nearest
+    sample start below it that the run has seen; another recording in the same process laid
+    its samples out elsewhere, and one of its starts below a freed sample of this run was
+    taken for it (save_a at one VBlank a pass after four other runs: the engine's sample
+    the save dialog let go named as metal.clang.1).  A replay begins with none seen."""
+    import types
+    import m4compare
+    import m4state
+    m4state.SEEN_SAMPLES[0x2589CC] = 5
+    m4state.SEEN_SONGS.add((0xB00128, 0x986C))
+    m4compare.Replay(ported, types.SimpleNamespace(), '/nonexistent')
+    assert m4state.SEEN_SAMPLES == {} and m4state.SEEN_SONGS == set()
