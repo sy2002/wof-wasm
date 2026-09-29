@@ -249,7 +249,7 @@ try {
     report.overlayVisible = await evaluate(
         "!document.getElementById('overlay').classList.contains('off')");
     report.gestureHidden = await evaluate(
-        "document.getElementById('gesture').classList.contains('off')");
+        "document.getElementById('help').classList.contains('off')");
 
     /* ----------------------------------------------------------------- the display box
      *
@@ -350,7 +350,7 @@ try {
     await sleep(1500);
 
     const promptShown = async () => !(await evaluateIn(modifierTab,
-        "document.getElementById('gesture').classList.contains('off')"));
+        "document.getElementById('help').classList.contains('off')"));
 
     await press(modifierTab, KEY_META);
     await sleep(800);

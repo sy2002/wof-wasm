@@ -13,11 +13,15 @@ import { createOverlay } from './overlay.js';
    is a front-end question and belongs to M3. */
 const SEED = 0x57494e47;
 
-/* Keys that produce no character and therefore no user activation. */
-const INERT_KEYS = new Set([
-    'Meta', 'Control', 'Alt', 'AltGraph', 'Shift', 'CapsLock', 'Dead',
+/* Keys that are only ever held with another one: they are no key of their own, so they
+   neither start the sound nor take the help screen away. */
+const MODIFIER_KEYS = new Set([
+    'Meta', 'Control', 'Alt', 'AltGraph', 'Shift', 'CapsLock',
     'NumLock', 'ScrollLock', 'Fn', 'FnLock', 'Hyper', 'Super', 'Symbol', 'SymbolLock',
 ]);
+
+/* Keys that produce no character and therefore no user activation. */
+const INERT_KEYS = new Set([...MODIFIER_KEYS, 'Dead']);
 
 /* The shell's own settings live beside the game's files, under the same wof: prefix
    (SPEC 6.2, Storage).  A browser that refuses storage must not stop the game. */
@@ -83,6 +87,7 @@ function decodeBase64(text) {
 }
 
 function fail(message) {
+    document.getElementById('help').classList.add('off');   /* no key will start anything */
     const hint = document.getElementById('hint');
     hint.textContent = message;
     hint.style.color = '#ff8080';
@@ -95,7 +100,7 @@ async function boot() {
 
     const core = await loadCore(wasm, blob, SEED);
     const video = createVideo(document.getElementById('screen'), core,
-                              document.getElementById('paused'));
+                              document.getElementById('paused'), document.getElementById('help'));
     const input = createInput(window, core);
 
     /* The vertical flip is the owner's, not the game's: hand the remembered value over
@@ -135,7 +140,7 @@ async function boot() {
     const overlay = createOverlay(document.getElementById('overlay'), core, null, audio, input,
                                   video);
     const clock = createClock(core, input, video, audio, (now) => {
-        video.showPaused(core.paused());          /* the pause sign, after the VBlanks */
+        video.showPaused(core.paused() && !helpShown);   /* the pause sign, after the VBlanks */
         overlay.paint(now);
         checkAudioStarted();
         rememberInvert();
@@ -146,7 +151,7 @@ async function boot() {
        overlay is told about the clock, and about the page record, once both exist. */
     overlay.attach(clock, page);
 
-    const gesture = document.getElementById('gesture');
+    const help = document.getElementById('help');
     const hint = document.getElementById('hint');
 
     /* One setting, PAL or NTSC, picks the VBlank rate and the pixel aspect together, the way
@@ -156,13 +161,69 @@ async function boot() {
     }
     setStandard('pal');
 
-    /* The hint bar lies over the bottom of the picture, which now fills the window, so it
-       does not stay: it goes with the gesture prompt once the page has really been
-       activated, and comes back with the diagnostics overlay. */
-    let waitingForAudio = true;
+    /* The hint bar lies over the bottom of the picture, which fills the window, so it is
+       there only with the diagnostics overlay, whose key it names. */
     function showOrHideHint() {
-        hint.classList.toggle('off', !(waitingForAudio || overlay.visible()));
+        hint.classList.toggle('off', !overlay.visible());
     }
+
+    /* The help screen (SPEC 6.2).  It is up when the page opens, in place of a prompt for
+       sound, and goes by that prompt's rule: when the sound is really running, whatever key
+       started it doing what it always does.  After that H brings it back, except in the line
+       editor, where H is a letter; while it is up any key takes it away, and that key is the
+       shell's.  Over a running mission it asks for the pause and ends that pause when it
+       goes; a pause it did not ask for - P, Escape, an absence, fullscreen left - stays, with
+       its sign, when it goes.  Outside a mission the game runs on beneath it. */
+    let waitingForAudio = true;
+    let helpShown = true;
+    let helpPaused = false;
+
+    function openHelp() {
+        helpShown = true;
+        helpPaused = !core.paused();
+        if (helpPaused) {
+            core.requestPause();                 /* dropped outside a mission */
+        }
+        video.showHelp(true);
+    }
+
+    function closeHelp() {
+        helpShown = false;
+        video.showHelp(false);
+        if (helpPaused) {
+            helpPaused = false;
+            core.requestContinue();              /* dropped outside a mission */
+        }
+    }
+
+    /* A pause the page asks for itself is the player's to end, even under the help screen. */
+    function requestPauseFromPage() {
+        helpPaused = false;
+        core.requestPause();
+    }
+
+    /* Ahead of every other key listener of the page, in the capture phase: a key the help
+       screen takes goes no further, neither to the game nor to the shell's other keys.  A
+       key held with Control, Alt or Command is the browser's, and a repeat is not a press. */
+    window.addEventListener('keydown', (event) => {
+        if (waitingForAudio || MODIFIER_KEYS.has(event.key)
+            || event.ctrlKey || event.altKey || event.metaKey) {
+            return;
+        }
+        if (helpShown) {
+            if (!event.repeat) {
+                closeHelp();
+            }
+        } else if (event.code === 'KeyH' && !core.lineEditorActive()) {
+            if (!event.repeat) {
+                openHelp();
+            }
+        } else {
+            return;
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }, true);
 
     /* Audio may only be started from a gesture, and not every event is one.  A modifier on
        its own - the Command of a Cmd+Option+K that opens the console, or a bare Shift - is
@@ -195,15 +256,16 @@ async function boot() {
     window.addEventListener('keydown', onGesture);
     window.addEventListener('pointerdown', onGesture);
 
-    /* The prompt is a statement about the sound, so it goes when the sound is really there,
-       not when some event has been seen.  The listeners go at the same moment. */
+    /* The help screen's line about the sound is a statement about the sound, so the screen
+       goes when the sound is really there, not when some event has been seen.  The
+       listeners go at the same moment, and from then on the screen speaks of the game. */
     function checkAudioStarted() {
         if (!waitingForAudio || !audio.ready()) {
             return;
         }
         waitingForAudio = false;
-        gesture.classList.add('off');
-        showOrHideHint();
+        closeHelp();
+        help.classList.remove('start');
         window.removeEventListener('keydown', onGesture);
         window.removeEventListener('pointerdown', onGesture);
     }
@@ -259,7 +321,7 @@ async function boot() {
             if (hiddenSince >= 0) {
                 page.lastHiddenMs = performance.now() - hiddenSince;
                 if (page.lastHiddenMs >= HIDDEN_PAUSE_MS) {
-                    core.requestPause();     /* a mission comes back paused */
+                    requestPauseFromPage();  /* a mission comes back paused */
                 }
             }
             hiddenSince = -1;
@@ -279,7 +341,7 @@ async function boot() {
     function followFullscreen() {
         const now = inFullscreen();
         if (page.fullscreen && !now) {
-            core.requestPause();
+            requestPauseFromPage();
         }
         page.fullscreen = now;
     }

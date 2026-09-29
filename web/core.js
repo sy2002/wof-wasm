@@ -174,6 +174,17 @@ class Core {
         return this.x.wof_paused() !== 0;
     }
 
+    /* The end of a pause the help screen asked for: a request not yet taken is withdrawn, a
+       mission it paused continues at the next pass as P would continue it. */
+    requestContinue() {
+        this.x.wof_request_continue();
+    }
+
+    /* The line editor has the keys: every letter, H too, is the game's. */
+    lineEditorActive() {
+        return this.x.wof_line_editor_active() !== 0;
+    }
+
     /* The PCM of emulated time the core has mixed and the shell has not taken yet, oldest
        first, at most `frames` of it: interleaved stereo int16 at the given sample rate, as
        a view into the core's memory that the next call overwrites. */

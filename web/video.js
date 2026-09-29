@@ -35,7 +35,15 @@ export const STANDARDS = {
 const SIGN_SHARE = 0.06;
 const SIGN_MIN_PX = 16;
 
-export function createVideo(canvas, core, sign = null) {
+/* The help screen's text as a share of the picture's height, its smallest size before it is
+   fitted, and how much of the picture's width and height its sheet may take: a narrow or
+   small picture - NTSC's, or a small window's - takes the size down until the widest line
+   and the last one fit, so a small window gets the largest text that fits it. */
+const HELP_SHARE = 0.036;
+const HELP_MIN_PX = 13;
+const HELP_FILL = 0.92;
+
+export function createVideo(canvas, core, sign = null, help = null) {
     const w = core.width;
     const h = core.height;
 
@@ -105,6 +113,7 @@ export function createVideo(canvas, core, sign = null) {
         dctx.imageSmoothingEnabled = true;
 
         placeSign();
+        placeHelp();
 
         /* The smallest whole numbers whose enlargement is at least as large as the box. */
         kx = Math.max(1, Math.ceil(deviceWidth / w));
@@ -137,6 +146,36 @@ export function createVideo(canvas, core, sign = null) {
         sign.style.left = ((box.left + box.deviceWidth / 2) / dpr) + 'px';
         sign.style.top = ((box.top + box.deviceHeight / 2) / dpr) + 'px';
         sign.style.fontSize = Math.max(SIGN_MIN_PX, box.deviceHeight / dpr * SIGN_SHARE) + 'px';
+    }
+
+    /* The help screen (web/index.html) covers the picture.  Its size is measured rather than
+       worked out from the text, so that the font and the wording are free to change: the
+       sheet is laid out at the picture's share and then scaled down if it does not fit.
+       Monospace text scales with the font size, so one step is enough.  A hidden sheet has
+       no size, which is why showing it places it again. */
+    function placeHelp() {
+        if (!help || help.classList.contains('off')) {
+            return;
+        }
+        const width = box.deviceWidth / dpr;
+        const height = box.deviceHeight / dpr;
+        help.style.left = (box.left / dpr) + 'px';
+        help.style.top = (box.top / dpr) + 'px';
+        help.style.width = width + 'px';
+        help.style.height = height + 'px';
+        const size = Math.max(HELP_MIN_PX, height * HELP_SHARE);
+        help.style.fontSize = size + 'px';
+        const sheet = help.firstElementChild;
+        const scale = Math.min(1, width * HELP_FILL / sheet.offsetWidth,
+                               height * HELP_FILL / sheet.offsetHeight);
+        help.style.fontSize = (size * scale) + 'px';
+    }
+
+    function showHelp(shown) {
+        if (help) {
+            help.classList.toggle('off', !shown);
+            placeHelp();
+        }
     }
 
     /* Shown while the game is paused, whatever asked for the pause; the shell asks every
@@ -212,5 +251,6 @@ export function createVideo(canvas, core, sign = null) {
        tests of SPEC section 8 need both them and the canvas the browser really shows. */
     window.__wofVideo = { source, scaled, display: canvas, geometry, present };
 
-    return { present, fit, setStandard, geometry, showPaused, standard: () => standard };
+    return { present, fit, setStandard, geometry, showPaused, showHelp,
+             standard: () => standard };
 }

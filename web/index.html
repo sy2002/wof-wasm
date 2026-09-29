@@ -9,13 +9,33 @@
 </head>
 <body>
 <!-- The pause sign, shown while the game is paused (web/video.js lays it out on the picture). -->
-<div id="stage"><canvas id="screen"></canvas><div id="paused" class="off"><div class="title">PAUSED</div><div class="continue">Press P to continue</div></div></div>
-<div id="gesture">press any key for sound</div>
+<!-- The help screen, over the picture and above the pause sign; it is up at the start, where it
+     stands in for the prompt for sound, and H brings it back (web/main.js).  Keys are named by
+     where they are wherever the character on them differs between keyboards. -->
+<div id="stage"><canvas id="screen"></canvas><div id="paused" class="off"><div class="title">PAUSED</div><div class="continue">Press P to continue</div></div><div id="help" class="start"><div class="sheet">
+<div class="title">KEYS</div>
+<div class="keys">
+<span class="key">Arrow keys or W A S D</span><span>move the stick</span>
+<span class="key">Space or key left of X</span><span>fire, and choose</span>
+<span class="key">Enter</span><span>choose in a menu</span>
+<span class="key">P</span><span>pause and continue</span>
+<span class="key">Escape</span><span>pause</span>
+<span class="key">F</span><span>flip the vertical control</span>
+<span class="key">G</span><span>save, <i>on the carrier only</i></span>
+<span class="key">L</span><span>load a saved game</span>
+<span class="key">M</span><span>music on or off, <i>in flight</i></span>
+<span class="key">R</span><span>restart, <i>paused or in the briefing</i></span>
+<span class="key">C</span><span>clear the high scores, <i>paused</i></span>
+<span class="key">H</span><span>show this help</span>
+</div>
+<div class="any at-start">Press any key to start the sound and the game</div>
+<div class="any later">Press any key to go back to the game</div>
+</div></div></div>
 <div id="overlay" class="off"></div>
 <!-- The diagnostics key is named by where it is, not by the character on it: the shell
      tests event.code Backquote, which is positional, and that key carries a caret on a
      German keyboard and other characters elsewhere. -->
-<div id="hint">arrows and Return choose &middot; P pause &middot; F flip the stick &middot; key left of 1: diagnostics</div>
+<div id="hint" class="off">arrows and Return choose &middot; P pause &middot; F flip the stick &middot; key left of 1: diagnostics</div>
 
 <!-- The core and the game's files, inlined by tools/build.py.  These are not scripts: the
      type keeps the browser from running them, the shell reads them as text and decodes. -->

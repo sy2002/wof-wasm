@@ -233,8 +233,8 @@ def test_the_scale_factor_run_puts_a_box_edge_on_half_a_css_pixel(scaled):
 
 
 def test_the_scale_factor_run_is_the_same_page(scaled):
-    """It is the shipped page, showing the framebuffer, with nothing lying over it: the
-    gesture prompt is gone because a real key started the sound, and the hint bar with it."""
+    """It is the shipped page, showing the framebuffer, with nothing lying over it: the help
+    screen is gone because a real key started the sound, and the hint bar is not up."""
     assert scaled['console'] == [], scaled['console']
     for name in SCALED:
         picture = scaled[name]['picture']
@@ -280,8 +280,8 @@ def test_the_hint_names_the_diagnostics_key_by_its_place(loaded):
 
 
 def test_the_hint_bar_shares_the_diagnostics_key(loaded):
-    """It would lie over the ticker rows in every window wider than the box, so it goes with
-    the gesture prompt and comes back only with the diagnostics overlay."""
+    """It would lie over the ticker rows in every window wider than the box, so it is there
+    only with the diagnostics overlay."""
     assert loaded['hintVisibleWithOverlay'], 'the hint bar is not shown with the overlay'
     for name in ('default', 'wide', 'tall', 'retina', 'ranks'):
         assert loaded['box'][name]['hintVisible'] is False, (
@@ -354,7 +354,8 @@ def test_the_save_dialog_and_the_line_editor_work_on_the_page(loaded):
     """M3's acceptance, walked on the real page: the save dialog comes up, a letter typed
     into a slot changes what is on screen, and accepting it writes a file whose name is the
     one that was typed - which is the rename re/notes/frontend.md observed, because the slot
-    held the disk's own `wof.mission 3`."""
+    held the disk's own `wof.mission 3`.  The second letter is an h: in the line editor the
+    help key is a letter like any other."""
     storage = loaded['storage']
     assert storage['before'] == [], (
         'the page began with files an earlier run left: %s' % storage['before'])
@@ -363,7 +364,7 @@ def test_the_save_dialog_and_the_line_editor_work_on_the_page(loaded):
 
     saved = storage['afterSave']
     assert isinstance(saved, list), saved
-    assert [file['name'] for file in saved] == ['wof.amission 3'], saved
+    assert [file['name'] for file in saved] == ['wof.ahmission 3'], saved
     assert all(file['bytes'] > 0 for file in saved)
 
 
@@ -507,3 +508,39 @@ def test_no_pause_sign_outside_a_mission(loaded):
 
 def test_the_pause_sign_fits_a_small_window(loaded):
     assert_the_pause_sign_fits_a_small_window(loaded['fullscreen'])
+
+
+# ----------------------------------------------------------------------- the help screen
+
+HELP_KEYS = ['Arrow keys or W A S D', 'Space or key left of X', 'Enter', 'P', 'Escape', 'F', 'G',
+             'L', 'M', 'R', 'C', 'H']
+
+
+def test_the_help_screen(loaded):
+    """The owner's wish of 2026-09-29: at the start the help screen stands where the prompt for
+    sound stood and goes by its rule, when the sound runs; it names every key but the
+    diagnostics key.  H brings it back and any key takes it away.  Over a running mission it
+    pauses, and the key that closes it - P, which would pause again if the game saw it - lets
+    the mission run on; over a mission P has paused, the pause stays and its sign comes back.
+    In the line editor H is a letter (the save dialog's test)."""
+    help = loaded['help']
+    lines = help['atStart'].split('\n')
+    assert all(key in lines for key in HELP_KEYS), lines
+    assert 'Press any key to start the sound and the game' in lines, lines
+    assert not any('left of 1' in line or 'diagnostics' in line for line in lines), lines
+    start = loaded['modifierFirst']
+    assert start['afterModifier']['promptShown'] and start['afterModifier']['states'] == [], start
+    assert not start['afterSpace']['promptShown'], start
+    assert start['afterSpace']['states'] == ['running'], start
+    assert help['reopened'] and not help['closedAgain'], help
+
+    running = help['running']
+    assert running['open']['help'] and running['open']['paused'], running
+    assert not running['open']['sign'], 'the pause sign shows through the help screen'
+    assert not running['closed']['help'] and not running['closed']['paused'], running
+    assert running['later']['ticks'] > running['closed']['ticks'], running
+    paused = help['paused']
+    assert paused['open']['help'] and paused['open']['paused'], paused
+    assert not paused['closed']['help'], paused
+    assert paused['closed']['paused'] and paused['closed']['sign'], paused
+    assert loaded['storage']['helpInEditor'] is False, 'H opened the help in the line editor'

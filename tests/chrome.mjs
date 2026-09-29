@@ -38,6 +38,7 @@ export const KEYS = {
     keyF: { key: 'f', code: 'KeyF', text: 'f' },
     escape: { key: 'Escape', code: 'Escape' },
     keyM: { key: 'm', code: 'KeyM', text: 'm' },
+    keyH: { key: 'h', code: 'KeyH', text: 'h' },
 };
 
 export class Devtools {

@@ -23,9 +23,12 @@ import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES
          enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
+
+const HELP_SHOWN = "!document.getElementById('help').classList.contains('off')";
+const SIGN_SHOWN = "!document.getElementById('paused').classList.contains('off')";
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
 
-const report = { chrome: chromePath, page: pagePath, requests: [], console: [] };
+const report = { chrome: chromePath, page: pagePath, requests: [], console: [], help: {} };
 
 const browser = await startChrome(chromePath, ['--window-size=1280,900']);
 const cdp = browser.cdp;
@@ -148,7 +151,7 @@ try {
     report.overlayVisible = await evaluate(
         "!document.getElementById('overlay').classList.contains('off')");
     report.gestureHidden = await evaluate(
-        "document.getElementById('gesture').classList.contains('off')");
+        "document.getElementById('help').classList.contains('off')");
     report.hint = await evaluate("document.getElementById('hint').textContent");
 
     /* ----------------------------------------------------------------- the display box
@@ -277,6 +280,9 @@ try {
     await press(sessionId, 'keyA');                 /* type into the slot's name */
     await sleep(500);
     storage.edited = await evaluate(PICTURE);
+    await press(sessionId, 'keyH');                 /* a letter here, not the help */
+    await sleep(300);
+    storage.helpInEditor = await evaluate(HELP_SHOWN);
     await press(sessionId, 'enter');                /* accept: the saved game is written */
     await sleep(2000);
     storage.afterSave = await evaluate(STORED_FILES);
@@ -387,6 +393,24 @@ try {
     flight.running1 = await evaluate(PLAYER);
     await sleep(1500);
     flight.running2 = await evaluate(PLAYER);
+
+    /* The help screen over the mission: H pauses a running one, and the key that closes the
+       help lets it run on.  That key is P, which would pause again if it reached the game.
+       Over a mission P has paused, the help leaves the pause as it was. */
+    const helpStep = async (name) => {
+        await press(sessionId, name);
+        await sleep(600);
+        return { help: await evaluate(HELP_SHOWN), sign: await evaluate(SIGN_SHOWN),
+                 ...(await evaluate(PLAYER)) };
+    };
+    report.help.running = { open: await helpStep('keyH'), closed: await helpStep('keyP') };
+    await sleep(600);
+    report.help.running.later = await evaluate(PLAYER);
+    await press(sessionId, 'keyP');
+    await sleep(600);
+    report.help.paused = { open: await helpStep('keyH'), closed: await helpStep('keyP') };
+    await press(sessionId, 'keyP');
+    await sleep(600);
 
     /* Into the sea: the stick back until the aircraft is in the water, then the button,
        which brings the next aircraft after thirty ticks rather than 150. */
@@ -513,8 +537,11 @@ try {
     })).sessionId;
     await open(modifierSession, 'file://' + pagePath);
 
+    /* The help screen stands in for the prompt for sound, under the same rule. */
     const promptShown = async () => !(await evaluateIn(modifierSession,
-        "document.getElementById('gesture').classList.contains('off')"));
+        "document.getElementById('help').classList.contains('off')"));
+    report.help.atStart = await evaluateIn(modifierSession,
+                                           "document.getElementById('help').innerText");
 
     await press(modifierSession, 'meta');
     await sleep(800);
@@ -533,6 +560,14 @@ try {
         states: await evaluateIn(modifierSession, 'window.__wofContexts.map((c) => c.state)'),
         events: await evaluateIn(modifierSession, 'window.__wofEvents'),
     };
+
+    /* H brings the help screen back and H takes it away; the story scroller reads no key. */
+    await press(modifierSession, 'keyH');
+    await sleep(300);
+    report.help.reopened = await promptShown();
+    await press(modifierSession, 'keyH');
+    await sleep(300);
+    report.help.closedAgain = await promptShown();
 
     await press(modifierSession, 'backquote');
     await sleep(600);
