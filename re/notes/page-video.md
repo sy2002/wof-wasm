@@ -69,7 +69,7 @@ The 2D renderer is the previous path unchanged: the 640 x 214 source canvas that
 - when the context is lost and not given back within 2 s (`RESTORE_WAIT_MS`). On `webglcontextlost` the shell calls `preventDefault()`, which tells the browser it wants the context back; on `webglcontextrestored` it makes the program and the textures again and draws the last frame. If the restored context cannot be set up, it falls back at once.
 - when the page is opened with `?video=2d`, which exists so that the tests and the owner can run the fallback on purpose, as `?audio=buffers` does for the audio.
 
-A canvas that has once given a WebGL context never gives a 2D one, so the fallback puts a new canvas element in the old one's place, with the same id, class and inline style, and sizes it from the box; `fit()` goes on working on the new one. The diagnostics overlay's line `video` names the path in use, and a second line `video note` the reason for a fallback, or that a lost context came back.
+A canvas that has once given a WebGL context never gives a 2D one, so the fallback puts a new canvas element in the old one's place, with the same id, class and inline style, and sizes it from the box; `fit()` goes on working on the new one. The scale-factor run in Chrome loses the context through the browser's `WEBGL_lose_context` and gives it back, then loses it for good: given back, the page draws with WebGL again; not given back, it draws with Canvas 2D after two seconds, the picture exact to the pixel against the screenshot. The diagnostics overlay's line `video` names the path in use, and a second line `video note` the reason for a fallback, or that a lost context came back.
 
 ## What the page tests see
 
@@ -92,8 +92,9 @@ The drivers (`tests/pagemeasure.mjs`, `tests/pagefullscreen.mjs`) read `picture(
 
 | Session | Path | Held by |
 |---|---|---|
-| Chrome, `tests/pagecheck.mjs`, all eight pages | WebGL | `test_every_page_of_the_run_draws_with_webgl`, and the box and picture tests per look |
+| Chrome, `tests/pagecheck.mjs`, all seven pages | WebGL | `test_every_page_of_the_run_draws_with_webgl`, and the box and picture tests per look |
 | Chrome, `tests/pagescale.mjs`, scale factor 2 | WebGL, and 2D under `?video=2d` | the `scaled` fixture runs twice; `test_the_scale_factor_run_draws_with_the_renderer_it_asked_for` and every picture test per look |
+| Chrome, `tests/pagescale.mjs`, the context lost | WebGL given back, then 2D when it is not | `test_a_lost_context_comes_back_or_falls_back` |
 | Chrome, `tests/pageframes.mjs` | WebGL | `test_the_picture_keeps_the_frame_rate_at_a_screen_size` |
 | Firefox headless and visible, `tests/pagecheck_firefox.mjs`, every tab | WebGL | `test_every_page_of_the_run_draws_with_webgl` and its visible twin |
 | Firefox headless and visible, the tab with `?video=2d` | 2D | `test_the_2d_path_shows_the_picture` and its visible twin |

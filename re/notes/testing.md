@@ -77,6 +77,7 @@ The grouping: the tests of `test_world`, `test_weapons` and `test_enemy` whose p
 | phase 1, `-n 12 --dist loadgroup`, the user at the machine from noon | 1:10:46 | 38,467 s | 734 passed, 2 failed (the 600 s run limit, below) |
 | phase 1, `-n 6 --dist loadgroup`, the user at the machine | 1:35:57 | 27,219 s | 736 passed, 2 skipped |
 | phase 2, `-m page` | 10:25 and 10:38 | | 76 passed, 13 skipped |
+| phase 2, `-m page`, M9 (WebGL, the 2D runs and the frame-time test added) | 12:36 | | 97 passed, 20 skipped |
 
 The machine has 8 cores and 16 hardware threads. With 8 workers, phase 1 uses about twice the CPU time the same tests take serially: a core runs slower when all of them are busy, and the recordings made twice add the rest. 12 workers share cores and were slower still, and 6 leave cores idle; both were measured while the user worked at the machine, which the idle 8-worker run was not, so their times are upper bounds. **Use `-n 8`**: the two phases then take about an hour in all, against three.
 
