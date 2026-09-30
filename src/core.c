@@ -327,6 +327,59 @@ int wof_pool_load8(uint32_t pointer, uint32_t off, uint8_t *out)
     return 0;
 }
 
+/* The capacity in bytes of the pool the port keeps behind the pointer at `pointer`, as the
+ * original's layout counts it; 0 where it keeps none (M7 part 2: a saved game that asks for
+ * more than the port holds is refused, re/notes/campaign.md). */
+uint32_t wof_pool_capacity(uint32_t pointer)
+{
+#define WOF_TABLE(n, r, c, a)
+#define WOF_POOL(n, r, c, p)                                                           \
+    if (pointer == (uint32_t)(p))                                                      \
+        return record_size[rec_##r] * (uint32_t)(c);
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
+/* The pool behind the pointer at `pointer` zeroed, as the original's allocator hands a new
+ * block out (MEMF_CLEAR, SPEC 7.2).  Returns 0 where the port keeps no pool there. */
+int wof_pool_zero(uint32_t pointer)
+{
+#define WOF_TABLE(n, r, c, a)
+#define WOF_POOL(n, r, c, p)                                                           \
+    if (pointer == (uint32_t)(p)) {                                                    \
+        wof_mem_set(wof_m.n, 0, sizeof wof_m.n);                                       \
+        return 1;                                                                      \
+    }
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
+/* Byte `off` of the allocation whose pointer the original keeps at `pointer`, stored as the
+ * original's move into that block would store it: into the plain field that covers it.
+ * Returns 0 past the capacity, in a gap and on a pointer field, which the port derives
+ * instead (M7 part 2, the loader). */
+int wof_pool_store8(uint32_t pointer, uint32_t off, uint8_t value)
+{
+#define WOF_TABLE(n, r, c, a)
+#define WOF_POOL(n, r, c, p)                                                           \
+    if (pointer == (uint32_t)(p) && off < record_size[rec_##r] * (uint32_t)(c)) {      \
+        int32_t b_ = record_byte(rec_##r, off % record_size[rec_##r]);                 \
+                                                                                       \
+        if (b_ < 0)                                                                    \
+            return 0;                                                                  \
+        ((uint8_t *)&wof_m.n[off / record_size[rec_##r]])[b_] = value;                 \
+        return 1;                                                                      \
+    }
+#include "mission.def"
+#undef WOF_TABLE
+#undef WOF_POOL
+    return 0;
+}
+
 /* ------------------------------------------------------- the music's memory (M8 part 2) */
 
 static uint32_t image_long(const uint8_t *p)

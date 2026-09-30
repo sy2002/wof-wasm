@@ -41,6 +41,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
 
         const c = core.counters();
         const pl = core.devPlayer();
+        const gm = core.devGame();
         const s = clock.stats();
         const a = audio.stats();
         const g = video.geometry();
@@ -81,9 +82,14 @@ export function createOverlay(element, core, clock, audio, input, video) {
             'player       x ' + pl.x + '  y ' + pl.y + '  deck state ' + pl.deck +
                 '  weapon ' + pl.weapon +
                 (core.paused() ? ', paused' : '') + (core.invertVertical() ? ', flip on' : '') + '\n' +
+            'game         rank ' + gm.rank + '  mission ' + gm.mission + '  lives ' + gm.lives +
+                '  score ' + gm.score + (gm.inMission ? '' : ', outside a mission') +
+                ['', ', a demo playing', ', a demo recording'][gm.demo] + '\n' +
+            'demo         ' + ['off', 'armed: the next rank chosen records wofdemo',
+                               'recording, written when the game ends'][core.demoRecording()] + '\n' +
             'while this is up: 5 PAL, 6 NTSC, 7 the stereo width, 1 a high score,\n' +
-            '                  2 the save dialog, 3 the load dialog (development keys,\n' +
-            '                  not the game\'s)';
+            '                  2 the save dialog, 3 the load dialog, 4 a demo recording\n' +
+            '                  on or off (development keys, not the game\'s)';
     }
 
     function toggle() {

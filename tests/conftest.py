@@ -56,7 +56,8 @@ def pytest_configure(config):
 # The loop tests of one script share its recording (tests/test_world.py, recorded), which is
 # made once per process.  Under pytest-xdist with --dist loadgroup they go to one worker, so
 # that the script is recorded once and not by every worker that runs one of them.
-RECORDING_MODULES = ('test_world', 'test_weapons', 'test_enemy', 'test_campaign')
+RECORDING_MODULES = ('test_world', 'test_weapons', 'test_enemy', 'test_campaign', 'test_loader',
+                     'test_demo')
 
 
 def recording_group(item):
@@ -305,6 +306,64 @@ def assert_the_stick_keys_give_the_bits_of_the_spec(report):
         assert raw['calls'] > 5, 'only %d VBlanks went by while %s was read' % (raw['calls'], key)
         assert raw['last'] == bit and raw['seen'] == bit, (
             'with %s the core was handed %s' % (key, raw))
+
+
+# ---------------------------------------------- M7 part 2 on the page (tests/pageload.mjs)
+
+def _campaign(game):
+    return (game['rank'], game['mission'], game['lives'], game['score'])
+
+
+def assert_a_saved_game_comes_back_after_a_reload(run):
+    """G in the hold saved the game as wof.abc (map a: 4,258 bytes); after a reload the rank
+    selection's seventh entry loaded it and the mission went on from it, with the rank, the
+    mission, the lives, the score and the aircraft where the save left them."""
+    assert run['hold'] and run['hold']['x'] != 0, run['hold']
+    stored = dict(run['stored'])
+    assert stored.get('wof.abc') == 4258, run['stored']
+    assert run['saved'] and run['loaded'], run
+    assert _campaign(run['saved']) == _campaign(run['before']), run
+    assert _campaign(run['loaded']) == _campaign(run['saved']), (run['loaded'], run['saved'])
+    assert run['loaded']['inMission'], run['loaded']
+    p, q = run['loadedPlayer'], run['savedPlayer']
+    assert (p['x'], p['deck']) == (q['x'], q['deck']), (p, q)
+    assert run['later']['ticks'] > p['ticks'], (run['later'], p)
+
+
+def assert_a_game_loaded_in_flight_resumes_the_save(save, run):
+    """In the air, with a fresh campaign, L: the dialog's first entry is the save, and the
+    mission goes on from it as saveLoadRun's did."""
+    assert run['flight']['air'] and run['flight']['air']['deck'] == 0, run['flight']
+    assert run['beforePlayer']['deck'] == 0, run['beforePlayer']
+    assert _campaign(run['loaded']) == _campaign(save['saved']), (run['loaded'], save['saved'])
+    p, q = run['loadedPlayer'], save['savedPlayer']
+    assert (p['x'], p['deck']) == (q['x'], q['deck']), (p, q)
+
+
+def assert_the_demo_plays_as_it_was_recorded(run):
+    """Key 4 armed the recording, the first rank chosen recorded, P and R ended the game and
+    wofdemo (5,000 bytes) and wofdemo.seed (12) were stored.  After a reload the attract
+    mode played it after the rank selection's idle rounds, and again after the next ones,
+    the swell's phase run on by the first: both playbacks give the player and the campaign
+    of the recording at every sample, as far as it went (the playback's last tick takes the
+    0xFF)."""
+    assert 'armed' in (run['armed']['demo'] or ''), run['armed']
+    assert run['recording']['recording'], run['recording']
+    stored = dict(run['stored'])
+    assert stored.get('wofdemo') == 5000 and stored.get('wofdemo.seed') == 12, run['stored']
+    recorded = [t[:8] for t in run['recorded']]
+    first = [t[:8] for t in run['first']]
+    second = [t[:8] for t in run['second']]
+    assert len(recorded) > 100, len(recorded)
+    assert run['firstStart']['playing'] and run['secondStart']['playing'], run
+    assert not run['firstEnd']['playing'] and not run['secondEnd']['playing'], run
+    assert first == second, 'the two playbacks part at tick %d' % next(
+        (i for i, (a, b) in enumerate(zip(first, second)) if a != b), min(len(first), len(second)))
+    n = len(recorded)
+    at = next((i for i, (a, b) in enumerate(zip(first, recorded)) if a != b), None)
+    assert first[:n] == recorded, (
+        'the playback parts from the recording at sample %d; recording %s; playback %s' % (
+            at, run['recorded'][max(at - 4, 0):at + 4], run['first'][max(at - 4, 0):at + 4]))
 
 
 def assert_the_mission_is_flown_from_the_keyboard(flight):
@@ -756,6 +815,8 @@ class Ported:
             'wt_ffp_table': ([i, i], ctypes.c_uint32),
             'wof_dev_set_score': ([ctypes.c_uint32], None),
             'wof_dev_open_dialog': ([i], None),
+            'wof_dev_demo_record': ([i], None),
+            'wof_demo_recording': ([], i),
             'wof_pass': ([], None),
             # M3 deliverable 2: the screens, the waits and the fades
             'wof_set_fade_vblanks': ([i], None),

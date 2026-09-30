@@ -230,6 +230,10 @@ WOF_FIELD(cache, score,       uint32_t, 0x10, WOF_K_PLAIN)
 WOF_RECORD_END(cache)
 
 /* ------------------------------------------------------- tables of one kind of value */
+WOF_RECORD(byte, 0x01)
+WOF_FIELD(byte, v,            uint8_t,  0x00, WOF_K_PLAIN)
+WOF_RECORD_END(byte)
+
 WOF_RECORD(word, 0x02)
 WOF_FIELD(word, v,            uint16_t, 0x00, WOF_K_PLAIN)
 WOF_RECORD_END(word)

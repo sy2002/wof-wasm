@@ -165,7 +165,8 @@ def keep_writes(key, machine):
     RECORDED[key] = types.SimpleNamespace(
         names=machine.names, alloc_labels=dict(machine.alloc_labels),
         alloc_sizes=dict(machine.alloc_sizes), display_allocs=dict(machine.display_allocs),
-        at_s=list(machine.at_s), mission_writes=machine.mission_writes)
+        at_s=list(machine.at_s), mission_writes=machine.mission_writes,
+        load_data=[regions[headless.DATA_START] for regions in getattr(machine, 'load_states', [])])
 
 
 def compare_attributed(replay, chart):

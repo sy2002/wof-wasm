@@ -21,6 +21,7 @@ import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRound, fullscreenRun,
          walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, VIDEO, WEAPON_VIEW,
          enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
+import { STATE_WATCH, demoRun, flightLoadRun, saveLoadRun } from './pageload.mjs';
 
 const pagePath = resolve(process.argv[2]);
 
@@ -716,6 +717,38 @@ try {
             "document.exitFullscreen().then(() => 'normal', (e) => 'refused: ' + e.message)") }),
     });
     report.fullscreen.console = channel(fullSession).console;
+
+    /* M7 part 2 (tests/pageload.mjs), in a page of its own: a game saved on the carrier and
+       loaded after a reload from the rank selection, the same save loaded with L in flight,
+       and a demo recorded with the overlay's key 4, played after a reload and again. */
+    const loadTarget = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const loadSession = (await cdp.send('Target.attachToTarget', {
+        targetId: loadTarget.targetId, flatten: true,
+    })).sessionId;
+    await open(loadSession, 'file://' + pagePath, [STATE_WATCH]);
+    const loadNames = { backquote: 'backquote', space: 'space', enter: 'enter', up: 'up',
+                        down: 'down', right: 'right', keyG: 'keyG', keyL: 'keyL', keyP: 'keyP',
+                        keyR: 'keyR', keyA: 'keyA', keyB: 'keyB', keyC: 'keyC', four: 'four',
+                        p: 'keyP' };
+    const loadDriver = {
+        tap: async (name, ms = 80) => {
+            await cdp.hold(loadSession, loadNames[name]);
+            await sleep(ms);
+            await cdp.release(loadSession, loadNames[name]);
+        },
+        hold: (name) => cdp.hold(loadSession, loadNames[name]),
+        release: (name) => cdp.release(loadSession, loadNames[name]),
+        sleep,
+        evaluate: (expression) => evaluateIn(loadSession, expression),
+        reload: async () => {
+            await cdp.send('Page.reload', {}, loadSession);
+            await sleep(1500);
+        },
+    };
+    report.saveLoad = await saveLoadRun(loadDriver);
+    report.flightLoad = await flightLoadRun(loadDriver);
+    report.demo = await demoRun(loadDriver);
+    report.loadConsole = channel(loadSession).console;
 
     /* Which renderer drew each page of the run (web/video.js), with its reason for a
        fallback: every one of them is meant to be WebGL. */

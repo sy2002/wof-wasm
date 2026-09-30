@@ -245,7 +245,7 @@ def test_every_page_of_the_run_draws_with_webgl(loaded):
     """The shell's main renderer is WebGL (web/video.js), and headless Chrome on its GPU
     gives it: every page the run opened says so, the fallback's reason empty.  Without this a
     page that fell back to Canvas 2D would pass every other test here under the wrong name."""
-    assert len(loaded['video']) == 7, [page['url'] for page in loaded['video']]
+    assert len(loaded['video']) == 8, [page['url'] for page in loaded['video']]
     for page in loaded['video']:
         assert_drawn_with(page, 'webgl', page['url'])
 
@@ -630,3 +630,25 @@ def test_the_picture_keeps_the_frame_rate_at_a_screen_size(frames):
     the negative control that fails is the visible Firefox window (tests/test_firefox.py,
     re/notes/page-video.md)."""
     assert_the_picture_keeps_the_frame_rate(frames, 'webgl', 'Chrome at a scale factor of 2')
+
+
+# ------------------------------------------------------------- M7 part 2 (tests/pageload.mjs)
+
+def test_a_game_saved_on_the_carrier_is_loaded_after_a_reload(loaded):
+    """G in the hold, the page reloaded, the rank selection's seventh entry: the mission goes
+    on with the saved rank, mission, lives, score and aircraft."""
+    from conftest import assert_a_saved_game_comes_back_after_a_reload
+    assert_a_saved_game_comes_back_after_a_reload(loaded['saveLoad'])
+
+
+def test_a_game_loaded_with_l_in_flight_resumes_the_save(loaded):
+    """L in the air on a fresh page: the save comes back as from the rank selection."""
+    from conftest import assert_a_game_loaded_in_flight_resumes_the_save
+    assert_a_game_loaded_in_flight_resumes_the_save(loaded['saveLoad'], loaded['flightLoad'])
+
+
+def test_a_demo_recorded_with_key_4_plays_after_a_reload_as_it_was_recorded(loaded):
+    """Key 4, a game, the page reloaded, the attract mode twice: the same ticks each time,
+    and the recording's."""
+    from conftest import assert_the_demo_plays_as_it_was_recorded
+    assert_the_demo_plays_as_it_was_recorded(loaded['demo'])

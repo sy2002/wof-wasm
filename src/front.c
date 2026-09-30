@@ -205,9 +205,78 @@ static void rank_highlight(void)
     wof_shape_draw_xor(s, (int16_t)s->marker, (int16_t)s->src_y);
 }
 
+/* A 32-bit FNV-1a of a file's bytes: wofdemo.seed names the demo its seed belongs to. */
+static uint32_t demo_hash(const uint8_t *p, uint32_t n)
+{
+    uint32_t h = 0x811C9DC5u;
+
+    for (uint32_t i = 0; i < n; i++)
+        h = (h ^ p[i]) * 0x01000193u;
+    return h;
+}
+
+static uint32_t be32(const uint8_t *p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+/* orig 0x01845E - load_file("wofdemo") into demo_buffer_ptr: the whole file, unpacked, in a
+ * block of its own size.  The port's block is the pool of 0x1388 bytes (src/mission.def),
+ * as much as a recording writes and more than a playback reads (entry 0x1385 is its last);
+ * what a shorter file leaves of it is zero, where the original reads whatever memory lies
+ * behind its block (re/notes/demo.md). */
+static void demo_load(void)
+{
+    uint32_t       mark = wof_arena_mark();
+    uint32_t       len  = 0;
+    const uint8_t *data = wof_load_file(wof_tbl_wofdemo, &len);
+
+    wof_mem_set(wof_m.demo_buffer, 0, sizeof wof_m.demo_buffer);
+    wof_f.demo_buffer_set = data ? 1 : 0;
+    for (uint32_t i = 0; data && i < len && i < WOF_DEMO_BYTES; i++)
+        wof_m.demo_buffer[i].v = data[i];
+    wof_arena_release(mark);
+}
+
+/* orig 0x018480 - rand_set_seed(read_vhposr()) (0x0203DA): rand_state and rand_seed_const
+ * from the beam, which the port reads from the entropy stream as rand_beam does.  Port
+ * policy beside it (re/notes/demo.md): a recording notes where the stream stands and the
+ * two values the tick reads that run on from mission to mission, the swell's phase
+ * (0x02476A, which nothing resets) and night_flag, and its end writes them into
+ * wofdemo.seed beside the demo, with a hash of the demo; a playback of the wofdemo they
+ * belong to starts from them, so that it replays as it was recorded, also after a page
+ * reload and after other games.  A wofdemo without it, one from a real Amiga, plays with
+ * everything as it stands, as on another machine; so does every differential test. */
+static void demo_seed(void)
+{
+    uint16_t beam;
+
+    if (wof_g.demo_mode == 2) {
+        wof_f.demo_seed  = wof_s.entropy;
+        wof_f.demo_swell = (uint16_t)wof_g.g_02476a;
+        wof_f.demo_night = wof_g.night_flag;
+    } else {
+        uint32_t       len = 0, dlen = 0;
+        const uint8_t *seed = wof_fs_find(WOF_DEMO_SEED_FILE, &len);
+        const uint8_t *demo = wof_fs_find(wof_tbl_wofdemo, &dlen);
+
+        if (seed && demo && len == WOF_DEMO_SEED_BYTES && be32(seed + 4) == demo_hash(demo, dlen)) {
+            wof_s.entropy     = be32(seed);
+            wof_g.g_02476a    = (int16_t)(uint16_t)(seed[8] << 8 | seed[9]);
+            wof_g.night_flag  = (uint16_t)(seed[10] << 8 | seed[11]);
+        }
+    }
+    beam = wof_entropy_next();
+    wof_trace_add("rand_beam", beam, beam, 0x018484, 0, 0, 0);
+    wof_g.rand_state      = beam;
+    wof_g.rand_seed_const = beam;
+}
+
 /* orig 0x018262 rank_select.  Eight entries: seven ranks and, at index 7, the load dialog.
  * menu_input moves the cursor and chooses; 1800 rounds without any input set demo_mode to
- * 1, which asks for a file this disk does not carry, so it falls back to 0. */
+ * 1, which asks for the demo `wofdemo`; main's argument (demo_file_name) makes a chosen
+ * rank a recording.  The control flow is the original's: a cancelled dialog goes back to
+ * the menu with everything as it stands, demo_mode included. */
 static wof_co_t rank_select(void)
 {
     wof_ctx_t *c = &wof_f.co_stage;
@@ -228,6 +297,7 @@ static wof_co_t rank_select(void)
     CO_CALL(c, &wof_f.co_fade, wof_fade_to(wof_f.rank_pal));
     wof_view_copy(wof_f.front_view, wof_f.back_view);
 
+menu:                                                         /* 0x018302 */
     for (;;) {
         CO_CALL(c, &wof_f.co_menu, wof_menu_input(1));
         if (wof_menu_result() == 0)
@@ -268,37 +338,48 @@ static wof_co_t rank_select(void)
         wof_view_copy(wof_f.front_view, wof_f.back_view);
     }
 
-    while (wof_g.rank_cursor == 7) {
-        /* M3 deliverable 6 fills the dialog in; until then a cancel comes straight back. */
+    if (wof_g.rank_cursor == 7) {                             /* 0x0183CA */
         CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(0));
         if (wof_f.dialog_result == 0) {
+            /* 0x0183DE: a game loaded; main skips map_load and the mission's reset. */
             wof_g.loaded_game = 1;
             CO_CALL(c, &wof_f.co_fade, wof_fade_out());
-            CO_RETURN(c);
+            goto done;
         }
         wof_view_set_picture(wof_f.back_view);
         wof_view_copy(wof_f.front_view, wof_f.back_view);
-        CO_CALL(c, &wof_f.co_menu, wof_menu_input(1));
-        if (wof_menu_result() != 0 && wof_menu_result() != 1000) {
-            wof_g.rank_cursor = (uint16_t)(wof_g.rank_cursor + wof_menu_result());
-            if ((int16_t)wof_g.rank_cursor < 0)
-                wof_g.rank_cursor = 7;
-            if ((int16_t)wof_g.rank_cursor > 7)
-                wof_g.rank_cursor = 0;
-        }
+        goto menu;
     }
 
     CO_CALL(c, &wof_f.co_fade, wof_fade_out());
 
-    /* Demo recording (demo_mode 2) needs a file name on the command line, which the port
-     * has no way of giving; demo playback asks for `wofdemo`, which is not on this disk, so
-     * demo_mode falls straight back to 0.  Both belong to M7. */
-    wof_g.demo_mode = 0;
+    /* 0x018436: a recording when main was given its argument and no playback is asked for;
+     * a playback reads wofdemo; a demo without its buffer is no demo. */
+    if (wof_g.demo_mode == 0 && wof_g.demo_file_name != 0) {
+        wof_mem_set(wof_m.demo_buffer, 0, sizeof wof_m.demo_buffer);   /* mem_alloc(0x1388) */
+        wof_f.demo_buffer_set = 1;
+        wof_g.demo_mode = 2;
+    }
+    if (wof_g.demo_mode == 1)
+        demo_load();
+    wof_g.demo_index = 0;
+    if (!wof_f.demo_buffer_set)
+        wof_g.demo_mode = 0;
+    if (wof_g.demo_mode != 0)
+        demo_seed();
+
     /* The chosen rank is stored twice: once as the rank the run is played at and once as
-     * the rank a high-score entry is written with (re/notes/frontend.md). */
+     * the rank a high-score entry is written with (re/notes/frontend.md).  A playback plays
+     * at the rank of the demo's first byte, sign-extended; a recording writes the rank's
+     * low byte there (0x0253BF). */
     wof_g.rank_chosen = wof_g.rank_cursor;
     wof_g.rank_played = wof_g.rank_cursor;
-    wof_g.mission_number  = 1;
+    if (wof_g.demo_mode == 1)
+        wof_g.rank_played = (uint16_t)(int16_t)(int8_t)wof_m.demo_buffer[wof_g.demo_index++].v;
+    if (wof_g.demo_mode == 2)
+        wof_m.demo_buffer[wof_g.demo_index++].v = (uint8_t)wof_g.rank_played;
+    wof_g.mission_number = 1;
+done:
     CO_CALL(c, &wof_f.co_music, wof_music_stop());           /* 0x0184D6 */
     CO_END(c);
 }
@@ -478,7 +559,22 @@ static wof_co_t ingame_keys(void)
                 wof_g.loaded_game = 0;
                 CO_CALL(c, &wof_f.co_inner, wof_load_save_dialog(0));
                 if (wof_f.dialog_result == 0) {
-                    WOF_STANDIN("M7 PART 2 STAND-IN: 0x01CDD4, a loaded game: the briefing and the mission again");
+                    /* 0x01CDD4: a game loaded in flight - its briefing, whose Control-R is
+                     * not looked at here, and the mission's setup without the reset, as
+                     * main runs it for a game loaded from the rank selection. */
+                    wof_g.loaded_game = 1;
+                    wof_load_dash_assets();
+                    CO_CALL(c, &wof_f.co_stage, mission_briefing());
+                    wof_dashboard_invalidate();
+                    wof_trace_add("mission", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
+                    CO_CALL(c, &wof_f.co_setup, wof_mission_display_setup());
+                    wof_load_ship_shapes();
+                    wof_build_master_lists();
+                    wof_sounds_load();
+                    wof_g.outside_mission = 0;
+                    wof_g.loaded_game = 0;
+                    CO_CALL(c, &wof_f.co_tick, wof_logic_tick());
+                    wof_input_queue_clear();
                     continue;
                 }
                 wof_load_dash_assets();
@@ -636,20 +732,21 @@ static wof_co_t ingame_keys(void)
     CO_END(c);
 }
 
-/* orig 0x0114D8 run_queued_ticks - one tick per queued byte.  In demo playback and
- * recording it first spins until the server has taken two bytes (M7). */
+/* orig 0x0114D8 run_queued_ticks - one tick per queued byte.  In a demo, played back or
+ * recorded, it first waits VBlank by VBlank until vblank_server has taken the two bytes
+ * 0x026D44 asks for, so a demo's pass has two ticks (re/notes/demo.md). */
 static wof_co_t run_queued_ticks(void)
 {
     wof_ctx_t *c = &wof_f.co_ticks;
 
     CO_BEGIN(c);
-    if (wof_g.g_026d44)
-        WOF_STANDIN("M7 PART 2 STAND-IN: 0x0114E0, run_queued_ticks, demo playback and recording");
+    while (wof_g.demo_bytes_owed)                                    /* 0x0114E0 */
+        CO_CALL(c, &wof_f.co_vblank, wof_wait_next_vblank());
     if ((int8_t)wof_g.pause_flag < 0)
         CO_RETURN(c);
     while ((int16_t)wof_g.input_queue_count > 0)
         CO_CALL(c, &wof_f.co_tick, wof_logic_tick());
-    wof_g.g_026d44 = (int16_t)(wof_g.demo_mode != 0 ? 2 : 0);
+    wof_g.demo_bytes_owed = (int16_t)(wof_g.demo_mode != 0 ? 2 : 0);
     CO_END(c);
 }
 
@@ -686,7 +783,7 @@ next_mission:                                                 /* orig 0x0100D2 *
     CO_CALL(c, &wof_f.co_tick, wof_logic_tick());             /* main's own logic_tick */
     wof_input_queue_clear();
     if (wof_g.demo_mode != 0)
-        wof_g.g_026d44 = 2;
+        wof_g.demo_bytes_owed = 2;
 
     /* Step S of the headless original: the mission's inner loop is reached. */
     wof_trace_add("step_s", wof_g.rank_played, wof_g.mission_number, 0, 0, 0, 0);
@@ -694,7 +791,7 @@ next_mission:                                                 /* orig 0x0100D2 *
     wof_trace_globals();
     wof_trace_mission();
     wof_test_step_s(wof_f.mission_count);
-    wof_g.g_026d54 = (uint16_t)((wof_g.g_026d54 & 0x00FFu) | 0xFF00u);   /* st.b */
+    wof_g.demo_step_s = (uint16_t)((wof_g.demo_step_s & 0x00FFu) | 0xFF00u);   /* st.b */
 
     for (;;) {                                                /* orig 0x01010E */
         CO_CALL(c, &wof_f.co_keys, ingame_keys());
@@ -771,7 +868,7 @@ wof_co_t wof_front(void)
         wof_g.opt_music_off = 0;
         wof_g.end_of_mission = 0;
         wof_g.demo_mode = 0;
-        wof_g.g_026d44 = 0;
+        wof_g.demo_bytes_owed = 0;
         wof_m.object_record_extra[0].draw_kind = 0;
         wof_m.object_record_extra[0].kind = 0;
         wof_campaign_reset();                                 /* orig 0x013562 */
@@ -799,7 +896,7 @@ wof_co_t wof_front(void)
         wof_sound_slots_clear();
         wof_ticker_clear();
         CO_CALL(c, &wof_f.co_fade, wof_fade_out_pair());
-        wof_g.g_026d54 = 0;
+        wof_g.demo_step_s = 0;
         wof_g.demo_was_played = (uint8_t)(wof_g.demo_mode == 1 ? 0xFF : 0);
         wof_demo_end();                                       /* orig 0x01852A */
         wof_g.outside_mission = 0xFF;
@@ -852,6 +949,21 @@ void wof_dev_open_dialog(int mode)
     wof_f.dev_dialog = (uint16_t)(mode ? 2 : 1);
 }
 
+/* main with an argument on its command line (0x01002C): demo_file_name points at the name
+ * wofdemo (0x023458), and every rank chosen from then on records a demo, which the game's
+ * end writes (demo_end).  Off, it is the original started without one. */
+void wof_dev_demo_record(int on)
+{
+    wof_g.demo_file_name = on ? 0x023458u : 0u;
+}
+
+int wof_demo_recording(void)
+{
+    if (wof_g.demo_mode == 2)
+        return 2;
+    return wof_g.demo_file_name ? 1 : 0;
+}
+
 /* The player's x, y and player_on_deck, and the weapon type the menu in the hold steps, for
  * the overlay and the page test: a copy, outside the state, that nothing in the core reads. */
 const int16_t *wof_dev_player(void)
@@ -862,6 +974,22 @@ const int16_t *wof_dev_player(void)
     out[1] = wof_m.player[0].y;
     out[2] = wof_m.player[0].on_deck;
     out[3] = wof_g.weapon_type;
+    return out;
+}
+
+/* The campaign as the overlay's game line shows it and the page tests read it (M7 part
+ * 2): rank_played, mission_number, lives, the score, whether a mission runs and demo_mode,
+ * a copy outside the state that nothing in the core reads. */
+const int32_t *wof_dev_game(void)
+{
+    static int32_t out[6];
+
+    out[0] = (int16_t)wof_g.rank_played;
+    out[1] = (int16_t)wof_g.mission_number;
+    out[2] = wof_g.lives;
+    out[3] = (int32_t)wof_g.player_score;
+    out[4] = wof_g.outside_mission ? 0 : 1;
+    out[5] = wof_g.demo_mode;
     return out;
 }
 

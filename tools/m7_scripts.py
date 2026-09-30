@@ -79,8 +79,111 @@ install_pokes = m5_scripts.install_pokes
 poke_points = m5_scripts.poke_points
 
 
+# ------------------------------------------------------ part 2: the loaded game, the demo
+#
+# Written by hand as raw schedules, each from the program's start (re/notes/porting-m7.md,
+# "Part 2: the scripts").  The keys go through the game's own input handler as a real
+# keyboard's would: the cursor keys and Return in the menus, Control with L and R in flight.
+
+UP, DOWN, RETURN = 0x4C, 0x4D, 0x44
+CONTROL_L = [0x28, 'ctrl']
+CONTROL_R = [0x13, 'ctrl']
+TO_RANKS = [[30, ''], [3, 'F'], [30, ''], [3, 'F'], [400, '']]     # the rank selection is up
+TO_MISSION = [[30, ''], [3, 'F']] * 5                             # rank 0 chosen, its briefing left
+FROM_HOLD = [[3, 'F'], [126, ''], [415, 'R'], [173, 'RU'], [300, 'R']]   # the lift, the roll, off
+LOAD_FIRST = [[1, '', [UP]], [60, ''], [1, '', [RETURN]], [200, ''], [1, '', [RETURN]]]
+DEMO_FLIGHT = [[3, 'F'], [460, 'R'], [173, 'RU'], [200, 'R'], [4, 'RF'], [100, 'R'], [4, 'RF'],
+               [200, 'RU'], [300, 'R'], [60, 'RD'], [200, 'R']]
+DEMO_FF_AT = 100                     # demo_play_ff: the entry poked to 0xFF
+
+
+def _save_a():
+    return [list(e) for e in RUNS['save_a'][0]]
+
+
+def _part2():
+    runs = {
+        # The disk's wof.mission 3 (map c, the first rank's third mission, saved on a real
+        # Amiga) loaded from the rank selection's seventh entry, its briefing left with fire,
+        # then the lift, the take-off and a flight east.
+        'load_disk': (TO_RANKS + LOAD_FIRST + [[400, ''], [3, 'F'], [300, '']] + FROM_HOLD, {}),
+        # save_a's flight with its save in the hold, then Control-L in flight: the dialog's
+        # first entry is the save (the disk's file is the second), the briefing, which runs
+        # out by itself, and the mission from the save again, from the hold up and away.
+        'load_hold': (_save_a() + [[1, 'R', [CONTROL_L]], [120, ''], [1, '', [RETURN]],
+                                   [700, '']] + FROM_HOLD, {}),
+        # save_a's flight, then Control-R: 350 points beat the disk's tenth high score, so
+        # the name entry comes (Return leaves the name empty), then the high scores (fire
+        # leaves them), the outer loop round and the rank selection's seventh entry loading
+        # the save.
+        'load_menu': (_save_a() + [[1, 'R', [CONTROL_R]], [300, ''], [1, '', [RETURN]],
+                                   [400, ''], [3, 'F'], [500, '']] +
+                      LOAD_FIRST + [[700, '']] + FROM_HOLD, {}),
+        # The game started with an argument (the harness's argc): the first rank chosen
+        # records; a take-off, a flight east with two taps of fire, Control-R, and demo_end
+        # writes wofdemo.
+        'demo_record': (TO_MISSION + [[300, '']] + DEMO_FLIGHT + [[1, 'R', [CONTROL_R]],
+                                                                  [300, '']], {}),
+        # The same start, then nothing: the aircraft waits in the hold and the recording
+        # ends at its count, 0x1386 entries (0x01183A), and demo_end writes it.
+        'demo_record_long': (TO_MISSION + [[21000, '']], {}),
+    }
+    playback = [[30, ''], [3, 'F'], [30, ''], [3, 'F'], [2500, '']]
+    runs['demo_play'] = (playback + [[1500, ''], [3, 'F'], [600, '']], {})
+    runs['demo_play_ff'] = (playback + [[1500, '']], {})
+    runs['demo_play_long'] = (playback + [[21000, '']], {})
+    return runs
+
+
+PART2 = ['load_disk', 'load_hold', 'load_menu', 'demo_record', 'demo_record_long', 'demo_play',
+         'demo_play_ff', 'demo_play_long']
+PART2_SLOW = {'load_hold', 'load_menu', 'demo_record_long', 'demo_play_long'}
+_PART2 = None
+_DEMO = None
+
+
+def part2(name):
+    global _PART2
+    if _PART2 is None:
+        _PART2 = _part2() if 'save_a' in RUNS else {}
+    return _PART2[name]
+
+
+def demo_file():
+    """The wofdemo demo_record's run writes in the headless original, 0x1388 bytes."""
+    global _DEMO
+    if _DEMO is None:
+        machine = headless.Headless(script('demo_record'))
+        machine.run()
+        _DEMO = bytes(machine.overlay['wofdemo'])
+    return _DEMO
+
+
+def demo_variant(name):
+    """demo_play's file, and its two variants: a 0xFF poked in early, and every entry up to
+    the buffer's end neutral, so that the playback ends at entry 0x1386."""
+    data = bytearray(demo_file())
+    if name == 'demo_play_ff':
+        data[DEMO_FF_AT] = 0xFF
+    elif name == 'demo_play_long':
+        end = data.index(0xFF, 1)
+        data[end:] = bytes(len(data) - end)
+    return bytes(data)
+
+
 def script(name, **more):
     """The run description of an M7 script, or of one of M4 to M6."""
+    if name in PART2:
+        raw, extra = part2(name)
+        description = {'raw': [list(e) for e in raw] + [[1, '']],
+                       'stop': {'vblanks': length(raw) + 20}}
+        if name.startswith('demo_record'):
+            description['argc'] = 2
+        if name.startswith('demo_play'):
+            description['files'] = {'wofdemo': demo_variant(name).hex()}
+        description.update(extra)
+        description.update(more)
+        return description
     if name in RUNS:
         raw, vblanks = RUNS[name]
         description = {'raw': raw + [[1, '']], 'stop': {'vblanks': vblanks}}
@@ -90,6 +193,10 @@ def script(name, **more):
 
 
 def pokes(name):
+    if name in ('load_hold', 'load_menu'):
+        return POKES['save_a']
+    if name in PART2:
+        return {}
     return POKES.get(name) if name in POKES else m6_scripts.pokes(name)
 
 

@@ -65,6 +65,19 @@ SOUND_FILES = ['sounds/boom', 'sounds/screech', 'sounds/scream', 'sounds/splash'
                'wofsongs']                  # WOF_SONG_FILE: the song data's samples (M8 part 2)
 FRONT_VIEW = 0x026E30
 
+# A loaded game (M7 part 2, re/notes/campaign.md, "The loader"): the port derives the four
+# pointer fields of the file's raw part from the data beside them.  The player's shape and
+# the torpedo's the original's tick after the load sets again; a ship's gun list is the
+# block the load reads; the shape at 0x02541A the original keeps as the file brought it
+# until frame_select's level path sets it, and draws it before then when the aircraft is
+# level with 0x025A9C set.  In a file from another machine that value names no shape of
+# the harness's memory, where the port holds the shape it derived from it; such a
+# difference is counted, not found, until the first comparison where the original's value
+# names a shape again (tests/test_loader.py).
+SAVE_GAME_READ = 0x015E1A
+SAVE_GAME_READ_DONE = 0x015E4A          # its moveq #1, d0 after the file is closed
+DERIVED = ('g_02541a[0].s',)
+
 def signed(v, bits=16):
     v &= (1 << bits) - 1
     return v - (1 << bits) if v >> (bits - 1) else v
@@ -84,7 +97,10 @@ def entropy_state(seed, n):
 MAP_LIST_POINTER = 0x024628
 MAP_LOADED = 0x0100AE              # main has run map_load for a campaign's first mission
 MISSION_WINDOW = {0x0100B2: 'setup', 0x010170: 'setup', 0x01010A: 'mission',
-                  0x010132: 'between', 0x0101C6: None}
+                  0x010132: 'between', 0x0101C6: None,
+                  # a game loaded in flight (M7 part 2): ingame_keys runs the briefing, the
+                  # setup and a tick of its own (0x01CDD4), then the mission goes on
+                  0x01CDD4: 'setup', 0x01CE06: 'mission'}
 
 
 class Recorder(headless.Headless):
@@ -112,6 +128,23 @@ class Recorder(headless.Headless):
         self.map_addresses = []                   # the map list's address at every map load
         self.uc.hook_add(UC_HOOK_MEM_WRITE, self._map_pointer, begin=MAP_LIST_POINTER,
                          end=MAP_LIST_POINTER + 3)
+        # The pass at every save_game_read (M7 part 2): a loaded game's derived fields
+        # (Replay, DERIVED) are held from the original's first tick that sets them.
+        self.loads = []
+        self.load_states = []                     # the memory as each load left it
+        self.after_load_tick = []                 # and after the first tick behind it
+        self.load_allocs = []                     # the blocks each load allocated
+        self._allocs_before = set()
+
+        def load_begins():
+            self.loads.append(self.passes)
+            self._allocs_before = set(self.allocs)
+
+        def load_ends():
+            self.load_states.append(self.regions())
+            self.load_allocs.append(set(self.allocs) - self._allocs_before)
+        self.stop_at(SAVE_GAME_READ, load_begins)
+        self.stop_at(SAVE_GAME_READ_DONE, load_ends)
         m5_scripts.install_pokes(self, self.pokes)
 
     def _window(self, uc, address, size, user):
@@ -120,7 +153,7 @@ class Recorder(headless.Headless):
         if address == 0x010132 and not hasattr(self, 'next_mission_pass'):
             self.next_mission_pass = self.passes          # the last pass of the won mission
         self.window = MISSION_WINDOW[address]
-        if self.window == 'mission':
+        if address == 0x01010A:
             self.at_s.append(bytes(self.o.read(headless.DATA_START,
                                                headless.DATA_END - headless.DATA_START)))
 
@@ -159,6 +192,9 @@ class Recorder(headless.Headless):
             self.t_windows.append(self.window)
         # Paula as the step leaves it, for the port's model to be held to (M8)
         self.paula_steps.append(self.paula.snapshot() if self.paula else None)
+        # the memory after the first tick that follows each load (tests/test_loader.py)
+        if kind == 'T' and len(self.after_load_tick) < len(self.load_states):
+            self.after_load_tick.append(self.regions())
 
 
 def record(name, dump_path, rate=2, pokes=None, more=None):
@@ -197,6 +233,10 @@ class Replay:
                 m4state.SEEN_SONGS.add(hunks[1])
         self.pokes = pokes or {}
         self.names = dump.Names(ROOT)
+        self.derived_counts = collections.Counter()
+        self.derived_open = set()
+        ported.lib.wt_load_count.restype = ctypes.c_uint
+        self._loads_seen = ported.lib.wt_load_count()
         lib = self.lib
         for name, args, res in (
                 ('wt_pass_mission_get', [ctypes.c_void_p, ctypes.c_int], ctypes.c_int),
@@ -300,7 +340,19 @@ class Replay:
         """The port's registered state, views, entropy and markers set to a state of the
         original (the open loop)."""
         g, m, problems = self.layout.expected(memory, getattr(self, 'shapes', None))
+        # A loaded game's derived field whose original still holds the saving machine's
+        # pointer (DERIVED): no shape record to hand over, so the port keeps what it derived.
+        kept = [p for p in problems if getattr(self.machine, 'loads', None)
+                and p.split(':')[0] in DERIVED and 'is no shape record' in p]
+        problems = [p for p in problems if p not in kept]
         assert not problems, problems[:5]
+        if kept:
+            pg, pm = self.layout.port_globals(), self.layout.port_mission()
+            names = {p.split(':')[0] for p in kept}
+            for name, which, offset, size, orig in self.layout.fields():
+                if name in names:
+                    (g if which == 'g' else m)[offset:offset + size] = \
+                        (pg if which == 'g' else pm)[offset:offset + size]
         self.layout.put(g, m)
         front = memory.u(FRONT_VIEW, 4)
         self.lib.wt_views_set(1 if front == VIEW_B else 0)
@@ -362,6 +414,13 @@ class Replay:
             on_reset(self)
         for fname, data in (files or {}).items():
             assert ported.fs_write(fname, data), fname      # laid over the disk, as the run's
+        # The run description's own files (a demo_play's wofdemo) and main's argument count
+        # (demo_record's), which the harness takes as the program's start does (M7 part 2).
+        spec = getattr(self.machine, 'run_spec', {}) or {}
+        for fname, text in (spec.get('files') or {}).items():
+            assert ported.fs_write(fname, bytes.fromhex(text)), fname
+        if int(spec.get('argc', 1)) > 1:
+            self.lib.wof_dev_demo_record(1)
         self.lib.wt_set_vblanks_per_pass(self.rate)
         self.lib.wt_standins_reset()
         self.lib.wt_pokes_clear()
@@ -469,6 +528,9 @@ class Replay:
         vblank = 0
         last_pass = max((h for h in self.machine.step_hashes if h[0] == 'P'),
                         key=lambda h: h[2], default=(None, 0, 0, None))[2]
+        # The last pass's ticks come after its end (run_queued_ticks follows frame_update):
+        # the replay goes on until the port has run them too.
+        last_tick = max((h[1] for h in self.machine.step_hashes if h[0] == 'T'), default=0)
         try:
             for entry in self.machine.schedule:
                 if entry[0] != 'V':
@@ -480,10 +542,12 @@ class Replay:
                 ported.pass_()
                 if self.errors:
                     raise self.errors[0]
-                if self.passes >= last_pass and last_pass:
+                if self.passes >= last_pass and last_pass and self.ticks >= last_tick:
                     break
                 if self.stopped:
                     break
+            self.tail_from = vblank
+            self._keys = keys
         finally:
             self.lib.wt_set_tick_hook(None)
             self.lib.wt_set_step_s_hook(None)
@@ -491,6 +555,22 @@ class Replay:
         if self.errors:
             raise self.errors[0]
         return self.passes
+
+    def run_tail(self):
+        """The schedule's VBlanks after the original's last step, keys included, through the
+        port with nothing compared: what the program does after a mission's last pass (a
+        demo's end writing wofdemo, M7 part 2) has no step of its own."""
+        vblank = 0
+        for entry in self.machine.schedule:
+            if entry[0] != 'V':
+                continue
+            vblank += 1
+            if vblank <= self.tail_from:
+                continue
+            for code, qualifier in self._keys.get(vblank, ()):
+                self.ported.key(code, qualifier)
+            self.ported.vblank(entry[1])
+            self.ported.pass_()
 
     def _next_head(self):
         if self.upcoming is None:
@@ -546,9 +626,37 @@ class Replay:
             pg, pm = self.layout.port_globals(), self.layout.port_mission()
         else:
             pg, pm = self.port_pass_state()
+        loads = self.lib.wt_load_count()
+        if loads != self._loads_seen:
+            # A game loaded: the containers loaded again with it (an in-flight load has no
+            # step S of its own), and the derived fields' window opens (DERIVED).
+            self._loads_seen = loads
+            self.shapes = m4state.Shapes(memory)
+            self.derived_open = set(DERIVED)
         wg, wm, problems = self.layout.expected(memory, getattr(self, 'shapes', None))
-        return problems + ['%s: port %x original %x' % d
-                           for d in self.layout.differences(pg, pm, wg, wm, skip)]
+        found = problems + ['%s: port %x original %x' % d
+                            for d in self.layout.differences(pg, pm, wg, wm, skip)]
+        return self._derived(found)
+
+    def _derived(self, found):
+        """A loaded game's derived fields (DERIVED): from the port's load until the first
+        comparison where the original's value names a shape record, a difference there that
+        comes from the original's holding a pointer of the saving machine, which names no
+        shape of its own memory, is counted in self.derived_counts and left out.  Any other
+        difference there, and every one after it, is a finding."""
+        live = self.derived_open
+        if not live:
+            return found
+        kept, foreign = [], set()
+        for line in found:
+            name = line.split(':')[0]
+            if name in live and ('is no shape record' in line or line.endswith('original ffff')):
+                foreign.add(name)
+                self.derived_counts[name] += 1
+                continue
+            kept.append(line)
+        self.derived_open = live & foreign
+        return kept
 
     def standins(self):
         out = []

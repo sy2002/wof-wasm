@@ -64,6 +64,9 @@
 026d4c demo_mode             ; 0 = play, 1 = demo playback, 2 = demo record
 026d4e demo_buffer_ptr
 026d52 demo_index            ; playback stops at $1386 entries or on an $FF byte
+026d44 demo_bytes_owed       ; word: the samples a demo pass still takes (2 after run_queued_ticks), vblank_server counts it down
+026d54 demo_step_s           ; word: st.b at step S, clr.w at the mission's end; the demo halves of vblank_server test it
+026f86 demo_file_name        ; long: main's argument, "wofdemo" at $023458 when argc > 1; every rank chosen records
 
 # ---- files and assets
 01fee0 rpck_unpack           ; asm. (src, srclen, dst, dstlen) signed-byte RLE; verified by tools/oracle.py
@@ -679,7 +682,7 @@
 0152f8 splashes_draw         ; asm. the Splashes pool
 01526e clip_to_waterline     ; asm. the playfield's clip with its bottom at the carrier's waterline
 01557c balloons_draw         ; asm. the Balloons pool (M5)
-01852a demo_end              ; C. the end of a demo recording (M7), then demo_mode cleared
+01852a demo_end              ; C. a recording's end: $FF at demo_index, the buffer saved as demo_file_name, freed; demo_mode cleared
 01abde aircraft_frame        ; C. the name of the player's frame for a state, facing and index, mirrored to the facing
 01b7bc deck_span             ; C. the carrier's deck as world x, sixteen pixels in from both ends
 01b7ec player_reset          ; C. the player's record at a reset

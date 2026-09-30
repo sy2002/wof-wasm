@@ -61,6 +61,8 @@ WOF_GLOBAL(fire_hold_latch,    uint16_t, 0x027DFA)  /* down for 10 VBlanks or mo
 WOF_GLOBAL(fire_state,         uint16_t, 0x027F66)  /* what poll_fire last read */
 WOF_GLOBAL(joy_dir8,           uint16_t, 0x027742)  /* what poll_joy_dir8 last read, 0..8 */
 WOF_GLOBAL(demo_mode,          uint16_t, 0x026D4C)  /* 0 play, 1 playback, 2 recording */
+WOF_GLOBAL(demo_index,         uint16_t, 0x026D52)  /* the demo buffer's next entry, the rank at 0 */
+WOF_GLOBAL(demo_file_name,     uint32_t, 0x026F86)  /* main's argument: "wofdemo" (0x023458) records */
 
 /* the key buffer (re/notes/keys.md) */
 WOF_GLOBAL_ARRAY(key_qualifier_buffer, uint16_t, 10, 0x026CA2)
@@ -149,8 +151,8 @@ WOF_GLOBAL(g_025f14,           int16_t,  0x025F14)
 WOF_GLOBAL(g_026d3a,           int16_t,  0x026D3A)
 WOF_GLOBAL(soldiers_killed,    int16_t,  0x026D3C)
 WOF_GLOBAL(g_026d3e,           int16_t,  0x026D3E)
-WOF_GLOBAL(g_026d44,           int16_t,  0x026D44)
-WOF_GLOBAL(g_026d54,           uint16_t, 0x026D54)  /* set at step S; vblank_server's demo branches test it */
+WOF_GLOBAL(demo_bytes_owed,    int16_t,  0x026D44)  /* the samples a demo pass still takes (re/notes/demo.md) */
+WOF_GLOBAL(demo_step_s,        uint16_t, 0x026D54)  /* set at step S; vblank_server's demo branches test it */
 WOF_GLOBAL(g_027166,           int16_t,  0x027166)  /* draw_world's distance for the sound engine */
 WOF_GLOBAL(g_027164,           uint16_t, 0x027164)  /* its flag: st.b the high byte, clr.w both */
 WOF_GLOBAL(g_027168,           int16_t,  0x027168)

@@ -166,14 +166,40 @@ const wof_state_t *wof_trace_pass_state(void)
     return pass_snapshot_taken ? &pass_snapshot : 0;
 }
 
-/* The two snapshots forgotten, between two tests (tests/conftest.py, fresh_settings) and
- * never inside one: the step-S snapshot must survive the trace resets a replay makes until
- * the setup comparison reads it.  A test that reads one it has not taken then finds none,
- * not another test's. */
+/* The whole state as a load left it, at the end of save_game_read (M7 part 2), before the
+ * tick main or ingame_keys runs after it: tests/test_loader.py holds it to the original's
+ * at the same point. */
+static wof_state_t load_snapshot;
+static int         load_snapshot_taken;
+
+static uint32_t load_count;
+
+void wof_test_load_end(void)
+{
+    wof_mem_copy(&load_snapshot, &wof_s, sizeof load_snapshot);
+    load_snapshot_taken = 1;
+    load_count++;
+}
+
+uint32_t wof_trace_load_count(void)
+{
+    return load_count;
+}
+
+const wof_state_t *wof_trace_load_state(void)
+{
+    return load_snapshot_taken ? &load_snapshot : 0;
+}
+
+/* The snapshots forgotten, between two tests (tests/conftest.py, fresh_settings) and never
+ * inside one: the step-S snapshot must survive the trace resets a replay makes until the
+ * setup comparison reads it.  A test that reads one it has not taken then finds none, not
+ * another test's. */
 void wof_trace_snapshots_reset(void)
 {
     mission_snapshot_taken = 0;
     pass_snapshot_taken    = 0;
+    load_snapshot_taken    = 0;
 }
 
 /* A test's hook at the end of every tick (the stand-in's and main's own), which is where

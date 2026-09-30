@@ -25,6 +25,7 @@ import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRun, walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, VIDEO,
          WEAPON_VIEW, enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
+import { STATE_WATCH, demoRun, flightLoadRun, saveLoadRun } from './pageload.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const args = process.argv.slice(2);
@@ -693,6 +694,39 @@ try {
     });
     report.fullscreen.hold = walked.hold;
     report.fullscreen.outside = walked.outside;
+
+    /* M7 part 2 (tests/pageload.mjs), in a tab of its own: a game saved on the carrier and
+       loaded after a reload from the rank selection, the same save loaded with L in flight,
+       and a demo recorded with the overlay's key 4, played after a reload and again. */
+    const loadTab = (await send(socket, 'browsingContext.create', { type: 'tab' })).context;
+    await send(socket, 'script.addPreloadScript', { functionDeclaration: STATE_WATCH, contexts: [loadTab] });
+    await send(socket, 'browsingContext.activate', { context: loadTab });
+    await send(socket, 'browsingContext.navigate', {
+        context: loadTab, url: 'file://' + pagePath, wait: 'complete',
+    });
+    await sleep(1500);
+    const loadKeys = { backquote: KEY_BACKQUOTE, space: KEY_SPACE, enter: KEY_ENTER, up: KEY_UP,
+                       down: KEY_DOWN, right: KEY_RIGHT, keyG: 'g', keyL: 'l', keyP: 'p',
+                       keyR: 'r', keyA: 'a', keyB: 'b', keyC: 'c', four: '4', p: 'p' };
+    report.loadLogsBefore = logs.length;
+    const loadDriver = {
+        tap: async (name, ms = 80) => {
+            await keyAction(loadTab, 'keyDown', loadKeys[name]);
+            await sleep(ms);
+            await keyAction(loadTab, 'keyUp', loadKeys[name]);
+        },
+        hold: (name) => keyAction(loadTab, 'keyDown', loadKeys[name]),
+        release: (name) => keyAction(loadTab, 'keyUp', loadKeys[name]),
+        sleep,
+        evaluate: (expression) => evaluateIn(loadTab, expression),
+        reload: async () => {
+            await send(socket, 'browsingContext.reload', { context: loadTab, wait: 'complete' });
+            await sleep(1500);
+        },
+    };
+    report.saveLoad = await saveLoadRun(loadDriver);
+    report.flightLoad = await flightLoadRun(loadDriver);
+    report.demo = await demoRun(loadDriver);
 
     /* Which renderer drew each page of the run (web/video.js), with its reason for a
        fallback: every one but the 2D tab's is meant to be WebGL.  The blank tab has none. */

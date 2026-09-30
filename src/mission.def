@@ -98,6 +98,11 @@ WOF_POOL(guns_battleship,      gun,      16, 0x025484)
 WOF_POOL(guns_cruiseship,      gun,      16, 0x0254A2)
 WOF_POOL(guns_japcarrier,      gun,      16, 0x0254C0)
 
+/* The demo (M7 part 2, re/notes/demo.md): rank_select's buffer of 0x1388 bytes for a
+ * recording, or the file wofdemo as load_file reads it for a playback; demo_buffer_set
+ * (src/wof.h, wof_front_t) is the port's pointer. */
+WOF_POOL(demo_buffer,          byte,   0x1388, 0x026D4E)
+
 /* The four pools and the two master lists of alloc_pools, allocated once at start-up. */
 WOF_POOL(ricochet_records,     splash,   20, 0x026EA4)
 WOF_POOL(splash_records,       splash,   20, 0x026F30)

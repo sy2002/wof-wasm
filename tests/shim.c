@@ -1066,6 +1066,64 @@ int wt_pass_mission_get(uint8_t *dst, int max)
     return (int)sizeof(wof_mission_t);
 }
 
+/* draw_score alone (M7 part 2, tests/test_oracle_m7.py). */
+void wof_test_draw_score(void);
+
+void wt_draw_score(void)
+{
+    wof_test_draw_score();
+}
+
+/* The loads the port has made since the process began (M7 part 2, tests/m4compare.py). */
+unsigned wt_load_count(void)
+{
+    return wof_trace_load_count();
+}
+
+/* A ship's gun-list flag, the port's pointer at the ship's +0x06 (M7 part 2's loader). */
+int wt_ship_guns(int ship)
+{
+    return ship >= 0 && ship < 5 ? wof_m.ship_records[ship].guns : -1;
+}
+
+/* The state at the end of the last load (M7 part 2, tests/test_loader.py): its globals and
+ * tables, or -1 when no game was loaded. */
+int wt_load_mission_get(uint8_t *dst, int max)
+{
+    const wof_state_t *st = wof_trace_load_state();
+
+    if (!st || max < (int)sizeof(wof_mission_t))
+        return -1;
+    wof_mem_copy(dst, &st->m, sizeof(wof_mission_t));
+    return (int)sizeof(wof_mission_t);
+}
+
+/* The four derived fields as the last load left them: 0 the player's shape, 1 the
+ * torpedo's, 2 the shape at 0x02541A, 3 to 7 the ships' gun-list flags; -1 without a load. */
+int wt_load_derived(int which)
+{
+    const wof_state_t *st = wof_trace_load_state();
+
+    if (!st)
+        return -1;
+    switch (which) {
+    case 0:  return st->m.player[0].shape;
+    case 1:  return st->m.torpedo_shape[0].s;
+    case 2:  return st->m.g_02541a[0].s;
+    default: return which >= 3 && which < 8 ? st->m.ship_records[which - 3].guns : -1;
+    }
+}
+
+int wt_load_globals_get(uint8_t *dst, int max)
+{
+    const wof_state_t *st = wof_trace_load_state();
+
+    if (!st || max < (int)sizeof(wof_globals_t))
+        return -1;
+    wof_mem_copy(dst, &st->g, sizeof(wof_globals_t));
+    return (int)sizeof(wof_globals_t);
+}
+
 int wt_pass_globals_get(uint8_t *dst, int max)
 {
     const wof_state_t *st = wof_trace_pass_state();

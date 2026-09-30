@@ -62,9 +62,11 @@ uint8_t *wof_load_file(const char *name, uint32_t *len)
     if (len)
         *len = 0;
 
+    /* A lock of -2 or below is a file the game has written (src/fs.c): wofdemo, which the
+     * attract mode reads, is one (M7 part 2). */
     lock = wof_dos_lock(name);
-    wof_trace_add("load_file", lock >= 0, 0, 0, 0, name, 32);
-    if (lock < 0)
+    wof_trace_add("load_file", lock != -1, 0, 0, 0, name, 32);
+    if (lock == -1)
         return 0;
     size = wof_dos_examine_size(lock);
     wof_dos_unlock(lock);

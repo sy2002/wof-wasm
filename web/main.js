@@ -298,6 +298,9 @@ async function boot() {
         } else if (overlay.visible() && event.code === 'Digit3') {
             core.devOpenDialog(0);           /* the load dialog, the same way */
             event.preventDefault();
+        } else if (overlay.visible() && event.code === 'Digit4') {
+            core.devDemoRecord(core.demoRecording() === 0);   /* main's argument, on or off */
+            event.preventDefault();
         }
     });
 

@@ -158,11 +158,30 @@ class Core {
         this.x.wof_dev_open_dialog(mode ? 1 : 0);
     }
 
+    /* main's command-line argument (M7 part 2): on, every rank chosen records a demo, which
+       the game's end writes as wofdemo beside its seed; the stored files go through the
+       written-files list like a saved game. */
+    devDemoRecord(on) {
+        this.x.wof_dev_demo_record(on ? 1 : 0);
+    }
+
+    /* 0 off, 1 armed, 2 recording. */
+    demoRecording() {
+        return this.x.wof_demo_recording();
+    }
+
     /* The player's x, y and deck state and the weapon type, for the overlay and the page
        test (read-only). */
     devPlayer() {
         const p = new Int16Array(this.x.memory.buffer, this.x.wof_dev_player(), 4);
         return { x: p[0], y: p[1], deck: p[2], weapon: p[3] };
+    }
+
+    /* The campaign for the overlay's game line and the page tests (read-only). */
+    devGame() {
+        const g = new Int32Array(this.x.memory.buffer, this.x.wof_dev_game(), 6);
+        return { rank: g[0], mission: g[1], lives: g[2], score: g[3], inMission: g[4] !== 0,
+                 demo: g[5] };
     }
 
     /* The pause as a request: the next pass of a mission pauses as Escape does. */

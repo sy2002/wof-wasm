@@ -128,8 +128,9 @@ static void vblank_every_frame(void)
 
 /* orig 0x01CA32 read_joystick - the input byte of one tick.  A tap wins: it sets bit 5 and
  * clears both latches, so one sample never reports tap and hold together.  The left and
- * right bits swap on the way in: read_joy_bits uses b2 for left, the input byte b3. */
-static void read_joystick(void)
+ * right bits swap on the way in: read_joy_bits uses b2 for left, the input byte b3.  D0 is
+ * left as read_joy_bits returned it, which vblank_server's recording half stores. */
+static uint16_t read_joystick(void)
 {
     uint16_t bits = wof_read_joy_bits();
     uint8_t  byte = 0;
@@ -149,6 +150,22 @@ static void read_joystick(void)
     if (bits & 0x8u) byte |= 0x04u;
 
     wof_g.input_byte = byte;
+    return bits;
+}
+
+/* The demo buffer's byte at `index`: demo_buffer_ptr + index.  A buffer freed between two
+ * missions (free_mission_assets, 0x01124C) leaves the pointer 0 and the original reading and
+ * writing the machine's memory from address 0; the port reads 0 there and drops the write
+ * (re/notes/demo.md). */
+static uint8_t demo_byte(uint16_t index)
+{
+    return wof_f.demo_buffer_set && index < WOF_DEMO_BYTES ? wof_m.demo_buffer[index].v : 0;
+}
+
+static void demo_store(uint16_t index, uint8_t value)
+{
+    if (wof_f.demo_buffer_set && index < WOF_DEMO_BYTES)
+        wof_m.demo_buffer[index].v = value;
 }
 
 /* orig 0x011714 input_queue_pop - queue[0], then the queue shifts down.  The dbra runs as
@@ -246,8 +263,8 @@ void wof_vblank_ticker(void)
  * drawing on the play screen and arrives with M4; the flag that gates it, the byte at
  * 0x02464E, is non-zero outside a mission, which is the whole of M3.  The word at 0x027364,
  * which would skip the sampling altogether, is tested here and written nowhere in the
- * executable, so it is left out.  Demo playback and recording, the two branches around the
- * sample, belong to M7 and are marked there.
+ * executable, so it is left out.  Demo playback and recording are the two branches around
+ * the sample (M7 part 2, re/notes/demo.md).
  */
 void wof_vblank(uint8_t raw)
 {
@@ -289,15 +306,39 @@ void wof_vblank(uint8_t raw)
     }
     wof_g.vblank_divider = VBLANKS_PER_TICK;
 
-    /* M7: demo playback takes the byte from the recorded buffer instead. */
-    {
+    uint16_t d0;                        /* what the original's D0 holds on the way */
+
+    if (wof_g.demo_mode == 1) {
+        /* 0x011790: a playback takes the byte from the demo, and only while step S has set
+         * 0x026D54 and run_queued_ticks' count 0x026D44 still wants one: nothing is queued
+         * otherwise.  A 0xFF byte ends the playback and is queued itself; so is the entry
+         * that brings the index to 0x1386. */
+        uint16_t d1;
+
+        if (!wof_g.demo_step_s || !wof_g.demo_bytes_owed) {
+            wof_vblank_ticker();
+            return;
+        }
+        wof_g.demo_bytes_owed--;
+        d1 = wof_g.demo_index;
+        d0 = demo_byte(d1);
+        if (d0 == 0xFFu) {
+            wof_g.quit_flag = 0xFF;
+        } else {
+            d1++;
+            wof_g.demo_index = d1;
+            if (d1 >= WOF_DEMO_ENTRIES)
+                wof_g.quit_flag = 0xFF;
+        }
+        wof_g.input_byte = d0;
+    } else {
         /* Port policy, not the original: the sample sees what the keyboard assist makes of
          * the VBlanks since the previous one, and everything else keeps seeing the
          * controller as it is (src/assist.c).  While the assist is off it is the identity. */
         uint16_t physical = wof_s.raw;
 
         wof_s.raw = wof_assist_sample(physical);
-        read_joystick();
+        d0 = read_joystick();
         wof_s.raw = physical;
     }
 
@@ -306,9 +347,21 @@ void wof_vblank(uint8_t raw)
     if (count < 6)
         count++;
     else
-        wof_input_queue_pop();          /* the oldest entry goes */
+        d0 = wof_input_queue_pop();     /* the oldest entry goes, into D0 */
     wof_g.input_queue_count  = count;
     wof_g.input_queue[count - 1] = wof_g.input_byte;
+
+    if (wof_g.demo_mode == 2 && wof_g.demo_step_s && wof_g.demo_bytes_owed) {
+        /* 0x011800: a recording keeps the sample's low byte while run_queued_ticks' count
+         * wants one, and ends at entry 0x1386; then input_byte takes what D0 holds, which is
+         * read_joy_bits' result or, when the queue was full, the entry it dropped. */
+        wof_g.demo_bytes_owed--;
+        demo_store(wof_g.demo_index, (uint8_t)wof_g.input_byte);
+        wof_g.demo_index++;
+        if (wof_g.demo_index >= WOF_DEMO_ENTRIES)
+            wof_g.quit_flag = 0xFF;
+        wof_g.input_byte = d0;
+    }
 
     /* The count of samples taken, which is the rate one logic tick per queued byte runs
      * at: wof_tick_count.  The ticks the inner loop runs are counted in wof_f.ticks_run. */
@@ -317,9 +370,16 @@ void wof_vblank(uint8_t raw)
 }
 
 /* A byte of a ticker message.  The original keeps the message pointer at 0x0257B6; the
- * port keeps the same address and reads the byte from the registered global that holds it
- * (the tick writes its messages with sprintf into ticker_text and ticker_text_2), or from
- * the executable's initialised DATA hunk for a constant text (re/tables.toml, data_image). */
+ * port keeps the same address and reads the byte from the registered global that holds it,
+ * or from the executable's initialised DATA hunk for a constant text (re/tables.toml,
+ * data_image).  Its writers point it at ticker_text (0x02716A: mission_won 0x0156FC, and
+ * ticker_offer 0x015562 from ticker_say, ship_sinking and the cheat's memory line) or at
+ * ticker_text_2 (0x027E00: the version and Help lines), both registered, and the server
+ * steps it to the text's NUL (0x0118E2).  No text reaches past them: ticker_text holds a
+ * message formatted from its start, at most 95 characters (the cheat's memory line; an
+ * island's bonus 83, a ship sunk 59), and mission_won appends at most 125 to an island's or
+ * a ship's, 220 bytes with the NUL in its 300; ticker_text_2's lines are at most 50 of 102
+ * (re/notes/porting-m7.md, "Part 2: the port").  So the last answer, 0, is never given. */
 uint8_t wof_ticker_char(uint32_t addr)
 {
     uint8_t b;
@@ -328,6 +388,5 @@ uint8_t wof_ticker_char(uint32_t addr)
         return b;
     if (addr >= 0x023000u && addr - 0x023000u < sizeof wof_tbl_data_image)
         return wof_tbl_data_image[addr - 0x023000u];
-    WOF_STANDIN("M7 PART 2 STAND-IN: a ticker message outside the registered state");
     return 0;
 }

@@ -131,9 +131,9 @@ void wof_invert_vertical_follow(void)
         wof_s.invert_pref = wof_g.opt_invert_vertical ? 1u : 0u;
 }
 
-/* M7 STAND-IN: opt_invert_vertical (0x0254F6) lies inside a range a saved game covers, so
- * loading one overwrites it.  The loader calls this afterwards and the preference wins.
- * There is no loader yet; the hook is here so that M7 cannot miss it. */
+/* opt_invert_vertical (0x0254F6) lies inside the raw part a saved game covers, so loading
+ * one overwrites it.  The loader (wof_save_game_read, src/dialog.c) calls this afterwards
+ * and the preference wins. */
 void wof_invert_vertical_restore(void)
 {
     if (wof_s.invert_given)

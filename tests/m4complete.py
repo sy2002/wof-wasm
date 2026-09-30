@@ -182,13 +182,15 @@ M7_EXCLUDED = [
      'again by the next mission\'s setup',
      'the port loads every container at start-up (src/assets.c); which dashboard is shown is '
      'compared as the drawing calls and the palette of every row', 'M1, M4'),
-    (0x0254F8, 0x025507, {'map_scan', 'mem_free_var'},
+    (0x0254F8, 0x025507, {'map_scan', 'mem_free_var', 'save_read_part'},
      'target_records_4, target_records_3, soldier_records, target_records_f: the pointers to '
-     'map_scan\'s four tables, freed with the old map and allocated again for the next one',
+     'map_scan\'s four tables, freed with the old map and allocated again for the next one, '
+     'or by the loader for a saved game\'s',
      'the port keeps the tables at fixed places (src/mission.def) and compares their records '
      'after every step; a pointer to an allocation is no state of the port', 'M4'),
-    (0x026C60, 0x026C63, {'save_game_write'},
-     'save_handle: the saved game\'s file handle while save_game_write writes it',
+    (0x026C60, 0x026C63, {'save_game_write', 'save_game_read'},
+     'save_handle: the saved game\'s file handle while save_game_write writes it or '
+     'save_game_read reads it',
      'the port writes the file through its file system in one piece (src/dialog.c, '
      'wof_save_game_write), and the file is held byte for byte to the original\'s '
      '(test_campaign.py)', 'M7'),
@@ -196,9 +198,11 @@ M7_EXCLUDED = [
      'the C library\'s sprintf: where its output goes, for the briefing\'s numbers',
      'the port formats with wof_number; the briefing\'s text is held by the front end\'s '
      'tests (test_front_port.py)', 'M3'),
-    (0x026D4E, 0x026D51, {'mem_free_var'},
-     'demo_buffer_ptr, which free_mission_assets frees and clears between the missions',
-     'the demo is M7 part 2\'s; the port has no buffer to free', 'M7 part 2'),
+    (0x026D4E, 0x026D51, {'mem_free_var', 'rank_select'},
+     'demo_buffer_ptr: the demo\'s block, rank_select\'s allocation for a recording or '
+     'wofdemo as load_file reads it for a playback, freed between the missions',
+     'the pool demo_buffer (src/mission.def) is found through it and compared record by '
+     'record after every step; the port keeps whether it is set (demo_buffer_set)', 'M7'),
     (0x026E52, 0x026E55, {'load_dash_assets', 'mem_free_var'},
      'dash_shapes: the dashboard container\'s table of shape pointers',
      'as dash_container: the port resolves the names into handles at start-up', 'M1, M4'),
@@ -286,7 +290,12 @@ class Coverage:
         sizes = dict(machine.alloc_sizes)
         sizes.update(machine.display_allocs)
         pools = []
-        for snap in machine.at_s:
+        # The pools as every step S leaves their pointers, and as every load does (M7 part 2):
+        # a game loaded in flight reads its tables into new blocks with no step S after it.
+        loads = getattr(machine, 'load_data', None)
+        if loads is None:
+            loads = [regions[DATA_START] for regions in getattr(machine, 'load_states', [])]
+        for snap in list(machine.at_s) + list(loads):
             for table in self.layout.tables:
                 if not table['pool']:
                     continue

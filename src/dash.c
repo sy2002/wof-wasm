@@ -305,38 +305,63 @@ void wof_map_window(void)
 /* ------------------------------------------------------------------ draw_dashboard */
 
 /* orig 0x01F2B0 - one digit: a slice of dash shape 7, blitted without a mask at the row
- * digit_rows gives the digit, sign-extended from a byte as the original does. */
+ * digit_rows (0x024BFC) gives the digit, a byte added to the row and sign-extended as the
+ * original does.  The digit indexes the table as a signed word, so a character below '0'
+ * reads the bytes in front of it (draw_score's '-', M7 part 2). */
 void wof_dash_digit(int16_t x, int16_t y, uint16_t d)
 {
     const wof_shape_t *s = wof_shape_of(dash(7));
-    int16_t            row = (int16_t)(int8_t)(uint8_t)((uint16_t)y + (d < 10 ? wof_tbl_digit_rows[d] : 0));
+    uint8_t            add = wof_image8(0x024BFCu + (uint32_t)(int32_t)(int16_t)d);
+    int16_t            row = (int16_t)(int8_t)(uint8_t)((uint16_t)y + add);
 
     if (s)
         wof_shape_blit(s, 0, (int16_t)(x - s->hot_x), (int16_t)(row - s->hot_y));
 }
 
-/* orig 0x01F26A - the score, sprintf("%07ld") into score_text and a digit per character,
- * clipped to rows 11 to 17. */
+/* orig 0x01F26A draw_score - the score through RawDoFmt's "%07ld" (0x0266C8) into
+ * score_text, then a digit per character up to the NUL, clipped to rows 11 to 17.
+ * RawDoFmt fills the whole converted field, its sign included, on the left, so a negative
+ * score reads "000-123" and its '-' is drawn as the digit 0x2D - 0x30, which dash_digit
+ * takes from the byte three before digit_rows.  A score of more than seven characters runs
+ * on past score_text's eight bytes as the original's does.  Nothing the game does makes the
+ * score negative; a loaded game can bring any score (M7 part 2, re/notes/campaign.md). */
 static void score(void)
 {
-    uint32_t v = wof_g.player_score;
-    char     text[8];
+    int32_t  v = (int32_t)wof_g.player_score;
+    uint32_t u = v < 0 ? 0u - (uint32_t)v : (uint32_t)v;
+    char     field[12];
+    char     text[16];
+    uint16_t n = 0, len = 0;
     int16_t  x = 0x200;
 
     wof_g.clip_top = 0x0B;
     wof_g.clip_bottom = 0x12;
-    for (int i = 6; i >= 0; i--) {
-        text[i] = (char)('0' + (int32_t)v % 10);
-        v = (uint32_t)((int32_t)v / 10);
-    }
-    text[7] = 0;
-    if ((int32_t)wof_g.player_score < 0)
-        WOF_STANDIN("M7 PART 2 STAND-IN: a negative score, in 0x01F26A");
-    for (int i = 0; i < 8; i++)
-        wof_g.score_text[i] = (uint8_t)text[i];
-    for (int i = 0; text[i]; i++, x = (int16_t)(x + 0x0E))
-        wof_dash_digit(x, 0x0B, (uint16_t)(text[i] - '0'));
+    do {
+        field[n++] = (char)('0' + u % 10u);
+        u /= 10u;
+    } while (u);
+    if (v < 0)
+        field[n++] = '-';
+    while (len + n < 7u)
+        text[len++] = '0';
+    while (n)
+        text[len++] = field[--n];
+    text[len] = 0;
+    for (uint16_t i = 0; i <= len; i++)
+        wof_original_store8(0x027F22u + i, (uint8_t)text[i]);
+    for (uint16_t i = 0; text[i]; i++, x = (int16_t)(x + 0x0E))
+        wof_dash_digit(x, 0x0B, (uint16_t)((uint16_t)(uint8_t)text[i] - 0x30u));
 }
+
+#ifdef WOF_TRACE
+/* The oracle test's entry (tests/test_oracle_m7.py): draw_score alone. */
+void wof_test_draw_score(void)
+{
+    if (!wof_shape_of(dash(7)))
+        wof_load_dash_assets();             /* the dashboard's shapes, as a mission has them */
+    score();
+}
+#endif
 
 /* orig 0x01F21A enemy_arrows - the first enemy aircraft in use that is a torpedo plane
  * (+0x02 low three bits 4) gets the arrow of the 3-D view (the manual, page 11): dash

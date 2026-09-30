@@ -26,12 +26,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0111a6,ship_gun_between,asm,86,,,,1,,,1,,verified
 0111fc,choose_night,asm,56,,,,1,rand_beam,,4,,verified
 011234,free_mission_assets,asm,34,,,,2,mem_free_var free_map sounds_free sub_0134ae,exec.AllocMem,2,,ported
-011256,sub_011256,asm,30,,,-32706,1,mem_free_var sounds_free sub_0134ae,exec.AllocMem,2,,todo
+011256,sub_011256,asm,30,,,-32706,1,mem_free_var sounds_free sub_0134ae,exec.AllocMem,2,,ported
 011274,shot_origin,asm,60,,,,1,,,14,,ported
 0112b0,weapon_menu,asm,214,,,,1,weapon_gauge_reset,,10,,ported
 011386,logic_tick,asm,218,,,-32700,3,objects_step shot_origin weapon_menu lift_step ship_launches airfields_step input_queue_pop gun_splashes engine_smoke balloons_step ships_sinking target_timers sound_channels engine_sound guns player_update enemy_aircraft_step,,16,,ported
 011460,lift_step,asm,120,,,,1,sound_slots_clear sound_clang player_restart_state engine_idle,,4,,ported
-0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,partial
+0114d8,run_queued_ticks,asm,56,,,,1,logic_tick wait_next_vblank,,4,,ported
 011510,ship_launches,asm,274,,,,1,aircraft_launch,,8,,verified
 011622,airfields_step,asm,242,,,,1,aircraft_launch,,4,,verified
 011714,input_queue_pop,asm,54,,,,2,os_disable os_enable,,2,,ported
@@ -203,12 +203,12 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 015d3e,load_file_public_asm,asm,14,,,,4,load_file_public,,0,,ported
 015d4c,sub_015d4c,asm,4,,,,1,,,0,,todo
 015d50,load_file_chip_asm,asm,10,,,,3,load_file_chip,,0,,ported
-015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,todo
+015d5a,read_vhposr,asm,8,,,-32382,2,,,0,,replace
 015d62,save_nothing,C,8,2,,,1,,,0,,verified
 015d6a,sub_015d6a,asm,18,,,,0,,,0,,todo
-015d7c,save_read_part,C,98,4,8 12 16 20,,0,exit_game mem_alloc os_dos_read,,0,,todo
+015d7c,save_read_part,C,98,4,8 12 16 20,,0,exit_game mem_alloc os_dos_read,,0,,verified
 015dde,save_write_part,C,60,0,8 12 16 20,,0,os_dos_write,,0,,verified
-015e1a,save_game_read,C,112,6,8,,1,save_walk exit_game sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",todo
+015e1a,save_game_read,C,112,6,8,,1,save_walk exit_game sub_021dce os_dos_close os_dos_io_err os_dos_open,,1,"""Couldn't OPEN file, error: %ld\n""",verified
 015e8a,save_game_write,C,56,6,8,,1,save_walk os_dos_close os_dos_open,,1,,ported
 015ec2,save_walk,C,368,10,8 12,,2,save_nothing,,14,,verified
 016032,text_caret,C,84,0,8 10,,1,os_gfx_rect_fill os_gfx_set_drmd,,1,,ported
@@ -257,7 +257,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 018194,menu_input,C,148,6,8,,2,poll_fire poll_joy_dir8 key_available key_get gfx_WaitTOF,,0,,verified
 018228,wait_input_release,C,58,2,,,3,poll_fire poll_joy_dir8 key_available gfx_WaitTOF,,0,,verified
 018262,rank_select,C,712,80,,-32334,1,music_start music_stop load_file_public_asm sub_015d4c read_vhposr view_set_picture screen_picture view_show_wait fade_to fade_out load_picture_black menu_input wait_input_release load_save_dialog view_build_copper view_copy rand_set_seed shape_by_index mem_alloc mem_free shape_draw_xor_c draw_set_target_c clip_set_full,,14,"""wofsongs"" | ""shapes/selectrank"" | ""shapes/selectrank.shp"" | ""wofdemo""",ported
-01852a,demo_end,C,70,0,,-32328,1,sub_0124dc save_file,,4,,partial
+01852a,demo_end,C,70,0,,-32328,1,sub_0124dc save_file,,4,,ported
 018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,ported
 018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",ported
 01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
@@ -350,7 +350,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01cbb2,record_is_land,C,64,2,8,,1,,,2,,verified
 01cbf2,ship_of_record,C,196,4,8,-32238,1,record_on_ship sub_021dce,,2,"""Not over a ship in ShipNum.\n"" | ""COULDN'T FIND A SHIP in ShipNum.\n""",partial
 01ccb6,sub_01ccb6,C,64,0,8,-32232,1,os_avail_mem os_close_window os_close_workbench,,2,,drop
-01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sound_slots_clear load_ship_shapes sounds_load sounds_free sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,partial
+01ccf6,ingame_keys,asm,306,,,-32226,1,sub_011256 logic_tick input_queue_clear sound_slots_clear load_ship_shapes sounds_load sounds_free sub_0134ae build_master_lists load_dash_assets ticker_clear screen_game_restore fade_out_pair mission_briefing mission_display_setup load_save_dialog dashboard_invalidate key_to_char key_available key_get,,10,,ported
 01ce28,sub_01ce28,asm,868,,,,0,sound_slots_clear sub_013756 format_to ticker_offer weapon_gauge_reset,dos.DeleteFile exec.AvailMem,28,"""highscore""",todo
 01d18c,aircraft_gone_far,C,94,6,8,,1,,,1,,verified
 01d1ea,enemy_frames,C,368,4,,,1,sub_01cb30,,12,,ported
@@ -393,7 +393,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01ee16,draw_dashboard,asm,1002,,,-32124,1,kill_icons enemy_arrows draw_score dash_digit clip_dashboard rand_beam shape_blit shape_draw blit_begin blit_end,,23,,ported
 01f200,kill_icons,asm,26,,,,1,shape_draw,,0,,ported
 01f21a,enemy_arrows,asm,80,,,,1,shape_draw,,2,,ported
-01f26a,draw_score,asm,70,,,,1,format_to dash_digit,,5,,partial
+01f26a,draw_score,asm,70,,,,1,format_to dash_digit,,5,,verified
 01f2b0,dash_digit,asm,44,,,,2,shape_blit,,1,,verified
 01f2dc,clip_dashboard,asm,16,,,-32112,2,clip_set,,0,,todo
 01f2ec,sub_01f2ec,C,70,12,8,,1,,,1,,todo
@@ -412,7 +412,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01fdd6,sub_01fdd6,asm,40,,,,0,,,0,,todo
 01fdfe,sub_01fdfe,asm,56,,,,0,,graphics.BltBitMap,1,,todo
 01fe36,sub_01fe36,asm,26,,,,0,mem_free,,0,,todo
-01fe50,save_file,C,100,10,8 12 16,-32100,2,os_dos_close os_dos_io_err os_dos_open os_dos_write,,0,,todo
+01fe50,save_file,C,100,10,8 12 16,-32100,2,os_dos_close os_dos_io_err os_dos_open os_dos_write,,0,,ported
 01feb4,load_file_public,C,22,0,8,-32094,2,load_file,,0,,ported
 01feca,load_file_chip,C,22,0,8,-32088,1,load_file,,0,,ported
 01fee0,rpck_unpack,asm,54,,,,1,,,0,,verified
@@ -424,7 +424,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020390,load_file_small,C,26,0,8 12,,3,sub_020220,,0,,replace
 0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
 0203be,rand_beam,asm,28,,,-32082,18,,,2,,todo
-0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,todo
+0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,ported
 0203e8,byterun1_row,asm,76,,,,1,,,0,,verified
 020434,sub_020434,C,24,0,,,0,,,0,,todo
 02044c,poll_fire,asm,8,,,-32064,8,read_fire_button,,1,,ported

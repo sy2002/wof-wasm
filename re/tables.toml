@@ -143,6 +143,11 @@ kind = "cstr"
 addr = 0x01850B
 
 [[table]]
+name = "wofdemo"
+kind = "cstr"
+addr = 0x018521
+
+[[table]]
 name = "selectrank_pic"
 kind = "cstr"
 addr = 0x0238B1

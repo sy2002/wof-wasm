@@ -88,18 +88,19 @@ void wof_free_sounds(void)
 }
 
 /* orig 0x011256 - what the load dialog frees first: AllocMem of all memory, which makes the
- * system flush what it can and has no effect here, the dash container, the sounds, and the
- * demo buffer (M7). */
+ * system flush what it can and has no effect here, the dash container, the sounds and the
+ * demo buffer, which no demo holds here: Control-L is refused in a demo (0x01CDA8). */
 void wof_free_for_load(void)
 {
     wof_free_dash_shapes();
     wof_free_sounds();
+    wof_f.demo_buffer_set = 0;
 }
 
 /* orig 0x012BBE - the map, the target tables, and the gun list and container of every
  * enemy ship the previous map carried.  The ship's flag at +4 is cleared as a byte, which
  * leaves the low byte of the word set. */
-static void free_map(void)
+void wof_free_map(void)
 {
     static const uint8_t order[4] = { SHIP_DESTROYER, SHIP_BATTLESHIP, SHIP_CRUISESHIP,
                                       SHIP_JAPCARRIER };
@@ -129,12 +130,14 @@ static void free_map(void)
 }
 
 /* orig 0x011234 free_mission_assets.  Its first call, AllocMem(-1), asks exec to flush
- * memory and means nothing here; the demo buffer it frees last belongs to M7. */
+ * memory and means nothing here; last it frees the demo buffer and clears its pointer
+ * (0x01124C), between two missions of a demo too (re/notes/demo.md). */
 void wof_free_mission_assets(void)
 {
     wof_free_dash_shapes();
     wof_free_sounds();
-    free_map();
+    wof_free_map();
+    wof_f.demo_buffer_set = 0;
 }
 
 /* orig 0x016BBC ticker_clear - BltClear of the ticker plane. */
@@ -143,11 +146,39 @@ void wof_ticker_clear(void)
     wof_mem_set(wof_f.vram + wof_f.ticker_base, 0, WOF_TICKER_BYTES);
 }
 
-/* orig 0x01852A - the end of a demo recording, which M7 owns, then demo_mode cleared. */
+/* orig 0x01852A demo_end - a recording's end, when main was given its argument: a 0xFF at
+ * the next entry and the whole buffer, 0x1388 bytes, saved under the name main was given
+ * (save_file 0x01FE50: Open new, Write, Close), which is always wofdemo (0x023458).  Then
+ * the buffer freed (0x0124DC clears the pointer) and demo_mode cleared.  Port policy beside
+ * it (re/notes/demo.md): wofdemo.seed, what the recording began from (the entropy stream,
+ * the swell's phase, night_flag) and a hash of the demo, so that a playback replays it as it
+ * was recorded, also after a page reload. */
 void wof_demo_end(void)
 {
-    if (wof_g.demo_mode == 2)
-        WOF_STANDIN("M7 PART 2 STAND-IN: 0x018536, saving a recorded demo");
+    if (wof_g.demo_mode == 2 && wof_g.demo_file_name != 0) {
+        uint8_t  demo[WOF_DEMO_BYTES];
+        uint8_t  seed[WOF_DEMO_SEED_BYTES];
+        uint32_t h = 0x811C9DC5u;
+
+        if (wof_f.demo_buffer_set && wof_g.demo_index < WOF_DEMO_BYTES)
+            wof_m.demo_buffer[wof_g.demo_index].v = 0xFF;
+        for (uint32_t i = 0; i < WOF_DEMO_BYTES; i++) {
+            demo[i] = wof_m.demo_buffer[i].v;
+            h = (h ^ demo[i]) * 0x01000193u;
+        }
+        if (wof_fs_write(wof_tbl_wofdemo, demo, WOF_DEMO_BYTES)) {
+            for (int i = 0; i < 4; i++) {
+                seed[i]     = (uint8_t)(wof_f.demo_seed >> (24 - 8 * i));
+                seed[4 + i] = (uint8_t)(h >> (24 - 8 * i));
+            }
+            seed[8]  = (uint8_t)(wof_f.demo_swell >> 8);
+            seed[9]  = (uint8_t)wof_f.demo_swell;
+            seed[10] = (uint8_t)(wof_f.demo_night >> 8);
+            seed[11] = (uint8_t)wof_f.demo_night;
+            wof_fs_write(WOF_DEMO_SEED_FILE, seed, WOF_DEMO_SEED_BYTES);
+        }
+    }
+    wof_f.demo_buffer_set = 0;
     wof_g.demo_mode = 0;
 }
 
@@ -917,10 +948,9 @@ void wof_load_ship_shapes(void)
         wof_m.ship_records[SHIP_CRUISESHIP].slot_base = 0xB8;
         wof_f.ship_loaded |= 1u << SHIP_CRUISESHIP;
         ship_guns(SHIP_CRUISESHIP, wof_m.guns_cruiseship, wof_tbl_guns_cruiseship);
-        if (!wof_g.loaded_game) {
-            wof_m.guns_cruiseship[1].w[3] = 5;
-            wof_m.guns_cruiseship[2].w[3] = 5;
-        }
+        /* 0x01331A: guns 1 and 2 at +6, for a loaded game too, whose list the file gave. */
+        wof_m.guns_cruiseship[1].w[3] = 5;
+        wof_m.guns_cruiseship[2].w[3] = 5;
     }
     if (wof_g.has_japcarrier) {
         wof_load_file(wof_tbl_japcarrier_shp, &len);

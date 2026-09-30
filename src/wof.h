@@ -92,6 +92,12 @@ WOF_API(wof_vblanks_per_pass)  int             wof_vblanks_per_pass(void);
 WOF_API(wof_dev_set_score)     void            wof_dev_set_score(uint32_t score);
 WOF_API(wof_dev_open_dialog)   void            wof_dev_open_dialog(int mode);
 WOF_API(wof_dev_player)        const int16_t  *wof_dev_player(void);   /* x, y, player_on_deck, weapon_type; read-only */
+WOF_API(wof_dev_game)          const int32_t  *wof_dev_game(void);     /* rank, mission, lives, score, in a mission, demo_mode; read-only */
+/* main's command-line argument (M7 part 2, re/notes/demo.md): on, every rank chosen from
+ * then on records a demo, written as wofdemo when the game ends; 0 is the original's default.
+ * wof_demo_recording says 2 while a recording runs, 1 while one is armed, 0 otherwise. */
+WOF_API(wof_dev_demo_record)   void            wof_dev_demo_record(int on);
+WOF_API(wof_demo_recording)    int             wof_demo_recording(void);
 
 /* The pause as a request (M4): the shell asks for it when the page is hidden, and the next
  * pass of a mission pauses the game as Escape does.  Outside a mission it is dropped. */
@@ -359,6 +365,14 @@ typedef struct {
     uint16_t music_spin;
     uint16_t music_song;
 
+    /* The demo (M7 part 2, re/notes/demo.md): whether demo_buffer_ptr (0x026D4E) is set,
+     * which is the pool demo_buffer (src/mission.def); the entropy stream where the running
+     * recording began, which goes into wofdemo.seed beside the demo at its end. */
+    uint16_t demo_buffer_set;
+    uint32_t demo_seed;
+    uint16_t demo_swell;      /* 0x02476A where the running recording began */
+    uint16_t demo_night;      /* night_flag there */
+
     wof_vport_t vport[WOF_VP_MAX];
     uint8_t     vram[WOF_VRAM_BYTES];
 } wof_front_t;
@@ -504,7 +518,7 @@ typedef struct {
 } wof_state_t;
 
 #define WOF_STATE_MAGIC   0x574F4653u  /* 'WOFS' */
-#define WOF_STATE_VERSION 11u
+#define WOF_STATE_VERSION 12u
 
 extern wof_state_t wof_s;
 
@@ -525,6 +539,9 @@ void wof_original_store16(uint32_t orig_address, uint16_t value);   /* a word, b
 int  wof_original_load8(uint32_t orig_address, uint8_t *out);       /* the byte the original's
                                                                        memory would hold there */
 int  wof_pool_load8(uint32_t pointer, uint32_t off, uint8_t *out);  /* a byte of an allocation */
+int  wof_pool_store8(uint32_t pointer, uint32_t off, uint8_t value); /* and one stored there */
+int  wof_pool_zero(uint32_t pointer);                               /* a new block: MEMF_CLEAR */
+uint32_t wof_pool_capacity(uint32_t pointer);                       /* its bytes, 0 for none */
 
 /* ------------------------------------------------------------- the marked stand-ins (M4)
  *
@@ -921,10 +938,20 @@ uint16_t wof_number(char *dst, int32_t value);               /* the sprintf("%d"
 void     wof_view_set_picture(uint8_t view);                 /* orig 0x016A98 */
 wof_co_t wof_load_save_dialog(uint16_t mode);                /* orig 0x018B96 */
 int16_t  wof_save_game_write(const char *name);               /* orig 0x015E8A */
+int16_t  wof_save_game_read(const char *name);                /* orig 0x015E1A */
+int      wof_save_game_fits(const char *name);                /* the port's check before it */
 /* The largest saved game the port's capacities allow (src/mission.def): the raw part
  * (0x84A), map_length, the record list, four ships' gun lists, the pillboxes, the soldiers
  * and the two target tables (re/notes/campaign.md). */
 #define WOF_SAVE_MAX (0x84Au + 2u + 3576u * 2u + 4u * 16u * 14u + 32u * 14u + 160u * 8u + 2u * 16u * 16u)
+/* The demo (re/notes/demo.md): rank_select's buffer, 0x1388 bytes; a playback ends at
+ * entry 0x1386 or a 0xFF byte.  The port keeps what a recording began from in a second file
+ * beside wofdemo, big-endian: the entropy stream's state (a long), a hash of the demo (a
+ * long), the swell's phase 0x02476A and night_flag (a word each). */
+#define WOF_DEMO_BYTES      0x1388u
+#define WOF_DEMO_ENTRIES    0x1386u
+#define WOF_DEMO_SEED_FILE  "wofdemo.seed"
+#define WOF_DEMO_SEED_BYTES 12u
 wof_co_t wof_high_score_screen(void);                        /* orig 0x019856 */
 void     wof_load_picture_black(const char *name, uint16_t *palette_out);  /* orig 0x017422 */
 void     wof_load_picture_black_into(uint8_t vport, const char *name, uint16_t *palette_out);
@@ -1031,6 +1058,7 @@ void     wof_free_mission_assets(void);     /* orig 0x011234 */
 void     wof_free_dash_shapes(void);        /* orig 0x0134AE */
 void     wof_free_sounds(void);             /* orig 0x01346C */
 void     wof_free_for_load(void);           /* orig 0x011256 */
+void     wof_free_map(void);                /* orig 0x012BBE */
 void     wof_campaign_reset(void);          /* orig 0x013562 */
 void     wof_mission_reset_tables(void);    /* orig 0x0135A8 */
 wof_co_t wof_player_lost_restart(void);     /* orig 0x0135D8: it waits in a tick */
@@ -1175,7 +1203,10 @@ int32_t  wof_test_enemy_call(uint32_t orig, int32_t a, int32_t b, int32_t c, int
 void     wof_trace_mission(void);                 /* the whole state at step S */
 void     wof_trace_pass_end(void);                /* the whole state after a pass */
 const wof_state_t *wof_trace_pass_state(void);
-void     wof_trace_snapshots_reset(void);         /* both snapshots forgotten, between tests */
+void     wof_trace_snapshots_reset(void);         /* the snapshots forgotten, between tests */
+void     wof_test_load_end(void);                 /* the state at save_game_read's end (M7 part 2) */
+const wof_state_t *wof_trace_load_state(void);
+uint32_t wof_trace_load_count(void);              /* the loads since the process began */
 void     wof_test_set_tick_hook(void (*hook)(uint32_t tick));
 void     wof_test_tick_end(uint32_t tick);        /* calls the test's hook, if any */
 void     wof_test_set_step_s_hook(void (*hook)(uint32_t mission));
@@ -1192,6 +1223,7 @@ void     wof_test_step_s(uint32_t mission);
 #define wof_test_poke_after_map() ((void)0)
 #define wof_env_map_address() WOF_MAP_LIST_ADDRESS
 #define wof_trace_mission() ((void)0)
+#define wof_test_load_end() ((void)0)
 #endif
 
 #endif /* WOF_H */

@@ -163,10 +163,10 @@ def test_the_saved_file_is_the_originals_but_for_its_pointers(ported, name):
 # ------------------------------------------------------------------ completeness (T3)
 
 def test_every_address_the_m7_scripts_write_is_compared_or_excluded(ported, request):
-    """T3 over the M7 scripts: every address the original writes during their missions and
-    between them - the fade, the next map, its briefing and setup, the save - is a
-    registered field, compared by another check, or on an exclusion list with its reason and
-    milestone.  The long scripts are taken with --slow."""
+    """T3 over the M7 scripts, part 2's among them: every address the original writes during
+    their missions and between them - the fade, the next map, its briefing and setup, the
+    save, the load, the demo - is a registered field, compared by another check, or on an
+    exclusion list with its reason and milestone.  The long scripts are taken with --slow."""
     import m4complete
     import m4state
     slow = request.config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1'
@@ -175,8 +175,8 @@ def test_every_address_the_m7_scripts_write_is_compared_or_excluded(ported, requ
         excluded=(m4complete.EXCLUDED + m4complete.M5_EXCLUDED + m4complete.M6_EXCLUDED +
                   m4complete.M7_EXCLUDED),
         heap=m4complete.HEAP + m4complete.M5_HEAP + m4complete.M6_HEAP + m4complete.M7_HEAP)
-    for name in SCRIPTS:
-        if name in SLOW and not slow:
+    for name in SCRIPTS + list(m7_scripts.PART2):
+        if (name in SLOW or name in m7_scripts.PART2_SLOW) and not slow:
             continue
         key = test_world.recording_key(name, 2, m7_scripts.pokes(name))
         machine = test_world.RECORDED.get(key)

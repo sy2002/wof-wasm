@@ -284,7 +284,7 @@ def load_run(source):
     if not isinstance(source, dict):
         with open(source) as f:
             given = json.load(f)
-    unknown = set(given) - set(DEFAULT_RUN) - {'bytes', 'files'}
+    unknown = set(given) - set(DEFAULT_RUN) - {'bytes', 'files', 'argc'}
     if unknown:
         raise ValueError('unknown keys in the run description: %s' % ', '.join(sorted(unknown)))
     run = dict(DEFAULT_RUN)
@@ -480,8 +480,11 @@ class Headless(AmigaOS):
             self.stop_at(address, self._music_spin)
 
         # the main program: main(argc, argv) with a 16-bit argc of 1, as the C startup calls it
+        # from a plain command line; `"argc": 2` is the game started with an argument, which
+        # makes every rank chosen record the demo wofdemo (0x01002C, re/notes/demo.md).  main
+        # looks at nothing but the count, and argv stays a null pointer.
         sp = MAIN_STACK_TOP
-        for size, value in ((4, 0), (2, 1), (4, END_TRAP)):
+        for size, value in ((4, 0), (2, int(run.get('argc', 1))), (4, END_TRAP)):
             sp -= size
             self.o.write(sp, value.to_bytes(size, 'big'))
         uc.reg_write(UC_M68K_REG_SR, 0x2000)

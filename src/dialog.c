@@ -8,10 +8,9 @@
  * (src/fs.c, re/notes/frontend.md, "The order of the file list").
  *
  * A save writes what the walker of the saved game (0x015EC2) hands its write callback, in
- * the original's layout (re/notes/campaign.md).  Reading one back is M7 part 2's: the load
- * is a marked stand-in that does what the original does when the load fails, which
- * re/notes/frontend.md observed: the dialog comes back as a cancel and the rank selection
- * rebuilds its picture.
+ * the original's layout (re/notes/campaign.md), and a load reads the same pieces back
+ * through the same walker with the read callback; the four pointer fields of the raw part
+ * are derived from the data beside them, never taken from the file.
  */
 #include "wof.h"
 #include "gen/tables.h"
@@ -229,6 +228,214 @@ int16_t wof_save_game_write(const char *name)
     }
     wof_arena_release(mark);
     save_data = 0;
+    return 1;
+}
+
+/* ------------------------------------------------------------ the saved game, read back */
+
+/* The file a load reads: the file system's own bytes, taken piece by piece as dos.Read
+ * hands them out, a short read at the end of the file. */
+static const uint8_t *load_data;
+static uint32_t       load_len, load_at;
+
+static uint32_t load_take(uint32_t len)
+{
+    uint32_t left = load_at < load_len ? load_len - load_at : 0;
+
+    return len < left ? len : left;
+}
+
+/* The ship whose gun-list pointer (+0x06) lies at `addr`, or -1. */
+static int ship_of_gun_pointer(uint32_t addr)
+{
+    for (int i = 0; i < 5; i++)
+        if (addr == 0x025460u + 0x1Eu * (uint32_t)i + 6u)
+            return i;
+    return -1;
+}
+
+/* orig 0x015D7C save_read_part - the walker's read callback (file, address, length, flag):
+ * flag 0 reads the memory at the address where it lies; flag 1 allocates a new block of the
+ * length (mem_alloc, cleared), reads into it and stores its address at the address the
+ * walker gave, only when Read gave the whole length, so a short read leaves the pointer.
+ * The blocks the running game held are not freed.  The port's block is the pool at a fixed
+ * place behind that pointer (src/mission.def), zeroed as the allocation would be; what it
+ * keeps for the pointer is the map's address as the environment gives it (SPEC 7.3) or a
+ * ship's gun-list flag.  A byte of the raw part goes where a registered field holds it; the
+ * pointer fields there are the saving machine's and are derived afterwards, never taken
+ * (wof_save_game_read). */
+static void save_get(uint32_t addr, uint32_t len, uint16_t flag)
+{
+    uint32_t n = load_take(len);
+
+    if (flag == 1) {
+        int ship = ship_of_gun_pointer(addr);
+
+        load_at += n;
+        if (n != len)
+            return;                            /* 0x015DB8: the new block is lost, the pointer stays */
+        wof_pool_zero(addr);
+        for (uint32_t i = 0; i < n; i++)
+            wof_pool_store8(addr, i, load_data[load_at - n + i]);
+        if (addr == 0x024628u)
+            wof_g.map_list_address = wof_env_map_address();
+        else if (ship >= 0)
+            wof_m.ship_records[ship].guns = 1;
+        return;
+    }
+    for (uint32_t i = 0; i < n; i++)
+        wof_original_store8(addr + i, load_data[load_at + i]);
+    load_at += n;
+}
+
+/* The port's check before a load, which the original does not make: the file is there, and
+ * it holds every piece its own counts ask for, each within what the port keeps behind the
+ * piece's pointer (src/mission.def).  The walker's lengths are computed as it computes them,
+ * from the file's raw part and its map_length (re/notes/campaign.md, "The layout").  A file
+ * that fails would make the original exit (0x015E50, a file that cannot be opened) or read
+ * into blocks it cannot have; the port leaves the dialog as a cancel instead. */
+int wof_save_game_fits(const char *name)
+{
+    wof_file_t     f;
+    const uint8_t *d;
+    uint32_t       len = 0, at, need;
+    uint32_t       raw = 0x0254F8u - 0x024CAEu;
+
+    if (!wof_dos_open(&f, name))
+        return 0;
+    wof_dos_close(&f);
+    d = wof_fs_find(name, &len);
+    if (!d)
+        return 0;
+#define RAW8(a)  ((uint32_t)d[(a) - 0x024CAEu])
+#define RAW16(a) ((RAW8(a) << 8) | RAW8((a) + 1u))
+    if (len < raw + 2u)
+        return 0;
+    at = raw + 2u;
+    need = (uint32_t)(int32_t)(int16_t)(uint16_t)((d[raw] << 8) | d[raw + 1u]);   /* ext.l */
+    if (need > wof_pool_capacity(0x024628u) || len - at < need)
+        return 0;
+    at += need;
+    for (uint32_t i = 0; i < 5u; i++) {
+        uint32_t ship = 0x025460u + 0x1Eu * i;
+
+        if (RAW16(ship + 4u) == 0 || RAW16(ship + 0x12u) == 0)
+            continue;
+        need = (uint16_t)(RAW16(ship + 0x0Au) * 14u);                     /* mulu.w */
+        if (need > wof_pool_capacity(ship + 6u) || len - at < need)
+            return 0;
+        at += need;
+    }
+    {
+        const uint32_t pointer[4] = { 0x025504u, 0x025500u, 0x0254FCu, 0x0254F8u };
+        uint32_t       lengths[4];
+
+        lengths[0] = (uint16_t)((uint32_t)(uint16_t)(int16_t)(int8_t)RAW8(0x025385u) * 14u);
+        lengths[1] = (uint16_t)(RAW16(0x0253C4u) << 3);
+        lengths[2] = (uint16_t)((uint16_t)(int16_t)(int8_t)RAW8(0x025386u) << 4);
+        lengths[3] = (uint16_t)((uint16_t)(int16_t)(int8_t)RAW8(0x025387u) << 4);
+        for (int i = 0; i < 4; i++) {
+            if (lengths[i] > wof_pool_capacity(pointer[i]) || len - at < lengths[i])
+                return 0;
+            at += lengths[i];
+        }
+    }
+#undef RAW8
+#undef RAW16
+    return 1;
+}
+
+static uint32_t file_long(const uint8_t *p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+/* The shape of hellcat.shp that a pointer of the saving machine names (0x02541A): the
+ * pointer is the long the file holds, `player` the player's shape pointer beside it, whose
+ * shape the frame name gives.  In the port's own file both are shape handles, and the
+ * handle is taken when it names a shape of hellcat.shp.  In a machine's file both are
+ * addresses of that machine's memory: the player's pointer and its shape's place in the
+ * container (6 + 8 x count + the record's offset, as load_file leaves a PPkc file) give the
+ * container's address there, and the pointer's distance from it gives the record it names.
+ * Anything else names no shape. */
+static uint16_t saved_hellcat_shape(uint32_t pointer, uint32_t player, uint32_t frame)
+{
+    const wof_container_t *c = &wof_assets.c[WOF_C_HELLCAT];
+    uint32_t               mark, len = 0, base, at;
+    const uint8_t         *file;
+    uint16_t               count, found = WOF_SHAPE_NONE;
+    int16_t                own;
+
+    if (pointer == 0)
+        return WOF_SHAPE_NONE;
+    if (pointer < 0x10000u || player < 0x10000u) {
+        if (pointer >= 0x10000u || (pointer >> 11) != (uint32_t)WOF_C_HELLCAT + 1u ||
+            (pointer & 0x7FFu) >= c->count)
+            return WOF_SHAPE_NONE;
+        return (uint16_t)pointer;
+    }
+    own = wof_shape_find(c, frame);
+    if (own < 0)
+        return WOF_SHAPE_NONE;
+    mark = wof_arena_mark();
+    file = wof_load_file(c->file, &len);
+    if (file && len >= 6 && file_long(file) == 0x50506B63u) {            /* 'PPkc' */
+        count = (uint16_t)(file[4] << 8 | file[5]);
+        at    = 6u + 4u * count;                                         /* the offsets */
+        if (len >= at + 4u * count && (uint16_t)own < count) {
+            base = player - (6u + 8u * count + file_long(file + at + 4u * (uint32_t)own));
+            for (uint16_t i = 0; i < count; i++)
+                if (base + 6u + 8u * count + file_long(file + at + 4u * i) == pointer)
+                    found = wof_shape_handle(WOF_C_HELLCAT, (int16_t)i);
+        }
+    }
+    wof_arena_release(mark);
+    return found;
+}
+
+/* orig 0x015E1A save_game_read - the file opened old (0x3ED), the walker with the read
+ * callback, the file closed; 1.  A file that cannot be opened makes the original print an
+ * error and exit the game (0x015E50); the port's dialog asks wof_save_game_fits first and
+ * never comes here with such a file.  After the walk the port derives the four pointer
+ * fields of the raw part from the data beside them, as the tick's frame_select (0x01C378)
+ * would set them (re/notes/campaign.md, "The loader"): the player's shape and the
+ * torpedo's from the frame name at the player's +0x08, the shape at 0x02541A from where
+ * its pointer lies beside the player's (saved_hellcat_shape), and a ship's gun list from
+ * whether the walker read one.  The owner's remembered vertical flip then wins over the
+ * file's (SPEC 6.1). */
+int16_t wof_save_game_read(const char *name)
+{
+    wof_file_t f;
+
+    if (!wof_dos_open(&f, name))
+        return 0;
+    wof_dos_close(&f);
+    load_data = wof_fs_find(name, &load_len);
+    load_at   = 0;
+    if (!load_data)
+        return 0;
+    for (int i = 0; i < 5; i++)
+        wof_m.ship_records[i].guns = 0;        /* the saving machine's pointers are not taken */
+    save_walk(save_get);
+
+    {
+        wof_player_t *p = &wof_m.player[0];
+        uint32_t      raw = 0x0254F8u - 0x024CAEu;
+        uint32_t      player = 0, level = 0;
+
+        if (load_len >= raw) {
+            player = file_long(load_data + (0x02507Cu - 0x024CAEu));
+            level  = file_long(load_data + (0x02541Au - 0x024CAEu));
+        }
+        p->shape = wof_shape_handle(WOF_C_HELLCAT,
+                                    wof_shape_find(&wof_assets.c[WOF_C_HELLCAT], p->frame_name));
+        wof_m.torpedo_shape[0].s = wof_shape_handle(
+            WOF_C_TORPEDO, wof_shape_find(&wof_assets.c[WOF_C_TORPEDO], p->frame_name));
+        wof_m.g_02541a[0].s = saved_hellcat_shape(level, player, p->frame_name);
+    }
+    load_data = 0;
+    wof_invert_vertical_restore();
+    wof_test_load_end();
     return 1;
 }
 
@@ -455,8 +662,8 @@ static void dialog_highlight(int16_t which, uint16_t mode)
 }
 
 /* orig 0x018B96 load_save_dialog(mode): 0 load, 1 save; 0 back when a game was loaded or
- * saved and -1 when the player left it.  What a saved game holds is M7; the two routines
- * that would write and read it are stand-ins here. */
+ * saved and -1 when the player left it.  A file the port cannot hold is refused before the
+ * load begins and the dialog leaves as a cancel (wof_save_game_fits). */
 wof_co_t wof_load_save_dialog(uint16_t mode)
 {
     wof_ctx_t   *c = &wof_f.co_inner;
@@ -561,19 +768,18 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
                 wof_f.dialog_path[n++] = *s;
             wof_f.dialog_path[n] = 0;
         }
+        if (!mode && !wof_save_game_fits(wof_f.dialog_path))
+            break;                          /* the port's refusal: as Cancel (below) */
         wof_gfx_move(v, 10, 10);
         if (!mode) {
+            /* 0x019132: the text, the music stopped, the running game's map freed and the
+             * file read; then straight to the end, with no fade: the caller fades. */
             wof_gfx_text(v, wof_tbl_dialog_loading, str_len(wof_tbl_dialog_loading));
             CO_CALL(c, &wof_f.co_music, wof_music_stop());   /* 0x019146 */
-            /* M7 PART 2 STAND-IN: the loader.  What the original does when the load fails
-             * is what re/notes/frontend.md observed, and what the port does until M7 part 2
-             * ports it: the dialog comes back as a cancel and the rank selection rebuilds
-             * its picture. */
-            WOF_STANDIN("M7 PART 2 STAND-IN: 0x019152, save_game_read: a saved game loaded");
-            CO_CALL(c, &wof_f.co_fade, wof_fade_out());
-            CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
-            wof_f.dialog_result = 0xFFFF;
-            wof_sound_engine_load();        /* 0x019248 */
+            wof_free_map();                                   /* 0x01914A */
+            wof_save_game_read(wof_f.dialog_path);            /* 0x019152 */
+            wof_f.dialog_result = 0;                          /* 0x019218 */
+            wof_sound_engine_load();                          /* 0x019248 */
             CO_RETURN(c);
         }
 

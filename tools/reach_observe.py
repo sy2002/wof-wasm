@@ -248,9 +248,9 @@ def m6_scripts_list():
 
 def m7_scripts_list():
     """M7's scripts (tools/m7_scripts.py): the campaign's next mission, the promotion, the
-    rank's cap and the saved game."""
+    rank's cap and the saved game; part 2's loaded games and demos."""
     import m7_scripts
-    return list(m7_scripts.SCRIPTS)
+    return list(m7_scripts.SCRIPTS) + list(m7_scripts.PART2)
 
 
 def description_of(name, **more):
@@ -258,7 +258,7 @@ def description_of(name, **more):
     import m5_scripts
     import m6_scripts
     import m7_scripts
-    if name in m7_scripts.RUNS:
+    if name in m7_scripts.RUNS or name in m7_scripts.PART2:
         return m7_scripts.script(name, **more)
     if name in m6_scripts.RUNS:
         return m6_scripts.script(name, **more)
@@ -279,8 +279,8 @@ def pokes_of(name):
     import m7_scripts
     if name == 'night':
         return {NIGHT_POKE[0]: (2, NIGHT_POKE[1])}
-    if name in m7_scripts.POKES:
-        return m7_scripts.POKES[name]
+    if name in m7_scripts.POKES or name in m7_scripts.PART2:
+        return m7_scripts.pokes(name)
     return m6_scripts.POKES.get(name) or m5_scripts.POKES.get(name, {})
 
 
@@ -810,7 +810,9 @@ PORT_FILES = ['src/mission.c', 'src/world.c', 'src/dash.c', 'src/tick.c', 'src/p
 M4_IN_OTHER_FILES = ['main', 'run_queued_ticks', 'ingame_keys', 'vblank_server', 'line_draw',
                      'wait_next_vblank', 'screen_game_restore',
                      # M7 part 1's saved game, beside M3's dialog in src/dialog.c
-                     'save_game_write', 'save_walk', 'save_write_part', 'save_nothing']
+                     'save_game_write', 'save_walk', 'save_write_part', 'save_nothing',
+                     # M7 part 2's loaded game and demo
+                     'save_game_read', 'save_read_part', 'demo_end']
 MARKER_FILES = PORT_FILES + ['src/front.c', 'src/input.c', 'src/draw.c', 'src/dialog.c']
 STANDIN = re.compile(r'WOF_STANDIN\("((M\d+(?: PART \d)?) STAND-IN: '
                      r'(?:(0x[0-9A-Fa-f]{6})(?:-(0x[0-9A-Fa-f]{6}))?, )?([^"]*))"\)')
@@ -855,10 +857,7 @@ REGION_NOTES = {
     0x01E84E: 'ported from reading; tests/test_oracle_m6.py, state 1, which nothing sets',
     0x01E866: 'ported from reading; tests/test_oracle_m6.py, state 8, which nothing sets',
     0x01E87E: 'ported from reading; tests/test_oracle_m6.py, a state that is none of the five',
-    0x010036: "M3's: the command line's demo file, which the port has no command line for",
-    0x010104: 'ported from reading: demo_mode sets 0x026D44 before step S',
     0x010196: 'ported from reading: a paused mission waits for the next VBlank',
-    0x0101B4: 'ported from reading: a demo ends on the fire button',
     0x01020A: 'ported from reading: back to the outer loop after the high scores',
     0x010322: 'ported from reading: the flash of flip_buffers',
     0x01043E: 'unreachable: no branch leads there',
@@ -869,9 +868,6 @@ REGION_NOTES = {
     0x011118: 'ported from reading; tests/test_oracle_m4.py, every count',
     0x0111FC: 'ported from reading; reached only between two missions, part 2',
     0x0114EE: 'ported from reading: nothing runs while paused',
-    0x011508: 'ported from reading: demo_mode sets 0x026D44',
-    0x011790: "M3's input half: demo playback (M7)",
-    0x01180A: "M3's input half: demo recording (M7)",
     0x011856: 'ported from reading; tests/test_oracle_m4.py, the ticker',
     0x0118DE: 'ported from reading; tests/test_oracle_m4.py, the ticker',
     0x012B80: 'an allocation failed, fatal; the port\'s tables are fixed (src/mission.def)',
@@ -1088,6 +1084,13 @@ REGION_NOTES = {
     0x01B1BA: 'ported from reading; tests/test_oracle_m4.py, the aircraft down on a ship',
     0x01B1DC: 'ported from reading; tests/test_oracle_m4.py, the attitude levelling out',
     0x01BD86: 'ported from reading; tests/test_oracle_m4.py, the deck state',
+    # M7 part 2: the loader's two ways out of the program, each reached by the oracle.
+    0x015D98: 'ported from reading; tests/test_oracle_m7.py, a block mem_alloc cannot give: '
+              'exit_game; the port\'s pools are fixed and wof_save_game_fits refuses a file '
+              'whose counts exceed them before the load, which the dialog leaves as a cancel',
+    0x015E50: 'ported from reading; tests/test_oracle_m7.py, a file Open cannot open: IoErr, '
+              'the message and exit_game; wof_save_game_fits refuses a missing file before '
+              'the load, which the dialog leaves as a cancel',
     # M7 part 1: the saved game's writer.
     0x015EBE: 'ported from reading; tests/test_oracle_m7.py, a save that cannot be opened: '
               'nothing is walked or written and 0 comes back, which the dialog ignores; the '

@@ -528,3 +528,25 @@ def test_the_pause_sign_fits_a_small_window_in_a_visible_window(loaded_firefox_v
                     'window cannot move into its fullscreen space while the screen is locked'
                     % report['enter'])
     assert_the_pause_sign_fits_a_small_window(report)
+
+
+# ------------------------------------------------------------- M7 part 2 (tests/pageload.mjs)
+
+def test_a_game_saved_on_the_carrier_is_loaded_after_a_reload(loaded_firefox):
+    """G in the hold, the page reloaded, the rank selection's seventh entry: the mission goes
+    on with the saved rank, mission, lives, score and aircraft."""
+    from conftest import assert_a_saved_game_comes_back_after_a_reload
+    assert_a_saved_game_comes_back_after_a_reload(loaded_firefox['saveLoad'])
+
+
+def test_a_game_loaded_with_l_in_flight_resumes_the_save(loaded_firefox):
+    """L in the air on a fresh page: the save comes back as from the rank selection."""
+    from conftest import assert_a_game_loaded_in_flight_resumes_the_save
+    assert_a_game_loaded_in_flight_resumes_the_save(loaded_firefox['saveLoad'], loaded_firefox['flightLoad'])
+
+
+def test_a_demo_recorded_with_key_4_plays_after_a_reload_as_it_was_recorded(loaded_firefox):
+    """Key 4, a game, the page reloaded, the attract mode twice: the same ticks each time,
+    and the recording's."""
+    from conftest import assert_the_demo_plays_as_it_was_recorded
+    assert_the_demo_plays_as_it_was_recorded(loaded_firefox['demo'])
