@@ -66,7 +66,7 @@ A recording is cached per process (`tests/test_world.py`, `recorded`), keyed by 
 | `--dist load` | 60 | 4,225 s |
 | `--dist loadgroup`, loop tests grouped | 35 | 1,165 s |
 
-The grouping: the tests of `test_world`, `test_weapons` and `test_enemy` whose parameters name a script carry `xdist_group('recording:<script>:<rate>')`, set in the collection hook of `tests/conftest.py`; `--dist loadgroup` sends a group to one worker. What remains is the three completeness tests, which serially reuse the recordings the loop tests made (`RECORDED`) and in parallel record on their worker whatever they do not find there, and a few tests that record a script outside the parametrised loops (`island` and `turns` in `test_world`, `kills_a` in `test_sound`, the soldiers' test in `test_weapons`). The M6 completeness test is then the longest single test, 1,433 s; the M5 one takes 562 s. Neither sets the phase's wall time, which is bound by CPU (below).
+The grouping: the tests of `test_world`, `test_weapons`, `test_enemy`, `test_campaign`, `test_loader` and `test_demo` whose parameters name a script carry `xdist_group('recording:<script>:<rate>')`, set in the collection hook of `tests/conftest.py`; `--dist loadgroup` sends a group to one worker. What remains is the three completeness tests, which serially reuse the recordings the loop tests made (`RECORDED`) and in parallel record on their worker whatever they do not find there, and a few tests that record a script outside the parametrised loops (`island` and `turns` in `test_world`, `kills_a` in `test_sound`, the soldiers' test in `test_weapons`, the pass rates of `test_loader`, and `demo_record` and a playback of the port's own recording in `test_demo`). The M6 completeness test is then the longest single test, 1,433 s; the M5 one takes 562 s. Neither sets the phase's wall time, which is bound by CPU (below).
 
 ## Times, and how many workers
 
@@ -76,8 +76,10 @@ The grouping: the tests of `test_world`, `test_weapons` and `test_enemy` whose p
 | phase 1, `-n 8 --dist loadgroup`, machine idle | 51:13 | 20,510 s | 736 passed, 2 skipped |
 | phase 1, `-n 12 --dist loadgroup`, the user at the machine from noon | 1:10:46 | 38,467 s | 734 passed, 2 failed (the 600 s run limit, below) |
 | phase 1, `-n 6 --dist loadgroup`, the user at the machine | 1:35:57 | 27,219 s | 736 passed, 2 skipped |
+| phase 1, `-n 8 --dist loadgroup`, machine idle, M7 part 2's tests added | 59:51 | 25,746 s | 798 passed, 3 skipped |
 | phase 2, `-m page` | 10:25 and 10:38 | | 76 passed, 13 skipped |
 | phase 2, `-m page`, M9 (WebGL, the 2D runs and the frame-time test added) | 12:36 | | 97 passed, 20 skipped |
+| phase 2, `-m page`, M7 part 2's page scenarios added (a save and its loads, the demo and two playbacks, in both browsers) | 22:47 | | 103 passed, 20 skipped |
 
 The machine has 8 cores and 16 hardware threads. With 8 workers, phase 1 uses about twice the CPU time the same tests take serially: a core runs slower when all of them are busy, and the recordings made twice add the rest. 12 workers share cores and were slower still, and 6 leave cores idle; both were measured while the user worked at the machine, which the idle 8-worker run was not, so their times are upper bounds. **Use `-n 8`**: the two phases then take about an hour in all, against three.
 
