@@ -11,7 +11,6 @@ import json
 import os
 import re
 import struct
-import subprocess
 import sys
 
 import pytest
@@ -70,13 +69,8 @@ def flight():
 
 @pytest.fixture(scope='module')
 def listing():
-    """re/Wings.lst is not versioned (CLAUDE.md), so a fresh checkout makes it here once
-    rather than skipping the one test that reads it.  tools/disasm.py takes about two
-    seconds and is what the repository's own instructions say to run."""
+    """re/Wings.lst, versioned and held to its regeneration (tests/test_generated.py)."""
     path = os.path.join(ROOT, 're', 'Wings.lst')
-    if not os.path.isfile(path):
-        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'disasm.py')],
-                       cwd=ROOT, check=True, capture_output=True)
     with open(path) as f:
         return f.read()
 

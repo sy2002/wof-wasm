@@ -34,6 +34,7 @@ HARNESS = ROOT / 'tests' / 'wasm_harness.mjs'
 
 sys.path.insert(0, str(ROOT / 'tools'))
 import build as buildtool  # noqa: E402
+import rom as romcheck  # noqa: E402
 
 
 # The slowest differential tests - a script of many thousand VBlanks in both loops - carry
@@ -51,6 +52,7 @@ def pytest_configure(config):
     # screenshots, and load from outside has failed them (re/notes/testing.md): they carry
     # `page` and run alone, `-m page`, after the emulator tests, `-m 'not page'`.
     config.addinivalue_line('markers', 'page: opens a browser; run alone, never beside the parallel phase')
+    config.addinivalue_line('markers', 'without_rom: runs without original/kick.rom')
 
 
 # The loop tests of one script share its recording (tests/test_world.py, recorded), which is
@@ -76,6 +78,15 @@ def pytest_collection_modifyitems(config, items):
         group = recording_group(item)
         if group:
             item.add_marker(pytest.mark.xdist_group(group))
+    # Without the Kickstart ROM nothing that needs it or the build can run, and the build takes
+    # the system font from it: every test but those marked `without_rom` skips, with the one
+    # message of tools/rom.py as its reason, as a missing browser skips its module.
+    missing = romcheck.problem()
+    if missing:
+        skip_rom = pytest.mark.skip(reason=missing)
+        for item in items:
+            if 'without_rom' not in item.keywords:
+                item.add_marker(skip_rom)
     if config.getoption('--slow') or os.environ.get('WOF_SLOW') == '1':
         return
     skip = pytest.mark.skip(reason='slow; run with --slow or WOF_SLOW=1')
@@ -103,16 +114,6 @@ def once_per_run(tmp_path_factory, needed, make):
         fcntl.flock(lock, fcntl.LOCK_EX)
         if needed():
             make()
-
-
-@pytest.fixture(scope='session', autouse=True)
-def listing_made(tmp_path_factory):
-    """re/Wings.lst is not versioned (CLAUDE.md).  Two modules make it with tools/disasm.py
-    when it is missing, which rewrites re/functions.csv in place as well, and every headless
-    original reads that file; so it is made here, before any test of any process runs."""
-    listing = ROOT / 're' / 'Wings.lst'
-    once_per_run(tmp_path_factory, lambda: not listing.is_file(),
-                 lambda: run([sys.executable, 'tools/disasm.py']))
 
 
 @pytest.fixture(scope='session')

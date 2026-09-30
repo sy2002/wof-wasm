@@ -26,6 +26,7 @@ from unicorn import UC_HOOK_INTR             # noqa: E402
 from unicorn.m68k_const import UC_M68K_REG_PC  # noqa: E402
 
 import headless                              # noqa: E402
+import rom as romcheck                       # noqa: E402
 from oracle import Oracle, ccr_text          # noqa: E402
 
 A4 = 0x02AFFE
@@ -84,7 +85,7 @@ class Result:
 
 
 def rom_available():
-    return os.path.isfile(ROM_PATH)
+    return romcheck.problem() is None
 
 
 def rom_getcc(rom, base):
@@ -110,8 +111,7 @@ class Reference:
 
     def __init__(self):
         self.o = Oracle(a4=A4)
-        with open(ROM_PATH, 'rb') as f:
-            rom = f.read()
+        rom = romcheck.read()                   # RomError with the message when it is not the image
         self.rom_base = 0x1000000 - len(rom)
         self.o.uc.mem_map(self.rom_base, len(rom))
         self.o.uc.mem_write(self.rom_base, rom)

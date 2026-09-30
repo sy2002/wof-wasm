@@ -9,8 +9,10 @@ and longs by name, the note table and the durations as tables.
 
     .venv/bin/python tools/disasm_player.py        writes re/songplay.lst (about a second)
 
-re/songplay.lst is not versioned, like re/Wings.lst: run this after a fresh checkout.
+re/songplay.lst is versioned, like re/Wings.lst, and held to this regeneration by
+tests/test_generated.py: run this after changing re/songplay_names.txt and commit the result.
 """
+import argparse
 import os
 import struct
 import sys
@@ -122,10 +124,16 @@ def listing():
     return '\n'.join(lines) + '\n'
 
 
-def main():
-    with open(OUT, 'w') as handle:
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Regenerate the music player\'s listing.')
+    parser.add_argument('--out', default=os.path.dirname(OUT),
+                        help='the directory for songplay.lst (default re/)')
+    args = parser.parse_args(argv)
+    os.makedirs(args.out, exist_ok=True)
+    path = os.path.join(args.out, os.path.basename(OUT))
+    with open(path, 'w') as handle:
         handle.write(listing())
-    print('re/songplay.lst written')
+    print('%s written' % (os.path.relpath(path, ROOT) if args.out == os.path.dirname(OUT) else path))
 
 
 if __name__ == '__main__':

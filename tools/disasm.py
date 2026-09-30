@@ -4,6 +4,9 @@
 Generates   re/Wings.lst        annotated listing (code, strings, data)
             re/functions.csv    function inventory
 
+Both are versioned and held to this regeneration by tests/test_generated.py, which writes them
+into a directory of its own with --out DIR.
+
 Reads (optional, hand-maintained; regenerate after editing them)
             re/names.txt        "<hex addr> <name> [; comment]"   code labels and data/global names
             re/libbases.txt     "<hex addr of base variable> <library>"   for naming OS calls
@@ -20,6 +23,7 @@ How code is found
   5. whatever is still unclaimed is decoded speculatively and accepted only if it is a clean
      instruction stream; such blocks are marked "(found by gap sweep)" in the listing
 """
+import argparse
 import bisect
 import collections
 import csv
@@ -339,7 +343,12 @@ class Analysis:
 
 
 # ----------------------------------------------------------------------------- output
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Regenerate the listing and the function inventory.')
+    parser.add_argument('--out', default=os.path.join(ROOT, 're'),
+                        help='the directory for Wings.lst and functions.csv (default re/); the '
+                             'status column is always taken from re/functions.csv')
+    args = parser.parse_args(argv)
     img = Image()
     names, name_comments = load_names(os.path.join(ROOT, 're', 'names.txt'))
     libbases, _ = load_names(os.path.join(ROOT, 're', 'libbases.txt'))
@@ -526,14 +535,15 @@ def main():
         if bounds[i] < init_end:
             dump_data(bounds[i], min(bounds[i + 1], init_end), guess_strings=True)
 
-    os.makedirs(os.path.join(ROOT, 're'), exist_ok=True)
-    with open(os.path.join(ROOT, 're', 'Wings.lst'), 'w') as f:
+    os.makedirs(args.out, exist_ok=True)
+    with open(os.path.join(args.out, 'Wings.lst'), 'w') as f:
         f.write('\n'.join(out) + '\n')
 
-    csv_path = os.path.join(ROOT, 're', 'functions.csv')
+    status_path = os.path.join(ROOT, 're', 'functions.csv')
+    csv_path = os.path.join(args.out, 'functions.csv')
     old_status = {}                                               # hand-edited column survives regeneration
-    if os.path.exists(csv_path):
-        for r in csv.DictReader(open(csv_path, newline='')):
+    if os.path.exists(status_path):
+        for r in csv.DictReader(open(status_path, newline='')):
             old_status[r['addr']] = r.get('status') or 'todo'
 
     rows = []

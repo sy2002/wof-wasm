@@ -49,6 +49,7 @@ import disasm                                                                   
 import headless_dump as dump                                                           # noqa: E402
 import headless_paula                                                                  # noqa: E402
 import headless_writes as trace                                                      # noqa: E402
+import rom as romcheck                                                                # noqa: E402
 from headless_os import AmigaOS, HarnessError                                          # noqa: E402
 from oracle import Oracle                                                              # noqa: E402
 
@@ -580,11 +581,10 @@ class Headless(AmigaOS):
         """The owner's Kickstart ROM, mapped where it lives.  Two of its parts run for real:
         the mathffp routines game logic computes with, and console.device's RawKeyConvert,
         which turns raw key codes into characters for the game's text entry."""
-        path = os.path.join(ROOT, 'original', 'kick.rom')
-        if not os.path.isfile(path):
-            return None, None
-        with open(path, 'rb') as f:
-            rom = f.read()
+        try:
+            rom = romcheck.read()
+        except romcheck.RomError as error:
+            raise HarnessError(str(error)) from None
         base = 0x1000000 - len(rom)
         self.uc.mem_map(base, len(rom))
         self.uc.mem_write(base, rom)

@@ -31,11 +31,8 @@ from oracle import Oracle, ccr_text                          # noqa: E402
 
 @pytest.fixture(scope='module')
 def listing():
-    """re/Wings.lst is not versioned (CLAUDE.md); a fresh checkout makes it here once."""
+    """re/Wings.lst, versioned and held to its regeneration (tests/test_generated.py)."""
     path = os.path.join(ROOT, 're', 'Wings.lst')
-    if not os.path.isfile(path):
-        subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'disasm.py')],
-                       cwd=ROOT, check=True, capture_output=True)
     with open(path, encoding='latin1') as handle:
         return handle.read()
 

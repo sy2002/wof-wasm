@@ -1,7 +1,32 @@
-"""PPkc shape container parser + contact sheet renderer."""
+"""PPkc shape container parser + contact sheet renderer.
+
+    ppkc.py SHP PALETTE OUT.png     one sheet of one shape container
+    ppkc.py --sheets [DIR]          the contact sheets of ref/sheets/, into DIR (default ref/sheets)
+
+The sheets of ref/sheets/ are versioned and held to this regeneration byte for byte by
+tests/test_generated.py.  The names are drawn in Pillow's own bitmap font, not its default
+FreeType one, so that a sheet does not depend on the FreeType a Pillow build carries, and a PNG
+of Pillow carries no time and no text: the same Pillow writes the same bytes.
+"""
 import struct, sys, os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import rpck
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SHAPES = os.path.join(ROOT, 'original', 'disk', 'Wings_of_Fury', 'shapes')
+FONT = ImageFont.load_default_imagefont()
+
+# ref/sheets/: the shape container, the sheet and its layout, all in the colours of wingspalette.
+SHEETS = [
+    ('8thscale.shp', '8thscale.png', 'grid'),
+    ('battleship.shp', 'battleship.png', 'grid'),
+    ('battleship.shp', 'battleship_packed.png', 'packed'),
+    ('hellcat.shp', 'hellcat.png', 'grid'),
+    ('japplane.shp', 'japplane.png', 'grid'),
+    ('world.shp', 'world.png', 'grid'),
+    ('world.shp', 'world_packed.png', 'packed'),
+]
+SHEET_PALETTE = 'wingspalette'
 
 def parse(path):
     out, _ = rpck.load(path)
@@ -43,6 +68,14 @@ def load_cmap(path):
     body = raw[i+8:i+8+96]
     return [(body[j] >> 4) * 17 for j in range(len(body))]
 
+def draw_shape(im, dr, s, pal, cx, cy):
+    """One shape with its name above it, its top left corner at (cx, cy)."""
+    for y, row in enumerate(to_indexed(s)):
+        for x, c in enumerate(row):
+            if c:
+                im.putpixel((cx + x, cy + y), tuple(pal[c*3:c*3+3]))
+    dr.text((cx, cy - 10), s['name'], fill=(200, 200, 200), font=FONT)
+
 def sheet(shapes, pal, out_path, scale=2, cols=None, bg=(255, 0, 255)):
     cell_w = max(s['wbytes'] * 8 for s in shapes) + 4
     cell_h = max(s['h'] for s in shapes) + 12
@@ -51,18 +84,47 @@ def sheet(shapes, pal, out_path, scale=2, cols=None, bg=(255, 0, 255)):
     im = Image.new('RGB', (cols * cell_w, rows * cell_h), (40, 40, 48))
     dr = ImageDraw.Draw(im)
     for idx, s in enumerate(shapes):
-        cx, cy = (idx % cols) * cell_w + 2, (idx // cols) * cell_h + 10
-        pix = to_indexed(s)
-        for y, row in enumerate(pix):
-            for x, c in enumerate(row):
-                if c:
-                    im.putpixel((cx + x, cy + y), tuple(pal[c*3:c*3+3]))
-        dr.text((cx, cy - 10), s['name'], fill=(200, 200, 200))
+        draw_shape(im, dr, s, pal, (idx % cols) * cell_w + 2, (idx // cols) * cell_h + 10)
     im = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
     im.save(out_path)
     return im.size
 
-if __name__ == '__main__':
+def packed_sheet(shapes, pal, out_path, scale=2, width=760, gap=6):
+    """The same shapes packed densely: the tallest first, left to right in rows of `width`
+    pixels, each row as tall as its tallest shape and its names."""
+    rows, row, x = [], [], 0
+    for s in sorted(shapes, key=lambda s: -s['h']):
+        w = s['wbytes'] * 8
+        if row and x + w + 4 > width:
+            rows.append(row)
+            row, x = [], 0
+        row.append((x, s))
+        x += w + 4 + gap
+    if row:
+        rows.append(row)
+    heights = [max(s['h'] for _, s in r) + 12 for r in rows]
+    im = Image.new('RGB', (width, sum(heights)), (40, 40, 48))
+    dr = ImageDraw.Draw(im)
+    y = 0
+    for r, height in zip(rows, heights):
+        for x0, s in r:
+            draw_shape(im, dr, s, pal, x0 + 2, y + 10)
+        y += height
+    im = im.resize((im.width * scale, im.height * scale), Image.NEAREST)
+    im.save(out_path)
+    return im.size
+
+def make_sheets(out_dir):
+    """Every sheet of ref/sheets/ into out_dir."""
+    os.makedirs(out_dir, exist_ok=True)
+    pal = load_cmap(os.path.join(SHAPES, SHEET_PALETTE))
+    for shp, name, layout in SHEETS:
+        shapes = parse(os.path.join(SHAPES, shp))
+        (packed_sheet if layout == 'packed' else sheet)(shapes, pal, os.path.join(out_dir, name))
+
+if __name__ == '__main__' and sys.argv[1:2] == ['--sheets']:
+    make_sheets(sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, 'ref', 'sheets'))
+elif __name__ == '__main__':
     shp, palfile, outp = sys.argv[1:4]
     shapes = parse(shp)
     pal = load_cmap(palfile)

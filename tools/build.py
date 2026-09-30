@@ -249,6 +249,14 @@ def main():
     args = parser.parse_args()
     log = (lambda message: None) if args.quiet else print
 
+    # The ROM first, before anything is written: the system font and the key conversion come
+    # from it, and a build without them would not be the game (tools/rom.py).
+    sys.path.insert(0, os.path.join(ROOT, 'tools'))
+    import rom
+    message = rom.problem()
+    if message:
+        raise SystemExit(message)
+
     extract_tables(log)
     blob = pack_fs(log)
     wasm = compile_wasm(log)
