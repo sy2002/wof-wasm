@@ -11,7 +11,7 @@ Port the Amiga game *Wings of Fury* (Broderbund, 1990) to the browser as **one s
 - All game content (graphics, maps, sounds, music, fonts, tables, texts) is taken from the original disk image **at build time** and embedded in the output file. Hand-written source files contain code only, never game content.
 - The output `dist/wof.html` opens from `file://` with a double click. It makes no network requests.
 
-The output file contains the game data and is for the disk owner's personal use. `original/` and `dist/` must never be published or pushed to a public remote.
+The output file contains the game data. The owner, a founding member of an association for retro preservation, decided on 2026-09-30 to publish the repository as a preservation project, the game data included and the Kickstart ROM left out (section 2, `README.md`), and bears that decision; nothing is pushed to any remote unless the owner asks.
 
 ### Definition of faithful
 
