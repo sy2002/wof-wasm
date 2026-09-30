@@ -84,7 +84,7 @@ rewritten into the code and qualifier the original's readers expect:
 | Port key, by `KeyboardEvent.code` | Raw code in | Becomes | When |
 |---|---|---|---|
 | `KeyP` | `0x19` | `0x45`, Escape | always |
-| `KeyF` | `0x23` | `0x23` with Control | always |
+| `KeyV` | `0x34` | `0x23` with Control | always (`KeyF` until 2026-09-30; F is the shell's fullscreen key since) |
 | `KeyG` | `0x24` | `0x24` with Control | always |
 | `KeyL` | `0x28` | `0x28` with Control | always |
 | `KeyM` | `0x37` | `0x21` with Control, the original's Control-S | always |
@@ -314,7 +314,8 @@ playback asks for `wofdemo`, which is not on this disk, and recording needs main
 which the port gives through a development key.
 
 `"Exit Game"` in the dialog calls `fatal_exit` on the machine, which ends the program. A
-page has nothing to end into, so the port treats it as a cancel and says so where it does.
+page has nothing to end into; since 2026-09-30 the core raises `wof_exit_requested` there
+and the shell reloads the page, which is the program started again (`SPEC.md` 6.2, Storage).
 
 ## The development keys
 
