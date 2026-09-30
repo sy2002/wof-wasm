@@ -199,9 +199,14 @@ class Core {
         this.x.wof_request_continue();
     }
 
-    /* The line editor has the keys: every letter, H too, is the game's. */
+    /* The line editor has the keys: every letter, H, F and V too, is the game's. */
     lineEditorActive() {
         return this.x.wof_line_editor_active() !== 0;
+    }
+
+    /* The dialog's "Exit Game" was taken, where the machine ends the program. */
+    exitRequested() {
+        return this.x.wof_exit_requested() !== 0;
     }
 
     /* The PCM of emulated time the core has mixed and the shell has not taken yet, oldest

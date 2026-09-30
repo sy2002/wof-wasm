@@ -347,9 +347,10 @@ def test_the_blocks_have_hard_edges(scaled):
 
 
 def test_the_hint_names_the_diagnostics_key_by_its_place(loaded):
-    """The shell tests event.code Backquote, which is where the key is, not what is printed
-    on it; that key is a caret on a German keyboard.  So the hint says where to press, and
-    naming the character would send some players to a key they do not have there."""
+    """The shell tests event.code, Backquote or IntlBackslash, which is where the key is, not
+    what is printed on it; that key is a caret on a German keyboard.  So the hint says where
+    to press, and naming the character would send some players to a key they do not have
+    there."""
     assert '`' not in loaded['hint'], loaded['hint']
     assert 'left of 1' in loaded['hint'], loaded['hint']
 
@@ -587,8 +588,8 @@ def test_the_pause_sign_fits_a_small_window(loaded):
 
 # ----------------------------------------------------------------------- the help screen
 
-HELP_KEYS = ['Arrow keys or W A S D', 'Space or key left of X', 'Enter', 'P', 'Escape', 'F', 'G',
-             'L', 'M', 'R', 'C', 'H']
+HELP_KEYS = ['Arrow keys or W A S D', 'Space', 'Enter', 'P', 'Escape', 'F', 'V', 'G', 'L', 'M',
+             'R', 'C', 'H']
 
 
 def test_the_help_screen(loaded):
@@ -601,6 +602,7 @@ def test_the_help_screen(loaded):
     help = loaded['help']
     lines = help['atStart'].split('\n')
     assert all(key in lines for key in HELP_KEYS), lines
+    assert lines[:2] == ['Wings of Fury', 'A faithful port of the 1990 Amiga version'], lines
     assert 'Press any key to start the sound and the game' in lines, lines
     assert not any('left of 1' in line or 'diagnostics' in line for line in lines), lines
     start = loaded['modifierFirst']

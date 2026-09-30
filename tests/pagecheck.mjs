@@ -359,7 +359,7 @@ try {
     }
     await sleep(1500);                              /* the menu takes the stick after 15 ticks */
     flight.weapon = await weaponTaps(() => evaluate(PLAYER), () => holdFor('up', 100),
-                                     () => press(sessionId, 'keyF'));
+                                     () => press(sessionId, 'keyV'));
     await holdFor('down', 300);                     /* the next weapon, in the hold's menu */
     await sleep(600);
     await fire();                                   /* the lift goes up */
@@ -435,7 +435,7 @@ try {
 
     /* The flip, which the shell remembers; the next two aircraft are lost without the
        stick's forward and back, so it changes nothing there. */
-    await press(sessionId, 'keyF');
+    await press(sessionId, 'keyV');
     await sleep(600);
     flight.flipped = await evaluate(PLAYER);
     for (const life of ['third', 'end']) {

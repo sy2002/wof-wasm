@@ -19,14 +19,22 @@
 
 /* No Control key is a fire key: with KeyW mapped to up, firing while climbing would be
    Ctrl+W, which closes the tab in every mainstream browser and which a page cannot prevent.
-   Do not add them back. */
+   Do not add them back.  Space is the one fire key: whichever hand steers, arrows or W A S D,
+   the other one has it (the owner's decision of 2026-09-30). */
 const KEYS = {
     ArrowUp: 0x01, KeyW: 0x01,
     ArrowDown: 0x02, KeyS: 0x02,
     ArrowRight: 0x04, KeyD: 0x04,
     ArrowLeft: 0x08, KeyA: 0x08,
-    Space: 0x10, KeyZ: 0x10,
+    Space: 0x10,
 };
+
+/* The diagnostics key, the key left of 1, by the two codes it can arrive with.  On a Mac with
+   an ISO keyboard, the German one among them, Chrome and Safari report that key as
+   IntlBackslash and the key right of the left Shift as Backquote; Firefox undoes the swap.
+   So both codes toggle the overlay in every browser, which also makes the key right of the
+   left Shift a second diagnostics key, and neither reaches the game (web/main.js). */
+export const DIAGNOSTIC_CODES = new Set(['Backquote', 'IntlBackslash']);
 
 const PAD_BUTTONS = { 12: 0x01, 13: 0x02, 14: 0x08, 15: 0x04 };  /* d-pad up down left right */
 const PAD_FIRE = [0, 1, 2, 3, 6, 7];
@@ -44,7 +52,6 @@ const PAD_DEADZONE = 0.4;
  * them in the whole executable is the cheat debug set, which M4 ports.
  */
 const RAW_CODES = {
-    Backquote: 0x00,
     Digit1: 0x01, Digit2: 0x02, Digit3: 0x03, Digit4: 0x04, Digit5: 0x05,
     Digit6: 0x06, Digit7: 0x07, Digit8: 0x08, Digit9: 0x09, Digit0: 0x0a,
     Minus: 0x0b, Equal: 0x0c, IntlYen: 0x0d, Backspace: 0x41,
@@ -59,7 +66,7 @@ const RAW_CODES = {
     KeyJ: 0x26, KeyK: 0x27, KeyL: 0x28,
     Semicolon: 0x29, Quote: 0x2a, Backslash: 0x2b, Enter: 0x44,
 
-    ShiftLeft: 0x60, IntlBackslash: 0x30,
+    ShiftLeft: 0x60,
     KeyZ: 0x31, KeyX: 0x32, KeyC: 0x33, KeyV: 0x34, KeyB: 0x35, KeyN: 0x36, KeyM: 0x37,
     Comma: 0x38, Period: 0x39, Slash: 0x3a, IntlRo: 0x3b, ShiftRight: 0x61,
 
@@ -112,9 +119,9 @@ export function createInput(target, core) {
 
         /* A key pressed with Control, Alt or Command belongs to the browser, not to the
            game, and a page cannot take all of those away from it (SPEC 6.2). */
-        /* Backquote is the diagnostics toggle and is the one printable key the game
-           never sees; naming it by its position is what web/index.html does. */
-        const raw = e.code === 'Backquote' ? undefined : RAW_CODES[e.code];
+        /* The diagnostics key's two codes (DIAGNOSTIC_CODES) are not in the table: the game
+           never sees them, and web/index.html names the key by its position. */
+        const raw = RAW_CODES[e.code];
         if (raw !== undefined && !e.ctrlKey && !e.altKey && !e.metaKey && core) {
             core.portKey(raw, qualifier(e));
             e.preventDefault();

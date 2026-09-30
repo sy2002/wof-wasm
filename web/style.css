@@ -68,10 +68,19 @@ html, body {
     white-space: nowrap;
 }
 
-#help .title {
-    margin-bottom: 0.5em;
+/* The game's name over the list, as a title, and the port's line under it. */
+#help .headline {
+    font-size: 2em;
+    line-height: 1.15;
     text-align: center;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.06em;
+}
+
+#help .subline {
+    margin: 0.2em 0 1em;
+    font-size: 0.85em;
+    text-align: center;
+    color: #a3adbd;
 }
 
 #help .keys {

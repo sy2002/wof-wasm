@@ -260,6 +260,16 @@ the change report never names a reader.
 - `ingame_keys` runs before the pause test in the inner loop, which is why Escape can unpause.
 - The tap and hold latches of the button are untouched by any of this (`re/notes/input.md`).
 
+## The plain letters the port takes for itself
+
+The port takes three plain letters for itself outside the line editor. The shell takes H, the help screen, and F, the page's fullscreen, and never passes them to the core there (`web/main.js`); the core's key layer turns V into Control-F, the flip (`src/portkeys.c`). Before that choice every reader was checked for a plain press of each (`## The five readers`, and `src/front.c`, `ingame_keys`):
+- **`ingame_keys`** takes `h` for nothing, with or without Control. It takes `v` only with Control, the version in the ticker (`0x34`, a key the port never sends, because the shell never sends Control). It takes `f` with Control as the flip, and plain `f` only as a cheat key at `cheat_state` 5, which the port cannot reach: the sequence is untypeable, since its `l` is the load command. A plain letter that is not a cheat key leaves `cheat_state` alone.
+- **The briefing** takes only Control-R.
+- **The rank selection and the dialog's list** (`menu_input`) take the cursor keys and Return; any other key is consumed as nothing and cuts `wait_input_release` short.
+- **Inside the line editor** (`text_input`) all three are letters, and the shell passes them on.
+
+So no reader takes a plain H, F or V outside the line editor, and nothing the game did is lost. The diagnostics key's two codes, `Backquote` and `IntlBackslash`, never reach the game either. `IntlBackslash` would be raw `0x30`, which no reader takes outside the line editor; there it converts to `<` and `>`, which Shift with the comma and period keys still gives.
+
 ## The run description's keys
 
 A raw segment's third element is the list of keys delivered at the segment's first VBlank. An

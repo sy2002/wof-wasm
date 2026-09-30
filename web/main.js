@@ -3,7 +3,7 @@
 
 import { loadCore } from './core.js';
 import { createVideo } from './video.js';
-import { createInput } from './input.js';
+import { createInput, DIAGNOSTIC_CODES } from './input.js';
 import { createAudio, STEREO_WIDTHS } from './audio.js';
 import { createClock } from './clock.js';
 import { createOverlay } from './overlay.js';
@@ -146,6 +146,7 @@ async function boot() {
         checkAudioStarted();
         rememberInvert();
         rememberFiles();
+        checkExit();
     });
 
     /* The overlay needs the clock and the clock needs the overlay's paint function; the
@@ -197,27 +198,83 @@ async function boot() {
         }
     }
 
+    /* The dialog's "Exit Game" ends the program on the machine; here it starts it again, as
+       a reload of the page (SPEC 6.2): the game begins at the story scroller, and the saved
+       games and the high scores stay, because they live in the browser's storage and were
+       written there on the frame the game wrote them (rememberFiles, just before). */
+    let exiting = false;
+    function checkExit() {
+        if (!exiting && core.exitRequested()) {
+            exiting = true;
+            window.location.reload();
+        }
+    }
+
+    /* The page's own fullscreen, on the root element so that the picture and everything the
+       shell lays over it stay in it.  F asks for it and F in it leaves it; the request is
+       made in the keydown's own task, because a browser grants it only to a gesture.
+       Leaving by either way asks for the pause (followFullscreen, below). */
+    function toggleFullscreen() {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => undefined);
+        } else if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => undefined);
+        }
+    }
+
+    /* Escape in the page's fullscreen leaves it, which a browser insists on, and the game is
+       paused by the leave rule; the same key must not reach the game as its pause toggle,
+       which would continue it again.  So an Escape pressed in the page's fullscreen is
+       dropped, and so is one that arrives just after the page's fullscreen ended, for a
+       browser that leaves first and hands the key over afterwards. */
+    const ESCAPE_AFTER_LEAVE_MS = 500;
+    let elementFullscreenLeftAt = -Infinity;
+    let hadFullscreenElement = false;
+    document.addEventListener('fullscreenchange', () => {
+        if (hadFullscreenElement && !document.fullscreenElement) {
+            elementFullscreenLeftAt = performance.now();
+        }
+        hadFullscreenElement = !!document.fullscreenElement;
+    });
+    function escapeLeavesFullscreen(event) {
+        return event.code === 'Escape'
+            && (!!document.fullscreenElement
+                || performance.now() - elementFullscreenLeftAt < ESCAPE_AFTER_LEAVE_MS);
+    }
+
     /* A pause the page asks for itself is the player's to end, even under the help screen. */
     function requestPauseFromPage() {
         helpPaused = false;
         core.requestPause();
     }
 
-    /* Ahead of every other key listener of the page, in the capture phase: a key the help
-       screen takes goes no further, neither to the game nor to the shell's other keys.  A
-       key held with Control, Alt or Command is the browser's, and a repeat is not a press. */
+    /* Ahead of every other key listener of the page, in the capture phase: a key the shell
+       takes here - the Escape that leaves fullscreen, the key that closes the help screen, H
+       and F - goes no further, neither to the game nor to the shell's other keys.  A key held
+       with Control, Alt or Command is the browser's, and a repeat is not a press.  At the
+       start the help screen goes by its own rule and every key but F does what it always
+       does; F starts the sound as that key, and then is the fullscreen key.  In the line
+       editor H and F are letters. */
     window.addEventListener('keydown', (event) => {
-        if (waitingForAudio || MODIFIER_KEYS.has(event.key)
-            || event.ctrlKey || event.altKey || event.metaKey) {
+        if (MODIFIER_KEYS.has(event.key) || event.ctrlKey || event.altKey || event.metaKey) {
             return;
         }
-        if (helpShown) {
+        if (escapeLeavesFullscreen(event)) {
+            /* nothing: the browser leaves fullscreen and the leave rule pauses */
+        } else if (helpShown && !waitingForAudio) {
             if (!event.repeat) {
                 closeHelp();
             }
-        } else if (event.code === 'KeyH' && !core.lineEditorActive()) {
+        } else if (event.code === 'KeyH' && !waitingForAudio && !core.lineEditorActive()) {
             if (!event.repeat) {
                 openHelp();
+            }
+        } else if (event.code === 'KeyF' && !core.lineEditorActive()) {
+            if (waitingForAudio) {
+                onGesture(event);                /* its listener below does not see this key */
+            }
+            if (!event.repeat) {
+                toggleFullscreen();
             }
         } else {
             return;
@@ -274,10 +331,11 @@ async function boot() {
     /* The shell's own keys.  Only the diagnostics toggle is always live; everything else
        the shell reads for itself works while the overlay is up, so that a key the game
        wants - a digit typed into a name, say - never goes to the shell instead.  The
-       toggle is named by its position, because the character on it differs by keyboard,
-       and it is the one printable key the game cannot see. */
+       toggle is named by its position, because the character on it differs by keyboard; it
+       arrives with either of two codes (DIAGNOSTIC_CODES, web/input.js), and the game sees
+       neither. */
     window.addEventListener('keydown', (event) => {
-        if (event.code === 'Backquote') {
+        if (DIAGNOSTIC_CODES.has(event.code)) {
             overlay.toggle();
             showOrHideHint();
             event.preventDefault();

@@ -36,6 +36,7 @@ export const KEYS = {
     keyB: { key: 'b', code: 'KeyB', text: 'b' },
     keyP: { key: 'p', code: 'KeyP', text: 'p' },
     keyF: { key: 'f', code: 'KeyF', text: 'f' },
+    keyV: { key: 'v', code: 'KeyV', text: 'v' },
     escape: { key: 'Escape', code: 'Escape' },
     keyM: { key: 'm', code: 'KeyM', text: 'm' },
     keyH: { key: 'h', code: 'KeyH', text: 'h' },

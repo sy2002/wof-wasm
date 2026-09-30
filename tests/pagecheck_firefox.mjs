@@ -527,13 +527,13 @@ try {
         await watching;
     }
     flight.weapon.after = (await player()).weapon;
-    await press(flightTab, 'f');
+    await press(flightTab, 'v');                    /* the flip; F is fullscreen */
     await sleep(600);
     flight.weapon.flipOn = (await player()).flip;
     await holdIn(KEY_UP, 100);
     await sleep(800);
     flight.weapon.flipped = (await player()).weapon;
-    await press(flightTab, 'f');
+    await press(flightTab, 'v');                    /* the flip; F is fullscreen */
     await sleep(600);
     flight.weapon.flipOff = !(await player()).flip;
     await holdIn(KEY_SPACE, 250);                   /* the lift goes up */
@@ -566,7 +566,7 @@ try {
     flight.running1 = await player();
     await sleep(1500);
     flight.running2 = await player();
-    await press(flightTab, 'f');
+    await press(flightTab, 'v');                    /* the flip; F is fullscreen */
     await sleep(800);
     flight.flipped = await player();
     await send(socket, 'browsingContext.reload', { context: flightTab, wait: 'complete' });
