@@ -1,0 +1,402 @@
+ WINGS OF FURY
+=============
+
+
+BY MMAADD MMAAXX
+
+
+
+
+
+
+A Time of Fury
+
+
+It is 1944 and world is a war. Europe is ablaze with a conflict that
+engulfs her like the flames of hell, leaving a path of destruction wherever it
+burns. The Far East, too, is being consumed by a furious struggle for domi-
+nance. In the Pacific theater, the Allies face an enemy possessed of great skill
+and a relentless determination. As the tide begins to turn in favor of the
+Allies, the enemy struggles ever more desperately to maintain the footholds
+it had gained earlier in the war.
+
+However, both on the sea and in the air, the U.S. Navy proves to be more
+than a match for its opponents. One reason for this is the incredible striking
+power of the Navy's Air Force. It is instrumental in defeating the enemy in
+battle after battle. Within the Navy's air command, one plane seems to be
+leading the fight for an Allied victory: the mighty F6F Hellcat!
+
+The Hellcat is incredibly powerful and durable, a real work horse capable of
+bearing bombs, rockets and torpedoes. Able to outmaneuver the enemy's
+best fighter planes, the Hellcat has established one of the best kill-to-loss
+ratios in the war.
+
+Now you have the opportunity to fly your very own Hellcat. You'll be
+
+
+PAGE 1
+
+
+
+
+assigned to provide air support for the USS Wasp. This aircraft carrier has
+been heavily damaged and must make its way safely back to port. On this
+perilous journey, you must defend the carrier against torpedo bombers, rout
+the enemy from their island strongholds, sink enemy vessels the lie en route
+to home port and protect yourself by shooting down enemy planes.
+
+Strapping yourself into the cockpit, you face a tremendous responsibility.
+The fate of the carrier and every man onboard has been placed in your
+experienced hands. As the signal officer gives you the go, you give your Cat
+full throttle and take off into the unknown skies before you. Just minutes off
+the deck, you sight the first sign of trouble: a pair of enemy fighters bearing
+down on you from above...
+
+
+PAGE 2
+
+
+
+
+WHAT YOU'LL NEED
+
+Amiga
+
+* Commodore Amiga 500, 1000 or 2000 with minumum of 512K memory
+and equipped with a joystick.
+
+Commodore 64/128
+
+* Commodore 64 or 128 with a minimum of 64K memory and a joystick. A
+color monitor is recommended.
+
+LOADING WINGS OF FURY
+
+Amiga
+
+If you have an Amiga 1000, turn on your computer and insert your Kickstart
+disk. When the "Insert Workbench" screen appears, insert the WINGS OF
+FURY disk. If you have an Amiga 500 or 2000 turn on your computer and then
+insert the Wings of Fury disk. Once the program finishes loading, a self-
+running demo of the game will appear. When you are ready to play, press
+the joystick button.
+
+Hard Disk Installation: if your Amiga has a hard disk drive and you would
+like to install the program on it, boot your computer and at the Workbench
+
+
+PAGE 3
+
+
+
+screen, insert your Wings of Fury disk. Click on the disk icon to open the
+window. Then drag the drawer labeled "wings_of_fury" over to your hard
+disk icon. To boot the game from the Workbench, double click on the Wings
+of Fury drawer. Next, double click on the game icon to launch the game.
+
+Note: On 512K machines, on the higher game levels, some sound effects may
+be ommitted due to memory constraints.
+
+Commodore 64/128
+
+Insert the Wings of Fury disk into your disk drive. Make sure your joystick
+is connected, and then turn on your computer and disk drive. Type LOAD
+"*",8,1 and press RETURN. Once the program finishes loading, a self-running
+demo of the game will appear. When you are ready to play, press the
+joystick button.
+
+
+
+
+PAGE 4
+
+
+
+
+SELECTING A RANK
+
+Once you have left the demo, your first pre-flight task will be to select a
+Naval rank. There are seven ranks under which you can fly, each one provid-
+ing a more challenging set of missions than the last. Use your joystick to
+cycle through the various ranks. When you desired rank is highlighted,
+press the joystick button to make your selection. After you've selected your
+rank, a message will appear on screen listing your objectives for that mission.
+
+
+SELECTING WEAPONS
+
+Before taking off, you must decide what decide what type of weapons your Hellcat will
+be armed with for this flight. Cycle through the list of weapons using your
+joystick, then press the joystick button to make your selection.
+
+
+
+PAGE 5
+
+
+
+TAKING OFF
+
+To take off from the carrier, push the joystick all the way to the left to give
+your Hellcat full throttle in that direction. As the plane nears the end of the
+flight deck, push the stick up and to the left to provide elevation.
+
+FLYING
+
+Maneuvering the Hellcat while in flight is achieved using the following
+joystick position:
+
+
+LEFT CLIMB RIGHT CLIMB
+\ STALL /
+\ | /
+\ | /
+\ | /
+
+FULL THROTTLE LEFT-- 3/4 THROTTLE --FULL THROTTLE RIGHT
+
+/ | \
+/ | \
+/ | \
+/ STALL DIVE \
+LEFT DIVE RIGHT DIVE
+
+TURNING
+
+Turning is accomplished by reversing the horizontal direction of the stick.
+Your Hellcat will lose altitude while turning, so it's important to give it extra
+lift at the same time.
+
+
+
+
+PAGE 6
+
+
+To land on the carrier, you must approach it flying into the wind (from the
+right). Use the 3-D view to line up the flashing white artificial horizon
+indicator with the deck of the carrier. Just as you clear the edge of the
+carrier's deck, stall the plane to allow it to drop so that its "arrestor hook" can
+catch one of the arresting cable on the deck.
+
+Landing an airplane on the deck of a carrier requires a great deal of skill and
+nerves of steel. It may take you a few practice runs before you feel comfort-
+able, but this practice will pay off later when the heat is on and you have to
+land under fire.
+
+Once you have landed safely, taxi your plane to the elevator. Then, push the
+joystick button to activate the elevator and lower your plane for repairs,
+refueling and a new load of weapons. If you taxi too far and miss the
+elevator, simply turn your plane around and position it over the elevator
+again.
+
+HELLCAT WEAPONS
+
+
+MACHINE GUNS
+
+Your Hellcat is equipped with three .50 caliber machine guns on each wing.
+Use your machine guns for shooting down enemy planes and strafing
+island.
+
+Fire your machine guns by holding the joystick button down continuously.
+
+
+
+PAGE 7
+
+
+
+
+OTHER WEAPONS
+
+You can choose between three types of other weapons to take with you. To
+replenish or change weapons you must return to the carrier.
+
+Fire your other weapons by pressing the joystick button with short clicks.
+
+BOMBS
+Equipped with thirty 100 lb. bombs, your Hellcat can do heavy damage to
+barracks and machine gun dug-outs on enemy islands.
+
+ROCKETS
+Designed for use on more substantial targets such as large antiaircraft guns,
+15 of these 5-inch rockets can be carried by your Hellcat.
+
+TORPEDOES
+Once an enemy ship's guns have been disabled, you'll be able to make a
+torpedo run on the ship in an attempt to sink it. After selecting Torpedo
+from the Weapons menu, your Hellcat will be armed with one torpedo.
+
+Note: You must approach the enemy ship flying low over the water when you
+release the torpedo. It is important to have the ship will in your sight before
+releasing the torpedo so as not to allow the torpedo to run out of energy before
+hitting its target.
+
+CONTROL PANEL
+
+Your Hellcat's control panel with its various instruments and gauges is displayed
+at the bottom of your screen.
+
+
+
+
+PAGE 8
+
+
+
+
+WEAPON COUNTER
+
+Indicates what type of weapon you are carrying and how many you have
+left.
+
+HELLCAT COUNTER
+
+Indicates how many Hellcats you have left. You will earn an extra plane
+each time you are promoted in rank.
+
+OIL PRESSURE GAUGE
+
+Indicates the condition of your engine. When your Hellcat is damaged by
+gunfire, the engine will begin to smoke. The more damage your plane
+sustains, the more smoke it will emit and the lower the oil pressure will
+drop. When the oil pressure begins to get critically low, a red light will blink
+on the gauge. If the oil pressure drops too low, the engine will seize and you
+will crash. Each time you return to your carrier and descend into the hold,
+your plane will be repaired, restoring oil pressure to full.
+
+3-D VIEW
+
+Provides a three dimensional view of the world from your cockpit. This
+view is especially helpful when attempting to gauge the distance between
+your Hellcat and an oncoming ship, plane or other target.
+
+In the center of the view is a flashing white cursor which serves as an artifi-
+cial horizon indicator. The indicator is useful for sighting targets and
+landing on your carrier.
+
+
+
+PAGE 9
+
+
+
+
+
+FUEL GAUGE
+
+Indicates how much fuel your Hellcat has left. When the fuel level begins to
+get critically low, a red light will blank on the gauge. If the plane runs out of
+fuel in flight, you will crash. Each time you return to your carrier and
+descend into the hold, your plane will be refueled, restoring the fuel level to
+full.
+
+SCORE COUNTER
+
+Records all points scored by you during the game.
+
+ENEMY PLANE COUNTER
+
+Tallies a "kill" icon for every enemy plane you shoot down. In addition to
+these icon, there is also a digital counter below the score counter.
+
+
+PAGE 10
+
+
+
+You start the game with three Hellcat. You will receive one additional
+Hellcat every time you earn a promotion in rank.
+
+
+MISSION OBJECTIVES
+
+You will be briefed on each mission's objectives before you begin it. Bonuses
+will be awarded as each objective is accomplished. An additional bonus will
+be awarded upon successful completion of an entire mission.
+
+ISLAND
+
+Targets on islands include barracks, soldiers, machine gun dug-outs and
+large antiaircraft guns. For an island to be neutralized, all barracks, soldiers
+and guns must be destroyed.
+
+SHIPS
+
+Enemy ships must be sunk to be neutralized.
+
+During some missions, you will also encounter the following:
+
+FIGHTER PLANES
+
+It is not necessary to shoot down all fighter planes in an area in order to
+complete a mission.
+
+
+
+PAGE 11
+
+
+
+TORPEDO PLANES
+
+To defend your carrier, it is necessary to either shoot down torpedo planes or
+destroy their torpedos once dropping (with bullets, bombs or rockets). When
+a torpedo plane is sighted, an arrow will appear in the 3-D VIEW indicating
+its position relative to you.
+
+HIGH SCORES
+
+Once you have finished the game, you will have the opportuntiy to save your
+score to disk if your score is among the top ten. You will be prompted to enter
+your name. Your rank will be recorded automatically.
+
+SAVE GAME*
+
+You can save a game in progress whenever your Hellcat is on the carrier.
+When you are ready to save the game, press Control-G. Enter a name for the
+game you wish saved and press return. You will then be returned automati-
+cally to the game you were just playing. To load a saved game, select "Return
+from R & R" on the rank selection screen or press Control-L from within the
+game. On the Load Game menu screen use the joystick to highlight the game
+you wish to play and press return.
+
+*This Save Game feature is only included on the Amiga version. you cannot
+save games on the Commodore 64/128 version.
+
+
+
+PAGE 12
+
+
+
+
+PRESS RESULT
+----- ------
+
+ESC (AMIGA) PAUSES THE GAME. PRESS AGAIN TO CONTINUE.
+
+CONTROL-R RESTARTS THE GAME AND RETURNS YOU TO THE RANK SELECTION
+MENU.
+
+CONTROL-D DISPLAYS THE LIST OF HIGH SCORES.
+
+CONTROL-C CLEARS THE LIST OF HIGH SCORES. THIS OPTION CAN ONLY
+BE USED AFTER PRESSING CONTROL-D.
+
+CONTROL-F FLIPS THE VERTICAL CONTROL ON YOUR JOYSTICK.
+
+
+AMIGA ONLY
+----------
+
+CONTROL-G SAVES GAME.
+
+CONTROL-L LOADS SAVED GAMES.
+
+
+
+
+
+PAGES 13 

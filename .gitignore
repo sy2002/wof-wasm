@@ -1,5 +1,8 @@
-# game data: never commit to a repository that could become public
-original/
+# The Kickstart ROM: whoever clones the repository places their own copy (tools/rom.py,
+# README.md).  The rest of original/ - the disk image, its files and the manual's text - is
+# versioned.
+original/kick.rom
+
 dist/
 
 # renderings of the game's artwork (regenerate with tools/ppkc.py)
