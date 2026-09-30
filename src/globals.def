@@ -42,6 +42,7 @@ WOF_GLOBAL(g_027f1a,           uint32_t, 0x027F1A)  /* read by audio_irq alone; 
 
 /* the tick (M4 part 2) */
 WOF_GLOBAL(crand_seed,         uint32_t, 0x026A16)  /* the C library's rand() (0x021E24), not the entropy */
+WOF_GLOBAL(demo_file_name,     uint32_t, 0x026F86)  /* main's argument: "wofdemo" (0x023458) records */
 WOF_GLOBAL(g_025422,           uint32_t, 0x025422)  /* the name of the shape 0x02541A, 0x01C378 */
 /* The map list's address, map_records at 0x024628 as a value.  The machine's allocator
  * chooses it; only the wreck's explosion at 0x01B304 reads it (re/notes/porting-m5.md). */
@@ -62,7 +63,6 @@ WOF_GLOBAL(fire_state,         uint16_t, 0x027F66)  /* what poll_fire last read 
 WOF_GLOBAL(joy_dir8,           uint16_t, 0x027742)  /* what poll_joy_dir8 last read, 0..8 */
 WOF_GLOBAL(demo_mode,          uint16_t, 0x026D4C)  /* 0 play, 1 playback, 2 recording */
 WOF_GLOBAL(demo_index,         uint16_t, 0x026D52)  /* the demo buffer's next entry, the rank at 0 */
-WOF_GLOBAL(demo_file_name,     uint32_t, 0x026F86)  /* main's argument: "wofdemo" (0x023458) records */
 
 /* the key buffer (re/notes/keys.md) */
 WOF_GLOBAL_ARRAY(key_qualifier_buffer, uint16_t, 10, 0x026CA2)

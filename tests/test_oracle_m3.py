@@ -57,12 +57,21 @@ def test_every_ported_global_is_in_the_registry_with_its_original_address(ported
 def test_the_globals_struct_is_the_sum_of_its_members(ported):
     """The state travels as the struct's bytes, so a hole in it would be uninitialised
     memory in a save state.  wof_init zeroes the whole struct, which makes a hole harmless,
-    but a struct without one is the cheaper guarantee and this says whether there is one."""
+    but a struct without one is the cheaper guarantee and this says whether there is one;
+    only the tail that rounds the struct to its alignment is allowed."""
     registry = ported.globals_registry()
     total = sum(elem * count for elem, count, _, _ in registry.values())
-    assert total == ported.globals_bytes(), (
-        'wof_globals_t is %d bytes for %d bytes of members: reorder src/globals.def by '
-        'decreasing element size' % (ported.globals_bytes(), total))
+    members = sorted((offset, elem * count, name)
+                     for name, (elem, count, _, offset) in registry.items())
+    holes = [(a[2], b[2]) for a, b in zip(members, members[1:]) if a[0] + a[1] != b[0]]
+    assert holes == [] and members[0][0] == 0, (
+        'wof_globals_t has holes between %s: reorder src/globals.def by decreasing element '
+        'size' % holes[:4])
+    # The struct ends on its widest member's alignment, a long's: an odd number of words
+    # leaves two bytes behind the last member, which no order of the members removes.
+    align = max(elem for elem, _, _, _ in registry.values())
+    assert ported.globals_bytes() == (total + align - 1) // align * align, (
+        'wof_globals_t is %d bytes for %d bytes of members' % (ported.globals_bytes(), total))
 
 
 # ------------------------------------------------------------------ the key buffer
