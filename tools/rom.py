@@ -21,7 +21,7 @@ SHA1 = '891e9a547772fe0c6c19b610baf8bc4ea7fcb785'
 
 IDENTITY = ('Kickstart 1.3, revision 34.5, the A500 and A2000 image (exec 34.2 of 28 October '
             '1987), 262,144 bytes, MD5 %s, SHA-1 %s' % (MD5, SHA1))
-WHERE = ('It is not part of this repository: place your own copy there.  Cloanto\'s Amiga '
+WHERE = ('It is not part of this repository: place your own copy there. Cloanto\'s Amiga '
          'Forever sells this image, and a real Amiga 500 with Kickstart 1.3 gives it too.')
 
 
