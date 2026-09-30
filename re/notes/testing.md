@@ -20,12 +20,15 @@ Since M9 headless Chrome runs on the machine's GPU (`tests/chrome.mjs` no longer
 
 ## What happens once per run
 
-Under pytest-xdist every worker is a process with a session of its own, and a session fixture runs once in each. Two of them write files that the other processes read, so they run once per run under a lock in the directory the workers share, `tmp_path_factory.getbasetemp().parent` (`once_per_run` in `tests/conftest.py`; `fcntl.flock`, nothing beyond xdist). The first worker to take the lock does the work; the others find it done.
+Under pytest-xdist every worker is a process with a session of its own, and a session fixture runs once in each. The build writes files that the other processes read, so it runs once per run under a lock in the directory the workers share, `tmp_path_factory.getbasetemp().parent` (`once_per_run` in `tests/conftest.py`; `fcntl.flock`, nothing beyond xdist). The first worker to take the lock does the work; the others find it done.
 
 - `built`: `tools/build.py --native` writes `tests/libwofcore.dylib` in place, and a process that has the library loaded while another rewrites it can crash or read a torn file. The first worker builds and leaves a marker, `wof-build.done`. Every parallel run measured built exactly once (with 8, 12 and 6 workers), logged by a plugin that recorded each `tools/build.py` a process started.
-- `listing_made`: `re/Wings.lst` is not versioned. On a fresh checkout two modules (`test_frontend`, `test_oracle_ffp`) make it with `tools/disasm.py`, which rewrites `re/functions.csv` in place as well, and every headless original reads that file. An autouse session fixture makes the listing before any test of any process runs, so those two fixtures always find it.
 
-A serial run builds as it always did, and makes the listing the same way.
+A serial run builds as it always did. The listings and the contact sheets are versioned and made by no test in place: `tests/test_generated.py` makes them into a directory of its own and compares them with the committed files byte for byte (`tools/disasm.py --out`, `tools/disasm_player.py --out`, `tools/ppkc.py --sheets`).
+
+## Without the Kickstart ROM
+
+`tools/rom.py` knows the image the project uses and gives one message when `original/kick.rom` is missing or another image: what is missing, the image's version, size and both checksums, and where to get it. The build stops with it before it writes anything, and the headless original and the oracle's reference (`tests/ffp.py`) raise it where they open the ROM. In the suite, `pytest_collection_modifyitems` in `tests/conftest.py` asks the check once per process and, when it fails, marks every test skipped with that message as its reason, except the few marked `without_rom` (`tests/test_generated.py`, the two message tests of `tests/test_rom.py`). Nothing is built and nothing runs that would crash or wait, and the summary shows the message once with the count of the tests it skipped.
 
 ## A fresh core for every test
 
@@ -51,7 +54,7 @@ The test instrumentation `tests/shim.c` sets lives in `src/trace.c`, beside the 
 ## Shared state, audited
 
 - **Files a test writes**: all under `tmp_path` or a per-process `tempfile.mkdtemp` - the recordings of `tests/test_world.py` (`RECORDING_DIR`), the `oil_d` dump of the enemy templates in `tests/conftest.py`, the dumps of `test_mission`, `test_headless` and `test_state_m4`, the programs `test_oracle_ffp` compiles. The `tests/m*_renders.py` scripts write `dist/m*-part*/` and `dist/m8-sound/`, but no test imports them.
-- **Files read by all**: `dist/`, `tests/libwofcore.dylib`, `re/`, `original/`, `tests/runs/`; written only by the build and the listing above, once, before any test reads them.
+- **Files read by all**: `dist/`, `tests/libwofcore.dylib`, `re/`, `original/`, `tests/runs/`; written only by the build above, once, before any test reads them; `re/` and `ref/` are read from the checkout as it is.
 - **Module caches**: `RECORDINGS` and `RECORDED` (`tests/test_world.py`), `SEEN_SONGS` and `SEEN_SAMPLES` (`tests/m4state.py`), `_ENEMY_TEMPLATES` (`tests/conftest.py`), the two `lru_cache`s of `tests/test_music.py`: in-process, one per worker. `SEEN_SONGS` and `SEEN_SAMPLES` name the songs and samples a run's pointers point into, and are this run's alone: every `Replay` (`tests/m4compare.py`) and the music oracle empty both, because another recording laid its songs and samples out elsewhere and one of its starts below a freed block of this run would be taken for it (held by `tests/test_isolation.py::test_a_replay_attributes_samples_by_its_own_run_alone`; the finding in `re/notes/porting-m7.md`, "Paula's channel 0 after the save").
 - **The core's statics**: one per process, made fresh for every test that takes them (above).
 - **Browsers**: only in phase 2, one test at a time.

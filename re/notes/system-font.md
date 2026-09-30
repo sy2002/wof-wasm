@@ -1,10 +1,10 @@
 # System font
 
-The load and save dialog, the name entry and the file list draw text with graphics.library `Text` and never set a font, so the original shows the system default font, topaz 8 from the Kickstart ROM. The font is not on the game disk. The port reads it at build time from the owner's ROM image, `original/kick.rom`.
+The load and save dialog, the name entry and the file list draw text with graphics.library `Text` and never set a font, so the original shows the system default font, topaz 8 from the Kickstart ROM. The font is not on the game disk. The port reads it at build time from the owner's ROM image, `original/kick.rom`, which is not part of the repository: whoever clones it places their own copy (`tools/rom.py`, `README.md`).
 
 ## The ROM
 
-`original/kick.rom` is a plain 262,144-byte Kickstart 1.3 image (`exec 34.2`), neither encrypted nor byte-swapped. It maps at `0xFC0000`, so a ROM pointer minus `0xFC0000` is a file offset.
+`original/kick.rom` is a plain 262,144-byte Kickstart 1.3 image, revision 34.5, the A500 and A2000 image (`exec 34.2` of 28 October 1987, SHA-1 `891e9a547772fe0c6c19b610baf8bc4ea7fcb785`), neither encrypted nor byte-swapped. It maps at `0xFC0000`, so a ROM pointer minus `0xFC0000` is a file offset.
 
 ## Where the fonts are
 
@@ -31,4 +31,4 @@ The glyph bitmap is `tf_YSize` rows of `tf_Modulo` bytes, all glyphs side by sid
 
 ## For the build
 
-The build locates the body by contents rather than by a fixed offset (height 8, cell width 8, first character `0x20`, both pointers inside the ROM), so that another Kickstart version also works, and writes glyph bitmap, location table and metrics into the generated tables. When `original/kick.rom` is absent the build falls back to the game's own font and says so.
+The build locates the body by contents rather than by a fixed offset (height 8, cell width 8, first character `0x20`, both pointers inside the ROM), and writes glyph bitmap, location table and metrics into the generated tables. The build itself accepts only the image above: it checks size and SHA-1 first (`tools/rom.py`) and stops with a message when `original/kick.rom` is missing or another image. The search by contents and the fallback to the game's own font, which `tools/extract_tables.py` still has when it is run without a ROM, are therefore not reached from the build.
