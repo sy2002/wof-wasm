@@ -258,27 +258,75 @@ value. Nothing else differs: `tests/test_campaign.py` holds `save_a`'s file to t
 original's byte for byte, and the list of differing bytes is exactly these four fields
 (observed).
 
-### What the reader of part 2 will meet (read)
+### The loader
 
-- `save_read_part` reads a flag-0 piece into memory where it lies, and for a flag-1 piece
-  allocates a new block of the length, reads into it and stores its address at the
-  address the walker gave; the blocks the running game held are not freed. A short read
-  leaves the pointer as it was.
-- The raw part comes back whole, the three shape pointers and the carrier's gun-list
-  pointer among it, as the saving machine held them; the enemy ships' gun-list pointers are
-  replaced by the new blocks.
-- **The loader must derive the four pointer fields and never trust them**: a file from a
-  real Amiga holds that machine's addresses (`wof.mission 3`: the player's shape pointer
-  `0x0005FB4A`), and the port's own files hold its handles and flags. Each follows from
-  something the file holds as plain data (read, `frame_select` `0x01C378`, which the tick
-  runs): the player's shape (`+0x04`) is the shape of `hellcat.shp` named by the frame
-  name at `+0x08`, and `torpedo_shape` (`0x02541E`) the shape of `Torpedo.shp` of the same
-  name, both set again by every tick's `frame_select`; `0x02541A` is the shape of
-  `hellcat.shp` named by `0x025422`, which `frame_select` sets again only on some of its
-  paths (the aircraft level on the deck or in the air), so it must be derived at the load;
-  an enemy ship's gun list (`+0x06`) is the block the walker reads for it (set where the
-  ship's `+4` and `+0x12` are set) and none where no block was read, as for the carrier.
-- `opt_invert_vertical` comes back with the game (`SPEC.md` section 6.1: the port restores
-  the owner's preference over it).
-- The loaded game's path is `0x019152` from the rank selection and `0x01CDD4` in flight;
-  both are M7 part 2's stand-ins (`re/notes/porting-m7.md`).
+`save_game_read` (`0x015E1A`) opens the file old, walks it with the read callback
+`save_read_part` (`0x015D7C`) and closes it; a file it cannot open makes it print an error
+and exit the game (`0x015E50`) (read). The callback reads a flag-0 piece into memory where
+it lies, and for a flag-1 piece allocates a new block of the length, reads into it and
+stores its address at the address the walker gave, but only when Read gave the whole
+length: a short read leaves the pointer, and the blocks the running game held are not
+freed (read). The walker computes every length from memory as it stands, so after the raw
+part and `map_length` it takes the file's own counts: the file describes its own layout
+(read; held by `tests/test_loader.py`, where the port's loader, which reads with the same
+walker, is compared with the original's state after the load).
+
+Two paths lead to it (read; observed in the three scripts):
+
+- **From the rank selection**: its seventh entry opens the dialog in load mode; the dialog
+  shows `Loading game...`, stops the music, frees the map (`free_map`) and reads the file,
+  and returns 0 without a fade; `rank_select` sets `loaded_game` (`0x0183DE`), fades out
+  and stops the music; `main` skips `map_load` (`0x0100A2`), runs the briefing (whose
+  Control-R goes back to the outer loop's head as ever), the mission's setup, and skips the
+  mission's reset (`0x0100CA`), so the file's state is the mission's: its tick
+  (`0x0100F2`), the queue cleared, step S.
+- **In flight**: Control-L, refused while a demo runs, frees the dashboard's shapes, the
+  sounds and the demo buffer (`0x011256`) and opens the dialog; a game loaded
+  (`0x01CDD4`) runs `load_dash_assets`, the briefing, whose result is not looked at,
+  `dashboard_invalidate`, `mission_display_setup`, `load_ship_shapes`, `build_master_lists`,
+  `sounds_load`, one tick and `input_queue_clear`, and the inner loop goes on in the
+  mission it was in, with no new step S; a cancel loads the dashboard and the sounds again
+  and restores the play screen.
+
+The raw part comes back whole, the four pointer fields among it as the saving machine held
+them ("What the port writes in the raw part", above); the enemy ships'
+gun-list pointers are replaced by the new blocks. Each pointer follows from data the file
+holds as plain data (read, `frame_select` `0x01C378`):
+
+- the player's shape (`+0x04`) is the shape of `hellcat.shp` named by the frame name at
+  `+0x08`, and `torpedo_shape` (`0x02541E`) the shape of `Torpedo.shp` of the same name;
+  the tick `main` or `ingame_keys` runs straight after the load sets both again before
+  anything reads them;
+- `0x02541A` is a shape of `hellcat.shp`, which `frame_select` sets only on its level path
+  (on the deck or in the air, level, with `0x025A9C` 1 on the deck), together with its name
+  at `0x025422`; the name is cleared at every other tick, so it is 0 in every saved game,
+  while the pointer keeps the last level frame's shape. `draw_player` draws it whenever the
+  aircraft is level with `0x025A9C` other than 0, also in the hold before any level tick:
+  the original's own save loaded again draws its saved pointer's shape there (observed in
+  `load_hold` and `load_menu`: shape `0x106E` in the hold right after the load). In the
+  disk's file it is `0x0006698A`, an address of the saving machine, and `load_disk` never
+  draws it before a level tick sets it (observed: `draw_player` first reads it 716 steps
+  after the load);
+- an enemy ship's gun list (`+0x06`) is the block the walker reads for it, set where the
+  ship's `+4` and `+0x12` are set, and none where no block was read, as for the carrier.
+
+**The port derives all four and never takes them as they stand**: a file from a real Amiga
+holds that machine's addresses, and the port's own files hold its handles and flags. After
+the walk the port sets the player's shape and the torpedo's from the frame name, a ship's
+gun list from whether the walker read one, and `0x02541A` from where its pointer lies
+(`src/dialog.c`, `wof_save_game_read` and `saved_hellcat_shape`): in the port's own file
+it is a shape handle, taken when it names a shape of `hellcat.shp`; in a machine's file the
+player's pointer beside it, whose shape the frame name gives, places the container in that
+machine's memory (a record lies 6 + 8 x count + its offset from the container's start, as
+`load_file` leaves a PPkc file), and the pointer's distance from there names the record.
+For the disk's file that is shape `0x106E`, the one the harness's own saves hold there. A
+pointer that names no record so, inside a record, outside the container, a handle of
+another container, gives no shape: nothing is drawn there until a level tick sets the
+field (`tests/test_loader.py`, `test_the_shape_at_0x02541a_comes_from_where_its_pointer_lies`). `opt_invert_vertical` comes back with the game, and the owner's
+remembered preference wins over it (`SPEC.md` section 6.1).
+
+**The port refuses a file it cannot hold** before the load begins: one that is missing, or
+shorter than its own counts ask, or whose counts exceed the port's tables (`src/mission.def`)
+(`wof_save_game_fits`). The original would exit on the first and read the others into
+blocks of any size; the port's dialog leaves as a cancel, nothing is freed and the game
+goes on.

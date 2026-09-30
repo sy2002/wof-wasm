@@ -35,12 +35,19 @@ The original is **not** a pure function of seed and input bytes. Its behaviour a
 
 The program never reads `VBlankFrequency` or `PowerSupplyFrequency` from ExecBase, nor `DisplayFlags` from GfxBase. It does not distinguish 50 Hz from 60 Hz machines. On a PAL machine everything simply runs at 50/4 ticks per second instead of 60/4. The port's 50 Hz option is therefore nothing more than a different VBlank clock rate.
 
+## The seed
+
+The generator is seeded only for a demo, recorded or played back: `rank_select` calls
+`rand_set_seed(read_vhposr())` after its fade (`0x018480`), so the seed is one beam
+position, which the headless original serves from the entropy stream like every other
+(observed: `demo_record` and the playbacks each draw one value there, logged with the caller
+`rank_select`). In normal play `rand_seed_const` keeps the DATA hunk's value. The demo file
+keeps no seed, its first byte is the rank, so on the machine a playback runs with another
+seed than its recording. The port keeps the entropy stream's state at a recording's start in
+a second file beside the demo, `wofdemo.seed`, with the swell's phase and `night_flag`, and a
+playback of that demo starts from them (`re/notes/demo.md`, "The port").
+
 ## Open
 
 - What each of the 43 call sites does with the value (mask, modulo, comparison), which belongs to the notes of the subsystems that call it.
-- How the front end derives the seed it passes to `rand_set_seed`, and whether demo playback
-  uses a fixed one. Read in `rank_select` (`0x01847A`): the generator is seeded only when a
-  demo is recorded or played back, from the beam position `read_vhposr` gives at that moment,
-  and the demo file keeps no seed (its first byte is the rank), so on the machine a demo's
-  playback runs with another seed than its recording; in normal play `rand_seed_const` keeps
-  the DATA hunk's value. What the port makes of it is M7 part 2's.
+

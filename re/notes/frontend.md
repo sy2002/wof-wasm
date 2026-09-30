@@ -313,7 +313,9 @@ position `"%d"` at +0, the score `"%-6ld"` at +0x28, the rank name `"%-12s"` fro
 
 **The demo request** is not a state of its own: `rank_select` sets `demo_mode` to 1 when
 `menu_input` times out, loads `wofdemo` and falls back to 0 when the file is not there, which on
-this disk it never is. Recording, `demo_mode` 2, is entered when `0x026F86` holds a file name.
+this disk it never is. Recording, `demo_mode` 2, is entered when `0x026F86` holds a file name,
+which `main` sets when it was started with an argument. Both, the seed and the file are in
+`re/notes/demo.md`.
 
 **What decides whether the high-score entry appears**: two things in sequence. The screen itself
 is skipped when the run was a demo playback (`0x026F8C`); the name entry inside it is skipped

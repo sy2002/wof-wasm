@@ -120,10 +120,9 @@ VBlank, and reads `wof_invert_vertical` back on every animation frame so that a 
 the game is remembered. A core that was never given a preference behaves exactly as the
 original, which is what the differential tests run.
 
-Two hooks are in `src/portkeys.c` for the milestones that will need them:
-`wof_invert_vertical_follow`, which M4's `ingame_keys` calls after it toggles the byte, and
-`wof_invert_vertical_restore`, **an M7 stand-in**, which the saved-game loader calls so that
-the preference wins over what the saved game carried.
+Two hooks are in `src/portkeys.c`: `wof_invert_vertical_follow`, which `ingame_keys` calls
+after it toggles the byte, and `wof_invert_vertical_restore`, which the saved game's loader
+calls so that the preference wins over what the saved game carried (M7).
 
 ### The shell's key map
 
@@ -307,9 +306,12 @@ directory blocks of `original/wof.adf`.
 | `M7 STAND-IN` | `wof_invert_vertical_restore`, `src/portkeys.c` | the loader calling it so that the remembered flip wins over the saved game |
 | `PROVISIONAL` | `src/fade.c` | how many VBlanks one of the sixteen steps of a fade takes |
 
-Demo playback and recording are left out of `rank_select` and of `vblank_server` with a
-comment in each: playback asks for `wofdemo`, which is not on this disk, and recording needs
-a file name on the command line, which a page has no way of giving. Both are M7.
+These are M3's markers; the mission is ported since M4, the saved game, its loader and the
+demo since M7 (`re/notes/porting-m7.md`).
+
+Demo playback and recording were left to M7, which ports both (`re/notes/demo.md`):
+playback asks for `wofdemo`, which is not on this disk, and recording needs main's argument,
+which the port gives through a development key.
 
 `"Exit Game"` in the dialog calls `fatal_exit` on the machine, which ends the program. A
 page has nothing to end into, so the port treats it as a cancel and says so where it does.

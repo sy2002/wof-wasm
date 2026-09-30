@@ -1,10 +1,11 @@
 # M7: the campaign and the saved game
 
-Milestone M7 of `SPEC.md` section 9, in two parts. Part 1, this note: everything from a
-mission won to the next mission's first ticks, the promotion after a rank's last mission,
-and the saved game's layout and its writer. Part 2, later: the loader on both of its paths,
-the demo, the two markers that stand for values, and the page. What the campaign and the
-saved game are, observed, is `re/notes/campaign.md`. Addresses use the standard load layout.
+Milestone M7 of `SPEC.md` section 9, in two parts. Part 1: everything from a mission won to
+the next mission's first ticks, the promotion after a rank's last mission, and the saved
+game's layout and its writer. Part 2 (the sections headed so): the loader on both of its
+paths, the demo, the two markers that stood for values, and the page. What the campaign
+and the saved game are, observed, is `re/notes/campaign.md`; the demo is
+`re/notes/demo.md`. Addresses use the standard load layout.
 
 Every statement is either **observed**, with the tool or test that shows it, or **read**,
 which means it comes from the listing alone.
@@ -270,38 +271,168 @@ fields or never written (above).
 
 ## What stands in, and where
 
-No stand-in of M7 part 1 is left. The markers of M7 left in the sources are part 2's, and
-say so (`M7 PART 2 STAND-IN`): the loaded game from the rank selection (`0x019152`,
-`src/dialog.c`) and in flight (`0x01CDD4`, `src/front.c`), the demo's spin in
-`run_queued_ticks` (`0x0114E0`) and its saving (`0x018536`), a negative score in
-`draw_score` (`0x01F26A`) and a ticker message outside the registered state. The regions
-of the routines part 1 ports that no script runs are ported from reading and named in the
-cold list below.
+No stand-in of M7 is left: the loaded game from the rank selection and in flight, the
+demo's spin in `run_queued_ticks` and its saving, a negative score in `draw_score` and the
+ticker's message are ported ("Part 2: the port"). The regions of M7's routines that no
+script runs are ported from reading and named in the cold list below.
 
-## What part 2 must know
+## Part 2: the scripts
 
-- **The loader.** `save_read_part` (`0x015D7C`) reads a flag-0 piece where it lies and for
-  a flag-1 piece allocates a new block, reads into it and stores its address; the old
-  blocks are not freed, and a short read leaves the pointer. So after a load the raw part
-  holds the saving machine's pointers: the three shape pointers and the carrier's gun
-  list, which the port's files carry as a handle and a flag, and the disk's file as
-  addresses of that Amiga's memory (a handle is at most `0xFFFF`, an address far above);
-  the walker's `map_records_end` is the list's end, not a word before it. The loaded
-  game's paths: from the rank selection `rank_select` sets `loaded_game` (`0x0183DE`),
-  `main` skips `map_load` (`0x0100A2`) and the setup skips the reset
-  (`0x0100CA`); in flight `ingame_keys` (`0x01CDD4`) runs `load_dash_assets`, the
-  briefing, `0x01EDAA`, `mission_display_setup`, `load_ship_shapes`,
-  `build_master_lists`, `sounds_load`, a tick and `input_queue_clear` (read).
-  `opt_invert_vertical` comes back with the game, which the port overrides with the
-  owner's preference (`SPEC.md` section 6.1).
-- **The demo's counter.** `g_026d44`'s setting at step S for a demo (`0x010100`) is on the
-  path the next mission shares and is ported with it; `run_queued_ticks`' spin while it is
-  set is part 2's stand-in (`0x0114E0`). `free_mission_assets` frees the demo buffer
-  (`demo_buffer_ptr`) between missions as well, which the port has none of.
-- **The seed.** The generator is seeded only for a demo, from the beam, and the demo file
-  keeps no seed (`re/notes/random.md`).
-- **What carries over between missions and campaigns**: the balloons in use, frozen, and
-  `night_flag`, which only `choose_night` writes (`re/notes/campaign.md`).
+Seven raw schedules written by hand in `tools/m7_scripts.py` (`PART2`), each from the
+program's start; the keys go through the game's input handler as a keyboard's would. Two
+use the harness's run description beyond M6's: `files` lays a `wofdemo` over the disk,
+which the harness had (`re/notes/headless.md`), and `argc`, M7 part 2's instrument, gives
+`main` an argument count above one, which makes every rank chosen a recording
+(`tools/headless.py`, "the main program"). Observed under the headless original with entropy
+seed 1:
+
+| Script | What it does | Ticks | Passes |
+|---|---|---|---|
+| `load_disk` | the title left with fire, the cursor up to the rank selection's seventh entry, Return, Return on the dialog's first entry, which is the disk's `wof.mission 3`: the briefing of map c as the first rank's third mission, left with fire; the mission with 14,225 points and two Hellcats; the lift, the roll and a flight east | 374 | 748 |
+| `load_hold` | `save_a`'s whole flight with its save in the hold, then Control-L in flight: the dialog lists `save` first and the disk's file second, Return on the first; the briefing (rank 1, mission 3), the mission from the save in the hold | 1,921 | 3,842 |
+| `load_menu` | `save_a`'s flight, then Control-R: the high scores (no name wanted at 350 points; fire leaves them), the outer loop round, the rank selection's seventh entry, Return on `save`; the mission from the save, off the lift and away | 1,819 | 3,638 |
+| `demo_record` | `argc` 2: rank 0 chosen, the briefing left, a take-off, a flight east with two taps of fire, a Hellcat lost on the way, Control-R; `demo_end` writes `wofdemo`: 5,000 bytes, 507 input bytes | 512 | 253 |
+| `demo_play` | `demo_record`'s `wofdemo` over the disk; the title left with fire and the rank selection left alone: after 1,800 rounds the attract mode plays the demo; fire 1,500 VBlanks into it ends the playback at entry 485; no high scores, the rank selection again | 485 | 242 |
+| `demo_play_ff` | the same file with entry 100 poked to `0xFF`: the playback ends there by itself | 101 | 50 |
+| `demo_play_long` | the same file with every entry after the recording's neutral: the playback ends at the count, `0x1386` entries | 4,999 | 2,499 |
+
+`load_disk` stands for a loaded game at one and three VBlanks per pass. The demo file of
+the playbacks is the one `demo_record`'s run writes, made again from its schedule wherever
+a test or the reach map needs it (`m7_scripts.demo_file`).
+
+## Part 2: the port
+
+- **The loader** (`src/dialog.c`): `save_read_part` (`0x015D7C`) and `save_game_read`
+  (`0x015E1A`) through the walker part 1 ported for the write. A byte of the raw part goes
+  where a registered field holds it (`wof_original_store8`), which leaves the four pointer
+  fields alone; a flag-1 piece goes into the pool at a fixed place behind its pointer
+  (`wof_pool_store8`, `src/core.c`), zeroed first as the original's new block is, and only
+  when Read gave the whole length: a short read leaves the pool and the pointer as they
+  were, as the original leaves its pointer. The map's pointer takes the address the
+  environment gives (`SPEC.md` section 7.3), a ship's gun list the flag. After the walk
+  the pointer fields are derived (`re/notes/campaign.md`, "The loader"), and the owner's
+  remembered vertical flip wins over the file's (`wof_invert_vertical_restore`).
+  `0x02541A` is the one that matters: `draw_player` reads the saved value in the hold
+  before any level tick sets it again (observed in `load_hold` and `load_menu`, the
+  original drawing shape `0x106E` there in the first pass after the load), so the port
+  derives it from where the saved pointer lies, not from the name at `0x025422`, which is
+  0 in every saved game.
+- **The port's check before a load** (`wof_save_game_fits`): the file is there, and every
+  piece its counts ask for is in it and fits the pool behind its pointer. The original
+  exits the game on a file it cannot open (`0x015E50`) and would read a longer piece into a
+  block of any size; the port refuses such a file before the load begins, and the dialog
+  leaves as a cancel: nothing is freed and the running game goes on.
+- **The dialog's load** (`0x019132` to `0x019158`): `Loading game...`, `music_stop`,
+  `free_map` (`wof_free_map`, now public), `save_game_read`, and out with 0 and no fade,
+  because the caller fades.
+- **The rank selection** (`rank_select`, `src/front.c`) now follows the original's control
+  flow: a cancelled load goes back into the menu with everything as it stands, where the
+  port had a loop of its own that chose the rank the cursor moved to; the loaded game's
+  `loaded_game`, fade and `music_stop`; the attract mode's request, the load of `wofdemo`,
+  the seed, the rank from the demo or into it, the recording's buffer.
+- **The cruise ship's two guns** (`load_ship_shapes` `0x01331A`, `src/mission.c`): guns 1
+  and 2 get 5 at `+6` after `ship_guns_setup` for a loaded game too, whose list the file
+  gave, where the port had left a loaded game's list alone (found by the completeness list
+  over `load_hold`, whose save held 5 there already).
+- **In flight** (`ingame_keys` `0x01CDD4`): a game loaded with Control-L runs its briefing,
+  whose Control-R is not looked at, and the mission's setup without the reset, then a tick
+  and the queue cleared, as `main` runs it for the rank selection's path.
+- **The demo**: `vblank_server`'s two halves (`src/input.c`), `run_queued_ticks`' wait
+  (`0x0114E0`), `demo_end`'s file and the buffer's release (`src/mission.c`); the buffer is
+  the registered pool `demo_buffer` (`src/mission.def`), `demo_index` and `demo_file_name`
+  are registered globals (`re/notes/demo.md`). `load_file` now reads a file the game has
+  written, as `wofdemo` is in the port.
+- **The two value markers**: `draw_score` (`0x01F26A`, `src/dash.c`) formats the score as
+  RawDoFmt's `%07ld` does, the sign inside the zeros' field, and draws every character, a
+  `-` through `dash_digit`'s signed index into the bytes before `digit_rows`; a score longer
+  than seven characters runs on past `score_text` as the original's does. A score is never
+  negative in play, and a loaded game can bring any. The ticker's message never leaves the
+  registered state (`wof_ticker_char`, `src/input.c`), shown by its writers (read): the
+  pointer is set to `ticker_text` (`mission_won` `0x0156FC`, and `ticker_offer` `0x015562`
+  from `ticker_say`, `ship_sinking` and the cheat's memory line) or to `ticker_text_2` (the
+  version and Help lines), and the server steps it to the text's NUL (`0x0118E2`).
+  `ticker_text` gets a message formatted from its start, at most 95 characters (the cheat's
+  memory line; an island's bonus 83, a ship sunk 59), and `mission_won` appends at most 125
+  over its last character, only ever to an island's or a ship's, which come first on both
+  of its paths: 220 bytes with the NUL in its 300. `ticker_text_2`'s lines are at most 50
+  of 102.
+
+## Part 2: the reach map and the cut
+
+Part 2's eight scripts beside every run of M4 to M7 part 1 (observed):
+
+```text
+.venv/bin/python tools/reach_observe.py --m6 --blocks --setups --jobs 8 --json REACH456.json
+.venv/bin/python tools/reach_observe.py --runs save_a ships_j night_again chain_a promote_a cap_a --blocks --jobs 8 --json REACH7A.json
+.venv/bin/python tools/reach_observe.py --runs load_disk load_hold load_menu demo_record demo_record_long demo_play demo_play_ff demo_play_long --blocks --jobs 8 --json REACH7B.json
+.venv/bin/python tools/reach_observe.py --cold REACH456.json REACH7A.json REACH7B.json
+```
+
+The eight enter 412 routines, 5,730,243 times; over all the runs 440 of the 616 are entered.
+Four routines run for the first time: `rand_set_seed`, `read_vhposr`, `save_file` and
+`high_score_save`. What they execute that no earlier run did, by phase:
+
+- **Phase V:** `vblank_server`'s demo halves, `0x011790` to `0x01183E`, the playback's
+  byte, its `0xFF` and its count, the recording's store and its count; in phase T the same
+  blocks, taken while the restart after a lost aircraft waits inside the tick.
+- **Phase M:** `main`'s argument (`0x010036`), the demo's count set at step S (`0x010104`),
+  the fire that ends a playback (`0x0101B4`); `run_queued_ticks`' wait (`0x0114E0`) and its
+  count for the next pass (`0x011508`); `rank_select`'s loaded game (`0x0183D2` to
+  `0x0183F6`) and its demo request, file and recording (`0x018442` to `0x0184D0`) with
+  `read_vhposr` and `rand_set_seed`; `demo_end`'s file (`0x018536` on) with `save_file`;
+  `free_map`'s cruise ship (`0x012C3E`) and `ship_guns_setup`'s return for a loaded game
+  (`0x013516`), both after a load; and in `load_menu` the high-score name entry with
+  `high_score_sort` and `high_score_save`.
+- **Phase F:** `draw_player`'s cable and `line_draw`'s octant for the demo flight's landing
+  attempt (`0x0105F0`, `0x02151E`).
+
+The loader's own routines are not in the cut: M3's key runs (`dialog-load`,
+`flight-flip-then-load`) load the disk's file already. `--cold` over the three finds no
+region without a marker or a note, and no M7 marker.
+
+## Part 2: how it is held
+
+| Check | Test | What it covers |
+|---|---|---|
+| T2 | `tests/test_loader.py::test_a_loaded_game_agrees_in_the_closed_loop[...]`, `tests/test_demo.py::test_a_demo_agrees_in_the_closed_loop[...]` | every part 2 script from the program's start, nothing handed over but the entropy and the map list's addresses (the loader's map block among them): after every tick and every pass the registered state (the demo buffer as the pool `demo_buffer`), the drawing calls, the entropy, the view, the rows, the markers, the map draws, the sound and Paula agree, through the dialog, the file read, the briefing and the mission from the save, and through a recording, its file and a playback; the replay runs through the last pass's ticks (`m4compare.Replay`) |
+| T2 at 1 and 3 | `test_a_loaded_game_holds_at_other_pass_rates[1, 3]` (slow) | `load_disk` at one and three VBlanks per pass |
+| T1 | `test_every_step_agrees_in_the_open_loop[...]` in both files | every step alone; none differs, no stand-in reached |
+| after the load | `test_the_state_a_load_leaves_is_the_originals[...]` | the port's state at the end of `save_game_read` against the original's at the same point (`m4compare`, `load_states`), but for the pointer fields it derives and the tables that point into containers freed at that moment |
+| derived | `test_the_derived_fields_are_what_the_originals_first_tick_makes_of_them[...]`, `test_the_shape_at_0x02541a_comes_from_where_its_pointer_lies` | the player's and the torpedo's shape against the original's first tick; `0x02541A` against the record the saved pointer names; each ship's gun list against the blocks the original's load allocated; the pointer rule over rewritten disk files |
+| the file | `test_the_ports_recording_is_the_originals_file` | `demo_record`'s `wofdemo` from the port, all 5,000 bytes, against the original's, and `wofdemo.seed` with the demo's hash |
+| cross | `test_the_original_plays_the_ports_recording_as_the_port_does` | the port's recording played by the original's attract mode and the port's, from the program's start, in the closed loop |
+| V6 | `tests/test_oracle_m7.py` | `save_game_read` with the walker and the read callback over 600 files the original's walker wrote, a third cut short, against the original's own reads under the oracle; the two ways out that end the program and the port's refusal; `draw_score` over 616 scores with exec's own RawDoFmt from the ROM (`0xFC2124`), negative and long ones among them |
+| replays | `tests/test_replays.py` | `tests/replays/demo_a.json`: a demo the port recorded (261 entries) and its playback's state hash after each of 2,021 input samples, native and in Node's WebAssembly (`SPEC.md` section 8) |
+| T3 | `tests/test_campaign.py::test_every_address_the_m7_scripts_write_is_compared_or_excluded` | the completeness list over part 1's and part 2's scripts |
+| page | `tests/test_page.py`, `tests/test_firefox.py` (`tests/pageload.mjs`) | in Chrome and Firefox: G in the hold saves `wof.abc`, the page reloaded, the rank selection's seventh entry loads it and the mission goes on with the saved rank, mission, lives, score and aircraft; on a fresh page L in the air does the same; key 4 records a game, the page reloaded, the attract mode plays it twice, and the player and the campaign at every input sample are the recording's both times |
+
+## Part 2: the controls
+
+Each changes the port in one place and is built into a library of its own
+(`tools/m7_controls.py`); every one is caught, the first step where it shows named:
+
+| Control | Where | Script, test | The first |
+|---|---|---|---|
+| a derived pointer field left as read from the file: the player's shape the low word of the file's long | `src/dialog.c`, `wof_save_game_read` | `load_disk`, derived fields | the player's shape `0xFB4A`, the low word of `0x0005FB4A`, for `0x1038` |
+| the raw range read two bytes short | `src/dialog.c`, `save_get` | `load_disk`, closed loop | pass 1: the map's draws, the drawing calls, the state, the engine's period (808 for 810) |
+| a table read one record short: the soldiers | `src/dialog.c`, `save_get` | `load_disk`, closed loop | pass 1: `target_records_4`, read eight bytes early; tick 46: soldiers let out that the original has not |
+| the demo's byte stored before `read_joystick`'s sample rather than after | `src/input.c`, `wof_vblank` | `demo_record`, closed loop | pass 1: `demo_buffer[1]` 0 for `0x20`, the tap the briefing's fire leaves |
+| the spin waiting for one byte rather than two | `src/front.c`, `run_queued_ticks` | `demo_play_ff`, closed loop | pass 2: the tick waits 2 VBlanks for 6, `demo_index` 2 for 3 |
+| the playback's end one entry late: the `0xFF` played as a neutral byte, the end at the next entry | `src/input.c`, `wof_vblank` | `demo_play_ff`, closed loop | tick 100: `input_byte` 0 for `0xFF`, `quit_flag` 0 for `0xFF` |
+
+The end at the count cannot be a control: a playback takes its entries in pairs from entry
+1, so entry `0x1386` is always the second of its pass, and an end one entry later sets
+`quit_flag` in the same pass with the same index (`re/notes/demo.md`). The late end at the
+`0xFF` is caught only since the replay runs through the last pass's ticks, which follow the
+pass's end: before, every script's last ticks went uncompared.
+
+## Part 2: the completeness list
+
+The rows of part 1 hold over part 2's scripts with two changed: `demo_buffer_ptr`
+(`0x026D4E`), which `rank_select` sets and `mem_free_var` clears, is compared in another
+form, the pool `demo_buffer` it points to, and the port keeps whether it is set;
+`save_handle` (`0x026C60`) is written by `save_game_read` too. The loader's new blocks are
+the pools behind the map's, the ships' and the tables' pointers, compared record by record.
 
 ## SPEC corrections this part proposes
 
@@ -321,6 +452,16 @@ cold list below.
 - Section 3.1: `wof.mission 3` is a game saved on map c, the first rank's third mission.
 - Section 9's paragraph: M3's front end no longer stands in for the content of a saved
   game, only for its loading.
+- Part 2, section 3.3: the demo as `re/notes/demo.md` has it: `main`'s argument, the
+  recording of every game from the rank chosen, the attract mode after 1,800 idle rounds,
+  two ticks a pass, the seed from the beam, fire ending a playback, the high scores skipped.
+- Part 2, section 3.5: the loader derives the four pointer fields, `0x02541A` from where
+  its saved pointer lies, because `draw_player` reads it before the tick sets it again.
+- Part 2, sections 6.1 and 6.2: `wof_dev_demo_record`, `wof_demo_recording` and
+  `wof_dev_game`; the development key 4; `wofdemo` and `wofdemo.seed` stored like a saved
+  game.
+- Part 2, section 8, the row Whole game, replays: `tests/replays/` and `tests/test_replays.py`.
+- Part 2, section 9: M7 done; section 10, point 8: the seed for a demo answered.
 
 ## Appendix: the reach map
 
@@ -983,27 +1124,698 @@ mission's setup after a mission won is the window `setup` like the first one's, 
 | between | M | `choose_night` | 0 | 28 | 0 | 0 | 0 | 4 |
 
 
+## Appendix: part 2's reach map
+
+Entries per routine and window for part 2's eight scripts, written from the run of "Part
+2: the reach map and the cut" (observed) with
+
+```text
+.venv/bin/python tools/reach_observe.py --runs load_disk load_hold load_menu demo_record demo_record_long demo_play demo_play_ff demo_play_long --load REACH7B.json --markdown TABLE.md
+```
+
+### The head of the outer loop, before the rank selection
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `free_mission_assets` | `011234` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `mem_free_var` | `0124e0` | 16 | 16 | 32 | 16 | 16 | 32 | 32 | 32 |
+| `shapes_free` | `012502` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `free_map` | `012bbe` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sounds_free` | `01346c` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sound_engine_free` | `0134a4` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sub_0134ae` | `0134ae` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `campaign_reset` | `013562` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `mission_reset_tables` | `0135a8` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `player_lost_restart` | `0135d8` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `player_restart_state` | `013684` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sub_013756` | `013756` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `shape_mirror_x` | `015b58` | 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `aircraft_frame` | `01abde` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `deck_span` | `01b7bc` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `player_reset` | `01b7ec` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sub_01b9bc` | `01b9bc` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `rand_mod` | `01cac8` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `sub_01cb30` | `01cb30` | 4 | 4 | 8 | 4 | 4 | 8 | 8 | 8 |
+| `aircraft_clear` | `01e608` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `weapon_gauge_reset` | `01edbc` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `lives_gauge_reset` | `01edea` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `rand_beam` | `0203be` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| `shape_find_c` | `0204f4` | 4 | 4 | 8 | 4 | 4 | 8 | 8 | 8 |
+| `shape_find` | `020560` | 4 | 4 | 8 | 4 | 4 | 8 | 8 | 8 |
+| `mem_free` | `02090a` | 0 | 0 | 0 | 0 | 0 | 14 | 14 | 14 |
+| `sub_022d86` | `022d86` | 0 | 0 | 0 | 0 | 0 | 14 | 14 | 14 |
+| `sub_022d8a` | `022d8a` | 0 | 0 | 0 | 0 | 0 | 14 | 14 | 14 |
+
+### After the rank selection, before the briefing
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `ship_block` | `01252c` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0129c8` | `0129c8` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `map_load` | `012adc` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `airfields_scan` | `012c84` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `map_scan` | `012d5a` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `sub_0131c8` | `0131c8` | 0 | 6 | 6 | 2 | 2 | 2 | 2 | 2 |
+| `sub_013216` | `013216` | 0 | 6 | 6 | 2 | 2 | 2 | 2 | 2 |
+| `sub_013236` | `013236` | 0 | 6 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `airfields_clear` | `013554` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `mem_alloc_asm` | `0158ec` | 1 | 6 | 7 | 5 | 5 | 5 | 5 | 5 |
+| `shapes_load` | `015bc6` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `shapes_resolve` | `015c5c` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_file_public_asm` | `015d3e` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_file_chip_asm` | `015d50` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_dash_assets` | `01653c` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sub_0165c4` | `0165c4` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `load_file_public` | `01feb4` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_file_chip` | `01feca` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_file` | `01ff16` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `shape_find` | `020560` | 117 | 117 | 234 | 117 | 117 | 117 | 117 | 117 |
+| `mem_alloc` | `020848` | 3 | 8 | 11 | 7 | 7 | 7 | 7 | 7 |
+| `sub_020874` | `020874` | 5 | 10 | 15 | 9 | 9 | 9 | 9 | 9 |
+| `mem_free` | `02090a` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_dos_close` | `022aae` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `sub_022ab2` | `022ab2` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_dos_examine` | `022ada` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_dos_lock` | `022b1a` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_dos_open` | `022b2c` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `sub_022b30` | `022b30` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_dos_read` | `022b3e` | 4 | 4 | 8 | 4 | 4 | 4 | 4 | 4 |
+| `os_dos_unlock` | `022b50` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `sub_022d36` | `022d36` | 5 | 10 | 15 | 9 | 9 | 9 | 9 | 9 |
+| `sub_022d3a` | `022d3a` | 5 | 10 | 15 | 9 | 9 | 9 | 9 | 9 |
+| `sub_022d86` | `022d86` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `sub_022d8a` | `022d8a` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+
+### Mission setup, main program: the briefing's end to step S
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `input_queue_clear` | `01174a` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sound_slots_init` | `011f76` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `load_ship_shapes` | `013252` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sounds_load` | `013368` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `ship_guns_setup` | `01350e` | 0 | 1 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `mission_reset_tables` | `0135a8` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `player_lost_restart` | `0135d8` | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| `player_restart_state` | `013684` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `sub_013756` | `013756` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `build_master_lists` | `01535a` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `mem_alloc_asm` | `0158ec` | 0 | 2 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `file_length` | `015b1a` | 7 | 8 | 15 | 8 | 8 | 8 | 8 | 8 |
+| `shapes_load` | `015bc6` | 0 | 1 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `shapes_resolve` | `015c5c` | 0 | 1 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `load_file_public_asm` | `015d3e` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `load_file_chip_asm` | `015d50` | 7 | 9 | 17 | 8 | 8 | 8 | 8 | 8 |
+| `vport_init_bitmap` | `0167f2` | 4 | 4 | 8 | 4 | 4 | 4 | 4 | 4 |
+| `view_layout` | `01692c` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `ticker_vport_init` | `016bd8` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `view_set_game` | `016c38` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `screen_game` | `016cc6` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `cmap_file_to_table` | `016dd6` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `cop_add_ticker_ramp` | `0187ba` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `mission_display_setup` | `018806` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `cop_reset` | `019958` | 6 | 6 | 12 | 6 | 6 | 6 | 6 | 6 |
+| `cop_move` | `0199bc` | 290 | 290 | 580 | 290 | 290 | 290 | 290 | 290 |
+| `cop_move_ptr` | `019a08` | 96 | 96 | 192 | 96 | 96 | 96 | 96 | 96 |
+| `cop_wait` | `019a9c` | 78 | 78 | 156 | 78 | 78 | 78 | 78 | 78 |
+| `cop_colours` | `019b5a` | 14 | 14 | 28 | 14 | 14 | 14 | 14 | 14 |
+| `cop_vport_colours` | `019c0a` | 14 | 14 | 28 | 14 | 14 | 14 | 14 | 14 |
+| `cop_vport_split` | `019c80` | 4 | 4 | 8 | 4 | 4 | 4 | 4 | 4 |
+| `cop_vport_planes` | `019d18` | 14 | 14 | 28 | 14 | 14 | 14 | 14 | 14 |
+| `cop_sprites_off` | `01a06c` | 6 | 6 | 12 | 6 | 6 | 6 | 6 | 6 |
+| `view_build_copper` | `01a0d4` | 6 | 6 | 12 | 6 | 6 | 6 | 6 | 6 |
+| `iff_cmap_to_table` | `01a1f6` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `iff_next_chunk` | `01a336` | 8 | 8 | 16 | 8 | 8 | 8 | 8 | 8 |
+| `iff_body_to_vport` | `01a362` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `iff_parse_ilbm` | `01a452` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `iff_to_vport` | `01a548` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `view_poke_colours1` | `01a60e` | 3 | 3 | 6 | 3 | 3 | 3 | 3 | 3 |
+| `view_poke_colours2` | `01a6ac` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `vport_clear_planes` | `01a74c` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `view_copy_bitmaps` | `01a834` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `view_copy_colours` | `01a8c4` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `view_copy` | `01a9ca` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `cop_show_wait` | `01a9fc` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `cop_install` | `01aa0e` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `wait_vblank` | `01aa3e` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `aircraft_frame` | `01abde` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `deck_span` | `01b7bc` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `player_reset` | `01b7ec` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `sub_01b9bc` | `01b9bc` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `rand_mod` | `01cac8` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `sub_01cb30` | `01cb30` | 280 | 288 | 568 | 288 | 288 | 288 | 288 | 288 |
+| `enemy_frames` | `01d1ea` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `dash_cache_invalidate` | `01ed7a` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `dashboard_invalidate` | `01edaa` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `weapon_gauge_reset` | `01edbc` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `load_file_public` | `01feb4` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `load_file_chip` | `01feca` | 7 | 9 | 17 | 8 | 8 | 8 | 8 | 8 |
+| `rpck_unpack` | `01fee0` | 1 | 2 | 4 | 1 | 1 | 1 | 1 | 1 |
+| `load_file` | `01ff16` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `rand_beam` | `0203be` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `byterun1_row` | `0203e8` | 148 | 148 | 296 | 148 | 148 | 148 | 148 | 148 |
+| `shape_find_c` | `0204f4` | 280 | 288 | 568 | 288 | 288 | 288 | 288 | 288 |
+| `shape_find` | `020560` | 280 | 336 | 664 | 288 | 288 | 288 | 288 | 288 |
+| `mem_alloc` | `020848` | 10 | 15 | 28 | 11 | 11 | 11 | 11 | 11 |
+| `sub_020874` | `020874` | 19 | 26 | 49 | 21 | 21 | 21 | 21 | 21 |
+| `mem_free` | `02090a` | 13 | 16 | 31 | 14 | 14 | 14 | 14 | 14 |
+| `sub_0223cc` | `0223cc` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sub_022424` | `022424` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `os_dos_close` | `022aae` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `sub_022ab2` | `022ab2` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `os_dos_examine` | `022ada` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `os_dos_lock` | `022b1a` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `os_dos_open` | `022b2c` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `sub_022b30` | `022b30` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `os_dos_read` | `022b3e` | 18 | 22 | 42 | 20 | 20 | 20 | 20 | 20 |
+| `os_dos_unlock` | `022b50` | 9 | 11 | 21 | 10 | 10 | 10 | 10 | 10 |
+| `sub_022d36` | `022d36` | 19 | 26 | 49 | 21 | 21 | 21 | 21 | 21 |
+| `sub_022d3a` | `022d3a` | 19 | 26 | 49 | 21 | 21 | 21 | 21 | 21 |
+| `sub_022d86` | `022d86` | 13 | 16 | 31 | 14 | 14 | 14 | 14 | 14 |
+| `sub_022d8a` | `022d8a` | 13 | 16 | 31 | 14 | 14 | 14 | 14 | 14 |
+| `gfx_BltBitMap` | `022e0c` | 3 | 3 | 6 | 3 | 3 | 3 | 3 | 3 |
+| `gfx_BltClear` | `022e2e` | 7 | 7 | 14 | 7 | 7 | 7 | 7 | 7 |
+| `gfx_InitBitMap` | `022e5a` | 5 | 5 | 10 | 5 | 5 | 5 | 5 | 5 |
+| `gfx_InitRastPort` | `022e6c` | 5 | 5 | 10 | 5 | 5 | 5 | 5 | 5 |
+
+### Mission setup, the tick main runs itself
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `objects_step` | `010a72` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `shot_origin` | `011274` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `logic_tick` | `011386` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `ship_launches` | `011510` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `airfields_step` | `011622` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `input_queue_pop` | `011714` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `gun_splashes` | `0119bc` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `engine_smoke` | `011bfc` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `balloons_step` | `011c5e` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `ships_sinking` | `011cae` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `target_timers` | `011de4` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sound_channels` | `012066` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `engine_sound` | `012132` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `enemy_loudness` | `0122ce` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `sub_015710` | `015710` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ground_height` | `015714` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `wheel_height` | `01aaea` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `aircraft_frame` | `01abde` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `hook_state` | `01b45a` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `button` | `01b5b0` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `guns` | `01b682` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `cable_hook` | `01b92e` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `enemy_countdown_step` | `01bc02` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `deck_state` | `01bcce` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `deck_roll` | `01bdba` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `frame_select` | `01c378` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `deck_controls` | `01c4e8` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `deck_edge` | `01c5f4` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `player_update` | `01c660` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `record_at` | `01c982` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_01cb30` | `01cb30` | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `enemy_aircraft_step` | `01e7d6` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `channel_play` | `01ea28` | 3 | 3 | 6 | 3 | 3 | 3 | 3 | 3 |
+| `channel_stop` | `01eac0` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `channel_busy` | `01eb2e` | 3 | 3 | 6 | 3 | 3 | 3 | 3 | 3 |
+| `sub_0204e4` | `0204e4` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0204ec` | `0204ec` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_find_c` | `0204f4` | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_find` | `020560` | 4 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `os_disable` | `022d48` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+| `os_enable` | `022d66` | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 1 |
+
+### Mission setup, VBlank servers
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `input_queue_pop` | `011714` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server` | `011754` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `read_joy_bits` | `01520e` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_every_frame` | `01c9ca` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `read_joystick` | `01ca32` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `read_joy_dispatch` | `01cb20` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `soundfx_vblank` | `01ec64` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `poll_fire` | `02044c` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `read_fire_button` | `02046a` | 2 | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `os_disable` | `022d48` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `os_enable` | `022d66` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+
+### A pass during a mission: `frame_update`'s tree (phase F)
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `frame_update` | `010228` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `flip_buffers` | `01030c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `weapon_marker` | `010344` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `draw_player` | `0103a6` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `draw_objects` | `0106be` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `object_draw` | `010702` | 0 | 114 | 114 | 64 | 1546 | 64 | 0 | 1451 |
+| `draw_enemy_aircraft` | `010da6` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `smoke_draw` | `010ee0` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `snapshot_for_draw` | `010f88` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `draw_game_over` | `0110c2` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `draw_world` | `013772` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `ship_planes` | `01391e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `airfields_draw` | `013a18` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `deck_aircraft` | `013abc` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `record_extras` | `013b1c` | 55256 | 302096 | 302108 | 18457 | 182427 | 17654 | 3650 | 182415 |
+| `targets_3_draw` | `013d78` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `targets_f_draw` | `013de8` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `ocean` | `013e6c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `soldiers_draw` | `013eee` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `lift_aircraft` | `01409c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `islands_draw` | `0140e8` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `map_window` | `01417e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `window_height` | `0141b4` | 747 | 3803 | 3803 | 253 | 2499 | 242 | 50 | 2499 |
+| `window_strip` | `014206` | 747 | 3803 | 3803 | 253 | 2499 | 242 | 50 | 2499 |
+| `window_ship` | `014430` | 747 | 3803 | 3803 | 253 | 2499 | 242 | 50 | 2499 |
+| `window_background` | `014564` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `window_shape` | `0145a6` | 545 | 17464 | 17474 | 0 | 0 | 0 | 0 | 0 |
+| `ship_at_offset` | `014a4e` | 4582 | 13447 | 13438 | 2097 | 22491 | 1998 | 450 | 22311 |
+| `ship_at_span` | `014a52` | 5090 | 16358 | 16348 | 2332 | 24990 | 2222 | 500 | 24792 |
+| `target_records` | `014ae4` | 0 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+| `target_of` | `014b54` | 0 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+| `ship_guns_draw` | `014c3e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `target_frame` | `014d50` | 2988 | 45547 | 45547 | 506 | 4998 | 484 | 100 | 4998 |
+| `target_range_frame` | `014db8` | 972 | 37687 | 37703 | 0 | 0 | 0 | 0 | 0 |
+| `ride_on_ship` | `014eac` | 4582 | 13447 | 13438 | 2097 | 22491 | 1998 | 450 | 22311 |
+| `ship_gun_shell` | `014efc` | 0 | 9660 | 9664 | 0 | 0 | 0 | 0 | 0 |
+| `target_fire` | `014f5c` | 0 | 2636 | 2638 | 0 | 0 | 0 | 0 | 0 |
+| `target_refill` | `014fee` | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `nearest_barracks` | `015034` | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `format_to` | `015078` | 2 | 8 | 8 | 2 | 2 | 2 | 2 | 2 |
+| `format_putch` | `015090` | 16 | 64 | 64 | 16 | 16 | 16 | 16 | 16 |
+| `flip_view` | `0150b0` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `map_slot_at` | `0150c8` | 0 | 2772 | 2772 | 0 | 0 | 0 | 0 | 0 |
+| `draw_world_shape` | `015174` | 36159 | 57158 | 57103 | 1117 | 13106 | 1084 | 207 | 10970 |
+| `sub_01520c` | `01520c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `clip_playfield` | `01524a` | 2241 | 11481 | 11481 | 759 | 7497 | 726 | 150 | 7497 |
+| `clip_dash_window` | `01525c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `clip_to_waterline` | `01526e` | 1494 | 7322 | 7323 | 371 | 2499 | 360 | 57 | 2617 |
+| `splashes_draw` | `0152f8` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `smoke_claim` | `015460` | 30 | 208 | 208 | 0 | 0 | 0 | 0 | 0 |
+| `smoke_at_player` | `0154e0` | 0 | 191 | 191 | 0 | 0 | 0 | 0 | 0 |
+| `balloons_draw` | `01557c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `view_show` | `016f20` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `cop_set_split_line` | `01876e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `cop_wait` | `019a9c` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `cop_install` | `01aa0e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `wait_vblank` | `01aa3e` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `record_on_ship` | `01cb34` | 4 | 43 | 43 | 2 | 0 | 2 | 0 | 2 |
+| `ship_of_record` | `01cbf2` | 4 | 43 | 43 | 2 | 0 | 2 | 0 | 2 |
+| `draw_dashboard` | `01ee16` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `kill_icons` | `01f200` | 4 | 8 | 8 | 4 | 4 | 4 | 4 | 4 |
+| `enemy_arrows` | `01f21a` | 747 | 3839 | 3839 | 253 | 2499 | 242 | 50 | 2499 |
+| `draw_score` | `01f26a` | 2 | 8 | 8 | 2 | 2 | 2 | 2 | 2 |
+| `dash_digit` | `01f2b0` | 18 | 64 | 64 | 18 | 18 | 18 | 18 | 18 |
+| `clip_dashboard` | `01f2dc` | 1494 | 7678 | 7678 | 506 | 4998 | 484 | 100 | 4998 |
+| `rand_beam` | `0203be` | 60 | 16024 | 16030 | 0 | 0 | 0 | 0 | 0 |
+| `blit_clip_setup` | `0209bc` | 14808 | 102949 | 102604 | 6364 | 66158 | 6090 | 1331 | 65685 |
+| `shape_blit` | `020b0c` | 14808 | 102949 | 102604 | 6364 | 66158 | 6090 | 1331 | 65685 |
+| `shape_draw` | `020ce2` | 14788 | 102241 | 101898 | 6047 | 61140 | 5799 | 1225 | 60880 |
+| `rect_fill` | `021010` | 4844 | 31599 | 31607 | 1012 | 9996 | 968 | 200 | 9996 |
+| `draw_set_target` | `02124a` | 2241 | 11517 | 11517 | 759 | 7497 | 726 | 150 | 7497 |
+| `clip_set` | `02129c` | 5976 | 30320 | 30321 | 1889 | 17493 | 1812 | 357 | 17611 |
+| `blit_begin` | `0212ce` | 5229 | 27193 | 27192 | 1906 | 19992 | 1818 | 393 | 19874 |
+| `blit_end` | `0212d4` | 5229 | 27193 | 27192 | 1906 | 19992 | 1818 | 393 | 19874 |
+| `line_draw` | `021318` | 0 | 26 | 26 | 3 | 0 | 3 | 0 | 3 |
+| `sub_022e40` | `022e40` | 5229 | 27193 | 27192 | 1906 | 19992 | 1818 | 393 | 19874 |
+| `sub_022e8a` | `022e8a` | 5229 | 27193 | 27192 | 1906 | 19992 | 1818 | 393 | 19874 |
+
+### A VBlank during a mission (phase V)
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `input_queue_pop` | `011714` | 0 | 113 | 27 | 0 | 0 | 0 | 0 | 0 |
+| `vblank_server` | `011754` | 1495 | 8174 | 7808 | 2020 | 19989 | 1934 | 399 | 19990 |
+| `read_joy_bits` | `01520e` | 374 | 2043 | 1952 | 506 | 4998 | 0 | 0 | 0 |
+| `vblank_every_frame` | `01c9ca` | 1495 | 8174 | 7808 | 2020 | 19989 | 1934 | 399 | 19990 |
+| `read_joystick` | `01ca32` | 374 | 2043 | 1952 | 506 | 4998 | 0 | 0 | 0 |
+| `read_joy_dispatch` | `01cb20` | 374 | 2043 | 1952 | 506 | 4998 | 0 | 0 | 0 |
+| `audio_irq` | `01ebaa` | 16 | 400 | 400 | 26 | 272 | 26 | 7 | 175 |
+| `soundfx_vblank` | `01ec64` | 1495 | 8174 | 7808 | 2020 | 19989 | 1934 | 399 | 19990 |
+| `poll_fire` | `02044c` | 1495 | 8174 | 7808 | 2020 | 19989 | 1934 | 399 | 19990 |
+| `read_fire_button` | `02046a` | 1495 | 8174 | 7808 | 2020 | 19989 | 1934 | 399 | 19990 |
+| `input_handler` | `02075a` | 0 | 9 | 8 | 1 | 0 | 0 | 0 | 0 |
+| `os_disable` | `022d48` | 0 | 113 | 27 | 0 | 0 | 0 | 0 | 0 |
+| `os_enable` | `022d66` | 0 | 113 | 27 | 0 | 0 | 0 | 0 | 0 |
+
+### The inner loop beside `frame_update` during a mission (phase M)
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `sub_011256` | `011256` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `run_queued_ticks` | `0114d8` | 747 | 3839 | 3839 | 2272 | 22487 | 2175 | 448 | 22488 |
+| `input_queue_clear` | `01174a` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sound_slots_clear` | `011f4e` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sound_slots_init` | `011f76` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sound_channels` | `012066` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `music_stop` | `012470` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `mem_free_var` | `0124e0` | 0 | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `shapes_free` | `012502` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `free_map` | `012bbe` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_ship_shapes` | `013252` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sounds_load` | `013368` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sound_engine_load` | `01344e` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sounds_free` | `01346c` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sound_engine_free` | `0134a4` | 0 | 4 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0134ae` | `0134ae` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ship_guns_setup` | `01350e` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `build_master_lists` | `01535a` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `mem_alloc_asm` | `0158ec` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `text_draw` | `015910` | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `text_width` | `01591e` | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `text_render` | `015956` | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `file_length` | `015b1a` | 0 | 9 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `shapes_load` | `015bc6` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shapes_resolve` | `015c5c` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_file_public_asm` | `015d3e` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_file_chip_asm` | `015d50` | 0 | 11 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `save_nothing` | `015d62` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `save_read_part` | `015d7c` | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `save_write_part` | `015dde` | 0 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| `save_game_read` | `015e1a` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `save_game_write` | `015e8a` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `save_walk` | `015ec2` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `text_caret` | `016032` | 0 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| `text_input` | `016086` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `load_dash_assets` | `01653c` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `path_sanitise` | `016592` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `vport_init_bitmap` | `0167f2` | 0 | 10 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `view_layout` | `01692c` | 0 | 7 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `screen_dialog` | `0169a4` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `screen_hires3` | `016b04` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ticker_clear` | `016bbc` | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
+| `ticker_vport_init` | `016bd8` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `view_set_game` | `016c38` | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `screen_game` | `016cc6` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `screen_game_restore` | `016d32` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `cmap_file_to_table` | `016dd6` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `view_show` | `016f20` | 0 | 85 | 50 | 16 | 0 | 0 | 0 | 0 |
+| `view_show_wait` | `016fc4` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `colour_lerp` | `016ff6` | 0 | 2048 | 2560 | 1536 | 0 | 0 | 0 | 0 |
+| `fade_to` | `017084` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `fade_to_pair` | `0171f2` | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
+| `fade_out` | `0173b0` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `fade_out_pair` | `0173e6` | 0 | 0 | 1 | 1 | 0 | 0 | 0 | 0 |
+| `menu_input` | `018194` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `wait_input_release` | `018228` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `text_draw_c` | `018570` | 0 | 4 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `mission_briefing` | `018590` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `cop_add_ticker_ramp` | `0187ba` | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `mission_display_setup` | `018806` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dialog_draw_names` | `018958` | 0 | 4 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `dialog_file_list` | `018a06` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `load_save_dialog` | `018b96` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `cop_reset` | `019958` | 0 | 92 | 51 | 16 | 0 | 0 | 0 | 0 |
+| `cop_move` | `0199bc` | 0 | 2573 | 1915 | 958 | 0 | 0 | 0 | 0 |
+| `cop_move_ptr` | `019a08` | 0 | 1100 | 714 | 288 | 0 | 0 | 0 | 0 |
+| `cop_wait` | `019a9c` | 0 | 357 | 318 | 192 | 0 | 0 | 0 | 0 |
+| `cop_colours` | `019b5a` | 0 | 102 | 85 | 48 | 0 | 0 | 0 | 0 |
+| `cop_vport_colours` | `019c0a` | 0 | 102 | 85 | 48 | 0 | 0 | 0 | 0 |
+| `cop_vport_split` | `019c80` | 0 | 5 | 17 | 16 | 0 | 0 | 0 | 0 |
+| `cop_vport_planes` | `019d18` | 0 | 102 | 85 | 48 | 0 | 0 | 0 | 0 |
+| `cop_sprites_off` | `01a06c` | 0 | 92 | 51 | 16 | 0 | 0 | 0 | 0 |
+| `view_build_copper` | `01a0d4` | 0 | 92 | 51 | 16 | 0 | 0 | 0 | 0 |
+| `iff_cmap_to_table` | `01a1f6` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `iff_next_chunk` | `01a336` | 0 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `iff_body_to_vport` | `01a362` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `iff_parse_ilbm` | `01a452` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `iff_to_vport` | `01a548` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `view_poke_colours1` | `01a60e` | 0 | 6 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `view_poke_colours2` | `01a6ac` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `vport_clear_planes` | `01a74c` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `view_copy_bitmaps` | `01a834` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `view_copy_colours` | `01a8c4` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `view_copy` | `01a9ca` | 0 | 2 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `cop_show_wait` | `01a9fc` | 0 | 5 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `cop_install` | `01aa0e` | 0 | 90 | 51 | 16 | 0 | 0 | 0 | 0 |
+| `wait_next_vblank` | `01aa32` | 0 | 0 | 0 | 2019 | 19988 | 1933 | 398 | 19989 |
+| `wait_vblank` | `01aa3e` | 0 | 10 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `sub_01cb30` | `01cb30` | 0 | 280 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `ingame_keys` | `01ccf6` | 748 | 3840 | 3841 | 254 | 2499 | 242 | 50 | 2499 |
+| `enemy_frames` | `01d1ea` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `channel_stop` | `01eac0` | 0 | 9 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `dash_cache_invalidate` | `01ed7a` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `dashboard_invalidate` | `01edaa` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_file_public` | `01feb4` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_file_chip` | `01feca` | 0 | 11 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `rpck_unpack` | `01fee0` | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `load_file` | `01ff16` | 0 | 14 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `byterun1_row` | `0203e8` | 0 | 148 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `poll_fire` | `02044c` | 0 | 486 | 128 | 0 | 0 | 242 | 50 | 2499 |
+| `poll_joy_dir8` | `020454` | 0 | 247 | 128 | 0 | 0 | 0 | 0 | 0 |
+| `read_fire_button` | `02046a` | 0 | 486 | 128 | 0 | 0 | 242 | 50 | 2499 |
+| `read_joy_dir8` | `020488` | 0 | 247 | 128 | 0 | 0 | 0 | 0 | 0 |
+| `shape_find_c` | `0204f4` | 0 | 281 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_find` | `020560` | 0 | 446 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `key_to_char` | `020700` | 0 | 12 | 12 | 1 | 0 | 0 | 0 | 0 |
+| `key_available` | `0207d8` | 748 | 4344 | 3985 | 256 | 2499 | 242 | 50 | 2499 |
+| `key_get` | `0207e4` | 0 | 9 | 8 | 1 | 0 | 0 | 0 | 0 |
+| `mem_alloc` | `020848` | 0 | 26 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `sub_020874` | `020874` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `mem_free` | `02090a` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `blit_clip_setup` | `0209bc` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_blit` | `020b0c` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_draw_c` | `020cc4` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `shape_draw` | `020ce2` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `draw_set_target_c` | `021246` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `draw_set_target` | `02124a` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `clip_set_full` | `021280` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `clip_set` | `02129c` | 0 | 5 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `blit_begin` | `0212ce` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `blit_end` | `0212d4` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sprintf` | `0215d8` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_021608` | `021608` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_021624` | `021624` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0216b2` | `0216b2` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_021d6e` | `021d6e` | 0 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| `strcpy` | `021e02` | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `strlen` | `021e12` | 0 | 64 | 45 | 0 | 0 | 0 | 0 | 0 |
+| `tolower` | `021e82` | 0 | 45 | 21 | 0 | 0 | 0 | 0 | 0 |
+| `strcmp` | `021e9a` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `bcopy` | `021eca` | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `strcat` | `0222a8` | 0 | 4 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `strncpy` | `0222d2` | 0 | 3 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sub_0223cc` | `0223cc` | 0 | 1921 | 2400 | 1440 | 0 | 0 | 0 | 0 |
+| `sub_02240e` | `02240e` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_02241a` | `02241a` | 0 | 3 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022424` | `022424` | 0 | 1927 | 2400 | 1440 | 0 | 0 | 0 | 0 |
+| `os_dos_close` | `022aae` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022ab2` | `022ab2` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_examine` | `022ada` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_ex_next` | `022aec` | 0 | 31 | 15 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_lock` | `022b1a` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_open` | `022b2c` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022b30` | `022b30` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_read` | `022b3e` | 0 | 36 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_unlock` | `022b50` | 0 | 16 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_dos_write` | `022b60` | 0 | 8 | 8 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022d36` | `022d36` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022d3a` | `022d3a` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `os_disable` | `022d48` | 0 | 9 | 8 | 1 | 0 | 0 | 0 | 0 |
+| `os_enable` | `022d66` | 0 | 9 | 8 | 1 | 0 | 0 | 0 | 0 |
+| `sub_022d86` | `022d86` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022d8a` | `022d8a` | 0 | 40 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_BltBitMap` | `022e0c` | 0 | 6 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_BltClear` | `022e2e` | 0 | 12 | 3 | 1 | 0 | 0 | 0 | 0 |
+| `sub_022e40` | `022e40` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_draw` | `022e48` | 0 | 64 | 32 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_InitBitMap` | `022e5a` | 0 | 11 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_InitRastPort` | `022e6c` | 0 | 11 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_move` | `022e78` | 0 | 64 | 35 | 0 | 0 | 0 | 0 | 0 |
+| `sub_022e8a` | `022e8a` | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_rect_fill` | `022e92` | 0 | 9 | 8 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_set_apen` | `022ea4` | 0 | 8 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_set_bpen` | `022eb4` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_set_drmd` | `022ec4` | 0 | 50 | 35 | 0 | 0 | 0 | 0 | 0 |
+| `os_gfx_text` | `022ed4` | 0 | 68 | 39 | 0 | 0 | 0 | 0 | 0 |
+| `gfx_WaitTOF` | `022eee` | 0 | 487 | 128 | 0 | 0 | 0 | 0 | 0 |
+| `os_console_raw_key_convert` | `022f30` | 0 | 12 | 12 | 1 | 0 | 0 | 0 | 0 |
+
+### The tick during a mission (phase T)
+
+| Routine | Address | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|
+| `flip_buffers` | `01030c` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `object_draw_first` | `0107f2` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `object_spawn` | `010820` | 0 | 0 | 0 | 10 | 0 | 10 | 0 | 10 |
+| `objects_step` | `010a72` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `object_step` | `010aa6` | 0 | 58 | 58 | 123 | 3094 | 123 | 0 | 2898 |
+| `weapon_drop` | `01107c` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `airfield_at` | `011126` | 0 | 52 | 52 | 0 | 30 | 0 | 0 | 30 |
+| `shot_origin` | `011274` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `weapon_menu` | `0112b0` | 360 | 1892 | 1878 | 484 | 4985 | 457 | 87 | 4971 |
+| `logic_tick` | `011386` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `lift_step` | `011460` | 360 | 1892 | 1878 | 484 | 4985 | 457 | 87 | 4971 |
+| `ship_launches` | `011510` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `airfields_step` | `011622` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `input_queue_pop` | `011714` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `vblank_server` | `011754` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+| `gun_splashes` | `0119bc` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `soldiers_hit` | `011a8c` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `torpedoes_hit` | `011ae2` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `engine_smoke` | `011bfc` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `balloons_step` | `011c5e` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `ships_sinking` | `011cae` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `target_timers` | `011de4` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `soldier_out` | `011e82` | 0 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
+| `sound_slots_clear` | `011f4e` | 0 | 4 | 4 | 1 | 0 | 1 | 0 | 1 |
+| `sound_channels` | `012066` | 373 | 1923 | 1922 | 512 | 4998 | 485 | 100 | 4999 |
+| `engine_sound` | `012132` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `enemy_loudness` | `0122ce` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `near_loudness` | `0122f6` | 0 | 2 | 2 | 3 | 9 | 3 | 0 | 12 |
+| `loudness_at` | `012306` | 0 | 2 | 2 | 3 | 9 | 3 | 0 | 12 |
+| `sound_boom` | `012324` | 0 | 2 | 2 | 3 | 3 | 3 | 0 | 6 |
+| `sound_splash` | `01233e` | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 6 |
+| `sound_clang` | `012354` | 0 | 4 | 4 | 1 | 0 | 1 | 0 | 1 |
+| `sound_screech` | `012380` | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `next_aircraft` | `0135ce` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `player_lost_restart` | `0135d8` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `player_restart_state` | `013684` | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 |
+| `sub_013756` | `013756` | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 |
+| `crash_hit` | `0146c6` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `weapon_hit` | `0146dc` | 0 | 2 | 2 | 1 | 3 | 1 | 0 | 4 |
+| `ship_at_offset` | `014a4e` | 0 | 0 | 0 | 1 | 3 | 1 | 0 | 4 |
+| `ship_at_span` | `014a52` | 0 | 0 | 0 | 1 | 3 | 1 | 0 | 4 |
+| `target_records` | `014ae4` | 0 | 3 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `target_release` | `014b40` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `target_of` | `014b54` | 0 | 2 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `flip_view` | `0150b0` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `map_slot_at` | `0150c8` | 0 | 56 | 56 | 5 | 1068 | 5 | 0 | 1075 |
+| `sub_01520c` | `01520c` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `read_joy_bits` | `01520e` | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 0 |
+| `clip_playfield` | `01524a` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `splash_spawn_c` | `0152ac` | 0 | 0 | 0 | 4 | 0 | 4 | 0 | 4 |
+| `splash_spawn` | `0152b0` | 0 | 0 | 0 | 4 | 516 | 4 | 0 | 521 |
+| `smoke_claim` | `015460` | 0 | 294 | 294 | 0 | 0 | 0 | 0 | 0 |
+| `smoke_at_player` | `0154e0` | 0 | 294 | 294 | 0 | 0 | 0 | 0 | 0 |
+| `sub_015710` | `015710` | 372 | 1775 | 1775 | 203 | 0 | 203 | 16 | 203 |
+| `ground_height` | `015714` | 372 | 1775 | 1775 | 203 | 0 | 203 | 16 | 203 |
+| `shape_mirror_x` | `015b58` | 24 | 92 | 96 | 26 | 0 | 26 | 0 | 26 |
+| `view_show` | `016f20` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `cop_install` | `01aa0e` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `turn_allowed` | `01aa6e` | 0 | 208 | 208 | 0 | 0 | 0 | 0 | 0 |
+| `wheel_height` | `01aaea` | 493 | 2982 | 2982 | 248 | 0 | 248 | 16 | 248 |
+| `turn_step` | `01ab80` | 0 | 208 | 208 | 0 | 0 | 0 | 0 | 0 |
+| `aircraft_frame` | `01abde` | 373 | 1962 | 1962 | 238 | 0 | 238 | 16 | 238 |
+| `wreck_smoke` | `01aed8` | 0 | 0 | 0 | 33 | 0 | 33 | 0 | 33 |
+| `lost_wait` | `01af7c` | 0 | 0 | 0 | 33 | 0 | 33 | 0 | 33 |
+| `crash` | `01afba` | 0 | 0 | 0 | 7 | 0 | 7 | 0 | 7 |
+| `hook_state` | `01b45a` | 373 | 1761 | 1761 | 237 | 0 | 237 | 16 | 237 |
+| `on_the_lift` | `01b4de` | 124 | 1312 | 1312 | 2 | 0 | 2 | 0 | 2 |
+| `button` | `01b5b0` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `guns` | `01b682` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `deck_span` | `01b7bc` | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 |
+| `player_reset` | `01b7ec` | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 |
+| `touches_ground` | `01b8c4` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `cable_hook` | `01b92e` | 252 | 413 | 413 | 128 | 0 | 128 | 0 | 128 |
+| `sub_01b9bc` | `01b9bc` | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 |
+| `engine_idle` | `01b9cc` | 0 | 3 | 3 | 1 | 0 | 1 | 0 | 1 |
+| `sub_01b9f0` | `01b9f0` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `ground_contact` | `01ba80` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `enemy_countdown_step` | `01bc02` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `deck_state` | `01bcce` | 373 | 1620 | 1620 | 129 | 0 | 129 | 0 | 129 |
+| `deck_roll` | `01bdba` | 252 | 426 | 426 | 134 | 0 | 134 | 0 | 134 |
+| `player_motion` | `01bdfa` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `flight_controls` | `01bff4` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `frame_select` | `01c378` | 373 | 1761 | 1761 | 237 | 0 | 237 | 16 | 237 |
+| `deck_controls` | `01c4e8` | 252 | 413 | 413 | 128 | 0 | 128 | 0 | 128 |
+| `deck_edge` | `01c5f4` | 252 | 413 | 413 | 128 | 0 | 128 | 0 | 128 |
+| `player_update` | `01c660` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `record_at` | `01c982` | 493 | 2966 | 2966 | 252 | 0 | 252 | 16 | 252 |
+| `vblank_every_frame` | `01c9ca` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+| `read_joystick` | `01ca32` | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 0 |
+| `rand_mod` | `01cac8` | 0 | 1 | 1 | 1 | 144 | 1 | 0 | 128 |
+| `read_joy_dispatch` | `01cb20` | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 0 |
+| `sub_01cb30` | `01cb30` | 1627 | 7742 | 7710 | 965 | 0 | 965 | 64 | 965 |
+| `record_on_ship` | `01cb34` | 0 | 0 | 0 | 6 | 0 | 6 | 0 | 6 |
+| `on_water` | `01cb74` | 0 | 0 | 0 | 10 | 0 | 10 | 0 | 10 |
+| `aircraft_gone_far` | `01d18c` | 0 | 0 | 0 | 0 | 680 | 0 | 0 | 575 |
+| `aircraft_frame_index` | `01d35a` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `aircraft_relation` | `01d3b4` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `aircraft_order` | `01d476` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `aircraft_turn_step` | `01d530` | 0 | 0 | 0 | 0 | 148 | 0 | 0 | 223 |
+| `aircraft_turn` | `01d562` | 0 | 0 | 0 | 0 | 148 | 0 | 0 | 223 |
+| `aircraft_motion` | `01d796` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `torpedo_plane` | `01dea4` | 0 | 0 | 0 | 0 | 2151 | 0 | 0 | 1831 |
+| `torpedo_plane_away` | `01e17a` | 0 | 0 | 0 | 0 | 680 | 0 | 0 | 575 |
+| `aircraft_launch` | `01e4d0` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
+| `aircraft_speed` | `01e64e` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `aircraft_fly` | `01e728` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| `enemy_aircraft_step` | `01e7d6` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `channel_play` | `01ea28` | 0 | 90 | 87 | 15 | 21 | 15 | 3 | 33 |
+| `channel_stop` | `01eac0` | 0 | 127 | 125 | 20 | 23 | 20 | 5 | 37 |
+| `channel_busy` | `01eb2e` | 0 | 90 | 87 | 15 | 21 | 15 | 3 | 33 |
+| `channel_adjust` | `01eb4c` | 82 | 1150 | 1149 | 97 | 78 | 97 | 0 | 97 |
+| `soundfx_vblank` | `01ec64` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+| `weapon_gauge_reset` | `01edbc` | 0 | 1 | 1 | 18 | 0 | 16 | 0 | 16 |
+| `rand_beam` | `0203be` | 0 | 949 | 949 | 1 | 2979 | 1 | 0 | 2538 |
+| `poll_fire` | `02044c` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+| `read_fire_button` | `02046a` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+| `sub_0204e4` | `0204e4` | 373 | 1761 | 1761 | 237 | 0 | 237 | 16 | 237 |
+| `sub_0204ec` | `0204ec` | 373 | 1761 | 1761 | 237 | 0 | 237 | 16 | 237 |
+| `shape_find_c` | `0204f4` | 1627 | 7742 | 7710 | 965 | 0 | 965 | 64 | 965 |
+| `shape_find` | `020560` | 1627 | 7742 | 7710 | 965 | 0 | 965 | 64 | 965 |
+| `rect_fill` | `021010` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `draw_set_target` | `02124a` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `clip_set` | `02129c` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `blit_begin` | `0212ce` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `blit_end` | `0212d4` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `ffp_add` | `021c9c` | 121 | 1207 | 1207 | 1 | 0 | 1 | 0 | 1 |
+| `ffp_neg` | `021cb0` | 0 | 559 | 559 | 0 | 0 | 0 | 0 | 0 |
+| `ffp_fix` | `021cc4` | 363 | 3621 | 3621 | 3 | 2831 | 3 | 0 | 2409 |
+| `ffp_div` | `021cd8` | 242 | 2414 | 2414 | 2 | 0 | 2 | 0 | 2 |
+| `ffp_flt` | `021ce2` | 242 | 2414 | 2414 | 2 | 2831 | 2 | 0 | 2408 |
+| `ffp_mul` | `021cec` | 363 | 3621 | 3621 | 3 | 2831 | 3 | 0 | 2409 |
+| `sub_021d7c` | `021d7c` | 1 | 1 | 1 | 1 | 1 | 1 | 0 | 1 |
+| `sub_021e24` | `021e24` | 0 | 0 | 0 | 14 | 0 | 14 | 0 | 14 |
+| `sub_0222f4` | `0222f4` | 0 | 0 | 0 | 14 | 0 | 14 | 0 | 14 |
+| `os_disable` | `022d48` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `os_enable` | `022d66` | 373 | 1919 | 1918 | 511 | 4998 | 484 | 100 | 4998 |
+| `sub_022e40` | `022e40` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `sub_022e8a` | `022e8a` | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 1 |
+| `gfx_WaitTOF` | `022eee` | 0 | 0 | 0 | 21 | 0 | 21 | 0 | 21 |
+
+### Between two missions: the fade, the next map and its briefing's start, main program (phase M)
+
+Nothing was entered.
+
+### Entropy reads, by the routine that called `rand_beam`
+
+| Window | Phase | Caller | `load_disk` | `load_hold` | `load_menu` | `demo_record` | `demo_record_long` | `demo_play` | `demo_play_ff` | `demo_play_long` |
+|---|---|---|---|---|---|---|---|---|---|---|
+| outer | M | `rand_mod` | 1 | 1 | 2 | 1 | 1 | 2 | 2 | 2 |
+| rank | M | `rank_select` | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 |
+| setup | M | `rand_mod` | 0 | 2 | 2 | 2 | 2 | 2 | 2 | 2 |
+| mission | F | `ship_gun_shell` | 0 | 9660 | 9664 | 0 | 0 | 0 | 0 | 0 |
+| mission | F | `ship_guns_draw` | 0 | 288 | 288 | 0 | 0 | 0 | 0 | 0 |
+| mission | F | `smoke_claim` | 60 | 416 | 416 | 0 | 0 | 0 | 0 | 0 |
+| mission | F | `target_fire` | 0 | 2950 | 2950 | 0 | 0 | 0 | 0 | 0 |
+| mission | F | `target_frame` | 0 | 2710 | 2712 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `aircraft_fly` | 0 | 0 | 0 | 0 | 2831 | 0 | 0 | 2406 |
+| mission | T | `enemy_countdown_step` | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
+| mission | T | `engine_smoke` | 0 | 340 | 340 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `rand_mod` | 0 | 1 | 1 | 1 | 144 | 1 | 0 | 128 |
+| mission | T | `smoke_claim` | 0 | 588 | 588 | 0 | 0 | 0 | 0 | 0 |
+| mission | T | `soldier_out` | 0 | 20 | 20 | 0 | 0 | 0 | 0 | 0 |
+
 ## Appendix: the regions no run executed
 
 Every region of a ported routine that no run of M4 to M7 executed - M4's scripts, the night
-mission, the key runs, the fifteen setups, the scripts of M5, M6 and M7 - with the stand-in
-marker that covers it or what it is otherwise; below them, the markers whose region the
-original did run, all of them M7 part 2's, and the markers that stand for a value.
-Written by
+mission, the key runs, the fifteen setups, the scripts of M5, M6 and M7's two parts - with
+the stand-in marker that covers it or what it is otherwise, and below them the markers that
+stand for a value, none of them M7's. Written by
 
 ```text
-.venv/bin/python tools/reach_observe.py --cold REACH456.json REACH7.json
+.venv/bin/python tools/reach_observe.py --cold REACH456.json REACH7A.json REACH7B.json
 ```
 
 | Routine | Region no run executed | Stand-in marker, or what it is | Owed to |
 |---|---|---|---|
-| `main` `0x010006` | `0x010036`-`0x010041` | M3's: the command line's demo file, which the port has no command line for | |
-| `main` `0x010006` | `0x010104`-`0x010109` | ported from reading: `demo_mode` sets `0x026D44` before step S | |
-| `main` `0x010006` | `0x0101B4`-`0x0101BD` | ported from reading: a demo ends on the fire button | |
 | `frame_update` `0x010228` | `0x0102BC`-`0x0102CD` | ported from reading: `player_lost_restart` from `frame_update`, when `0x024F24` is set, which no instruction of the executable does | |
 | `draw_player` `0x0103A6` | `0x01043E`-`0x01045B` | unreachable: no branch leads there | |
 | `draw_player` `0x0103A6` | `0x0104D4`-`0x0104D5` | ported from reading: the climb clamped at -2 in the eighth-scale view | |
-| `draw_player` `0x0103A6` | `0x0105F0`-`0x0105F1` | ported from reading: the cable's end when the aircraft faces right | |
 | `object_draw_first` `0x0107F2` | `0x01081A`-`0x01081F` | ported from reading: no weapon left or every object record in use, nothing is dropped; tests/`test_oracle_m5.py`, the drop | |
 | `object_spawn` `0x010820` | `0x010840`-`0x010841` | ported from reading: all fifteen object records in use, nothing is left | |
 | `object_spawn` `0x010820` | `0x010970`-`0x010971` | ported from reading: a rocket's frame from the bearing, clamped at 0; tests/`test_oracle_m5.py`, the drop | |
@@ -1021,11 +1833,7 @@ Written by
 | `weapon_menu` `0x0112B0` | `0x0112DE`-`0x0112DF` | ported from reading: the cursor keys and Return in the weapon menu | |
 | `weapon_menu` `0x0112B0` | `0x0112E8`-`0x0112E9` | ported from reading: the cursor keys and Return in the weapon menu | |
 | `weapon_menu` `0x0112B0` | `0x0112F2`-`0x0112F5` | ported from reading: the cursor keys and Return in the weapon menu | |
-| `run_queued_ticks` `0x0114D8` | `0x0114E0`-`0x0114E5` | `0x0114E0`, `run_queued_ticks`, demo playback and recording | M7 PART 2 |
 | `run_queued_ticks` `0x0114D8` | `0x0114EE`-`0x0114EF` | ported from reading: nothing runs while paused | |
-| `run_queued_ticks` `0x0114D8` | `0x011508`-`0x01150D` | ported from reading: `demo_mode` sets `0x026D44` | |
-| `vblank_server` `0x011754` | `0x011790`-`0x0117D3` | M3's input half: demo playback (M7) | |
-| `vblank_server` `0x011754` | `0x01180A`-`0x011841` | M3's input half: demo recording (M7) | |
 | `guns_ground_x` `0x011A46` | `0x011A58`-`0x011A59` | ported from reading: a bearing of `0xFF01`, taken as `0xFF02`; tests/`test_oracle_m5.py`, the guns' reach | |
 | `torpedoes_hit` `0x011AE2` | `0x011B08`-`0x011B09` | ported from reading: a torpedo west of the span; tests/`test_oracle_m5.py`, the soldiers' and torpedoes' hits | |
 | `torpedoes_hit` `0x011AE2` | `0x011B30`-`0x011B4B` | ported from reading: the extra object record hit; tests/`test_oracle_m5.py`, the soldiers' and torpedoes' hits | |
@@ -1035,13 +1843,11 @@ Written by
 | `soldier_out` `0x011E82` | `0x011EF2`-`0x011EF5` | ported from reading: every soldier record in use, nobody comes out | |
 | `soldier_out` `0x011E82` | `0x011F42`-`0x011F47` | ported from reading: a dug-out's soldier turned round by `rand_beam` | |
 | `map_load` `0x012ADC` | `0x012B80`-`0x012B83` | an allocation failed, fatal; the port's tables are fixed (src/mission.def) | |
-| `free_map` `0x012BBE` | `0x012C3E`-`0x012C55` | ported from reading: a ship released at the end of a mission | |
 | `map_scan` `0x012D5A` | `0x0130AE`-`0x0130B1` | an allocation failed, fatal; the port's tables are fixed (src/mission.def) | |
 | `load_ship_shapes` `0x013252` | `0x01327C`-`0x013283` | battleship.shp missing from the disk; the port loads every container at start-up | |
 | `load_ship_shapes` `0x013252` | `0x0132C4`-`0x0132C7` | destroyer.shp missing, fatal; the port loads every container at start-up | |
 | `load_ship_shapes` `0x013252` | `0x0132FE`-`0x013301` | cruiseship.shp missing, fatal; the port loads every container at start-up | |
 | `load_ship_shapes` `0x013252` | `0x013346`-`0x013349` | japcarrier.shp missing, fatal; the port loads every container at start-up | |
-| `ship_guns_setup` `0x01350E` | `0x013516`-`0x013517` | ported from reading: nothing for a loaded game | |
 | `draw_world` `0x013772` | `0x013900`-`0x013901` | ported from reading: the distance handed to the sound engine | |
 | `deck_aircraft` `0x013ABC` | `0x013ADA`-`0x013ADB` | ported from reading: more than nine lives count as nine | |
 | `soldiers_draw` `0x013EEE` | `0x013FA8`-`0x013FB5` | ported from reading: an island neutralised that is not the map's last | |
@@ -1064,9 +1870,10 @@ Written by
 | `tangent` `0x01514C` | `0x01516C`-`0x01516D` | ported from reading: a negative angle; tests/`test_oracle_m5.py`, the angles | |
 | `ticker_say` `0x015624` | `0x015624`-`0x01563F` | ported from reading: an island neutralised that is not the map's last, its message (`0x015624`) | |
 | `bearing_of` `0x015CA6` | `0x015CA6`-`0x015D0B` | ported from reading: the angle of a vector, which only an aimed rocket asks for; tests/`test_oracle_m5.py`, the angles | |
+| `save_read_part` `0x015D7C` | `0x015D98`-`0x015D9F` | ported from reading; tests/`test_oracle_m7.py`, a block `mem_alloc` cannot give: `exit_game`; the port's pools are fixed and `wof_save_game_fits` refuses a file whose counts exceed them before the load, which the dialog leaves as a cancel | |
+| `save_game_read` `0x015E1A` | `0x015E50`-`0x015E89` | ported from reading; tests/`test_oracle_m7.py`, a file Open cannot open: IoErr, the message and `exit_game`; `wof_save_game_fits` refuses a missing file before the load, which the dialog leaves as a cancel | |
 | `save_game_write` `0x015E8A` | `0x015EBE`-`0x015EC1` | ported from reading; tests/`test_oracle_m7.py`, a save that cannot be opened: nothing is walked or written and 0 comes back, which the dialog ignores; the port's file system refuses a file only when its overlay is full | |
 | `load_dash_assets` `0x01653C` | `0x016568`-`0x01656B` | dash.shp missing, fatal; the port loads every container at start-up | |
-| `demo_end` `0x01852A` | `0x018536`-`0x01855D` | `0x018536`, saving a recorded demo | M7 PART 2 |
 | `turn_allowed` `0x01AA6E` | `0x01AABE`-`0x01AACD` | ported from reading; tests/`test_oracle_m4.py`, an enemy aircraft that stops a turn | |
 | `crash` `0x01AFBA` | `0x01B1A6`-`0x01B1A7` | ported from reading (M4): a wreck sliding along a ship; tests/`test_oracle_m4.py`, the crash and the ground | |
 | `crash` `0x01AFBA` | `0x01B1BA`-`0x01B1BB` | ported from reading; tests/`test_oracle_m4.py`, the aircraft down on a ship | |
@@ -1126,11 +1933,7 @@ Written by
 | `line_draw` `0x021318` | `0x02138E`-`0x0214EB` | ported from reading, PROVISIONAL: the clipping of `line_draw` | |
 | `line_draw` `0x021318` | `0x021556`-`0x021561` | the blitter's busy wait, which the port's line has none of | |
 | `line_draw` `0x021318` | `0x0215D0`-`0x0215D7` | ported from reading, PROVISIONAL: a line wholly outside the clip | |
-| | run by the original | `0x019152`, `save_game_read`: a saved game loaded | M7 PART 2 |
-| | run by the original | `0x01CDD4`, a loaded game: the briefing and the mission again | M7 PART 2 |
-| | no region: a value | a negative score, in `0x01F26A` | M7 PART 2 |
 | | no region: a value | every soldier record in use, `0x011E82` walks past the table | M5 |
-| | no region: a value | a ticker message outside the registered state | M7 PART 2 |
 
 The music player (src/music.c):
 

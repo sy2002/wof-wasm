@@ -14,7 +14,7 @@ tests/test_headless.py   the tests, part of the suite; the audio model's are in 
 
 ## What runs and what does not
 
-`main` (`0x010006`) is entered the way the C startup enters it: A4 set, `SysBase` and `DOSBase` filled in, a 16-bit `argc` of 1 and an `argv` on the stack. From there everything is the original's code: initialisation, the title sequence, the rank selection, the mission setup, the inner loop, the VBlank servers, the input handler. **No game logic is re-implemented.** The C startup itself (`0x021F2E`) is not run; with `argc` 1 the program never looks at `argv`.
+`main` (`0x010006`) is entered the way the C startup enters it: A4 set, `SysBase` and `DOSBase` filled in, a 16-bit `argc` and an `argv` on the stack. From there everything is the original's code: initialisation, the title sequence, the rank selection, the mission setup, the inner loop, the VBlank servers, the input handler. **No game logic is re-implemented.** The C startup itself (`0x021F2E`) is not run. `argc` is 1 unless the run description gives another (`argc`, below); the program looks only at the count, and above 1 it records a demo from every rank chosen (`0x01002C`, `re/notes/demo.md`), so `argv` stays a null pointer.
 
 Not run, and replaced by something that records or answers:
 
@@ -310,6 +310,7 @@ JSON; every key is optional.
                       delivered at the segment's first VBlank]; neutral after the last
   "bytes":            [4, 4, 5]    byte mode, see Input
   "files":            {"wofdemo": "<hex>"}   files laid over the disk
+  "argc":             2            main's argument count; above 1 every rank chosen records wofdemo
   "stop":             {"ticks": 100}  or  {"passes": n}  or  {"vblanks": n}
 }
 ```
@@ -468,6 +469,5 @@ On the development machine: the front end with fire presses 0.4 s, without any i
   but a test that types capitals would see the difference. `re/notes/frontend.md` says what the
   port must do.
 - **`Text` metrics** beyond the pen advance of 8 per character. `graphics.Text` draws nothing here, so what a dialog's text looks like is not observable; its pen positions are.
-- **Demo playback and recording.** A `wofdemo` file can be supplied through `files`; recording needs `argc` above 1, which the run description does not offer yet.
 - **Long campaigns.** The bump allocator has 8 MB and never reuses memory; start-up and the first mission take about 370 KB of it.
 - What `0x01CAC8` and `0x014D50` do with their random values belongs to the notes of the subsystems that own them.
