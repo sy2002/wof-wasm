@@ -34,6 +34,7 @@
 #define RAW_L      0x28
 #define RAW_C      0x33
 #define RAW_M      0x37
+#define RAW_V      0x34
 #define RAW_P      0x19
 #define RAW_ESCAPE 0x45
 
@@ -55,8 +56,8 @@ void wof_port_key(uint8_t code, uint16_t qualifier)
         case RAW_P:                             /* KeyP pauses and continues */
             wof_key(RAW_ESCAPE, qualifier);
             return;
-        case RAW_F:                             /* KeyF flips the vertical control */
-            wof_key(RAW_F, with_control);
+        case RAW_V:                             /* KeyV flips the vertical control; KeyF is */
+            wof_key(RAW_F, with_control);       /* the shell's fullscreen key */
             return;
         case RAW_G:                             /* KeyG saves, on the carrier only */
             wof_key(RAW_G, with_control);

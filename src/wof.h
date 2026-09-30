@@ -107,6 +107,9 @@ WOF_API(wof_paused)            int             wof_paused(void);
  * and whether the line editor has the keys, in which H is a letter and opens no help. */
 WOF_API(wof_request_continue)  void            wof_request_continue(void);
 WOF_API(wof_line_editor_active) int            wof_line_editor_active(void);
+/* The dialog's "Exit Game" was taken, where the machine calls fatal_exit (src/dialog.c): the
+ * shell reloads the page, which is the program started again.  Read-only, never cleared. */
+WOF_API(wof_exit_requested)    int             wof_exit_requested(void);
 WOF_API(wof_pass)              void            wof_pass(void);
 WOF_API(wof_framebuffer)       const uint8_t  *wof_framebuffer(void);
 WOF_API(wof_palette_rows)      const uint16_t *wof_palette_rows(void);

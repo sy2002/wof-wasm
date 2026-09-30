@@ -235,8 +235,8 @@ def test_a_code_above_the_table_gives_no_character(ported):
 # --------------------------------------------------------- the port's key layer, SPEC 6.2
 
 CONTROL = 0x0008
-ESCAPE, RAW_R, RAW_S, RAW_F, RAW_G, RAW_L, RAW_C, RAW_M, RAW_P = (
-    0x45, 0x13, 0x21, 0x23, 0x24, 0x28, 0x33, 0x37, 0x19)
+ESCAPE, RAW_R, RAW_S, RAW_F, RAW_G, RAW_L, RAW_C, RAW_M, RAW_P, RAW_V = (
+    0x45, 0x13, 0x21, 0x23, 0x24, 0x28, 0x33, 0x37, 0x19, 0x34)
 
 
 def one_port_key(ported, code, qualifier=0, paused=False, briefing=False, editing=False):
@@ -253,7 +253,8 @@ def one_port_key(ported, code, qualifier=0, paused=False, briefing=False, editin
 @pytest.mark.parametrize('code, state, want', [
     # the port's key, the state it is pressed in, the (qualifier << 16) | code it becomes
     (RAW_P, {}, ESCAPE),                                   # pause, anywhere
-    (RAW_F, {}, (CONTROL << 16) | RAW_F),                  # the vertical flip
+    (RAW_V, {}, (CONTROL << 16) | RAW_F),                  # the vertical flip
+    (RAW_F, {}, RAW_F),                                    # F is the shell's fullscreen key
     (RAW_G, {}, (CONTROL << 16) | RAW_G),                  # save
     (RAW_L, {}, (CONTROL << 16) | RAW_L),                  # load
     (RAW_M, {}, (CONTROL << 16) | RAW_S),                  # the music: KeyS is the stick
@@ -265,7 +266,7 @@ def one_port_key(ported, code, qualifier=0, paused=False, briefing=False, editin
     (ESCAPE, {}, ESCAPE),                                  # the second pause key passes
     (0x20, {}, 0x20),                                      # an ordinary letter passes
     # inside the line editor every key passes as it came, command or not
-    (RAW_F, {'editing': True}, RAW_F),
+    (RAW_V, {'editing': True}, RAW_V),
     (RAW_P, {'editing': True}, RAW_P),
     (RAW_R, {'editing': True, 'paused': True}, RAW_R),
 ])
@@ -276,13 +277,13 @@ def test_the_port_key_layer_rewrites_exactly_the_keys_of_the_spec(ported, code, 
 def test_the_layer_keeps_the_shift_bits_it_was_given(ported):
     """The qualifier the shell sends survives the rewrite: the readers strip it before they
     convert and test only the Control bit, so a Shift held changes nothing but is not lost."""
-    assert one_port_key(ported, RAW_F, 0x0001) == ((CONTROL | 0x0001) << 16) | RAW_F
+    assert one_port_key(ported, RAW_V, 0x0001) == ((CONTROL | 0x0001) << 16) | RAW_F
     assert one_port_key(ported, 0x20, 0x0004) == (0x0004 << 16) | 0x20
 
 
 def test_the_letters_the_layer_always_takes_are_exactly_four(ported):
     """What the keys decision costs, written down so that it is a decision and not a
-    surprise.  F, G, L and M carry a command in every state outside the line editor, so a
+    surprise.  G, L, V and M carry a command in every state outside the line editor, so a
     plain press of them never reaches a reader as a plain letter; R and C do reach one
     while the game is running.  The consequence is that the cheat sequence c o l i n
     (re/notes/keys.md) cannot be typed through the port's key layer, because its `l` is the
@@ -296,7 +297,7 @@ def test_the_letters_the_layer_always_takes_are_exactly_four(ported):
         ported.port_key(code, 0)
         if ported.key_available() and ported.key_get() != code:
             always.append(code)
-    assert always == [RAW_P, RAW_F, RAW_G, RAW_L, RAW_M]
+    assert always == [RAW_P, RAW_G, RAW_L, RAW_V, RAW_M]
 
     ported.keys_init()
     ported.lib.wt_front_set(1, 0)                       # inside the line editor nothing is

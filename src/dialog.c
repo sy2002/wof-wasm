@@ -661,6 +661,16 @@ static void dialog_highlight(int16_t which, uint16_t mode)
     wof_gfx_set_drmd(v, WOF_JAM2);
 }
 
+/* The dialog's "Exit Game" was taken (SPEC 6.1).  Set once and never cleared: the shell
+ * reloads the page on it.  Not game state, so neither a registered global nor part of the
+ * save state. */
+static int exit_requested;
+
+int wof_exit_requested(void)
+{
+    return exit_requested;
+}
+
 /* orig 0x018B96 load_save_dialog(mode): 0 load, 1 save; 0 back when a game was loaded or
  * saved and -1 when the player left it.  A file the port cannot hold is refused before the
  * load begins and the dialog leaves as a cancel (wof_save_game_fits). */
@@ -818,8 +828,11 @@ wof_co_t wof_load_save_dialog(uint16_t mode)
     }
 
     CO_CALL(c, &wof_f.co_fade, wof_fade_out());
-    /* "Exit Game" calls fatal_exit on the machine, which ends the program.  A page has
-     * nothing to end into, so the port treats it as a cancel and says so here. */
+    /* 0x019228: "Exit Game" calls exit_game and with it fatal_exit, which ends the program.
+     * The port raises wof_exit_requested at that point and the shell reloads the page, which
+     * is the program started again; until the reload lands the dialog leaves as a cancel. */
+    if (wof_f.dialog_cursor == 6)
+        exit_requested = 1;
     CO_CALL(c, &wof_f.co_show, wof_view_show_wait(wof_f.back_view));
     wof_f.dialog_result = 0xFFFF;
     wof_sound_engine_load();                /* 0x019248 */
