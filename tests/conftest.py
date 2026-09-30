@@ -95,6 +95,15 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip)
 
 
+def pytest_terminal_summary(terminalreporter):
+    """The ROM's message once at the end of a run, whatever the summary options: a skip made
+    by a marker is folded by test file in the short summary and not shown at all without it."""
+    missing = romcheck.problem()
+    if missing:
+        terminalreporter.write_sep('=', 'the tests that need the Kickstart ROM were skipped')
+        terminalreporter.write_line(missing)
+
+
 def run(command, **kwargs):
     return subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True, **kwargs)
 
