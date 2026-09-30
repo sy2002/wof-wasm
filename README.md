@@ -19,7 +19,7 @@ The project is developed on macOS: the native library the tests load is built wi
 .venv/bin/python -m pytest tests/ --slow -m page
 ```
 
-The first phase, the emulator tests over eight cores, takes about 50 minutes, and the second, the page tests in the two browsers, about 11. Without the ROM every test but a handful skips, with the same message as its reason. `re/notes/testing.md` has the details.
+The first phase, the emulator tests over eight cores, takes about an hour, and the second, the page tests in the two browsers, about twenty minutes. Without the ROM every test but a handful skips, with the same message as its reason. `re/notes/testing.md` has the details.
 
 ## Where things are
 
