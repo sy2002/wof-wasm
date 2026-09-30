@@ -42,8 +42,11 @@ MODULES = ['core.js', 'video.js', 'input.js', 'audio.js', 'clock.js', 'overlay.j
 # SPEC 3.1: everything on the disk that is not the executable and not a non-game file.
 SKIP_NAMES = {'Wings', 'UFXintro', 'wingt'}
 
+# The core carries its debug information, and with it the path of every source file; the
+# prefix map makes those paths relative to the repository, so that the page is the same
+# wherever a checkout is built and names no directory of the machine that built it.
 CC_WASM = ['-target', 'wasm32-freestanding', '-std=c11', '-O2', '-Wall', '-Wextra',
-           '-nostdlib', '-Wl,--no-entry', '-I', SRC]
+           '-nostdlib', '-Wl,--no-entry', '-I', SRC, '-ffile-prefix-map=%s=.' % ROOT]
 # WOF_TRACE turns on the recording of src/trace.c: which file the core opened, which song
 # it asked for and every drawing call it made, which is how the differential tests compare
 # the port with the headless original's observers.  dist/core.wasm is built without it.
