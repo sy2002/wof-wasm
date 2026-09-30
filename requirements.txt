@@ -1,0 +1,8 @@
+# The project's Python environment, pinned (tools/setup.sh installs it into .venv).
+capstone==5.0.9
+numpy==2.4.6
+pillow==12.3.0
+pytest==9.1.1
+pytest-xdist==3.8.0
+unicorn==2.1.4
+ziglang==0.16.0
