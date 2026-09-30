@@ -3,7 +3,10 @@
 # versioned.
 original/kick.rom
 
-dist/
+# build products: everything the build writes under dist/ but the one page, which is the
+# repository's runnable game and is rebuilt and committed at every merge
+dist/*
+!dist/wof.html
 
 # generated at build time from the original executable
 src/gen/
