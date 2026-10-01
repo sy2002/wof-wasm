@@ -32,6 +32,6 @@ The first phase, the emulator tests over eight cores, takes about an hour, and t
 
 ## Licence
 
-**To be filled in by the owner:** the licence of the code and the notes.
+The code and the tools of this repository (`src/`, `web/`, `tools/`, `tests/`, the build) are free software under the GNU General Public License, version 3 or later (`LICENSE`). The prose, that is `SPEC.md`, the notes in `re/notes/` and the book in `book/`, is under Creative Commons Attribution-ShareAlike 4.0 International (`LICENSE-CC-BY-SA-4.0`).
 
-**To be filled in by the owner:** one line stating that the game data in `original/` is not covered by it.
+The game data is covered by neither: everything under `original/` (the disk image, the files extracted from it, the manual's text), the disassembly listings `re/Wings.lst` and `re/songplay.lst`, which reproduce the executable's code, the contact sheets in `ref/sheets/`, and the game data embedded in `dist/wof.html`. Wings of Fury is the work of its authors and publisher (Broderbund, 1990); it is kept here for preservation, and no right to it is granted. The Kickstart ROM is not in the repository at all (above).

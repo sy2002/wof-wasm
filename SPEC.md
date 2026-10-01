@@ -11,7 +11,7 @@ Port the Amiga game *Wings of Fury* (Broderbund, 1990) to the browser as **one s
 - All game content (graphics, maps, sounds, music, fonts, tables, texts) is taken from the original disk image **at build time** and embedded in the output file. Hand-written source files contain code only, never game content.
 - The output `dist/wof.html` opens from `file://` with a double click. It makes no network requests.
 
-The output file contains the game data. The owner, a founding member of an association for retro preservation, decided on 2026-09-30 to publish the repository as a preservation project, the game data included and the Kickstart ROM left out (section 2, `README.md`), and bears that decision; nothing is pushed to any remote unless the owner asks.
+The output file contains the game data. The owner, a founding member of an association for retro preservation, decided on 2026-09-30 to publish the repository as a preservation project, the game data included and the Kickstart ROM left out (section 2, `README.md`), and bears that decision; nothing is pushed to any remote unless the owner asks. The code and the tools are under GPL-3.0-or-later and the prose under CC BY-SA 4.0 (the owner's decision of 2026-10-01); the game data, the listings that reproduce the executable and the contact sheets are covered by neither, which `README.md` says.
 
 ### Definition of faithful
 
@@ -51,7 +51,9 @@ src/                    C core
 web/                    shell: page template, JavaScript modules, CSS
 tests/                  pytest suite: core in Node and natively, the page in Chrome and Firefox
 dist/wof.html           the built page, versioned: rebuilt and committed by the controller at every merge
-README.md               for a reader who has just cloned: play, build, verify, the ROM, where things are
+README.md               for a reader who has just cloned: play, build, verify, the ROM, where things are, the licence
+LICENSE                 GPL-3.0-or-later, the licence of the code and the tools (the owner's decision of 2026-10-01)
+LICENSE-CC-BY-SA-4.0    CC BY-SA 4.0, the licence of the prose: this document, the notes, the book
 requirements.txt        the pinned Python packages; tools/setup.sh installs them into .venv
 .venv/                  project-local Python environment
 ```
