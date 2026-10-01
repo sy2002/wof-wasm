@@ -8,7 +8,7 @@ Body text is set in a serif of the reader's system at a book's measure, while li
 
 ### A heading of the third level
 
-The two sizes of the game's font are its only sizes: 48 pixels for a page's title, 24 for a section, each font pixel one device pixel wide and two high at the smaller size.
+The two sizes of the game's font are its only sizes: 48 pixels for a page's title, 24 for a section, each pixel of the font one CSS pixel wide and two high at the smaller size, as a high-resolution pixel is about half as wide as it is high.
 
 ## A ported routine beside its original
 

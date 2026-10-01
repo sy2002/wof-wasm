@@ -129,6 +129,6 @@ lines = ["Bringing Back Wings of Fury",
 ink = ["wingstitle", 25]
 paper = ["wingstitle", 0]
 scale = [2, 4]
-shows = "The game's own font, newarmyfont, with every character it has: the lettering of the story scroller, the briefing and the ticker, and of this book's headings."
+shows = "The game's own font, newarmyfont, with every character it has: the lettering of the story scroller and the briefing, and of this book's headings."
 how = "Each line drawn by the port's text_render (orig 0x015956) into a 640 x 12 template, as the story scroller draws it; each pixel shown two wide and four high, near the 1.6 : 3 of a high-resolution pixel on a PAL screen; ink and paper are entries 25 and 0 of the title picture's palette."
 command = ".venv/bin/python book/tools/figures.py font-specimen"
