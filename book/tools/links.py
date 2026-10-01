@@ -22,7 +22,8 @@ beside them, and nothing else: no network, no ROM, no native library.
               that sets it in bold or links to its entry; a term in bold is a link to its entry;
               no term is set in bold without an entry, and none in two chapters
     external  every link out of the repository is https, and the links of a glossary entry's
-              "Elsewhere:" line carry no code span
+              "Elsewhere:" line carry no code span (an underscore in an address is written %5F,
+              as tools/mdcheck.py needs)
 
 How a bold is read: its text matches an entry's heading without regard to case, with a
 trailing s, es or (for a y) ies allowed, and with a parenthesis at the end of the heading
@@ -41,7 +42,7 @@ from common import BOOK, DOCS, ROOT
 
 REPO_PREFIXES = ('src/', 'web/', 'tools/', 'tests/', 're/', 'book/', 'original/', 'dist/', 'ref/')
 REPO_DOCUMENTS = re.compile(r'(?<![\w.])(SPEC\.md|README\.md|CLAUDE\.md|CONTROLLER\.md|LICENSE)')
-LINK = re.compile(r'\[((?:[^\[\]\n]|\[[^\[\]\n]*\])*)\]\(([^()\s]+)\)')
+LINK = re.compile(r'\[((?:[^\[\]\n]|\[[^\[\]\n]*\])*)\]\(((?:[^()\s]|\([^()\s]*\))+)\)')
 CODE = re.compile(r'`([^`\n]+)`')
 BOLD = re.compile(r'\*\*([^*\n]+?)\*\*')
 FENCE = re.compile(r'^\s*(```|~~~)')

@@ -8,6 +8,8 @@ Motorola's processor, the chip in the Amiga that runs the program: sixteen regis
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [3.2](repo:SPEC.md#32-executable) and [7.1](repo:SPEC.md#71-arithmetic).
 
+Elsewhere: [Motorola 68000](https://en.wikipedia.org/wiki/Motorola%5F68000), Wikipedia.
+
 ### A4
 
 The 68000's address register 4, which the game's code keeps as its small-data base, `0x02AFFE` in the fixed load layout: see [Small-data base](#small-data-base).
@@ -26,11 +28,15 @@ An Amiga Disk File: a copy of an Amiga floppy, block by block, in one file, a do
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [2](repo:SPEC.md#2-repository) and [3.1](repo:SPEC.md#31-disk).
 
+Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia.
+
 ### Assembly language
 
 The written form of machine code, one instruction a line, a short name for the operation followed by its operands: the form in which the listing shows the whole program, and in which much of the game was written by hand.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
+
+Elsewhere: [Assembly language](https://en.wikipedia.org/wiki/Assembly%5Flanguage), Wikipedia.
 
 ### Attract demo
 
@@ -38,11 +44,15 @@ A recorded game that the program plays by itself when left alone at the rank sel
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/demo.md`](repo:re/notes/demo.md).
 
+Elsewhere: [Attract mode](https://en.wikipedia.org/wiki/Attract%5Fmode), Wikipedia.
+
 ### Beam
 
 The point where the display is drawing the picture, sweeping each line from left to right and the lines from top to bottom; its position, which a register of the custom chips reports, is the game's only source of chance.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/random.md`](repo:re/notes/random.md).
+
+Elsewhere: [Raster scan](https://en.wikipedia.org/wiki/Raster%5Fscan), Wikipedia.
 
 ### Big-endian
 
@@ -50,11 +60,15 @@ The byte order that stores the most significant byte of a number first: the 6800
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [3.5](repo:SPEC.md#35-file-formats) and [5](repo:SPEC.md#5-build).
 
+Elsewhere: [Endianness](https://en.wikipedia.org/wiki/Endianness), Wikipedia.
+
 ### Bitplane
 
 One bit of every pixel's colour number, kept as a picture of its own; five bitplanes together give each pixel one of 32 colours.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md).
+
+Elsewhere: [Planar (computer graphics)](https://en.wikipedia.org/wiki/Planar%5F(computer%5Fgraphics)), Wikipedia.
 
 ### Blitter
 
@@ -62,11 +76,15 @@ The Amiga's unit, inside the custom chip Agnus, for copying and combining rectan
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md).
 
+Elsewhere: [Blitter](https://en.wikipedia.org/wiki/Blitter), Wikipedia.
+
 ### BSS
 
 A hunk of memory that starts at zero and is given in the program's file by its size alone; the game's is 4 bytes at `0x028000`.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
+
+Elsewhere: [.bss](https://en.wikipedia.org/wiki/.bss), Wikipedia.
 
 ### Calling convention
 
@@ -74,17 +92,23 @@ The rules by which a caller hands a routine its arguments and gets the result ba
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconvention), Wikipedia.
+
 ### Chip memory
 
 The memory the Amiga's custom chips can read and write by themselves, without the processor; the game keeps its screens, copper lists, shapes, sound effects and songs there.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#memory), "Memory".
 
+Elsewhere: [Amiga Chip RAM](https://en.wikipedia.org/wiki/Amiga%5FChip%5FRAM), Wikipedia.
+
 ### CIA
 
 One of the Amiga's two interface chips, which serve its ports and carry timers of their own; the game reads the fire button from one, and its music player takes one of their timers for its beat.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
+
+Elsewhere: [MOS Technology CIA](https://en.wikipedia.org/wiki/MOS%5FTechnology%5FCIA), Wikipedia.
 
 ### Colour clock
 
@@ -98,6 +122,8 @@ The Amiga's display coprocessor: it follows a list of waits and register writes 
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md).
 
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
+
 ### Core
 
 The port's game: the ported logic, written in C and compiled to WebAssembly, which knows nothing of the browser around it.
@@ -110,11 +136,15 @@ A change made to a program to remove its copy protection; the disk this port was
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#31-disk), section 3.1.
 
+Elsewhere: [Software cracking](https://en.wikipedia.org/wiki/Software%5Fcracking), Wikipedia.
+
 ### Custom chips
 
 The Amiga's own chips beside the processor: Agnus with the copper and the blitter, Denise for the display, Paula for the sound. A program sets them to work through their registers, and they then work from chip memory by themselves.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
+
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
 
 ### Double buffering
 
@@ -122,17 +152,23 @@ Drawing into a hidden picture and showing it only when it is whole; the game kee
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#double-buffering-and-the-swap), "Double buffering and the swap".
 
+Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbuffering), Wikipedia.
+
 ### Emulator
 
 A program that imitates a computer's processor and chips closely enough that the computer's own programs run on it unchanged.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
 
+Elsewhere: [Emulator](https://en.wikipedia.org/wiki/Emulator), Wikipedia.
+
 ### Faithful port
 
 One game carried to another machine by rewriting its own logic, routine by routine, from its machine code, and held to the original by comparison.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#1-goal), section 1.
+
+Elsewhere: [Porting](https://en.wikipedia.org/wiki/Porting), Wikipedia.
 
 ### Far-call table
 
@@ -143,6 +179,8 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 ### Fast floating point
 
 Motorola's floating-point format of 32 bits, whose routines live in the Amiga's ROM; the game's flight model computes in it, and the port reproduces it bit for bit in integer code.
+
+A number in fast floating point fills one 32-bit register: a mantissa of 24 bits, a sign bit and an exponent of 7 bits, with no infinity and no NaN ([`re/notes/ffp.md`](repo:re/notes/ffp.md#the-format), "The format"). The game computes with it in two routines of its tick, the player's motion and an enemy aircraft's, which use six of the library's nine operations ([`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4). The port does the same arithmetic in integer code, instruction for instruction from the ROM's own routines, because a browser's floating point rounds differently and the game's state would drift ([`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1); every operation is tested against the ROM under the oracle.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/ffp.md`](repo:re/notes/ffp.md).
 
@@ -157,6 +195,8 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 A computer rebuilt in programmable hardware, a chip whose circuits are configured to behave like the original machine's.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
+
+Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-programmable%5Fgate%5Farray), Wikipedia.
 
 ### Front end
 
@@ -176,11 +216,15 @@ Numbers in base 16, the digits 0 to 9 and A to F; this book marks them with `0x`
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`book/BOOK.md`](repo:book/BOOK.md#4-the-style-guide), section 4, point 3.
 
+Elsewhere: [Hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal), Wikipedia.
+
 ### Hunk
 
 A part of an Amiga program that is loaded into memory as a whole: code, data with its starting values, or BSS.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
+
+Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia.
 
 ### Hunk file
 
@@ -188,11 +232,15 @@ The AmigaDOS format for programs: a header giving the number of hunks and their 
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia.
+
 ### IFF ILBM
 
 The Amiga's standard format for pictures: a file of chunks, each a name of four letters, its length and its contents, giving a picture's size, colours and bitplanes; the game's pictures and three of its palettes use it.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5, "Pictures".
+
+Elsewhere: [ILBM](https://en.wikipedia.org/wiki/ILBM), Wikipedia; [Interchange File Format](https://en.wikipedia.org/wiki/Interchange%5FFile%5FFormat), Wikipedia.
 
 ### Input byte
 
@@ -212,11 +260,15 @@ C's ordinary type for whole numbers: 16 bits wide in Manx Aztec C as the game wa
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1.
 
+Elsewhere: [C data types](https://en.wikipedia.org/wiki/C%5Fdata%5Ftypes), Wikipedia.
+
 ### Interrupt
 
 A signal from the hardware that makes the processor put aside what it is doing, run a short routine and carry on where it was; the VBlank and Paula's channels raise them.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
+Elsewhere: [Interrupt](https://en.wikipedia.org/wiki/Interrupt), Wikipedia.
 
 ### Keyboard assist
 
@@ -230,11 +282,15 @@ The heart of AmigaOS, in the ROM of the Amiga 500 and 2000 and loaded from a dis
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/system-font.md`](repo:re/notes/system-font.md#the-rom), "The ROM".
 
+Elsewhere: [Kickstart (Amiga)](https://en.wikipedia.org/wiki/Kickstart%5F(Amiga)), Wikipedia.
+
 ### Library
 
 A collection of the operating system's routines that a program calls through a table of jumps at fixed offsets from the library's address; the game uses dos, exec, graphics and mathffp among others.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
+
+Elsewhere: [Library (computing)](https://en.wikipedia.org/wiki/Library%5F(computing)), Wikipedia.
 
 ### Listing
 
@@ -242,11 +298,15 @@ The game's program written out as assembly language by the disassembler, each in
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [2](repo:SPEC.md#2-repository) and [4](repo:SPEC.md#4-tools).
 
+Elsewhere: [Disassembler](https://en.wikipedia.org/wiki/Disassembler), Wikipedia.
+
 ### Little-endian
 
 The byte order that stores the least significant byte of a number first: that of the machines the port runs on, WebAssembly's among them; the opposite of big-endian.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py).
+
+Elsewhere: [Endianness](https://en.wikipedia.org/wiki/Endianness), Wikipedia.
 
 ### LoadSeg
 
@@ -266,17 +326,23 @@ A program as the processor reads it: its instructions as numbers in memory.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Machine code](https://en.wikipedia.org/wiki/Machine%5Fcode), Wikipedia.
+
 ### Manx Aztec C
 
 The C compiler the game's C was built with: its int, as the game was built, is 16 bits, its code reaches the variables through A4, and each of its routines keeps a stack frame on A5.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Aztec C](https://en.wikipedia.org/wiki/Aztec%5FC), Wikipedia.
+
 ### Mask
 
 A one-bit picture of where a shape has any colour at all: the OR of its planes, or, for a shape of one plane, that plane; the blitter draws the shape's bits where the mask is set and keeps the background elsewhere.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly".
+
+Elsewhere: [Mask (computing)](https://en.wikipedia.org/wiki/Mask%5F(computing)), Wikipedia.
 
 ### Mission script
 
@@ -290,17 +356,23 @@ The instrument that runs one original routine on an emulated 68000 beside its po
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [7.4](repo:SPEC.md#74-working-method) and [8](repo:SPEC.md#8-verification).
 
+Elsewhere: [Test oracle](https://en.wikipedia.org/wiki/Test%5Foracle), Wikipedia.
+
 ### PAL
 
 The European television standard, 50 pictures a second, which the Amiga's display follows in Europe; the port's default.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Video".
 
+Elsewhere: [PAL](https://en.wikipedia.org/wiki/PAL), Wikipedia.
+
 ### Palette
 
 The table that turns a pixel's colour number into a colour: on the Amiga up to 32 entries of 4,096 possible colours, changed part of the way down the screen.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md).
+
+Elsewhere: [Palette (computing)](https://en.wikipedia.org/wiki/Palette%5F(computing)), Wikipedia.
 
 ### Pass
 
@@ -314,6 +386,8 @@ The Amiga's chip for sound, four channels that each play 8-bit sound samples at 
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
+
 ### Period
 
 Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second on a PAL Amiga, each byte of a sound sample is held; a smaller period plays higher.
@@ -326,11 +400,15 @@ A routine that computes from its inputs alone, without touching anything else; e
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
+Elsewhere: [Pure function](https://en.wikipedia.org/wiki/Pure%5Ffunction), Wikipedia.
+
 ### Register
 
 A small named store inside a processor or a chip: the 68000's sixteen hold the values it computes with, and a custom chip's, at fixed addresses from `0xDFF000`, tell the chip what to do.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library".
+
+Elsewhere: [Processor register](https://en.wikipedia.org/wiki/Processor%5Fregister), Wikipedia.
 
 ### Relocation
 
@@ -338,11 +416,15 @@ An entry in a hunk file that names a place in a hunk holding an address, which t
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Relocation (computing)](https://en.wikipedia.org/wiki/Relocation%5F(computing)), Wikipedia.
+
 ### Remake
 
 A new program made to look and play like an old one, written from watching the old one.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#1-goal), section 1.
+
+Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Fremake), Wikipedia.
 
 ### Rpck
 
@@ -368,11 +450,15 @@ Widening a number to more bits by copying its sign bit into the new ones, so tha
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1.
 
+Elsewhere: [Sign extension](https://en.wikipedia.org/wiki/Sign%5Fextension), Wikipedia.
+
 ### Signed byte
 
 A byte read as a number from −128 to 127 in two's complement, in which the top bit counts as −128: a byte above `0x7F` is itself less 256.
 
 First met in [chapter 2](part-1/amiga.md), defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
+
+Elsewhere: [Two's complement](https://en.wikipedia.org/wiki/Two%27s%5Fcomplement), Wikipedia.
 
 ### Small-data base
 
@@ -386,6 +472,8 @@ A recorded waveform that Paula plays back on one of its four channels, at its ow
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+Elsewhere: [Pulse-code modulation](https://en.wikipedia.org/wiki/Pulse-code%5Fmodulation), Wikipedia.
+
 ### Split line
 
 The line of the playfield where the sky's palette gives way to the sea's, computed again in every pass; the copper changes the colours there.
@@ -398,11 +486,15 @@ A routine's own stretch of the stack, from its arguments down to its own variabl
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+Elsewhere: [Call stack](https://en.wikipedia.org/wiki/Call%5Fstack), Wikipedia.
+
 ### Symbol
 
 A name a program file keeps for a routine or a variable, with its address; the game's program keeps none, its music player twenty.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`re/notes/music.md`](repo:re/notes/music.md#the-two-files), "The two files".
+
+Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikipedia.
 
 ### Topaz 8
 
@@ -416,6 +508,8 @@ The vertical blank, the moment the beam has finished a picture and returns to th
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md).
 
+Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5Fblanking%5Finterval), Wikipedia.
+
 ### Vertical flip
 
 The game's command that swaps the stick's forward and back, for players who want a pilot's stick; in the port a remembered preference.
@@ -426,10 +520,16 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes
 
 A compact binary form of program that every current browser runs: the form the port's core is compiled to.
 
+WebAssembly is a compact binary form of program with an instruction set of its own, which every current browser runs at close to native speed inside a sandbox: the program gets one block of memory to itself and reaches nothing of the page but what the page hands it. The port's core is its C compiled to WebAssembly; the build carries the bytes inside the HTML file, and the page instantiates them when it loads, with the JavaScript shell around them ([`SPEC.md`](repo:SPEC.md), sections [1](repo:SPEC.md#1-goal), [5](repo:SPEC.md#5-build) and [6.1](repo:SPEC.md#61-core)). It is not JavaScript: the two run side by side, and the shell calls the functions the core exports. The reference is [the WebAssembly specification](https://webassembly.github.io/spec/core/).
+
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#5-build), section 5.
+
+Elsewhere: [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly), Wikipedia; [webassembly.org](https://webassembly.org/).
 
 ### Workbench
 
 The Amiga's desktop, which the game closes when it starts.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
+
+Elsewhere: [Workbench (AmigaOS)](https://en.wikipedia.org/wiki/Workbench%5F(AmigaOS)), Wikipedia.

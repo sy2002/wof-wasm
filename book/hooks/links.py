@@ -7,10 +7,10 @@ every such target to the repository on GitHub: <repo_url>/blob/<branch>/<path> f
 <repo_url>/tree/<branch>/<path> for a directory, the anchor kept, where repo_url is mkdocs.yml's
 and the branch is extra.repo_branch.  It works on the page's HTML after the Markdown is rendered,
 so a link in a sidebar, a caption or a table is rewritten like any other, and no other link is
-touched.  An underscore in a target is written %5F, because tools/mdcheck.py reads a bare one
-as emphasis; the hook decodes it.  A target that does not exist is a warning, which fails a
-strict build; book/tools/links.py checks the anchors as well, at every build of
-book/tools/build.py.
+touched.  An underscore in a link's target, a repo: one or any other, is written %5F, because
+tools/mdcheck.py reads a bare one as emphasis; the hook decodes it in every link.  A target
+that does not exist is a warning, which fails a strict build; book/tools/links.py checks the
+anchors as well, at every build of book/tools/build.py.
 """
 import logging
 import os
@@ -20,6 +20,7 @@ from urllib.parse import unquote
 log = logging.getLogger('mkdocs.hooks.links')
 
 HREF = re.compile(r'href="repo:([^"#]*)(#[^"]*)?"')
+UNDERSCORE = re.compile(r'href="[^"]*%5[Ff][^"]*"')
 
 
 def repository(config):
@@ -41,4 +42,7 @@ def on_page_content(html, page, config, **kwargs):
         kind = 'tree' if path.endswith('/') or os.path.isdir(full) else 'blob'
         return 'href="%s/%s/%s/%s%s"' % (base, kind, branch, path.rstrip('/'), anchor)
 
-    return HREF.sub(rewrite, html)
+    html = HREF.sub(rewrite, html)
+    # %5F is an underscore (RFC 3986 counts it unreserved); every link of the pages writes it
+    # so for tools/mdcheck.py, and the site carries it plain.
+    return UNDERSCORE.sub(lambda m: m.group(0).replace('%5F', '_').replace('%5f', '_'), html)
