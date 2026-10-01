@@ -295,7 +295,7 @@ pixel_bytes = 16
 marks = [0x015D62, 0x0209BC, 0x0215D8]
 scale = 2
 shows = "The executable's code hunk along its addresses, 0x010000 to 0x022F4B, in rows of 8 KB: once by the kind of each routine, hand-written assembly or compiled C, and once by its status in the port, with ticks at 0x015D62 and at the blitter library's two ends."
-how = "re/functions.csv read with csv.DictReader, every byte of the hunk given to the routine whose span holds it (the maker fails unless the spans tile the hunk exactly); each pixel 16 bytes, coloured by the value that holds most of them; the counts under each panel from the same rows; the colours entries of the game's palettes, kept apart for colour-blind readers over all pairs on the figure's ground, drop and todo neutral greys; the whole twice enlarged."
+how = "re/functions.csv read with csv.DictReader, every byte of the hunk given to the routine whose span holds it (the maker fails unless the spans tile the hunk exactly); each pixel 16 bytes, coloured by the value that holds most of them; the counts under each panel from the same rows; the colours entries of the game's palettes, kept apart for colour-blind readers over all pairs on the figure's ground, the status panel's hues none of the kind panel's (its cyan and yellow lighter than the validator's band, since the palettes hold no other hue far enough from the kind panel's orange and blue), drop and todo neutral greys; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py code-map"
 
 # The panels, in order: the column of re/functions.csv, the panel's title, a note under its
@@ -311,9 +311,9 @@ values = [["asm", "hand-written assembly", ["selectrank", 6]],
 [[figure.panels]]
 column = "status"
 title = "by status: where the port stands with each routine"
-values = [["verified", "verified", ["creditscreen", 26]],
-          ["ported", "ported", ["ocean.palette", 7]],
+values = [["verified", "verified", ["iff-dash", 6]],
+          ["ported", "ported", ["creditscreen", 13]],
           ["partial", "partial", ["wingstitle", 8]],
-          ["replace", "replace", ["broderbund", 8]],
+          ["replace", "replace", ["wingspalette", 10]],
           ["drop", "drop", ["wingspalette", 28]],
           ["todo", "todo, no status set", ["wingspalette", 26]]]

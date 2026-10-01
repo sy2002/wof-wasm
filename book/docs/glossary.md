@@ -128,7 +128,7 @@ Elsewhere: [Control flow](https://en.wikipedia.org/wiki/Control%5Fflow), Wikiped
 
 ### Control-flow skeleton
 
-A routine shown with only its labels, calls, branches, tests and returns, as [`tools/skel.py`](repo:tools/skel.py) prints it from the listing: the first step of porting a routine, before it is read in full.
+A routine shown with only its labels, calls, branches, comparisons and returns, as [`tools/skel.py`](repo:tools/skel.py) prints it from the listing: the first step of porting a routine, before it is read in full.
 
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
@@ -310,7 +310,7 @@ Elsewhere: [Kickstart (Amiga)](https://en.wikipedia.org/wiki/Kickstart%5F(Amiga)
 
 ### Label
 
-A name the listing gives an address that a branch or a call leads to, on a line of its own and ending in a colon: a routine's name, or `loc_` and the address for a place inside one.
+A name the listing gives an address that a branch or a call leads to, on a line of its own and ending in a colon: a routine's name, a name the project gave a place inside one, or `loc_` and the address.
 
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/Wings.lst`](repo:re/Wings.lst).
 
@@ -444,6 +444,14 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+### Program counter
+
+The 68000's register that holds the address of the instruction being executed; an address given relative to it names a distance from the instruction, not a place, so such a call needs no correcting wherever the program is loaded.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/disasm.py`](repo:tools/disasm.py).
+
+Elsewhere: [Program counter](https://en.wikipedia.org/wiki/Program%5Fcounter), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
 ### Pure routine
 
 A routine that computes from its inputs alone, without touching anything else; every pure routine is held to the original under the oracle.
@@ -576,7 +584,7 @@ Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5
 
 ### Verified
 
-The status of a routine that is ported and held to the original under the oracle: both run on the same inputs, and every result is equal.
+The status of a routine that is ported and held to the original by a test of its own: under the oracle for a pure routine, by other tests for the rest. A routine held only by the comparisons of whole runs of the game is ported.
 
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [chapter 5](part-1/oracle.md).
 
