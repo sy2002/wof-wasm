@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 350" width="780" height="350" role="img" aria-labelledby="title desc">
+  <title id="title">The frame on A5 and the variables on A4</title>
+  <desc id="desc">What record_at reaches while it runs. On the left the stack, higher addresses at the top: above the frame the caller's own; at 8(a5) the argument x, two bytes, which the caller pushed; at 4(a5) the return address, which jsr pushed; at 0(a5) the caller's A5, which link pushed, and A5 points there; at -4(a5) the routine's one local, four bytes, where A7, the stack pointer, now points. On the right the data hunk: A4 holds 0x02AFFE, and 0x69D6 bytes below it lies map_records at 0x024628, with map_records_end four bytes above it at 0x02462C, reached as -$69d6(a4) and -$69d2(a4).</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .arg   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .saved { fill: #AAAABB; /* wingspalette 29 */ }
+    .local { fill: #77AACC; /* wingspalette 22 */ }
+    .var   { fill: #FFDD77; /* wingstitle 28 */ }
+    .a4    { fill: #FFBB00; /* wingstitle 25 */ }
+    .a4line { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .empty { stroke: #666677; /* wingspalette 27 */ stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+    .mono { font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace; font-size: 13px; }
+  </style>
+
+  <!-- The stack: higher addresses at the top, each cell as tall as its bytes -->
+  <text class="light label" x="20" y="24">the stack, while record_at runs</text>
+  <text class="light small" x="20" y="42">higher addresses at the top</text>
+  <rect class="empty" x="110" y="54" width="220" height="30"/>
+  <text class="light small" x="220" y="73" text-anchor="middle">the caller's own</text>
+  <rect class="arg" x="110" y="88" width="220" height="22" rx="2"/>
+  <text class="ink small" x="120" y="103">x, the argument: 2 bytes</text>
+  <rect class="saved" x="110" y="114" width="220" height="40" rx="2"/>
+  <text class="ink small" x="120" y="138">the return address, from jsr</text>
+  <rect class="saved" x="110" y="158" width="220" height="40" rx="2"/>
+  <text class="ink small" x="120" y="182">the caller's A5, from link</text>
+  <rect class="local" x="110" y="202" width="220" height="40" rx="2"/>
+  <text class="ink small" x="120" y="226">a local: the record's address</text>
+
+  <text class="light mono" x="100" y="114" text-anchor="end">8(a5)</text>
+  <text class="light mono" x="100" y="158" text-anchor="end">4(a5)</text>
+  <text class="light mono" x="100" y="202" text-anchor="end">0(a5)</text>
+  <text class="light mono" x="100" y="246" text-anchor="end">-4(a5)</text>
+
+  <path class="wire" d="M376 200 L340 200"/>
+  <path class="tip" d="M334 200 L343 195 L343 205 Z"/>
+  <text class="light label" x="382" y="205">A5</text>
+  <path class="wire" d="M376 244 L340 244"/>
+  <path class="tip" d="M334 244 L343 239 L343 249 Z"/>
+  <text class="light label" x="382" y="249">A7</text>
+  <text class="light small" x="382" y="266">the stack pointer</text>
+
+  <!-- The data: A4, and two variables 0x69D6 and 0x69D2 bytes below it -->
+  <text class="light label" x="520" y="24">the variables, through A4</text>
+  <rect class="empty" x="540" y="54" width="130" height="188"/>
+  <line class="a4line" x1="530" y1="70" x2="680" y2="70"/>
+  <text class="a4 label" x="688" y="75">A4</text>
+  <text class="light small" x="688" y="92">0x02AFFE</text>
+  <rect class="var" x="540" y="158" width="130" height="40" rx="2"/>
+  <text class="ink small" x="605" y="182" text-anchor="middle">map_records_end</text>
+  <rect class="var" x="540" y="202" width="130" height="40" rx="2"/>
+  <text class="ink small" x="605" y="226" text-anchor="middle">map_records</text>
+  <text class="light mono" x="530" y="202" text-anchor="end">-$69d2(a4)</text>
+  <text class="light mono" x="530" y="246" text-anchor="end">-$69d6(a4)</text>
+  <text class="light small" x="678" y="202">0x02462C</text>
+  <text class="light small" x="678" y="246">0x024628</text>
+  <path class="wire" d="M605 74 L605 150"/>
+  <path class="tip" d="M605 156 L600 147 L610 147 Z"/>
+  <text class="light small" x="614" y="118">0x69D6 bytes below A4</text>
+
+  <text class="light" x="20" y="300">link a5,#-4 builds the frame and unlk a5 takes it down; the result goes back in D0.</text>
+  <text class="light" x="20" y="324">A4 never changes while the program runs: every variable is one fixed offset from it.</text>
+</svg>

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 410" width="820" height="410" role="img" aria-labelledby="title desc">
+  <title id="title">The hunks and the fixed layout</title>
+  <desc id="desc">On the left the file Wings as its blocks: a header naming three hunks and their sizes, the code hunk of 77,644 bytes with 22 relocations, the data hunk of which the file stores 15,456 bytes, with 247 relocations, and the BSS hunk, given by its size alone, 4 bytes. On the right memory in the port's fixed layout, to scale: the code at 0x010000 to 0x022F4C; the data at 0x023000, the far-call table at its start, its starting values and then zeros up to 0x027FF0; the BSS at 0x028000, 4 bytes. A4 holds 0x02AFFE, and its 16-bit offsets reach from 0x022FFE to 0x032FFD: the whole data hunk and the BSS.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .code  { fill: #77AACC; /* wingspalette 22 */ }
+    .data  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .zeros { fill: #AAAABB; /* wingspalette 29 */ }
+    .reloc { fill: #666677; /* wingspalette 27 */ }
+    .a4    { fill: #FFBB00; /* wingstitle 25 */ }
+    .a4line { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .empty { stroke: #666677; /* wingspalette 27 */ stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The file, drawn as its blocks, not to scale -->
+  <text class="light label" x="40" y="26">Wings on the disk, 94,292 bytes</text>
+  <rect class="zeros" x="40" y="40" width="200" height="22" rx="2"/>
+  <text class="ink small" x="50" y="55">header: 3 hunks and their sizes</text>
+  <rect class="code" x="40" y="66" width="200" height="118" rx="2"/>
+  <text class="ink label" x="50" y="112">code</text>
+  <text class="ink small" x="50" y="130">77,644 bytes:</text>
+  <text class="ink small" x="50" y="146">the instructions and the texts</text>
+  <rect class="reloc" x="40" y="188" width="200" height="18" rx="2"/>
+  <text class="light small" x="50" y="201">22 relocations</text>
+  <rect class="data" x="40" y="210" width="200" height="38" rx="2"/>
+  <text class="ink label" x="50" y="228">data</text>
+  <text class="ink small" x="50" y="243">15,456 bytes stored</text>
+  <rect class="reloc" x="40" y="252" width="200" height="18" rx="2"/>
+  <text class="light small" x="50" y="265">247 relocations</text>
+  <rect class="zeros" x="40" y="274" width="200" height="22" rx="2"/>
+  <text class="ink small" x="50" y="289">BSS: only its size, 4 bytes</text>
+
+  <!-- Each hunk to its address -->
+  <path class="wire" d="M240 125 L392 46"/>
+  <path class="tip" d="M398 43 L387 42 L392 51 Z"/>
+  <path class="wire" d="M240 229 L392 209"/>
+  <path class="tip" d="M398 208 L388 204 L389 214 Z"/>
+  <path class="wire" d="M240 285 L392 252"/>
+  <path class="tip" d="M398 251 L387 248 L390 257 Z"/>
+  <text class="light small" x="402" y="47">0x010000</text>
+  <text class="light small" x="402" y="212">0x023000</text>
+  <text class="light small" x="402" y="256">0x028000</text>
+
+  <!-- Memory in the fixed layout, to scale: y = 40 + (address - 0x010000) * 300 / 0x23000 -->
+  <text class="light label" x="470" y="26">memory, to scale</text>
+  <rect class="code" x="470" y="40" width="130" height="162.5"/>
+  <text class="ink label" x="535" y="114" text-anchor="middle">code</text>
+  <text class="ink small" x="535" y="132" text-anchor="middle">to 0x022F4C</text>
+  <rect class="data" x="470" y="203" width="130" height="32.3"/>
+  <text class="ink small" x="535" y="223" text-anchor="middle">data</text>
+  <rect class="zeros" x="470" y="235.3" width="130" height="10.4"/>
+  <rect class="reloc" x="470" y="245.8" width="130" height="2"/>
+  <rect class="empty" x="470" y="248" width="130" height="92"/>
+  <text class="light small" x="535" y="318" text-anchor="middle">nothing loaded</text>
+
+  <line class="a4line" x1="462" y1="271.4" x2="606" y2="271.4"/>
+  <text class="light small" x="610" y="212">far-call table at its start</text>
+  <text class="light small" x="610" y="227">starting values, 15,456 bytes</text>
+  <text class="light small" x="610" y="243">zeros to 0x027FF0</text>
+  <text class="light small" x="610" y="258">BSS, 4 bytes</text>
+  <text class="a4 label" x="610" y="276">A4 = 0x02AFFE</text>
+
+  <!-- What a 16-bit offset from A4 reaches -->
+  <path class="wire" d="M796 203 L804 203 L804 340 L796 340"/>
+  <text class="light small" x="796" y="302" text-anchor="end">what A4's 16-bit</text>
+  <text class="light small" x="796" y="317" text-anchor="end">offsets reach:</text>
+  <text class="light small" x="796" y="332" text-anchor="end">0x022FFE to 0x032FFD</text>
+
+  <text class="light" x="40" y="372">On an Amiga, LoadSeg puts each hunk wherever it finds memory and corrects the relocations.</text>
+  <text class="light" x="40" y="394">The project's tools always put them here, so that an address names one place everywhere.</text>
+</svg>

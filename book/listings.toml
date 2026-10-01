@@ -93,3 +93,22 @@ file = "tools/map_decode.py"
 [[listing]]
 kind = "asm"
 name = "rand_beam"
+
+# Compiled C beside its port: the map record under a world x, orig 0x01C982; its frame on A5,
+# a 16-bit argument at 8(a5) and two variables through A4 (chapter 3).
+[[listing]]
+kind = "asm"
+name = "record_at"
+
+[[listing]]
+kind = "c"
+name = "wof_record_at"
+
+# A tuning value as an instruction's operand: sound_slots_init sets up slot 4, the burst, its
+# period 500 the word that re/tables.toml's slot_periods reads at 0x01200C (chapter 3).
+[[listing]]
+kind = "asm"
+name = "sound_slots_init"
+from = 0x011FFE
+to = 0x01201C
+as = "sound_slots_init_boom"

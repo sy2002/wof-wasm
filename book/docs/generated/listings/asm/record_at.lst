@@ -1,0 +1,26 @@
+; re/Wings.lst 0x01C982-0x01C9C8: record_at [C]
+record_at:
+01c982  4e55fffc             link.w     a5, #$fffc
+01c986  4a6d0008             tst.w      $8(a5)
+01c98a  6c04                 bge.b      $1c990
+01c98c  426d0008             clr.w      $8(a5)
+loc_01c990:
+01c990  302d0008             move.w     $8(a5), d0
+01c994  48c0                 ext.l      d0
+01c996  81fc0008             divs.w     #$8, d0
+01c99a  3b400008             move.w     d0, $8(a5)
+01c99e  302d0008             move.w     $8(a5), d0
+01c9a2  e340                 asl.w      #$1, d0
+01c9a4  48c0                 ext.l      d0
+01c9a6  d0ac962a             add.l      -$69d6(a4), d0                         ; map_records
+01c9aa  2b40fffc             move.l     d0, -$4(a5)
+01c9ae  206dfffc             movea.l    -$4(a5), a0
+01c9b2  b1ec962e             cmpa.l     -$69d2(a4), a0                         ; map_records_end
+01c9b6  650a                 bcs.b      $1c9c2
+01c9b8  206c962e             movea.l    -$69d2(a4), a0                         ; map_records_end
+01c9bc  5588                 subq.l     #$2, a0
+01c9be  2b48fffc             move.l     a0, -$4(a5)
+loc_01c9c2:
+01c9c2  202dfffc             move.l     -$4(a5), d0
+01c9c6  4e5d                 unlk       a5
+01c9c8  4e75                 rts

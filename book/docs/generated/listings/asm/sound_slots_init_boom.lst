@@ -1,0 +1,7 @@
+; re/Wings.lst 0x011FFE-0x01201C: sound_slots_init [asm], a part of 0x011F76-0x012065
+011ffe  296cbe40c3cc         move.l     -$41c0(a4), -$3c34(a4)                 ; sound_boom_ptr | g_0273ca
+012004  296ca578c3d0         move.l     -$5a88(a4), -$3c30(a4)                 ; g_025576 | g_0273ce
+01200a  397c01f4c3d4         move.w     #$1f4, -$3c2c(a4)                      ; g_0273d2
+012010  397c0040c3d6         move.w     #$40, -$3c2a(a4)                       ; g_0273d4
+012016  397c0001c3d8         move.w     #$1, -$3c28(a4)                        ; g_0273d6
+01201c  426cc3ca             clr.w      -$3c36(a4)                             ; g_0273c8
