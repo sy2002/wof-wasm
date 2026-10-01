@@ -18,7 +18,8 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
          directly above it
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
-         its name, with the comments directly above it
+         its name (a method as Class.method, a function inside a function as outer.inner), or a
+         variable at module level by its name, with the comments directly above it
     json a JSON file the entry's `file` names (a run description of tests/runs/, say), the
          whole of it, laid out one key of the top-level object a line and one element of a
          top-level list a line, so that a script of many short lists reads as one line each
@@ -279,20 +280,25 @@ def js_functions(text, name):
 # ------------------------------------------------------------------ Python
 
 def py_definitions(text, name):
-    """Every function or class `name` (or Class.method) in one file, with its decorators and
-    the comment lines directly above it."""
+    """Every function or class `name` in one file, or a method `Class.method`, or a function
+    defined inside a function, `outer.inner`, with its decorators and the comment lines
+    directly above it; or a variable at module level, an assignment to `name`, with the
+    comment lines directly above it."""
     tree = ast.parse(text)
     lines = text.split('\n')
     kinds = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
     parts = name.split('.')
     if len(parts) == 2:
-        owners = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef) and n.name == parts[0]]
+        owners = [n for n in ast.walk(tree) if isinstance(n, kinds) and n.name == parts[0]]
         nodes = [c for o in owners for c in o.body if isinstance(c, kinds) and c.name == parts[1]]
     else:
         nodes = [n for n in ast.walk(tree) if isinstance(n, kinds) and n.name == name]
+        nodes += [n for n in tree.body if isinstance(n, (ast.Assign, ast.AnnAssign)) and
+                  any(isinstance(t, ast.Name) and t.id == name
+                      for t in (n.targets if isinstance(n, ast.Assign) else [n.target]))]
     found = []
     for node in nodes:
-        first = min([node.lineno] + [d.lineno for d in node.decorator_list]) - 1
+        first = min([node.lineno] + [d.lineno for d in getattr(node, 'decorator_list', [])]) - 1
         while first > 0 and lines[first - 1].lstrip().startswith('#'):
             first -= 1
         found.append((first, node.end_lineno - 1))
