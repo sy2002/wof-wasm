@@ -231,9 +231,9 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 016b04,screen_hires3,C,92,0,,,1,view_layout view_show_wait cop_show_wait,,11,,ported
 016b60,screen_hires2,C,92,0,,-32370,1,view_layout view_show_wait cop_show_wait,,11,,drop
 016bbc,ticker_clear,C,28,0,,,2,gfx_BltClear,,1,,ported
-016bd8,ticker_vport_init,C,96,0,,,1,gfx_InitBitMap gfx_InitRastPort,,12,,todo
-016c38,view_set_game,C,142,8,8,,2,view_layout,,1,,todo
-016cc6,screen_game,C,108,0,,,1,ticker_vport_init view_set_game view_build_copper gfx_BltClear,,8,,todo
+016bd8,ticker_vport_init,C,96,0,,,1,gfx_InitBitMap gfx_InitRastPort,,12,,replace
+016c38,view_set_game,C,142,8,8,,2,view_layout,,1,,replace
+016cc6,screen_game,C,108,0,,,1,ticker_vport_init view_set_game view_build_copper gfx_BltClear,,8,,replace
 016d32,screen_game_restore,C,72,0,,,1,view_set_game cop_add_ticker_ramp view_build_copper view_copy,,6,,ported
 016d7a,screen_hiscore,C,92,0,,,1,view_layout view_build_copper cop_show_wait,,11,,ported
 016dd6,cmap_file_to_table,C,156,12,8 12,,1,,,0,,verified
@@ -260,8 +260,8 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01852a,demo_end,C,70,0,,-32328,1,sub_0124dc save_file,,4,,ported
 018570,text_draw_c,C,32,0,8,,4,text_draw strlen,,0,,ported
 018590,mission_briefing,C,478,132,,-32322,2,screen_hires3 view_show_wait fade_to fade_out text_draw_c poll_fire shape_find_c key_to_char key_available key_get shape_draw_c draw_set_target_c clip_set_full sprintf bcopy os_gfx_move gfx_WaitTOF,,9,"""%d""",ported
-01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,todo
-0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,todo
+01876e,cop_set_split_line,C,76,2,8,-32316,1,cop_wait,,3,,replace
+0187ba,cop_add_ticker_ramp,C,76,2,8,,2,cop_move cop_wait,,1,,replace
 018806,mission_display_setup,C,338,2,,-32310,2,load_file_public_asm screen_game cmap_file_to_table cop_add_ticker_ramp view_build_copper iff_to_vport view_copy cop_show_wait enemy_frames mem_free,,13,,ported
 018958,dialog_draw_names,C,174,4,,,1,strlen os_gfx_move os_gfx_set_drmd os_gfx_text,,3,,ported
 018a06,dialog_file_list,C,400,12,,,1,dialog_draw_names mem_alloc mem_free strcpy tolower strncpy os_dos_examine os_dos_ex_next os_dos_lock os_dos_unlock,,2,,ported
@@ -387,7 +387,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 01ebaa,audio_irq,asm,186,,,,0,,,6,,verified
 01ec64,soundfx_vblank,asm,278,,,,0,,,8,,verified
 01ed7a,dash_cache_invalidate,asm,48,,,,1,,,2,,ported
-01edaa,dashboard_invalidate,asm,18,,,-32142,2,dash_cache_invalidate,,1,,todo
+01edaa,dashboard_invalidate,asm,18,,,-32142,2,dash_cache_invalidate,,1,,ported
 01edbc,weapon_gauge_reset,asm,46,,,-32136,3,,,5,,verified
 01edea,lives_gauge_reset,asm,44,,,-32130,1,,,4,,verified
 01ee16,draw_dashboard,asm,1002,,,-32124,1,kill_icons enemy_arrows draw_score dash_digit clip_dashboard rand_beam shape_blit shape_draw blit_begin blit_end,,23,,ported
@@ -423,7 +423,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020376,sub_020376,C,26,0,8 12,,0,sub_020220,,0,,todo
 020390,load_file_small,C,26,0,8 12,,3,sub_020220,,0,,replace
 0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
-0203be,rand_beam,asm,28,,,-32082,18,,,2,,todo
+0203be,rand_beam,asm,28,,,-32082,18,,,2,,ported
 0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,ported
 0203e8,byterun1_row,asm,76,,,,1,,,0,,verified
 020434,sub_020434,C,24,0,,,0,,,0,,todo
@@ -464,7 +464,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020f54,blit_raw_c_unused,asm,40,,,,0,blit_raw_unused blit_begin blit_end,,1,,todo
 020f7c,blit_raw_unused,asm,118,,,,1,,,0,,todo
 020ff2,rect_fill_c,asm,30,,,-31938,0,rect_fill blit_begin blit_end,,1,,todo
-021010,rect_fill,asm,272,,,-31932,8,,,7,,todo
+021010,rect_fill,asm,272,,,-31932,8,,,7,,verified
 021120,rect_fill_aligned_c,asm,30,,,-31926,0,rect_fill_aligned blit_begin blit_end,,1,,todo
 02113e,rect_fill_aligned,asm,224,,,-31920,1,,,6,,todo
 02121e,sub_02121e,asm,24,,,,0,,exec.FindTask,1,,todo

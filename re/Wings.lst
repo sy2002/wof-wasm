@@ -22064,7 +22064,7 @@ rand_lcg_unused:
 
 ; ====================================================================================================
 ; rand_beam   [asm]  far-call slot -32082(a4)
-;   asm. the generator the game uses, 43 call sites: (rand_seed_const * $1afb + $1fccd) eor VHPOSR
+;   asm. the generator the game uses, 42 call sites: (rand_seed_const * $1afb + $1fccd) eor VHPOSR
 ;   callers: object_spawn, choose_night, sub_011b54, engine_smoke, soldier_out, ship_guns_draw, target_frame, ship_gun_shell, target_fire, smoke_claim, balloons_draw, enemy_countdown_step, rand_mod, burn_smoke, aircraft_falling, aircraft_fly, draw_dashboard, crack_text_screen
 rand_beam:
 0203be  302cb914             move.w     -$46ec(a4), d0                         ; rand_seed_const
