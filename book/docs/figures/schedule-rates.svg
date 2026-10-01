@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 372" width="860" height="372" role="img" aria-labelledby="title desc">
   <title id="title">One schedule, three pass rates</title>
-  <desc id="desc">Twelve VBlanks after a mission begins, left to right, in three rows: a pass every VBlank, every second VBlank and every third. At the top, common to all three rows, the VBlank server takes an input sample at VBlanks 1, 5 and 9, every fourth. In each row a pass begins at its VBlank and runs a logic tick for each byte waiting when it has drawn: with one VBlank a pass, twelve passes and ticks after the passes of VBlanks 1, 5 and 9; with two, six passes and ticks after the passes of VBlanks 1, 5 and 9; with three, four passes and ticks after the passes of VBlanks 1, 7 and 10. Under each row the schedule as a run records it, VBlank by VBlank: V for the VBlank, P for a pass begun after it, T for a tick. The middle row reads V P T, V, V P, V, V P T and so on. Every row has the same three ticks on the same three bytes; what runs once a pass runs twelve, six or four times.</desc>
+  <desc id="desc">Twelve VBlanks after a mission begins, left to right, in three rows: a pass every VBlank, every second VBlank and every third. At the top, common to all three rows, the VBlank server takes an input sample every fourth VBlank, here at VBlanks 1, 5 and 9. In each row a pass begins at its VBlank and, before the next VBlank, runs a logic tick for each byte waiting when it has drawn: with one VBlank a pass, twelve passes and ticks after the passes of VBlanks 1, 5 and 9; with two, six passes and ticks after the passes of VBlanks 1, 5 and 9; with three, four passes and ticks after the passes of VBlanks 1, 7 and 10. Under each row the schedule as a run records it, VBlank by VBlank: V for the VBlank, P for a pass begun after it, T for a tick. The middle row reads V P T, V, V P, V, V P T and so on. Every row has the same three ticks on the same three bytes; what runs once a pass runs twelve, six or four times.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .pass   { fill: #CCCCDD; /* wingspalette 30 */ }
@@ -54,8 +54,8 @@
   <text class="light small" x="10" y="134">12 passes, 3 ticks</text>
   <rect class="pass" x="213" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="219" y="120">P</text>
-  <rect class="tick" x="237" y="104" width="18" height="22" rx="2"/>
-  <text class="ink" x="246" y="120" text-anchor="middle">T</text>
+  <rect class="tick" x="235" y="104" width="18" height="22" rx="2"/>
+  <text class="ink" x="244" y="120" text-anchor="middle">T</text>
   <rect class="pass" x="265" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="271" y="120">P</text>
   <rect class="pass" x="317" y="100" width="46" height="30" rx="3"/>
@@ -64,8 +64,8 @@
   <text class="ink" x="375" y="120">P</text>
   <rect class="pass" x="421" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="427" y="120">P</text>
-  <rect class="tick" x="445" y="104" width="18" height="22" rx="2"/>
-  <text class="ink" x="454" y="120" text-anchor="middle">T</text>
+  <rect class="tick" x="443" y="104" width="18" height="22" rx="2"/>
+  <text class="ink" x="452" y="120" text-anchor="middle">T</text>
   <rect class="pass" x="473" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="479" y="120">P</text>
   <rect class="pass" x="525" y="100" width="46" height="30" rx="3"/>
@@ -74,8 +74,8 @@
   <text class="ink" x="583" y="120">P</text>
   <rect class="pass" x="629" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="635" y="120">P</text>
-  <rect class="tick" x="653" y="104" width="18" height="22" rx="2"/>
-  <text class="ink" x="662" y="120" text-anchor="middle">T</text>
+  <rect class="tick" x="651" y="104" width="18" height="22" rx="2"/>
+  <text class="ink" x="660" y="120" text-anchor="middle">T</text>
   <rect class="pass" x="681" y="100" width="46" height="30" rx="3"/>
   <text class="ink" x="687" y="120">P</text>
   <rect class="pass" x="733" y="100" width="46" height="30" rx="3"/>
@@ -100,20 +100,20 @@
   <text class="light small" x="10" y="214">6 passes, 3 ticks</text>
   <rect class="pass" x="213" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="219" y="200">P</text>
-  <rect class="tick" x="289" y="184" width="18" height="22" rx="2"/>
-  <text class="ink" x="298" y="200" text-anchor="middle">T</text>
+  <rect class="tick" x="235" y="184" width="18" height="22" rx="2"/>
+  <text class="ink" x="244" y="200" text-anchor="middle">T</text>
   <rect class="pass" x="317" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="323" y="200">P</text>
   <rect class="pass" x="421" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="427" y="200">P</text>
-  <rect class="tick" x="497" y="184" width="18" height="22" rx="2"/>
-  <text class="ink" x="506" y="200" text-anchor="middle">T</text>
+  <rect class="tick" x="443" y="184" width="18" height="22" rx="2"/>
+  <text class="ink" x="452" y="200" text-anchor="middle">T</text>
   <rect class="pass" x="525" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="531" y="200">P</text>
   <rect class="pass" x="629" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="635" y="200">P</text>
-  <rect class="tick" x="705" y="184" width="18" height="22" rx="2"/>
-  <text class="ink" x="714" y="200" text-anchor="middle">T</text>
+  <rect class="tick" x="651" y="184" width="18" height="22" rx="2"/>
+  <text class="ink" x="660" y="200" text-anchor="middle">T</text>
   <rect class="pass" x="733" y="180" width="98" height="30" rx="3"/>
   <text class="ink" x="739" y="200">P</text>
   <text class="record mono" x="234" y="230" text-anchor="middle">V P T</text>
@@ -134,18 +134,18 @@
   <text class="light small" x="10" y="294">4 passes, 3 ticks</text>
   <rect class="pass" x="213" y="260" width="150" height="30" rx="3"/>
   <text class="ink" x="219" y="280">P</text>
-  <rect class="tick" x="341" y="264" width="18" height="22" rx="2"/>
-  <text class="ink" x="350" y="280" text-anchor="middle">T</text>
+  <rect class="tick" x="235" y="264" width="18" height="22" rx="2"/>
+  <text class="ink" x="244" y="280" text-anchor="middle">T</text>
   <rect class="pass" x="369" y="260" width="150" height="30" rx="3"/>
   <text class="ink" x="375" y="280">P</text>
   <rect class="pass" x="525" y="260" width="150" height="30" rx="3"/>
   <text class="ink" x="531" y="280">P</text>
-  <rect class="tick" x="653" y="264" width="18" height="22" rx="2"/>
-  <text class="ink" x="662" y="280" text-anchor="middle">T</text>
+  <rect class="tick" x="547" y="264" width="18" height="22" rx="2"/>
+  <text class="ink" x="556" y="280" text-anchor="middle">T</text>
   <rect class="pass" x="681" y="260" width="150" height="30" rx="3"/>
   <text class="ink" x="687" y="280">P</text>
-  <rect class="tick" x="809" y="264" width="18" height="22" rx="2"/>
-  <text class="ink" x="818" y="280" text-anchor="middle">T</text>
+  <rect class="tick" x="703" y="264" width="18" height="22" rx="2"/>
+  <text class="ink" x="712" y="280" text-anchor="middle">T</text>
   <text class="record mono" x="234" y="310" text-anchor="middle">V P T</text>
   <text class="record mono" x="286" y="310" text-anchor="middle">V</text>
   <text class="record mono" x="338" y="310" text-anchor="middle">V</text>

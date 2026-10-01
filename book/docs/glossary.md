@@ -392,7 +392,7 @@ Elsewhere: [Label (computer science)](https://en.wikipedia.org/wiki/Label%5F(com
 
 ### Latch
 
-A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a short tap is never lost.
+A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a tap shorter than the interval between them still reaches the game.
 
 First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md#fire-button-and-the-taphold-discrimination), "Fire button and the tap/hold discrimination".
 
