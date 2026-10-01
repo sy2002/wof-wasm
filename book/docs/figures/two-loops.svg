@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 450" width="860" height="450" role="img" aria-labelledby="title desc">
   <title id="title">The two loops</title>
-  <desc id="desc">Three rows over the same steps of a mission, left to right: the front end from the program's start, then S, the end of the setup, and the passes and ticks that follow, P, T, P, P, T, P. At the top the original, run under the headless original and recorded, its records after every step. In the middle the open loop: the port runs the front end and the setup itself, and from S on, after every step, the original's state after that step is handed down to the port before the port's next step, so that every pass and every tick starts from the original's state and is compared alone with the original's record of the same step. At the bottom the closed loop: the port runs on its own from the program's start, given nothing but the entropy seed and the map list's address, once, and after every pass and every tick its state is compared with the original's record of the same step.</desc>
+  <desc id="desc">Three rows over the same steps of a mission, left to right: the front end from the program's start, then S, the end of the setup, and the passes and ticks that follow, P, T, P, P, T, P. At the top the original, run under the headless original and recorded, its records after every step. In the middle the open loop: the port runs the front end and the setup itself, and from S on, after every step, the original's state after that step is handed down to the port before the port's next step, so that every pass and every tick starts from the original's state and is compared alone with the original's record of the same step. At the bottom the closed loop: the port runs on its own from the program's start, and after every pass and every tick its state is compared with the original's record of the same step. Below, the entropy seed and the map list's addresses, given at the start to both loops; the closed loop is given nothing else.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .orig  { fill: #77AACC; /* wingspalette 22 */ }
@@ -134,12 +134,14 @@
   <rect class="made" x="747" y="344" width="18" height="16" rx="2"/>
   <text class="ink small" x="756" y="356" text-anchor="middle">=</text>
 
-  <!-- What the closed loop is given, once -->
+  <!-- What both loops are given at the start; the closed loop gets nothing else -->
   <rect class="given" x="200" y="396" width="250" height="44" rx="3"/>
-  <text class="ink small" x="212" y="414">the entropy seed and</text>
-  <text class="ink small" x="212" y="431">the map list's address, once</text>
+  <text class="ink small" x="212" y="414">the entropy seed and the map</text>
+  <text class="ink small" x="212" y="431">list's addresses, to both loops</text>
   <path class="give" d="M246 394 L246 354"/>
   <path class="given" d="M246 342 L242 354 L250 354 Z"/>
+  <path class="give" d="M200 418 L188 418 L188 210 L190 210"/>
+  <path class="given" d="M200 210 L188 206 L188 214 Z"/>
 
   <!-- The key -->
   <path class="give" d="M490 408 L510 408"/>

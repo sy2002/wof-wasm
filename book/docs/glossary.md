@@ -56,7 +56,7 @@ Elsewhere: [Attract mode](https://en.wikipedia.org/wiki/Attract%5Fmode), Wikiped
 
 ### Autopilot
 
-A program that flies the headless original by a policy, looking at the game's state every VBlank and choosing the stick and the button; its choices, compressed into runs of VBlanks, become a mission script, which the original then flies the same way without it.
+A program that flies the headless original by a policy, looking at the game's state every VBlank and choosing the stick, the button and the keys; its choices, compressed into segments of VBlanks, become a mission script, which the original then flies the same way without it.
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/m4_autopilot.py`](repo:tools/m4%5Fautopilot.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-scripts-of-part-2), "The scripts of part 2".
 
@@ -132,7 +132,7 @@ Elsewhere: [MOS Technology CIA](https://en.wikipedia.org/wiki/MOS%5FTechnology%5
 
 ### Closed loop
 
-The comparison in which the port runs on its own from the program's start, handed nothing but the entropy seed and the address of the map's records, and is compared with the original after every pass and every tick, so that every error it carries over shows.
+The comparison in which the port runs on its own from the program's start, given nothing but the entropy seed and the map list's addresses, which the open loop gets too, and is compared with the original after every pass and every tick, so that every error it carries over shows.
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`SPEC.md`](repo:SPEC.md#8-verification), section 8, "Mission, pass by pass".
 
@@ -170,7 +170,7 @@ Elsewhere: [Status register](https://en.wikipedia.org/wiki/Status%5Fregister), W
 
 ### Control
 
-A deliberate change of the port in one place, made to see that the test meant to catch it fails, and at which step; a positive control is a change that must leave the result as it is.
+A deliberate change of the port in one place, made to see that the test meant to catch it fails, and where; or a change that must leave the comparison's result as it is, such as another number of VBlanks a pass.
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original"; [`tools/m7_controls.py`](repo:tools/m7%5Fcontrols.py).
 
@@ -516,6 +516,12 @@ First met and defined in [chapter 5](part-1/oracle.md). The detail: [`re/notes/p
 
 Elsewhere: [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Milestone
+
+One of the numbered stages the port was built in, M0 to M9, each ending with a working page and green tests and accepted on a deliverable of the specification: M4 to M7 the missions, M8 the sound, M9 the page's drawing.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#9-milestones), section 9.
+
 ### Mission script
 
 A recorded sequence of stick and key inputs that flies a mission the same way every time, for the original and the port alike.
@@ -752,7 +758,7 @@ First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`]
 
 ### Stub
 
-A stand-in that answers for something a routine calls but that is not under test, such as a call into the operating system.
+A substitute that answers for something a routine calls but that is not under test, such as a call into the operating system.
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tests/original.py`](repo:tests/original.py); [`re/notes/headless.md`](repo:re/notes/headless.md#the-stubs), "The stubs".
 
