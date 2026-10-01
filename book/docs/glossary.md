@@ -212,7 +212,7 @@ Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbufferi
 
 ### Dump
 
-The file a run of the headless original writes: the game's whole state after every logic tick and every pass, each record with a SHA-256 fingerprint of the state, for the comparisons with the port.
+The file a run of the headless original writes: the game's whole state when a mission is set up and after every logic tick and every pass, each record with a SHA-256 fingerprint of the state, for the comparisons with the port.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/headless_dump.py`](repo:tools/headless%5Fdump.py); [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump".
 
@@ -596,7 +596,7 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 ### Run description
 
-A small JSON file that says what one run of the headless original is: its script of stick and key inputs by VBlank, its entropy stream, the VBlanks a pass and where it stops.
+A small JSON file that says what one run of the headless original is: its script of the stick, the button and the keys by VBlank, its entropy stream, the VBlanks a pass and where it stops.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#run-description), "Run description"; [`tests/runs/`](repo:tests/runs/).
 
@@ -712,7 +712,7 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes
 
 ### Wait point
 
-A place where the program waits for the next VBlank; the headless original lets VBlanks happen there and nowhere else.
+A place where the program waits, for the next picture, for a time or for the music's fade to end; the headless original lets VBlanks happen there and nowhere else.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
 
