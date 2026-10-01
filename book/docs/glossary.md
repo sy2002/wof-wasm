@@ -170,6 +170,12 @@ The port's game: the ported logic, written in C and compiled to WebAssembly, whi
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#61-core), section 6.1.
 
+### Coupling
+
+A piece of state that a pass writes and a logic tick reads, such as the pass counter or the drawing copy in an object's record; through the couplings, the number of VBlanks a pass takes reaches the simulation.
+
+First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md#the-answer), "The answer".
+
 ### Crack
 
 A change made to a program to remove its copy protection; the disk this port was made from carries one.
@@ -332,6 +338,14 @@ The byte that carries the stick's four directions and the button into one logic 
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md).
 
+### Input queue
+
+The list of up to six input bytes that the VBlank server fills every fourth VBlank and the logic ticks empty, one byte a tick; when it is full, the oldest byte is dropped.
+
+First met and defined in [chapter 7](part-1/time.md). The detail: [`SPEC.md`](repo:SPEC.md#33-runtime-model), section 3.3; [`re/notes/input.md`](repo:re/notes/input.md#the-chain), "The chain".
+
+Elsewhere: [FIFO (computing and electronics)](https://en.wikipedia.org/wiki/FIFO%5F(computing%5Fand%5Felectronics)), Wikipedia.
+
 ### Input sample
 
 The taking of one input byte, which the game does every fourth VBlank, and the byte so taken; never a sound.
@@ -375,6 +389,12 @@ A name the listing gives an address that a branch or a call leads to, on a line 
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/Wings.lst`](repo:re/Wings.lst).
 
 Elsewhere: [Label (computer science)](https://en.wikipedia.org/wiki/Label%5F(computer%5Fscience)), Wikipedia.
+
+### Latch
+
+A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a short tap is never lost.
+
+First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md#fire-button-and-the-taphold-discrimination), "Fire button and the tap/hold discrimination".
 
 ### Library
 
@@ -697,6 +717,14 @@ The vertical blank, the moment the beam has finished a picture and returns to th
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md).
 
 Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5Fblanking%5Finterval), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### VBlank server
+
+A routine the operating system calls at every VBlank; the game installs two, the sound effects engine's and its own, which counts the VBlanks, takes the input samples into the input queue and scrolls the ticker.
+
+First met and defined in [chapter 7](part-1/time.md). The detail: [`SPEC.md`](repo:SPEC.md#33-runtime-model), section 3.3; [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
+Elsewhere: [*Amiga ROM Kernel Reference Manual: Exec*](https://archive.org/details/amiga-rom-kernel-reference-manual-exec), Internet Archive.
 
 ### Verified
 
