@@ -19,7 +19,9 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
          its name (a method as Class.method, a function inside a function as outer.inner), or a
-         variable at module level by its name, with the comments directly above it
+         variable at module level by its name, with the comments directly above it; or a part of
+         a function, from the first of its lines that holds the text `from` to the first line
+         at or after it that holds the text `to`, dedented
     json a JSON file the entry's `file` names (a run description of tests/runs/, say), the
          whole of it, laid out one key of the top-level object a line and one element of a
          top-level list a line, so that a script of many short lists reads as one line each
@@ -416,8 +418,36 @@ def source_extract(entry):
     path, text, first, last = hits[0]
     lines = [line.rstrip() for line in text.split('\n')[first:last + 1]]
     where = '%s, lines %d-%d' % (rel(path), first + 1, last + 1)
+    if 'from' in entry or 'to' in entry:
+        lo, hi = py_part(entry, lines)
+        where = '%s, lines %d-%d, a part of %s (lines %d-%d)' % (
+            rel(path), first + lo + 1, first + hi + 1, name, first + 1, last + 1)
+        lines = dedented(lines[lo:hi + 1])
     header = {'c': '/* %s */', 'js': '// %s', 'py': '# %s'}[kind] % where
     return header, lines
+
+
+def py_part(entry, lines):
+    """The part of a Python definition an entry names by two texts: from the first line that
+    holds `from` to the first line at or after it that holds `to`, both inclusive, as indices
+    into the definition's lines."""
+    name, start, stop = entry['name'], entry.get('from'), entry.get('to')
+    if not isinstance(start, str) or not isinstance(stop, str):
+        raise Failure('py %s: a part takes from and to, both texts of its lines' % name)
+    lo = next((i for i, line in enumerate(lines) if start in line), None)
+    if lo is None:
+        raise Failure('py %s: no line holds %r' % (name, start))
+    hi = next((i for i in range(lo, len(lines)) if stop in lines[i]), None)
+    if hi is None:
+        raise Failure('py %s: no line at or after %r holds %r' % (name, start, stop))
+    return lo, hi
+
+
+def dedented(lines):
+    """The lines with the indentation they all share taken off, blank lines aside."""
+    indents = [len(line) - len(line.lstrip(' ')) for line in lines if line.strip()]
+    cut = min(indents) if indents else 0
+    return [line[cut:] if line.strip() else '' for line in lines]
 
 
 # ------------------------------------------------------------------ JSON
@@ -461,8 +491,10 @@ def json_extract(entry):
 def extract(entry, table, listing):
     if entry.get('kind') not in EXT:
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
-    if ('from' in entry or 'to' in entry or 'head' in entry) and entry['kind'] != 'asm':
-        raise Failure('%s %s: from, to and head are for asm only' % (entry['kind'], entry['name']))
+    if 'head' in entry and entry['kind'] != 'asm':
+        raise Failure('%s %s: head is for asm only' % (entry['kind'], entry['name']))
+    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'py'):
+        raise Failure('%s %s: from and to are for asm and py only' % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
     elif entry['kind'] == 'json':

@@ -22,8 +22,11 @@
 #           function outer.inner
 #   file    the source file, needed only where the name alone is not unique or the file lies
 #           outside the kind's directory (not for asm; always for json)
-#   from    asm only: the part of the routine from this address ...
+#   from    asm: the part of the routine from this address ...
 #   to      ... to the instruction at this address, both inclusive
+#           py: the part of the function from the first of its lines that holds the text
+#           `from` to the first line at or after it that holds the text `to`, both inclusive,
+#           dedented (give the part a name with `as`)
 #   head    asm only: true keeps the header the listing gives the routine above its label
 #           (its kind, frame, far-call slot, comment and callers); for a part, only from the start
 #   as      the name of the extract, where it is not the routine's (a part, say)
@@ -270,3 +273,32 @@ file = "tests/test_world.py"
 kind = "py"
 name = "COMPARED"
 file = "tests/m4complete.py"
+
+# What went wrong, chapter 9: the stick's decoder, the register's bits 9, 8, 1 and 0 looked up
+# in a table of sixteen bytes, bits 0 and 1 swapped by the vertical flip (re/notes/input.md).
+[[listing]]
+kind = "asm"
+name = "read_joy_bits"
+head = true
+
+# Every test that takes the core starts from a fresh one: the fixture pytest runs before each.
+[[listing]]
+kind = "py"
+name = "fresh_core"
+file = "tests/conftest.py"
+
+# A dug-out refilled leaves the soldier's direction in D1 as a long, which the walks do not
+# save: moveq and neg.l, and the movem that leaves D1 out (re/notes/porting-m5.md).
+[[listing]]
+kind = "asm"
+name = "target_refill"
+head = true
+
+# The replay's end: through the original's last tick, not only its last pass.
+[[listing]]
+kind = "py"
+name = "Replay._run"
+file = "tests/m4compare.py"
+from = "vblank = 0"
+to = "break"
+as = "replay_end"

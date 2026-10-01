@@ -1,0 +1,23 @@
+; re/Wings.lst 0x01520E-0x015248: read_joy_bits [asm]
+; read_joy_bits   [asm]  far-call slot -32478(a4)
+;   asm. JOY1DAT -> direction bitmask via joy_bits_table, applies opt_invert_vertical
+;   callers: read_joy_dispatch
+read_joy_bits:
+01520e  48e74080             movem.l    d1/a0, -(a7)
+015212  303900dff00c         move.w     $dff00c.l, d0
+015218  3200                 move.w     d0, d1
+01521a  ec49                 lsr.w      #$6, d1
+01521c  c07c0003             and.w      #$3, d0
+015220  c27c000c             and.w      #$c, d1
+015224  8041                 or.w       d1, d0
+015226  41eca6a8             lea.l      -$5958(a4), a0                         ; joy_bits_table
+01522a  10300000             move.b     (a0, d0.w), d0
+01522e  1200                 move.b     d0, d1
+015230  c23c0003             and.b      #$3, d1
+015234  6700000e             beq.w      $15244
+015238  4a2ca4f8             tst.b      -$5b08(a4)                             ; opt_invert_vertical
+01523c  67000006             beq.w      $15244
+015240  0a400003             eori.w     #$3, d0
+loc_015244:
+015244  4cdf0102             movem.l    (a7)+, d1/a0
+015248  4e75                 rts

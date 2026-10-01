@@ -1,0 +1,26 @@
+; re/Wings.lst 0x014FEE-0x015032: target_refill [asm]
+; target_refill   [asm]
+;   asm. A0 = empty dug-out: a soldier from the nearest barracks of its island
+;   callers: targets_3_draw
+target_refill:
+014fee  48e7a1e4             movem.l    d0/d2/d7/a0-a2/a5, -(a7)
+014ff2  243c00002710         move.l     #$2710, d2
+014ff8  7e00                 moveq      #$0, d7
+014ffa  1e2ca389             move.b     -$5c77(a4), d7                         ; target_count_4
+014ffe  226ca4fa             movea.l    -$5b06(a4), a1                         ; target_records_4
+015002  61000030             bsr.w      $15034
+015006  b4bc00002710         cmp.l      #$2710, d2
+01500c  67000020             beq.w      $1502e
+015010  7201                 moveq      #$1, d1
+015012  302a0004             move.w     $4(a2), d0
+015016  90680004             sub.w      $4(a0), d0
+01501a  6b000004             bmi.w      $15020
+01501e  4481                 neg.l      d1
+loc_015020:
+015020  204a                 movea.l    a2, a0
+015022  53280008             subq.b     #$1, $8(a0)
+015026  103c0001             move.b     #$1, d0
+01502a  4ebace56             jsr        $11e82(pc)                             ; soldier_out
+loc_01502e:
+01502e  4cdf2785             movem.l    (a7)+, d0/d2/d7/a0-a2/a5
+015032  4e75                 rts

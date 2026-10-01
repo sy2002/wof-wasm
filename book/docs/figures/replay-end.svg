@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 270" width="860" height="270" role="img" aria-labelledby="title desc">
+  <title id="title">The replay's end</title>
+  <desc id="desc">The last steps of a recording of the original, left to right: P, T, P, P, T, then the original's last pass, P, and after it that pass's tick, T. A pass is recorded where frame_update, which draws, returns; the ticks of the pass run after it, in run_queued_ticks. Below, two spans from the left. The upper, dashed, is how far the comparison ran before: to the original's last pass, so that the tick after it was never compared. The lower, in gold, is how far it runs since: to the original's last tick.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .orig   { fill: #77AACC; /* wingspalette 22 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .gold   { fill: #FFBB00; /* wingstitle 25 */ }
+    .before { stroke: #888899; /* wingspalette 28 */ stroke-width: 3; stroke-dasharray: 8 5; fill: none; }
+    .since  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 4; fill: none; }
+    .guide  { stroke: #666677; /* wingspalette 27 */ stroke-width: 1; stroke-dasharray: 3 3; }
+    .brace  { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1.5; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 15px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The steps, 64 units apart from x = 200, a box 52 wide: P T P P T, then the last pass at
+       520 and its tick at 584 -->
+  <text class="muted small" x="200" y="30">P a pass, T a tick, in the order a recording keeps them</text>
+  <line class="guide" x1="572" y1="182" x2="572" y2="252"/>
+  <line class="guide" x1="636" y1="182" x2="636" y2="252"/>
+
+  <text class="light label" x="10" y="80">the original</text>
+  <text class="light small" x="10" y="96">the last records</text>
+  <text class="light small" x="10" y="111">of a recording</text>
+  <text class="light label" x="170" y="96">…</text>
+  <rect class="orig" x="200" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="226" y="92" text-anchor="middle">P</text>
+  <rect class="orig" x="264" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="290" y="92" text-anchor="middle">T</text>
+  <rect class="orig" x="328" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="354" y="92" text-anchor="middle">P</text>
+  <rect class="orig" x="392" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="418" y="92" text-anchor="middle">P</text>
+  <rect class="orig" x="456" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="482" y="92" text-anchor="middle">T</text>
+  <rect class="orig" x="520" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="546" y="92" text-anchor="middle">P</text>
+  <rect class="orig" x="584" y="66" width="52" height="40" rx="3"/>
+  <text class="ink mono" x="610" y="92" text-anchor="middle">T</text>
+
+  <!-- What the last two records are -->
+  <path class="brace" d="M520 116 L520 122 L636 122 L636 116"/>
+  <text class="light small" x="520" y="140">the last pass: recorded where</text>
+  <text class="light small" x="520" y="155">frame_update returns, its tick</text>
+  <text class="light small" x="520" y="170">after it, in run_queued_ticks</text>
+
+  <!-- How far the comparison ran before, and how far it runs since -->
+  <text class="light label" x="10" y="204">compared before</text>
+  <path class="before" d="M200 200 L572 200"/>
+  <path class="brace" d="M572 190 L572 210"/>
+  <text class="muted small" x="582" y="204">to the original's last pass</text>
+
+  <text class="light label" x="10" y="244">compared since</text>
+  <path class="since" d="M200 240 L636 240"/>
+  <path class="brace" d="M636 230 L636 250"/>
+  <text class="gold small" x="646" y="244">to the original's last tick</text>
+</svg>
