@@ -23,7 +23,7 @@ The output file contains the game data. The owner, a founding member of an assoc
 
 - Enhanced graphics. The core exposes a display list (section 6.4) so an enhanced renderer can be added later without touching game logic. Nothing else is done for it now.
 - Emulating Amiga hardware or AmigaOS in the shipped product.
-- The crack intro, the crack text screen, and the manual-lookup copy protection. The port goes from the publisher logo straight to the title sequence.
+- The crack intro, the crack text screen, and the manual-lookup copy protection. The port begins with the title sequence's first picture, which on this disk is the crack's (section 3.1), and shows none of the crack's own screens.
 
 ## 2. Repository
 
@@ -92,7 +92,7 @@ A standard AmigaDOS (OFS) disk. `s/startup-sequence` changes into `Wings_of_Fury
 | `wof.mission 3` | a saved game, 6,866 bytes: map c as the first rank's third mission, 14,225 points, two Hellcats, the aircraft on the carrier, saved on a real Amiga (its layout in section 3.5 and `re/notes/campaign.md`) |
 | `UFXintro`, `wingt`, `*.info`, `.fastdir` | not part of the game |
 
-The executable on this disk carries a crack: the protection check is disabled and an extra text screen was added. Game logic is otherwise the retail code. The crack also replaced artwork: `shapes/broderbund` and `shapes/wingstitle` carry the crack group's own pictures, dated 1992, so the publisher's logo is not on this disk.
+The executable on this disk carries a crack: the protection check is disabled and an extra text screen was added. Game logic is otherwise the retail code. The crack also touched the artwork: `shapes/broderbund` is the crack group's own picture in place of the publisher's logo, which is therefore not on this disk, and `shapes/wingstitle`, the game's title art, carries the group's copyright line of 1992 along its bottom edge (`re/notes/porting-m1.md`, "Findings").
 
 ### 3.2 Executable
 

@@ -1,6 +1,6 @@
 # Running the test suite
 
-The suite, 827 tests, runs in two ways. Serially it takes about three hours with `--slow`, almost all of it single-threaded runs of the headless original under Unicorn and the port's replays of them, each independent and deterministic. In parallel, the emulator tests go over the machine's cores with pytest-xdist and the page tests run alone afterwards.
+The suite, 930 tests at `698d0f8` (807 emulator tests and 123 page tests; 827 when the runs below were measured), runs in two ways. Serially it takes about three hours with `--slow`, almost all of it single-threaded runs of the headless original under Unicorn and the port's replays of them, each independent and deterministic. In parallel, the emulator tests go over the machine's cores with pytest-xdist and the page tests run alone afterwards.
 
 ```text
 .venv/bin/python -m pytest tests/ --slow                                          the serial run: the reference and the fallback
@@ -10,7 +10,7 @@ WOF_FIREFOX_VISIBLE=1 .venv/bin/python -m pytest tests/test_firefox.py -k visibl
 .venv/bin/python tools/junit_compare.py REF.xml PHASE1.xml PHASE2.xml             two runs' outcome sets compared (--junitxml)
 ```
 
-The two phases together are the serial run's tests, each exactly once: `-m 'not page'` and `-m page` split the collection, 738 and 89 tests with `--slow`. `--dist loadgroup` is part of phase 1, not an option: without it the loop tests of one script go to different workers, which each record the script (below). pytest-xdist is 3.8.0, with execnet 2.1.2 under pytest 9.1.1, installed with `.venv/bin/python -m pip install pytest-xdist`; a serial run does not need it.
+The two phases together are the serial run's tests, each exactly once: `-m 'not page'` and `-m page` split the collection, 807 and 123 tests with `--slow` at `698d0f8` (738 and 89 when the runs below were measured). `--dist loadgroup` is part of phase 1, not an option: without it the loop tests of one script go to different workers, which each record the script (below). pytest-xdist is 3.8.0, with execnet 2.1.2 under pytest 9.1.1, installed with `.venv/bin/python -m pip install pytest-xdist`; a serial run does not need it.
 
 ## Why the page tests run alone
 

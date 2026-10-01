@@ -13,7 +13,8 @@ The steps, one line each:
     listings  book/tools/listings.py: the listings of book/listings.toml from the real sources
     figures   book/tools/figures.py: the figures of book/figures.toml through the native library
     font      book/tools/webfont.py: the game's font as the web font of the headings
-    colours   every colour of docs/stylesheets/book.css against the palette entry its comment names
+    colours   every colour of docs/stylesheets/book.css and of the diagrams docs/figures/*.svg against
+              the palette entry its comment names
     page      dist/wof.html, the repository's game, which hooks/game.py copies into the site
     site      mkdocs build --strict in book/, and the game in the site compared with dist/wof.html
 
@@ -53,20 +54,24 @@ def tool(name, *args):
 
 
 def colours():
-    """The design's colours against the game's palettes: 0 equal, 1 one differs."""
+    """The design's colours, in the stylesheet and in the hand-drawn diagrams, against the
+    game's palettes: 0 equal, 1 one differs."""
     from figures import palette
-    found = COLOUR.findall(STYLESHEET.read_text(encoding='utf-8'))
-    wrong = []
-    for value, name, index in found:
-        entries = palette(name)
-        actual = '#%02X%02X%02X' % entries[int(index)] if int(index) < len(entries) else None
-        if actual != value.upper():
-            wrong.append('differs  %s: %s is not %s entry %s (%s)' % (rel(STYLESHEET), value, name,
-                                                                     index, actual))
+    files = [STYLESHEET] + sorted((DOCS / 'figures').glob('*.svg'))
+    wrong, total = [], 0
+    for path in files:
+        found = COLOUR.findall(path.read_text(encoding='utf-8'))
+        total += len(found)
+        for value, name, index in found:
+            entries = palette(name)
+            actual = '#%02X%02X%02X' % entries[int(index)] if int(index) < len(entries) else None
+            if actual != value.upper():
+                wrong.append('differs  %s: %s is not %s entry %s (%s)' % (rel(path), value, name,
+                                                                         index, actual))
     for line in wrong:
         print(line)
     print('colours   %d of %s checked against the palettes, %s'
-          % (len(found), rel(STYLESHEET), '%d differ' % len(wrong) if wrong else 'all equal'))
+          % (total, ', '.join(rel(p) for p in files), '%d differ' % len(wrong) if wrong else 'all equal'))
     return 1 if wrong else 0
 
 
