@@ -71,10 +71,6 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 53. Not ported, a browser having no use for them: the C runtime's startup, the Workbench handling, the interrupt plumbing, the copper lists' construction (their effect kept through the palette rows), the debug reporter and the crash reporter. Source: `SPEC.md` 6.6.
 54. The operating system's services the game needs are replaced by small equivalents: a file system over the disk's files, an arena allocator, the ROM's key table taken at build time. Source: `SPEC.md` 3.4, the dos, exec and console.device rows; `SPEC.md` 5, step 1.
 
-## What went wrong
-
-55. The file of the first picture is called `broderbund`, and the publisher's logo was expected in it; the picture decoder, compared with the original's own on every picture file of the disk, showed the crack's picture and the crack's copyright on the title. Source: `re/notes/porting-m1.md`, "Findings" and "How the tests establish it" (all twelve ILBM files, pixels and colour table); `SPEC.md` 3.1 lists the file as `shapes/broderbund`.
-
 ## What was changed on purpose
 
 56. Everything else is the original, its defects included; the departures only the code shows are the fixed address under a wreck's explosion on land, "Exit Game" reloading the page, and the seed file written beside a recorded demo. Source: `SPEC.md` 7.3; `SPEC.md` 6.2, Storage.
@@ -97,12 +93,8 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 73. The pause sign shows while a mission is paused, whatever asked for it; the shell pauses when fullscreen is left and when the page comes back from an absence of a second or more. Source: `SPEC.md` 6.2, Pause and Input.
 74. F is the page's fullscreen. Source: `SPEC.md` 6.2, Input.
 
-## The sidebars of the keys
+## The developer's sidebar on the keys
 
-75. In a comparison the assist is off and the flip preference is never handed to the core. Source: `re/notes/porting-m4.md`, "The keyboard assist"; `re/notes/porting-m3.md`, "The vertical flip".
-76. The game's own flip command is exercised in compared runs: `tests/runs/flight-control-f.json`, `flight-control-f-twice.json`, `paused-control-f.json`, `flight-flip-then-load.json`, `flight-flip-then-restart.json`, and the M5 script `bomb_flip`. Source: `ls tests/runs`; `tools/m5_scripts.py`, `SCRIPTS`.
-77. `tests/test_assist.py` repeats the original's table of taps and steps with the assist off. Source: `re/notes/porting-m4.md`, "What the original does".
-78. Every letter the port takes was checked against every reader of the keyboard; of H, F and V none is taken plainly outside the line editor, where they are letters, except F as a cheat key at `cheat_state` 5, behind the untypeable sequence. Source: `re/notes/keys.md`, "The five readers" and "The plain letters the port takes for itself".
 79. The files: `src/portkeys.c` (the layer), `web/main.js` (the shell's keys), `src/assist.c` (the assist); the key left of 1 toggles the diagnostics overlay and never reaches the game. Source: `re/notes/porting-m3.md`, "The port's own layer"; `re/notes/keys.md`, "The plain letters the port takes for itself"; `SPEC.md` 6.2, Input.
 
 ## How we know, in brief
@@ -124,6 +116,29 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 94. Four things rest on documented behaviour or the owner's eye and ear: the busy scene's rhythm (claim 36; the owner found the port right as it is, `SPEC.md` 3.3); the fade step, CPU time the listing cannot give, two VBlanks in the port, kept without a film (`SPEC.md` 6.3; `CONTROLLER.md`, "Open items"); the music's tempo, resting on the timer latch's low byte at power-up, every song heard and found right (`SPEC.md` 6.5; `SPEC.md` 9, the M8 paragraph; `re/notes/music.md`; `CONTROLLER.md`, "Open items"); the directory order, documented behaviour neither a run nor the disk confirmed, which orders the saved games in the load dialog (`SPEC.md` 6.2, Storage; `re/notes/frontend.md`, "The order of the file list").
 95. The listing is the original's instructions written out by the disassembler. Source: `SPEC.md` 2 (`re/Wings.lst`); `book/BOOK.md` 3, chapter 4.
 96. The detail of these four is in chapters 7 (time: the passes, and the fades by the review's assignment), 18 (the tempo that rests on one assumption) and 20 (the directory order). Source: `book/BOOK.md` 3, chapters 7, 18 and 20.
+
+## Added with the owner's read
+
+The numbers that left the prose stay exact in the claims they come from: 12.5 and 15 ticks a second and the five sixths (claims 17 and 19), the box's sizes (claim 29), the counts (claims 82, 86, 87, 92), the passes and the film (claims 35, 36).
+
+98. The picture is redrawn more often than the world moves: a pass, which draws, comes every couple of VBlanks, a tick every fourth; the section "The rhythm of ticks and pictures" tells it. Source: `SPEC.md` 3.3; `re/notes/passes.md`, "What the question is" (the tick runs at a quarter of the VBlank rate, a pass as often as the machine manages).
+99. "Routine" is first used in chapter 1, glossed as a piece of code that does one job, and defined in chapter 4; the glossary's line is "First met in chapter 1, defined in chapter 4", written by `book/tools/links.py --fix-glossary`. Source: `book/docs/glossary.md`, "Routine"; `book/BOOK.md` 3, chapter 4.
+100. "Verified" is first used in chapter 1, glossed as held to the original by a test of its own, and defined in chapter 4; the glossary's line the same way. Source: `book/docs/glossary.md`, "Verified"; `SPEC.md` 7.4.
+101. One palette cannot hold the sky, the sea and the dashboard at once: the sky's and the sea's palettes differ in fifteen entries, colours 2 to 15 and 24, which below the split hold the sea's shades; the dashboard and the message line (the ticker) are viewports of their own at fixed display lines, in high resolution with colours of their own; the sky's switch is a split line rewritten every pass, which follows the horizon (the note: inferred from the arithmetic). Source: `re/notes/display.md`, "Summary", "The play screen line by line", "Day and night", "The split line".
+102. The headless original emulates the processor alone; the custom chips' address space is plain memory, so the blitter's drawing never happens; that is what headless means, and why the shapes are compared through a model of the blitter. Source: `re/notes/headless.md`, the opening and "What runs and what does not" (the blitter, the copper: plain memory); `SPEC.md` 8, "Drawing" and "Mission, pass by pass".
+103. No instrument of the project counts the processor's time (the harness has no cycle model), so the real machine was filmed; at 240 frames a second a 50 Hz refresh is 4.8 frames of film; the count of VBlanks a pass sets the speed of the soldiers, the game-over countdown and the objects' animation, which go by passes. Source: `re/notes/passes.md`, "What this does not answer", "What the question is", "What the film of the real machine shows". (`SPEC.md` 8 has no row "Time"; the note carries the point alone.)
+104. The port keeps the picture at the dashboard's high resolution, 640 pixels across, the low-resolution playfield doubled; a high-resolution pixel on a PAL screen is 8/15 as wide as it is tall; with square pixels the picture would be a strip three times as wide as high; no whole-number factor fits both directions, so the port scales in two steps (a whole-number enlargement, then a smooth reduction). In the prose: taller than wide, a strip, two steps; the sizes 640 by 214 and 1024 by 642 in the caption. Source: `SPEC.md` 6.2, Video, "Aspect" and "Size"; `re/notes/display.md`, "Summary"; `re/notes/porting-m1.md`, "Decisions the port made".
+105. Two layers because the line between them is where the comparison ends: the core holds the whole game state and knows nothing of the browser; the same C sources compile for wasm32-freestanding and natively, the native build a shared library the tests load; no state outside the core influences the logic. Source: `SPEC.md` 6.1, 7.3 and 5.
+106. Why C rather than JavaScript: C's fixed-width integers do the original's 16-bit arithmetic exactly, while JavaScript computes its numbers as doubles; compiled to WebAssembly the C runs at near native speed. Source: the owner's decision of 2026-10-01; `SPEC.md` 6.1 and 7.1; JavaScript's Number type, the ECMAScript Language Specification (reference); the glossary's entry "WebAssembly" and the WebAssembly specification it names (reference). Left out of the owner's reason: that JavaScript runs in a browser alone, because Node runs it too, and the tests use Node for the WebAssembly core.
+107. The comparisons run on the native build, and the replay holds the WebAssembly build, the one in the page, to the same fingerprints. Source: `SPEC.md` 8, "Routine" (against the native library) and "Whole game, replays"; `SPEC.md` 5; `tests/conftest.py`, docstring (both targets, the native one through ctypes).
+108. The weapon menu's wait after a step counts down only on ticks that carry input, so a step costs three samples; a key is tapped for two to six VBlanks, one or two samples, so a press is often swallowed; in the prose without the counts. Source: `re/notes/porting-m4.md`, "What the original does"; "What the assist does", item 2.
+109. Tap and hold differ because one button serves two weapons: the guns fire after ten VBlanks held, and a shorter press drops the chosen weapon; the tap is latched until the next sample, so a short press is never lost, where a per-tick poll would lose it. Source: `re/notes/porting-m6.md`, "The dogfight"; `re/notes/input.md`, "Fire button and the tap/hold discrimination"; `SPEC.md` 3.3.
+110. Leaving fullscreen pauses so that Escape, which the browser takes for leaving fullscreen, stays a pause key; a hidden page gets no animation frame and the clock stops, so the mission comes back paused. Source: `SPEC.md` 6.2, "Input" (Escape in fullscreen) and "Pause" (the hidden page). Left out: why the sign exists at all; neither `SPEC.md` 6.2, "Pause", nor `re/notes/porting-m8.md`, "The pause sign", gives a reason beyond the owner's wish.
+111. Code and content are kept apart so that nothing of the game can be typed wrong and the game stays out of the port's sources. Source: `CLAUDE.md`, Rules; `book/docs/part-1/disk.md`, "Read from the executable, never retyped".
+112. The crack's intro and text screen are dropped because they are the crack's, not the game's. Source: `SPEC.md` 1, "Out of scope" (the port shows none of the crack's own screens).
+113. The aim of one file: a game anyone can open on any machine with a browser, as easily as a document. Source: `SPEC.md` 1, "Goal" (one self-contained file, a double click, no network); `README.md`, the opening (nothing to install).
+114. The figures box after "How we know, in brief": 60 mission scripts on all 15 maps; 8 runs of loaded games and the attract demo; 21 runs of the key commands, 2 without a key as controls; over 300 oracle tests (310 at `3d0857c`); 20,000 random triples for the fade's arithmetic. The prose keeps "dozens of them on every map", "hundreds of oracle tests" and "about nine hundred tests" (930 at `3d0857c`). Source: claims 81, 82, 86, 92, counted again at `3d0857c` with `pytest --collect-only -q --slow`.
+115. The figures box of "The rhythm of ticks and pictures": 50 VBlanks a second; a tick every 4th VBlank; a pass every 2nd in a quiet scene, filmed at 240 frames a second, about 5 frames to a VBlank, 2 passes to a tick; perhaps 3 in a busy scene, not filmed, the port keeps 2. The prose keeps "every few VBlanks" and "a couple in a quiet scene". Source: claims 17, 18, 35, 36 and 103.
 
 ## Handed to chapter 2
 
@@ -169,13 +184,13 @@ None.
 
 ## Terms and glossary entries
 
-Introduced in chapter 1: attract demo, core, crack, emulator, faithful port, fast floating point, FPGA recreation, headless original, input byte, input sample, keyboard assist, logic tick, mission script, oracle, PAL, palette, pass, pure routine, remake, shell, sound sample, vertical flip, WebAssembly. No bare "sample". Used before their chapter and linked: VBlank, copper, blitter (chapter 2). Defined in passing without an entry: the repository, the native build, the browsers' drivers, the line editor, the listing.
+Introduced in chapter 1: attract demo, core, crack, emulator, faithful port, fast floating point, FPGA recreation, headless original, input byte, input sample, keyboard assist, logic tick, mission script, oracle, PAL, palette, pass, pure routine, remake, shell, sound sample, vertical flip, WebAssembly. No bare "sample". Used before their chapter and linked: VBlank, copper, blitter (chapter 2); routine and verified (chapter 4). Defined in passing without an entry: the repository, the native build, the browsers' drivers, the line editor, the listing.
 
-## Sidebars
+## Sidebars and figures boxes
 
-- What went wrong: the publisher's logo expected from a file's name (claim 55).
-- How we know: the changes stay out of what is compared (claims 75 to 78).
 - For the developer: the files of the key layer, the shell's keys and the assist, and the sources of the rules (claim 79).
+- The figures, in "The rhythm of ticks and pictures": the rates of VBlanks, ticks and passes, and the film (claim 115).
+- The figures, after the list of "How we know, in brief": the scripts, the runs, the oracle tests, the fade's random inputs (claim 114).
 
 ## Left to later chapters
 
@@ -184,3 +199,5 @@ How the executable is read (3, 4); the oracle (5); the headless original (6); ti
 ## Unsourced
 
 Kept out of the draft: that `UFXintro` is the crack intro; any date of the crack beyond the 1992 on its pictures; why the port was made from a cracked disk.
+
+Left out with the owner's read: why the pause sign exists at all (no source gives a reason beyond the owner's wish; claim 110), and that JavaScript runs in a browser alone (Node runs it; claim 106).

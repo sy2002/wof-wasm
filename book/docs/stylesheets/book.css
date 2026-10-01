@@ -50,6 +50,7 @@
   --wof-know: #339933;                  /* wingspalette 7 */
   --wof-wrong: #BB0000;                 /* wingstitle 8 */
   --wof-dev: #BB7700;                   /* wingstitle 23 */
+  --wof-figures: #0088CC;               /* ocean.palette 8 */
   --wof-on-header: #EEEEEE;             /* wingstitle 31 */
 }
 
@@ -68,6 +69,7 @@
   --wof-know: #44AA44;                  /* iff-dash 6 */
   --wof-wrong: #FF5555;                 /* iff-dash 9 */
   --wof-dev: #FFBB00;                   /* wingstitle 25 */
+  --wof-figures: #77AACC;               /* wingspalette 22 */
   --wof-on-header: #CCCCDD;             /* night.p 31 */
 }
 
@@ -224,21 +226,28 @@
 .md-typeset .language-wingslst .nl { color: var(--wof-hover); }
 .md-typeset .language-wingslst .c1 { color: var(--md-code-hl-comment-color); }
 
-/* ------------------------------------------------------------------ the three sidebars */
+/* ------------------------------------------------------------------ the sidebars and the figures box
+
+   The one sidebar the chapters use is dev, For the developer; know and wrong stay until no page
+   uses them.  The figures box, /// figures, gathers the figures of a passage into a short table
+   or list, so that the prose keeps only the numbers that carry its point. */
 
 :root {
   --md-admonition-icon--know: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M1 0h4v1h-4zM0 1h2v1h-2zM4 1h2v1h-2zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h5v1h-5zM5 6h2v1h-2zM6 7h2v1h-2zM7 8h2v1h-2zM8 9h2v1h-2z"/></svg>');
   --md-admonition-icon--wrong: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M3 0h4v1h-4zM3 1h4v1h-4zM3 2h4v1h-4zM4 3h2v1h-2zM4 4h2v1h-2zM4 5h2v1h-2zM4 7h2v1h-2zM4 8h2v1h-2z"/></svg>');
+  --md-admonition-icon--figures: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M8 0h2v1h-2zM8 1h2v1h-2zM5 2h2v1h-2zM8 2h2v1h-2zM5 3h2v1h-2zM8 3h2v1h-2zM2 4h2v1h-2zM5 4h2v1h-2zM8 4h2v1h-2zM2 5h2v1h-2zM5 5h2v1h-2zM8 5h2v1h-2zM2 6h2v1h-2zM5 6h2v1h-2zM8 6h2v1h-2zM2 7h2v1h-2zM5 7h2v1h-2zM8 7h2v1h-2zM0 9h10v1h-10z"/></svg>');
   --md-admonition-icon--dev: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M0 0h2v1h-2zM1 1h2v1h-2zM2 2h2v1h-2zM3 3h2v1h-2zM2 4h2v1h-2zM1 5h2v1h-2zM0 6h2v1h-2zM4 8h6v1h-6zM4 9h6v1h-6z"/></svg>');
 }
 
 .md-typeset .admonition.know  { --wof-side: var(--wof-know); }
 .md-typeset .admonition.wrong { --wof-side: var(--wof-wrong); }
 .md-typeset .admonition.dev   { --wof-side: var(--wof-dev); }
+.md-typeset .admonition.figures { --wof-side: var(--wof-figures); }
 
 .md-typeset .admonition.know,
 .md-typeset .admonition.wrong,
-.md-typeset .admonition.dev {
+.md-typeset .admonition.dev,
+.md-typeset .admonition.figures {
   border: none;
   border-left: .3rem solid var(--wof-side);
   border-radius: 0;
@@ -249,7 +258,8 @@
 
 .md-typeset .know > .admonition-title,
 .md-typeset .wrong > .admonition-title,
-.md-typeset .dev > .admonition-title {
+.md-typeset .dev > .admonition-title,
+.md-typeset .figures > .admonition-title {
   font-family: var(--wof-sans);
   background: color-mix(in srgb, var(--wof-side) 16%, transparent);
   border: none;
@@ -257,7 +267,8 @@
 
 .md-typeset .know > .admonition-title::before,
 .md-typeset .wrong > .admonition-title::before,
-.md-typeset .dev > .admonition-title::before {
+.md-typeset .dev > .admonition-title::before,
+.md-typeset .figures > .admonition-title::before {
   background-color: var(--wof-side);
 }
 
@@ -274,6 +285,40 @@
 .md-typeset .dev > .admonition-title::before {
   -webkit-mask-image: var(--md-admonition-icon--dev);
   mask-image: var(--md-admonition-icon--dev);
+}
+
+.md-typeset .figures > .admonition-title::before {
+  -webkit-mask-image: var(--md-admonition-icon--figures);
+  mask-image: var(--md-admonition-icon--figures);
+}
+
+/* The figures box's table: compact, in the interface's font, the values to the right of
+   their labels, no frame of its own inside the box's. */
+.md-typeset .figures .md-typeset__table,
+.md-typeset .figures table:not([class]) {
+  display: table;
+  width: 100%;
+  margin: .4em 0;
+  border: none;
+  box-shadow: none;
+  font-family: var(--wof-sans);
+  font-size: .72rem;
+}
+
+.md-typeset .figures table:not([class]) th,
+.md-typeset .figures table:not([class]) td {
+  padding: .3em .6em;
+  border-top: .05rem solid color-mix(in srgb, var(--wof-side) 25%, transparent);
+  background: none;
+}
+
+.md-typeset .figures table:not([class]) th {
+  font-weight: 700;
+  color: var(--wof-heading);
+}
+
+.md-typeset .figures table:not([class]) td:first-child {
+  width: 58%;
 }
 
 /* The dev sidebar is the one for the deeper detail: its code may run wide. */

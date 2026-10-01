@@ -60,6 +60,18 @@ A mistake and what caught it, told as part of the subject: what was believed, wh
 The deeper detail with the place in the source: [`src/iff.c`](repo:src/iff.c), `wof_colour_lerp`, and the note [`re/notes/display.md`](repo:re/notes/display.md#fades), section "Fades".
 ///
 
+## The figures box
+
+Where figures cluster, the prose keeps the one that carries the point and the rest go into a box: here, how the fade's arithmetic was held to the original under the oracle.
+
+/// figures
+| The fade's arithmetic | How much |
+|---|---|
+| Steps of a fade | 16 |
+| Checked against black and white | every step, both ways |
+| Random triples of step and colours | 20,000 |
+///
+
 ## Figures
 
 ![The first mission: the carrier's deck under a blue sky, the weapon menu, the dashboard below.](generated/figures/mission-start.png)

@@ -81,8 +81,9 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
-  # The three sidebars of the style guide (book/BOOK.md, section 4, point 6), each with its
-  # own colour and icon in stylesheets/book.css:  /// know ... ///  and so on.
+  # The sidebar of the style guide (book/BOOK.md, section 4, point 6), /// dev, and the figures
+  # box, /// figures, each with its own colour and icon in stylesheets/book.css; know and wrong
+  # stay registered while chapters 2 and 3 still use them.
   - pymdownx.blocks.admonition:
       types:
         - note
@@ -94,6 +95,8 @@ markdown_extensions:
           title: What went wrong
         - name: dev
           title: For the developer
+        - name: figures
+          title: The figures
   - pymdownx.blocks.caption
   - pymdownx.blocks.details
   - pymdownx.blocks.html

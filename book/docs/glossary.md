@@ -488,7 +488,7 @@ Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Frema
 
 A piece of the program that is called, does one job and returns to its caller; the game's program has 616, 223 of them compiled from C, each a row of the routine inventory.
 
-First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/functions.csv`](repo:re/functions.csv).
+First met in [chapter 1](part-1/faithful.md), defined in [chapter 4](part-1/reading.md). The detail: [`re/functions.csv`](repo:re/functions.csv).
 
 Elsewhere: [Function (computer programming)](https://en.wikipedia.org/wiki/Function%5F(computer%5Fprogramming)), Wikipedia.
 
@@ -586,7 +586,7 @@ Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5
 
 The status of a routine that is ported and held to the original by a test of its own: under the oracle for a pure routine, by other tests for the rest. A routine held only by the comparisons of whole runs of the game is ported.
 
-First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [chapter 5](part-1/oracle.md).
+First met in [chapter 1](part-1/faithful.md), defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [chapter 5](part-1/oracle.md).
 
 ### Vertical flip
 
