@@ -2,6 +2,8 @@
 
 A faithful port of the Amiga game Wings of Fury, the 1990 Amiga version, to a single HTML file that runs in a browser, with a C core compiled to WebAssembly. The game's logic is ported routine by routine from the original executable, and a headless copy of that executable running under emulation holds the port to the original, pass by pass. It is a retro preservation project.
 
+![The title screen of Wings of Fury, as the port shows it](ref/title.png)
+
 ## Play
 
 Open `dist/wof.html` in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
