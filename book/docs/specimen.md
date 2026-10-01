@@ -4,7 +4,7 @@ Every element the chapters are built from, each with real content from the gener
 
 ## A heading of the second level
 
-Body text is set in a serif of the reader's system at a book's measure, while listings, figures and the game take the whole column. A term is introduced once, in bold with its definition: the **copper** is the Amiga's display coprocessor, which changes colours part of the way down the picture ([glossary](glossary.md#copper)). An address is written in code font, `0x016FF6`.
+Body text is set in a serif of the reader's system at a book's measure, while listings, figures and the game take the whole column. A term is introduced once, in bold with its definition and a link to its glossary entry: the [**copper**](glossary.md#copper) is the Amiga's display coprocessor, which changes colours part of the way down the picture. An address is written in code font, `0x016FF6`.
 
 ### A heading of the third level
 
@@ -49,7 +49,7 @@ The shell and the tools, as JavaScript and Python:
 ## The three sidebars
 
 /// know
-The instrument behind a claim: here, `tests/test_oracle_m1.py` runs `colour_lerp` under the 68000 oracle and compares it with the port's C on every step against black and white and on 20,000 random triples.
+The instrument behind a claim: here, [`tests/test_oracle_m1.py`](repo:tests/test%5Foracle%5Fm1.py) runs `colour_lerp` under the 68000 oracle and compares it with the port's C on every step against black and white and on 20,000 random triples.
 ///
 
 /// wrong
@@ -57,7 +57,7 @@ A mistake and what caught it, told as part of the subject: what was believed, wh
 ///
 
 /// dev
-The deeper detail with the place in the source: `src/iff.c`, `wof_colour_lerp`, and the note `re/notes/display.md`, section "Fades".
+The deeper detail with the place in the source: [`src/iff.c`](repo:src/iff.c), `wof_colour_lerp`, and the note [`re/notes/display.md`](repo:re/notes/display.md#fades), section "Fades".
 ///
 
 ## Figures

@@ -6,7 +6,8 @@
 # The listings, the figures and the web font are generated beforehand and committed
 # (book/tools/), so that this build needs only the packages of book/requirements.txt: no ROM,
 # no compiler, no native library and no browser.  hooks/game.py adds the repository's game,
-# ../dist/wof.html, to the site; hooks/lexer.py teaches the highlighter the listing's format.
+# ../dist/wof.html, to the site; hooks/lexer.py teaches the highlighter the listing's format;
+# hooks/links.py turns the pages' repo: links into links to the repository on GitHub.
 
 site_name: Bringing Back Wings of Fury
 site_description: A 1990 Amiga game ported to the browser, and how we know it is faithful
@@ -56,12 +57,17 @@ theme:
         icon: material/weather-sunny
         name: Day
 
+# The branch the repo: links of the pages point at on GitHub, under repo_url (hooks/links.py).
+extra:
+  repo_branch: main
+
 extra_css:
   - stylesheets/book.css
 
 hooks:
   - hooks/game.py
   - hooks/lexer.py
+  - hooks/links.py
 
 plugins:
   - search

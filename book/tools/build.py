@@ -15,6 +15,10 @@ The steps, one line each:
     font      book/tools/webfont.py: the game's font as the web font of the headings
     colours   every colour of docs/stylesheets/book.css and of the diagrams docs/figures/*.svg against
               the palette entry its comment names
+    links     book/tools/links.py: every repo: link of the pages resolves, to a file or directory
+    refs      and a heading by GitHub's anchor; no code span names a repository file unlinked;
+    glossary  every glossary entry's chapter line is what the chapters say, every term in bold
+    external  a link to its entry; every link out of the repository is https
     page      dist/wof.html, the repository's game, which hooks/game.py copies into the site
     site      mkdocs build --strict in book/, and the game in the site compared with dist/wof.html
 
@@ -27,6 +31,7 @@ Exit status:
     1  a generated file or a colour differs from what its source makes
     2  a generator could not make what its manifest asks for, or the build lacks something
     3  mkdocs build --strict failed; its output is printed
+    4  a page fails the book's checks of its links, references and glossary (links.py)
 """
 import argparse
 import hashlib
@@ -35,6 +40,7 @@ import re
 import subprocess
 import sys
 
+import links
 from common import BOOK, DOCS, PAGE, ROOT, rel
 
 TOOLS = BOOK / 'tools'
@@ -130,7 +136,7 @@ def main():
 
     if args.check:
         results = [tool('listings.py', '--check'), tool('figures.py', '--check'),
-                   tool('webfont.py', '--check'), colours()]
+                   tool('webfont.py', '--check'), colours(), links.run()]
         return max(results)
 
     for step in (['listings.py'], None if args.no_figures else ['figures.py'], ['webfont.py']):
@@ -140,7 +146,7 @@ def main():
         status = tool(*step)
         if status:
             return status
-    status = colours() or page()
+    status = colours() or links.run() or page()
     if status:
         return status
     if args.serve:
