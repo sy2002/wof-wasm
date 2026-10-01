@@ -8,6 +8,18 @@ Motorola's processor, the chip in the Amiga that runs the program: sixteen regis
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, sections 3.2 and 7.1.
 
+### A4
+
+The 68000's address register 4, which the game's code keeps as its small-data base, `0x02AFFE` in the fixed load layout: see [Small-data base](#small-data-base).
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
+### A5
+
+The 68000's address register 5, which every compiled C routine of the game uses as the pointer to its stack frame: see [Stack frame](#stack-frame).
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
 ### ADF
 
 An Amiga Disk File: a copy of an Amiga floppy, block by block, in one file, a double-density disk's 1,760 blocks of 512 bytes; the game's disk is `original/wof.adf`.
@@ -34,7 +46,7 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/random.md`.
 
 ### Big-endian
 
-The byte order that stores the most significant byte of a number first: the 68000's, and that of every file the project reads.
+The byte order that stores the most significant byte of a number first: the 68000's, and that of every file the project reads; the opposite of little-endian.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, sections 3.5 and 5.
 
@@ -124,7 +136,7 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 1.
 
 ### Far-call table
 
-185 jump instructions at the start of the game's data hunk, `0x023000` to `0x023456`, each holding the full address of a routine; a call written `jsr d16(a4)` jumps through one of them.
+185 jump instructions at the start of the game's data hunk, `0x023000` to `0x023456`, each holding the full address of a routine; a call such as `jsr -$7e1e(a4)` goes through one of them and needs no relocation of its own.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
@@ -136,7 +148,7 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/ffp.md`.
 
 ### Fixed load layout
 
-The one set of addresses at which all the project's tools load the game's program: the code at `0x010000`, the data at `0x023000`, the BSS at `0x028000`, A4 holding `0x02AFFE`. Every address in this book is one of it.
+The one set of addresses at which all the project's tools load the game's program: the code at `0x010000`, the data at `0x023000`, the BSS at `0x028000`, A4 holding `0x02AFFE`. Every address of the program in this book is one of it; the running port holds offsets instead.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2; `tools/hunk.py`.
 
@@ -145,6 +157,12 @@ Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2; `
 A computer rebuilt in programmable hardware, a chip whose circuits are configured to behave like the original machine's.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `README.md`, "Amiga to Web".
+
+### Front end
+
+The game's screens before and between missions: the story, the title, the rank selection, the briefing, the high scores and the dialogs.
+
+Introduced in [chapter 19](part-2/front-end.md). The detail: `re/notes/frontend.md`.
 
 ### Headless original
 
@@ -166,7 +184,7 @@ Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
 ### Hunk file
 
-The AmigaDOS format for programs: a header naming the hunks and their sizes, then each hunk's contents, its relocations and an end mark; the game, its music player and its songs are hunk files.
+The AmigaDOS format for programs: a header giving the number of hunks and their sizes, then each hunk's contents, its relocations and an end mark; the game, its music player and its songs are hunk files.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `tools/hunk.py`; `SPEC.md`, section 3.2.
 
@@ -218,6 +236,18 @@ A collection of the operating system's routines that a program calls through a t
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
 
+### Listing
+
+The game's program written out as assembly language by the disassembler, each instruction with its address, its bytes and the names of what it touches: `re/Wings.lst`.
+
+Introduced in [chapter 4](part-1/reading.md). The detail: `SPEC.md`, sections 2 and 4.
+
+### Little-endian
+
+The byte order that stores the least significant byte of a number first: that of the machines the port runs on, WebAssembly's among them; the opposite of big-endian.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `tools/extract_tables.py`.
+
 ### LoadSeg
 
 The routine of AmigaDOS that loads a hunk file: it puts each hunk wherever it finds free memory of the kind asked for and corrects the relocations; the game loads its music with it.
@@ -238,7 +268,7 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.2.
 
 ### Manx Aztec C
 
-The C compiler the game's C was built with: its int is 16 bits, its code reaches the variables through A4, and each of its routines keeps a stack frame on A5.
+The C compiler the game's C was built with: its int, as the game was built, is 16 bits, its code reaches the variables through A4, and each of its routines keeps a stack frame on A5.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
@@ -304,7 +334,7 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`, "
 
 ### Relocation
 
-An entry in a hunk file that names a place in a hunk holding an address, which the loader corrects by where the hunk landed.
+An entry in a hunk file that names a place in a hunk holding an address, which the loader corrects by where its target hunk landed.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `tools/hunk.py`; `SPEC.md`, section 3.2.
 
@@ -322,7 +352,7 @@ Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.5; `
 
 ### Shape container
 
-A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each record begins, and the records, each a header and the planes; the disk has twelve.
+A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each shape's entry begins, and the entries, each a header and the planes; the disk has twelve.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `re/notes/shapes.md`.
 
@@ -331,6 +361,18 @@ Introduced in [chapter 3](part-1/disk.md). The detail: `re/notes/shapes.md`.
 The thin layer of JavaScript around the core: the clock that paces it, the screen, a loudspeaker for the sound the core mixes, the keys, a place for saved games, and the help screen, the pause sign and fullscreen.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 6.2.
+
+### Sign extension
+
+Widening a number to more bits by copying its sign bit into the new ones, so that it keeps its value: the 68000's `ext.l` widens a word to a long.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 7.1.
+
+### Signed byte
+
+A byte read as a number from −128 to 127 in two's complement, in which the top bit counts as −128: a byte above `0x7F` is itself less 256.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.5.
 
 ### Small-data base
 
@@ -355,6 +397,12 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "
 A routine's own stretch of the stack, from its arguments down to its own variables, which `link a5` builds at the start of each compiled C routine of the game; A5 points into it, the first argument at `8(a5)`.
 
 Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
+### Symbol
+
+A name a program file keeps for a routine or a variable, with its address; the game's program keeps none, its music player twenty.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `tools/hunk.py`; `re/notes/music.md`, "The two files".
 
 ### Topaz 8
 

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 410" width="820" height="410" role="img" aria-labelledby="title desc">
   <title id="title">The hunks and the fixed layout</title>
-  <desc id="desc">On the left the file Wings as its blocks: a header naming three hunks and their sizes, the code hunk of 77,644 bytes with 22 relocations, the data hunk of which the file stores 15,456 bytes, with 247 relocations, and the BSS hunk, given by its size alone, 4 bytes. On the right memory in the port's fixed layout, to scale: the code at 0x010000 to 0x022F4C; the data at 0x023000, the far-call table at its start, its starting values and then zeros up to 0x027FF0; the BSS at 0x028000, 4 bytes. A4 holds 0x02AFFE, and its 16-bit offsets reach from 0x022FFE to 0x032FFD: the whole data hunk and the BSS.</desc>
+  <desc id="desc">On the left the file Wings as its parts: a header giving the number of hunks, three, and their sizes, the code hunk of 77,644 bytes with 22 relocations, the data hunk of which the file stores 15,456 bytes, with 247 relocations, and the BSS hunk, given by its size alone, 4 bytes. On the right memory in the port's fixed layout, to scale: the code at 0x010000 to 0x022F4C; the data at 0x023000, the far-call table at its start, its starting values and then zeros up to 0x027FF0; the BSS at 0x028000, 4 bytes. A4 holds 0x02AFFE, and its 16-bit offsets reach from 0x022FFE to 0x032FFD: the whole data hunk from its first byte.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .code  { fill: #77AACC; /* wingspalette 22 */ }
@@ -19,7 +19,7 @@
     .small { font-size: 12px; }
   </style>
 
-  <!-- The file, drawn as its blocks, not to scale -->
+  <!-- The file, drawn as its parts, not to scale -->
   <text class="light label" x="40" y="26">Wings on the disk, 94,292 bytes</text>
   <rect class="zeros" x="40" y="40" width="200" height="22" rx="2"/>
   <text class="ink small" x="50" y="55">header: 3 hunks and their sizes</text>
