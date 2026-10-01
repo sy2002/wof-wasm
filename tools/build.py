@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Build dist/wof.html, the whole port as one self-contained file (SPEC.md section 5).
 
-    .venv/bin/python tools/build.py [--native] [--quiet]
+    .venv/bin/python tools/build.py [--native] [--debug] [--quiet]
 
     --native   also build tests/libwofcore.dylib from the same sources with Apple clang
+    --debug    keep the core's debug information, which the release page leaves out
 
 Steps
   1. extract tables and the system font from the original files into src/gen/
@@ -42,11 +43,14 @@ MODULES = ['core.js', 'video.js', 'input.js', 'audio.js', 'clock.js', 'overlay.j
 # SPEC 3.1: everything on the disk that is not the executable and not a non-game file.
 SKIP_NAMES = {'Wings', 'UFXintro', 'wingt'}
 
-# The core carries its debug information, and with it the path of every source file; the
-# prefix map makes those paths relative to the repository, so that the page is the same
-# wherever a checkout is built and names no directory of the machine that built it.
+# The core the page ships carries no debug information (-g0): zig cc writes DWARF by default,
+# which more than triples the core, and the page alone is the release (the owner's decision
+# of 2026-10-01).  tools/build.py --debug keeps it, for stepping through the core in a
+# browser's developer tools; the prefix map then makes the source paths in it relative to
+# the repository, so that a debug page is the same wherever a checkout is built and names no
+# directory of the machine that built it either.
 CC_WASM = ['-target', 'wasm32-freestanding', '-std=c11', '-O2', '-Wall', '-Wextra',
-           '-nostdlib', '-Wl,--no-entry', '-I', SRC, '-ffile-prefix-map=%s=.' % ROOT]
+           '-nostdlib', '-Wl,--no-entry', '-I', SRC, '-ffile-prefix-map=%s=.' % ROOT, '-g0']
 # WOF_TRACE turns on the recording of src/trace.c: which file the core opened, which song
 # it asked for and every drawing call it made, which is how the differential tests compare
 # the port with the headless original's observers.  dist/core.wasm is built without it.
@@ -142,9 +146,10 @@ def pack_fs(log):
 
 # ---------------------------------------------------------------------- 3. compile
 
-def compile_wasm(log):
+def compile_wasm(log, debug=False):
     os.makedirs(DIST, exist_ok=True)
-    subprocess.run([sys.executable, '-m', 'ziglang', 'cc'] + CC_WASM + ['-o', WASM] + sources(),
+    flags = [flag for flag in CC_WASM if not (debug and flag == '-g0')]
+    subprocess.run([sys.executable, '-m', 'ziglang', 'cc'] + flags + ['-o', WASM] + sources(),
                    check=True, cwd=ROOT)
     log('core      %s, %d bytes' % (os.path.relpath(WASM, ROOT), os.path.getsize(WASM)))
     with open(WASM, 'rb') as handle:
@@ -248,6 +253,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     parser.add_argument('--native', action='store_true',
                         help='also build tests/libwofcore.dylib with Apple clang')
+    parser.add_argument('--debug', action='store_true',
+                        help='keep the debug information in dist/core.wasm and so in the page')
     parser.add_argument('--quiet', action='store_true')
     args = parser.parse_args()
     log = (lambda message: None) if args.quiet else print
@@ -262,7 +269,7 @@ def main():
 
     extract_tables(log)
     blob = pack_fs(log)
-    wasm = compile_wasm(log)
+    wasm = compile_wasm(log, debug=args.debug)
     if args.native:
         compile_native(log)
     assemble(wasm, blob, log)
