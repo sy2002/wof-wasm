@@ -4,7 +4,7 @@ Answers points 8 and 9 of `SPEC.md` section 10. Addresses use the standard load 
 
 ## The generator
 
-The game has one random source in use: `rand_beam` (`0x0203BE`), called from 43 sites.
+The game has one random source in use: `rand_beam` (`0x0203BE`), called from 42 sites (23 through one far-call slot, 19 through the other; `grep -c '; -> rand_beam' re/Wings.lst`).
 
 ```c
 uint16_t rand_beam(void)
@@ -49,5 +49,5 @@ playback of that demo starts from them (`re/notes/demo.md`, "The port").
 
 ## Open
 
-- What each of the 43 call sites does with the value (mask, modulo, comparison), which belongs to the notes of the subsystems that call it.
+- What each of the 42 call sites does with the value (mask, modulo, comparison), which belongs to the notes of the subsystems that call it.
 
