@@ -32,7 +32,7 @@ Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile),
 
 ### Arithmetic shift
 
-A shift of a number's bits that copies the sign bit into the top as it shifts right, so that a negative number stays negative and is halved, rounded down: the 68000's `asr`.
+A shift of a number's bits that keeps its sign: shifted right, the sign bit is copied into the top, so that a negative number stays negative and is halved, rounded down; shifted left, it differs from a logical shift only in setting the overflow flag when the sign changes. The 68000's `asr` and `asl`.
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py); [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1.
 
@@ -270,7 +270,7 @@ Elsewhere: [Hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal), Wikipedia.
 
 ### Hook
 
-A routine of a test's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
+A routine of the instrument's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py); [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
 
@@ -430,7 +430,7 @@ Elsewhere: [Mask (computing)](https://en.wikipedia.org/wiki/Mask%5F(computing)),
 
 ### Memory-form shift
 
-A 68000 shift that works on a word in memory, by one bit, rather than on a register; the emulator the tests run on takes three of the game's for logical shifts where they are arithmetic, and a hook corrects them.
+A 68000 shift that works on a word in memory, by one bit, rather than on a register; the emulator the tests run on takes the game's five arithmetic ones for logical shifts, which gives three of them, the right shifts, a wrong word, and a hook corrects those three.
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-emulators-memory-form-shift-observed), "The emulator's memory-form shift (observed)"; [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py).
 
