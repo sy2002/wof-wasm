@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 318" width="760" height="318" role="img" aria-labelledby="title desc">
+  <title id="title">Three ways to keep an Amiga game</title>
+  <desc id="desc">Three columns. An emulator runs the original executable, unchanged, on an Amiga recreated in a program on your computer; it keeps the machine. An FPGA recreation runs the original executable, unchanged, on an Amiga recreated in programmable hardware; it keeps the machine too. A faithful port runs the game's own logic, rewritten in C routine by routine, with its data taken from the disk, in a small shell for the screen, the sound and the keys, in your browser; it keeps the game.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .head  { fill: #003377; /* ocean.palette 13 */ }
+    .head-text { fill: #EEEEEE; /* wingstitle 31 */ }
+    .game  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .port  { fill: #FFBB00; /* wingstitle 25 */ }
+    .shell { fill: #FFDD77; /* wingstitle 28 */ }
+    .base  { fill: #AAAABB; /* wingspalette 29 */ }
+    .keeps { fill: #77AACC; /* wingspalette 22 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 13px; }
+  </style>
+
+  <!-- Emulator -->
+  <rect class="head" x="10" y="10" width="230" height="36" rx="3"/>
+  <text class="head-text label" x="125" y="34" text-anchor="middle">Emulator</text>
+  <rect class="game" x="10" y="54" width="230" height="66" rx="3"/>
+  <text class="ink" x="125" y="82" text-anchor="middle">The original program,</text>
+  <text class="ink" x="125" y="101" text-anchor="middle">unchanged</text>
+  <rect class="game" x="10" y="128" width="230" height="66" rx="3"/>
+  <text class="ink" x="125" y="156" text-anchor="middle">An Amiga recreated</text>
+  <text class="ink" x="125" y="175" text-anchor="middle">in a program</text>
+  <rect class="base" x="10" y="202" width="230" height="46" rx="3"/>
+  <text class="ink" x="125" y="230" text-anchor="middle">Your computer</text>
+  <rect class="keeps" x="10" y="264" width="230" height="44" rx="3"/>
+  <text class="ink label" x="125" y="291" text-anchor="middle">Keeps the machine</text>
+
+  <!-- FPGA recreation -->
+  <rect class="head" x="265" y="10" width="230" height="36" rx="3"/>
+  <text class="head-text label" x="380" y="34" text-anchor="middle">FPGA recreation</text>
+  <rect class="game" x="265" y="54" width="230" height="66" rx="3"/>
+  <text class="ink" x="380" y="82" text-anchor="middle">The original program,</text>
+  <text class="ink" x="380" y="101" text-anchor="middle">unchanged</text>
+  <rect class="game" x="265" y="128" width="230" height="66" rx="3"/>
+  <text class="ink" x="380" y="156" text-anchor="middle">An Amiga recreated in</text>
+  <text class="ink" x="380" y="175" text-anchor="middle">programmable hardware</text>
+  <rect class="base" x="265" y="202" width="230" height="46" rx="3"/>
+  <text class="ink" x="380" y="230" text-anchor="middle">A board with an FPGA</text>
+  <rect class="keeps" x="265" y="264" width="230" height="44" rx="3"/>
+  <text class="ink label" x="380" y="291" text-anchor="middle">Keeps the machine</text>
+
+  <!-- Faithful port -->
+  <rect class="head" x="520" y="10" width="230" height="36" rx="3"/>
+  <text class="head-text label" x="635" y="34" text-anchor="middle">Faithful port</text>
+  <rect class="port" x="520" y="54" width="230" height="66" rx="3"/>
+  <text class="ink" x="635" y="76" text-anchor="middle">The game's own logic,</text>
+  <text class="ink" x="635" y="94" text-anchor="middle">rewritten routine by routine;</text>
+  <text class="ink small" x="635" y="111" text-anchor="middle">its data taken from the disk</text>
+  <rect class="shell" x="520" y="128" width="230" height="66" rx="3"/>
+  <text class="ink" x="635" y="156" text-anchor="middle">A small shell:</text>
+  <text class="ink" x="635" y="175" text-anchor="middle">screen, sound, keys</text>
+  <rect class="base" x="520" y="202" width="230" height="46" rx="3"/>
+  <text class="ink" x="635" y="230" text-anchor="middle">Your browser</text>
+  <rect class="keeps" x="520" y="264" width="230" height="44" rx="3"/>
+  <text class="ink label" x="635" y="291" text-anchor="middle">Keeps the game</text>
+</svg>

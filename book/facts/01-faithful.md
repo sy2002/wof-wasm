@@ -21,7 +21,7 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 12. Picture: for the same state, the same indexed pixels and the same palette. Source: `SPEC.md` 1, point 2.
 13. Sound: the same sample starts on the same channel at the same tick with the same period and volume; the music follows the original player's timing. Source: `SPEC.md` 1, point 3.
 14. The game advances in fixed steps, one logic tick per input byte, one input byte every fourth VBlank: 12.5 ticks a second on PAL, 15 on NTSC. Source: `SPEC.md` 3.3, Runtime model.
-15. The input byte carries the stick's four directions and the button, held or tapped; it is the only channel by which the controls reach the game's logic. Source: `SPEC.md` 3.3, "The input byte".
+15. The input byte carries the stick's four directions and the button, held or tapped; it is the only channel by which the controls reach the game's logic. Taking it, every fourth VBlank, is the input sample; the prose never says "sample" alone where it could mean a sound sample. Source: `SPEC.md` 3.3, "The input byte" and the runtime model; `re/notes/input.md`.
 16. The game's only random source reads the position of the screen's beam at the moment of the call; the port replaces it by a reproducible stream of values. Source: `SPEC.md` 3.3; `re/notes/random.md`.
 17. A pass is one round of the game's main loop, which draws one picture and also runs some of the game's logic. Source: `SPEC.md` 3.3, "Passes are not pure rendering".
 18. On a real PAL Amiga a pass takes two VBlanks in a quiet scene, measured by filming the machine at 240 frames a second; the port takes that number. Source: `SPEC.md` 3.3, last paragraph; `SPEC.md` 6.2, Clock; `re/notes/passes.md`.
@@ -35,7 +35,7 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 
 24. The result is one self-contained HTML file that opens from `file://` with a double click and makes no network request. Source: `SPEC.md` 1, Goal.
 25. All game content (graphics, maps, sounds, music, fonts, tables, texts) is taken from the original disk image at build time and embedded in the file. Source: `SPEC.md` 1, Goal.
-26. The page is 1,158,496 bytes. Source: `tools/build.py --native`, its last line, at `698d0f8`; `SPEC.md` 5 ("below 2 MB").
+26. The page is 1,158,496 bytes, "about 1.1 megabytes" in the prose. Source: `tools/build.py --native`, its last line, at `698d0f8`; `SPEC.md` 5 ("below 2 MB").
 27. It runs in Chrome, Firefox and Safari, from the file itself. Source: `README.md`, Play.
 28. Nothing to install, no emulator in between, no disk to boot, no settings to get right. Source: `README.md`, the paragraph after the picture.
 
@@ -63,7 +63,7 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 45. The keys are taken by their position (`KeyboardEvent.code`), and the book names a key by its position where layouts differ, such as the key left of 1. Source: `SPEC.md` 6.2, Input; `book/BOOK.md` 4, point 8.
 46. Nothing the manual describes is affected; what is lost lies outside the manual: the cheat sequence cannot be typed, because one of its letters is the load command; it stays untypeable by the owner's decision. Source: `SPEC.md` 6.2, Input; `re/notes/porting-m3.md`, "The port's own layer".
 47. The vertical flip: in the original it starts off, only the flip command changes it, a restart keeps it, a loaded game sets it to what the saved game holds, and nothing remembers it past the end of the program. Source: `re/notes/keys.md`, "The vertical flip, and how long it lasts"; test `test_a_restart_keeps_the_flip_and_a_loaded_game_undoes_it`.
-48. Up on the stick climbs in the original, because the game is seen from the side; the flip swaps forward and back for players who want a pilot's stick. Source: `SPEC.md` 3.3, "The input byte".
+48. By default the stick pushed forward climbs, established from the hardware decode (`SPEC.md` 3.3, "The input byte"; `re/notes/keys.md`, "The vertical flip, and how long it lasts") and stated in the manual's take-off instructions (page 5, cited, never quoted); the flip exists for players who want a pilot's stick (`SPEC.md` 6.2, Input, "The vertical flip is a preference"). No reason beyond these.
 49. The port keeps the flip as a preference in the browser's storage, and the remembered value wins over a loaded game; a deliberate divergence, because the project's owner flies with it on. Source: `SPEC.md` 6.2, Input; `re/notes/porting-m3.md`, "The vertical flip".
 50. A core that was never given a preference behaves exactly as the original, and that is what the comparisons run. Source: `re/notes/porting-m3.md`, "The vertical flip".
 51. The keyboard assist exists because a key is tapped where a joystick is held: the menus should feel as a player expects today while the flying stays the original's. Source: `SPEC.md` 6.2, Input, "The keyboard assist".
@@ -72,14 +72,14 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 54. The assist is off in the core and in every comparison with the original; the page switches it on. Source: `re/notes/porting-m4.md`, "The keyboard assist"; `tests/test_assist.py` repeats the original's table with it off.
 55. The shell adds a help screen (H), which lists the port's keys and is up when the page opens, in place of a prompt for the sound. Source: `SPEC.md` 6.2, Video and Input.
 56. A browser starts sound only on a gesture of the player's, so the first key or click starts the sound and closes the help screen. Source: `SPEC.md` 6.2, Audio.
-57. The shell adds a pause sign over the picture while a mission is paused, and pauses a mission when the page is hidden or fullscreen is left. Source: `SPEC.md` 6.2, Pause and Input.
+57. The shell adds a pause sign over the picture while a mission is paused, whatever asked for the pause; it pauses a mission when fullscreen is left, and when the page comes back from an absence of a second or more; a page hidden for a few milliseconds, which a window's change of state does, is not an absence. Source: `SPEC.md` 6.2, Pause and Input.
 58. F asks for the page's own fullscreen and leaves it. Source: `SPEC.md` 6.2, Input.
 59. No reader of the game takes a plain H, F or V outside the line editor, so the keys the shell takes cost the game nothing. Source: `re/notes/keys.md`, "The plain letters the port takes for itself".
 
 ## How we know, as an overview
 
 60. The oracle: one original routine runs under an emulated 68000 and is compared with its port on the same, often random, inputs; required for every pure routine. Source: `SPEC.md` 7.4, step 4; `SPEC.md` 8, Routine.
-61. The suite holds 310 oracle tests in eight modules. Counted: `pytest tests/test_oracle_*.py --collect-only -q --slow` at `698d0f8`.
+61. The suite holds 310 oracle tests in eight modules, "more than three hundred" in the prose. Counted: `pytest tests/test_oracle_*.py --collect-only -q --slow` at `698d0f8`.
 62. The headless original: the original's own code runs from `main` on under emulation, with the operating system's calls stubbed, nothing drawn, the beam position served from the same stream the port uses; no game logic is re-implemented. Source: `SPEC.md` 8, "Whole game, logic"; `re/notes/headless.md`.
 63. Mission by mission, the port is compared with the headless original after every tick and every pass, in an open loop (the port set to the original's state before each pass) and a closed loop (the port on its own from the program's start). Source: `SPEC.md` 8, "Mission, pass by pass".
 64. Compared after every pass: every registered variable and table, the drawing calls with their arguments, the random reads with their callers, the palette of every row; a completeness test demands that every address the original writes during a mission is compared or listed with its reason. Source: `SPEC.md` 8, "Mission, pass by pass"; `tests/m4complete.py`.
@@ -88,13 +88,33 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 67. The sound event log, one entry per sample start, is compared after every pass and every tick of every mission script in both loops. Source: `SPEC.md` 8, "Sound".
 68. A demo the port recorded is replayed in the native core and in WebAssembly against a hash of the state after every input sample. Source: `SPEC.md` 8, "Whole game, replays"; `tests/test_replays.py`.
 69. The built page is opened in Chrome and Firefox, driven by key presses through the browser's driver, and checked for only local requests, a clean console, the exact pixels, the display box, the clock and the sound. Source: `SPEC.md` 8, "Page".
-70. The suite has 930 tests: 807 emulator tests and 123 page tests, run in two phases. Counted: `pytest tests/ --collect-only -q --slow`, with `-m "not page"` and `-m page`, at `698d0f8`.
-71. Not compared: no pixel of a mission scene is compared with the original, because the headless original draws nothing; the drawing calls, the palette rows and a model of the blitter stand for the picture. Source: `SPEC.md` 8, "Mission, pass by pass" and "Drawing".
-72. Provisional: how many VBlanks a step of a fade takes on the machine is not established; the port takes two. Source: `re/notes/porting-m3.md`, "The fades, and the one provisional setting"; `re/notes/display.md`, Open.
+70. The suite has 930 tests: 807 emulator tests and 123 page tests, run in two phases; "about nine hundred" in the prose. Counted: `pytest tests/ --collect-only -q --slow`, with `-m "not page"` and `-m page`, at `698d0f8`.
+71. Not compared pixel by pixel: a whole mission scene, because the headless original draws nothing; the drawing calls and the palette rows stand for it. Compared pixel by pixel: every shape's blit, drawn by the original routine through a model of the blitter and compared with the port's framebuffer over every shape, at clipped and unclipped positions, on empty and non-empty backgrounds. Source: `SPEC.md` 8, "Mission, pass by pass" and "Drawing".
+72. Three things rest on documented behaviour or on the owner's eye or ear rather than on a comparison: the duration of a fade step, CPU time in the original that the listing cannot give, two VBlanks in the port, kept by the owner's decision without a film (`SPEC.md` 6.3; `CONTROLLER.md`, "Open items", "The duration of a fade step"); the music's tempo, which rests on the timer latch's low byte at power-up, `0xFF`, every song heard and found right by the owner (`SPEC.md` 6.5; `SPEC.md` 9, the M8 paragraph; `re/notes/music.md`; `CONTROLLER.md`, "Open items"); and the order of a directory's listing, documented behaviour that neither a run nor the disk confirmed (`SPEC.md` 6.2, Storage; `re/notes/frontend.md`, "The order of the file list"). Chapters 7, 18 and 19 carry the detail.
 
 ## What went wrong
 
 73. The specification first called the first picture the publisher's logo; the picture decoder of M1 showed the crack's picture, and the specification was corrected. Source: `re/notes/porting-m1.md`, "Findings"; `SPEC.md` 3.1 as it now reads.
+
+## Added while drafting
+
+75. Wings of Fury is Broderbund's Amiga game of 1990. Source: `SPEC.md` 1, Goal.
+76. The executable is one file of 94,292 bytes; its code falls into 616 routines, 223 of them compiled from C, the rest assembly. Source: `SPEC.md` 3.1 and 3.2, "Inventory".
+77. Every ported routine carries the address of its original in an `orig 0x......` comment. Source: `CLAUDE.md`, Rules.
+78. Besides the start, the input bytes and the random stream, the interleaving of VBlanks, passes and ticks is an input of the simulation. Source: `SPEC.md` 3.3, "Passes are not pure rendering".
+79. In the original all randomness is CPU timing. Source: `SPEC.md` 3.3.
+80. The sound effects and the music are the game's own samples, played by the game's own sound engine and music player, ported. Source: `README.md`, the paragraph after the picture; `SPEC.md` 6.5.
+81. The Amiga plays sound on four channels, each with its own period and volume. Source: `SPEC.md` 6.5.
+82. Colours are 12-bit words in tables of 32 entries (so 4,096 possible colours). Source: `re/notes/display.md`, Summary.
+83. Above the horizon the playfield goes through the sky palette, below it through the ocean palette, and the dashboard has its own. Source: `re/notes/display.md`, "The play screen line by line".
+84. The scaling keeps every pixel sharp and evenly sized. Source: `SPEC.md` 6.2, Video, "Size".
+85. A PAL machine shows 50 pictures a second, an NTSC machine 60. Source: `SPEC.md` 6.2, Clock.
+86. A pure routine gets an oracle test before it counts as verified. Source: `CLAUDE.md`, Rules; `SPEC.md` 7.4, step 4.
+87. The fade's colour arithmetic (`colour_lerp`, `0x016FF6`) was compared under the oracle on 20,000 random triples. Source: `re/notes/porting-m1.md`, "How the tests establish it".
+88. The picture decoder was compared with the original on all twelve picture files of the disk, pixels and colour table. Source: `re/notes/porting-m1.md`, "How the tests establish it".
+89. Enter chooses in a menu beside fire; the original's menu takes Return and Enter. Source: `SPEC.md` 6.2, Input; `re/notes/keys.md`, "Rank selection".
+90. The key left of 1 toggles the diagnostics overlay and never reaches the game. Source: `SPEC.md` 6.2, Input.
+91. Every song was heard by the owner and found right. Source: `CONTROLLER.md`, "Open items", "The music's tempo rests on an assumption".
 
 ## Handed to chapter 2
 
@@ -104,15 +124,15 @@ Every claim the chapter makes, one line each, with its source. A claim without a
 
 | Count | Value | Where, and the command |
 |---|---|---|
-| tests in the suite | 930 | `.venv/bin/python -m pytest tests/ --collect-only -q --slow` |
+| tests in the suite | 930 ("about nine hundred") | `.venv/bin/python -m pytest tests/ --collect-only -q --slow` |
 | emulator tests, page tests | 807, 123 | the same with `-m "not page"` and `-m page` |
-| oracle tests | 310, in 8 modules | `.venv/bin/python -m pytest tests/test_oracle_*.py --collect-only -q --slow` |
+| oracle tests | 310, in 8 modules ("more than three hundred") | `.venv/bin/python -m pytest tests/test_oracle_*.py --collect-only -q --slow` |
 | mission scripts | 11, 18, 25, 6: 60 | `tools/reach_observe.py` `PART2_SCRIPTS` without the `run:` entries, `m5_scripts_list()`, `m6_scripts_list()`, `tools/m7_scripts.py` `SCRIPTS` |
 | loaded games and demos | 8 | `tools/m7_scripts.py` `PART2` |
 | key runs during a mission | 21 | `PART2_SCRIPTS`, the `run:` entries (`tests/runs/flight-*.json`, `paused-*.json`) |
 | maps | 15 | `SPEC.md` 3.1, `maps/a.map` to `o.map`; `SPEC.md` 9, M6 |
 | replays | 1 demo | `ls tests/replays` |
-| page size | 1,158,496 bytes | `tools/build.py --native`, last line |
+| page size | 1,158,496 bytes ("about 1.1 megabytes") | `tools/build.py --native`, last line |
 | files in the page | 55 | `SPEC.md` 5, step 2; `tools/build.py`, "files 55 files" |
 | ticks a second | 12.5 PAL, 15 NTSC | `SPEC.md` 3.3 |
 
@@ -128,7 +148,7 @@ None. The chapter makes "routine by routine" concrete in words and points to cha
 
 ## Terms and glossary entries
 
-New entries: crack, emulator, FPGA recreation, faithful port, input byte, keyboard assist, logic tick, palette, pass, PAL, remake, sample, shell, core, vertical flip, WebAssembly, the oracle, the headless original.
+New entries: core, crack, emulator, faithful port, FPGA recreation, headless original, input byte, input sample, keyboard assist, logic tick, oracle, PAL, palette, pass, remake, shell, sound sample, vertical flip, WebAssembly. No bare entry "sample": the word means two things in this book (claim 15). The existing entry Paula now says "sound samples".
 
 ## Sidebars
 
