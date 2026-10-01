@@ -1,5 +1,7 @@
 # Controller handbook
 
+This is the handbook of the AI sessions that built the port: the port was made by Claude Code sessions under the owner's direction, one session leading (the controller, which the owner talks to) and worker sessions doing the tasks it assigns. The file is published as it was used, as part of the case study, and it addresses those sessions, not a reader of the repository; its plan and its open items are the project's own record of what was decided and found, in the order it happened.
+
 For the session that leads this project. Workers do not need this file; they follow `CLAUDE.md` and the task they are given.
 
 ## The arrangement

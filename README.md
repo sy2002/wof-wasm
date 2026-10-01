@@ -10,7 +10,7 @@ Open `dist/wof.html` in Chrome, Firefox or Safari. It runs from the file itself 
 
 The project is developed on macOS: the native library the tests load is built with `clang` as a `.dylib`. It needs `python3` (3.11), Node, and for the page tests Google Chrome and Firefox.
 
-1. Place the Kickstart ROM at `original/kick.rom`. It is not part of this repository. The image the project uses is Kickstart 1.3, revision 34.5, the A500 and A2000 image (exec 34.2 of 28 October 1987), 262,144 bytes, MD5 `82a21c1890cae844b3df741f2762d48d`, SHA-1 `891e9a547772fe0c6c19b610baf8bc4ea7fcb785`. Cloanto's Amiga Forever sells this image, and a real Amiga 500 with Kickstart 1.3 gives it too. `.venv/bin/python tools/rom.py` checks the file once the environment exists.
+1. Place the Kickstart ROM at `original/kick.rom`. It is not part of this repository. The image the project uses is Kickstart 1.3, revision 34.5, the A500 and A2000 image (exec 34.2 of 28 October 1987), 262,144 bytes, MD5 `82a21c1890cae844b3df741f2762d48d`, SHA-1 `891e9a547772fe0c6c19b610baf8bc4ea7fcb785`. Cloanto's Amiga Forever sells this image, a real Amiga 500 with Kickstart 1.3 gives it too, and a web search for the exact version named above finds further sources. `.venv/bin/python tools/rom.py` checks the file once the environment exists.
 2. Run `sh tools/setup.sh`. It makes `.venv` from `requirements.txt`, says what is missing, checks the ROM and builds `dist/wof.html`. Without the ROM the build stops with a message that says what is needed and where to get it.
 3. Run the tests in two phases, the second after the first and never beside it:
 
