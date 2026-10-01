@@ -61,6 +61,12 @@ The first phase, the emulator tests over the cores, takes about an hour, and the
 - `original/`: the disk image, the files extracted from it and the manual's text, plus the ROM you place.
 - `dist/wof.html`: the built game.
 
+## Amiga to Web
+
+What happened here might be the start of something larger than one game. Strip this repository of Wings of Fury and most of it is still standing: the instruments that read an executable and run it headless with the operating system stubbed, the runtime that gives a program an Amiga without the Amiga, the shell that gives it a screen and a sound chip in a browser, the test harness, and above all the method, written down with every mistake that was made once and the instrument that caught it. Two fifths of this project built those; three fifths ported the game. For the next game of the same construction, the two fifths are already there.
+
+So the idea, not started yet, is a template repository, "Amiga to Web": clone it, name it after the game, place the Kickstart ROM and the disk image, open the sessions the handbook names, say "start", and come back to the plan and the questions. It would not be a button; a port like this one needs its owner for the decisions, the look and the listen, and a budget. But it would turn what was done here once into a way of doing it again, for the class of Amiga games built as this one is, and it would be proven the day a second game goes through it. What is reusable, what is each game's work, which games the method reaches and which it does not, and the shape such a template could take are in `re/notes/amiga-to-web.md`.
+
 ## Licence
 
 The code and the tools of this repository (`src/`, `web/`, `tools/`, `tests/`, the build) are free software under the GNU General Public License, version 3 or later (`LICENSE`). The prose, that is `SPEC.md`, the notes in `re/notes/` and the book in `book/`, is under Creative Commons Attribution-ShareAlike 4.0 International (`LICENSE-CC-BY-SA-4.0`).
