@@ -109,7 +109,7 @@ The port draws each shape pixel by pixel on its picture of colour numbers, with 
 
 A sound sample is nothing but a row of numbers. The game's eight sound effects are files of signed bytes, from −128 to 127, with no header. The burst of a bomb or a rocket, `sounds/boom`, is 5,466 bytes, played once at period 500: each byte is held for 500 ticks of the colour clock, about 0.14 milliseconds, and the whole burst lasts 0.77 seconds.
 
-![The burst's sound sample in gold: a loud start that thins out over 770 milliseconds; below, a hundred of its bytes enlarged into a staircase of flat steps.](../generated/figures/sample-boom.png)
+![The burst's sound sample in gold: a loud start that thins out over 0.77 seconds; below, a hundred of its bytes enlarged into a staircase of flat steps.](../generated/figures/sample-boom.png)
 
 /// caption
 The sound sample of a burst, `sounds/boom`, as Paula plays it: the whole, and a hundred bytes enlarged, each held for one period.
