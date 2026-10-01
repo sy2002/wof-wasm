@@ -1,0 +1,4 @@
+; re/Wings.lst 0x019D58-0x019D5E: cop_vport_planes [C], a part of 0x019D18-0x01A06B
+019d58  4a6dffe4             tst.w      -$1c(a5)
+019d5c  6704                 beq.b      $19d62
+019d5e  e0ed0010             asr.w      $10(a5)

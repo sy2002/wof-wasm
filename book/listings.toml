@@ -11,9 +11,11 @@
 #                 prints for it by name, run at build time
 #           c     a C function of src/*.c, with the comment directly above it
 #           js    a function or a method of web/*.js, with the comment directly above it
-#           py    a function or a class of tools/*.py, with the comments directly above it
+#           py    a function or a class of tools/*.py, or of the file `file` names (a test of
+#                 tests/, say), with the comments directly above it
 #   name    the routine; a method is Class.method
-#   file    the source file, needed only where the name alone is not unique (not for asm)
+#   file    the source file, needed only where the name alone is not unique or the file lies
+#           outside the kind's directory (not for asm)
 #   from    asm only: the part of the routine from this address ...
 #   to      ... to the instruction at this address, both inclusive
 #   head    asm only: true keeps the header the listing gives the routine above its label
@@ -131,3 +133,38 @@ as = "main_start"
 [[listing]]
 kind = "skel"
 name = "map_load"
+
+# An oracle test, chapter 5: the fade's arithmetic held to the original's over every fade the
+# game runs and 20,000 random colours, the whole cross product on request.
+[[listing]]
+kind = "py"
+name = "test_colour_lerp_matches_over_its_range"
+file = "tests/test_oracle_m1.py"
+
+# The emulator's memory-form shift, chapter 5: object_step bounces a bomb on a runway, the
+# vertical speed turned and halved, then the horizontal halved, with two asr.w on memory.
+[[listing]]
+kind = "asm"
+name = "object_step"
+from = 0x010BB4
+to = 0x010BEC
+as = "object_step_bounce"
+
+# The third asr.w on memory, in a compiled routine: a word argument halved.
+[[listing]]
+kind = "asm"
+name = "cop_vport_planes"
+from = 0x019D58
+to = 0x019D5E
+as = "cop_vport_planes_shift"
+
+# The correction both instruments install: the shift as the 68000 does it, and the hook.
+[[listing]]
+kind = "py"
+name = "asr_word"
+file = "tools/m68k_fix.py"
+
+[[listing]]
+kind = "py"
+name = "_shift"
+file = "tools/m68k_fix.py"

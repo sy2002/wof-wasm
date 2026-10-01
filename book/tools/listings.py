@@ -16,7 +16,8 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
          tools/skel.py prints for it, run at build time
     c    src/*.c, a C function by its name, with the comment directly above it
     js   web/*.js, a function or a method by its name, with the comment directly above it
-    py   tools/*.py, a function or a class by its name, with the comments directly above it
+    py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
+         its name, with the comments directly above it
 
 The first line of every file names the source and the line range (or the address range), in
 the comment syntax of its language, so that a chapter shows where the extract comes from.  A

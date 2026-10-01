@@ -1,0 +1,18 @@
+; re/Wings.lst 0x010BB4-0x010BEC: object_step [asm], a part of 0x010AA6-0x010DA5
+010bb4  44aa0012             neg.l      $12(a2)
+010bb8  e0ea0012             asr.w      $12(a2)
+010bbc  0c6a00090012         cmpi.w     #$9, $12(a2)
+010bc2  6d00000c             blt.w      $10bd0
+010bc6  357c00090012         move.w     #$9, $12(a2)
+010bcc  60000012             bra.w      $10be0
+loc_010bd0:
+010bd0  4a6a0012             tst.w      $12(a2)
+010bd4  6600000a             bne.w      $10be0
+010bd8  422a0020             clr.b      $20(a2)
+010bdc  600000ec             bra.w      $10cca
+loc_010be0:
+010be0  e0ea000e             asr.w      $e(a2)
+010be4  660000e4             bne.w      $10cca
+loc_010be8:
+010be8  422a0020             clr.b      $20(a2)
+010bec  600000dc             bra.w      $10cca
