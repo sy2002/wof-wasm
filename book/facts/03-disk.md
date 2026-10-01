@@ -19,7 +19,7 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 ## An image of the floppy
 
 4. The repository keeps the disk as an image, `original/wof.adf`, and its files extracted verbatim with xdftool under `original/disk/`; nothing in the project writes to either. Source: `SPEC.md` 2; `CLAUDE.md`, Rules (`original/` is read-only).
-5. An ADF is a copy of an Amiga floppy block by block: a double-density disk has 80 cylinders of two tracks of 11 blocks of 512 bytes, 1,760 blocks, 901,120 bytes, 880 KB, the size of `original/wof.adf`. Source: ADF FAQ, "Amiga floppy disk geometry" **(reference)**; `stat -f %z original/wof.adf` gives 901,120; `python -c "print(80*2*11*512, 901120//512)"` gives 901120 1760.
+5. An ADF is a copy of an Amiga floppy block by block: a double-density disk is laid out in cylinders of two tracks, each track a row of blocks of one size, adding up to 880 KB, the size of `original/wof.adf`; exactly, 80 cylinders of two tracks of 11 blocks of 512 bytes, 1,760 blocks, 901,120 bytes, which the prose leaves to this sheet by the numbers rule. Source: ADF FAQ, "Amiga floppy disk geometry" **(reference)**; `stat -f %z original/wof.adf` gives 901,120; `python -c "print(80*2*11*512, 901120//512)"` gives 901120 1760.
 6. The disk's file system is AmigaDOS's original one, which keeps the top directory in block 880, the middle of the disk. Source: `SPEC.md` 3.1 (OFS); `tools/headless_os.py` (`ROOT_BLOCK = 880`, "of a double-density disk"); ADF FAQ, "The logical organisation of an Amiga volume" **(reference)**.
 7. A directory spreads its entries over 72 chains by a hash of their names, and the chains decide the order in which it lists its files, which is the order of the saved games in the load dialog (chapter 1). Source: `tools/headless_os.py` (`HASH_SIZE`, 72); `re/notes/frontend.md`, "The order of the file list"; `SPEC.md` 3.4, the dos row ("the order of the entries is behaviour"); chapter 1 (the order of the saved games in the load dialog).
 8. The port and its tools read the extracted files; the image is read for that order alone, which the headless original hands the game as the machine would. Source: `SPEC.md` 5, step 2 (the blob from the files of 3.1); `re/notes/headless.md`, "Directories" (`headless_os.adf_order`); `re/notes/frontend.md` (nothing taken from `wof.adf` at build time).
@@ -179,7 +179,7 @@ Numbered from 100 on, so that the claims above keep their numbers; each sits in 
 
 | Count | Value | Where, and the command |
 |---|---|---|
-| the chapter's words | 4,484 | `wc -w book/docs/part-1/disk.md`, the whole file with alt texts, captions, sidebars and the further reading |
+| the chapter's words | 4,487 | `wc -w book/docs/part-1/disk.md`, the whole file with alt texts, captions, sidebars and the further reading |
 | the image | 901,120 bytes, 1,760 blocks of 512 | `stat -f %z original/wof.adf` |
 | the game's directory | 65 files, 664,981 bytes | `find original/disk/Wings_of_Fury -type f ! -name .DS_Store`, sizes by `os.path.getsize` |
 | packed into the page | 55 files, 540,960 bytes | `tools/build.py` `game_files()`, sizes summed |

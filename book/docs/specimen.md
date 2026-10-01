@@ -46,15 +46,7 @@ The shell and the tools, as JavaScript and Python:
 --8<-- "generated/listings/py/fields.py"
 ```
 
-## The three sidebars
-
-/// know
-The instrument behind a claim: here, [`tests/test_oracle_m1.py`](repo:tests/test%5Foracle%5Fm1.py) runs `colour_lerp` under the 68000 oracle and compares it with the port's C on every step against black and white and on 20,000 random triples.
-///
-
-/// wrong
-A mistake and what caught it, told as part of the subject: what was believed, what the instrument showed, and what changed.
-///
+## The sidebar
 
 /// dev
 The deeper detail with the place in the source: [`src/iff.c`](repo:src/iff.c), `wof_colour_lerp`, and the note [`re/notes/display.md`](repo:re/notes/display.md#fades), section "Fades".
