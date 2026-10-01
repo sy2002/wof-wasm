@@ -4,7 +4,7 @@ A faithful port of the Amiga game Wings of Fury, the 1990 Amiga version, to a si
 
 ## Play
 
-Open `dist/wof.html` in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. The keys are on its help screen, which is up at the start and comes back with H.
+Open `dist/wof.html` in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
 
 ## Build and verify
 
