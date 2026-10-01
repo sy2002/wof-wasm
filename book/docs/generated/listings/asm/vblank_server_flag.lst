@@ -1,0 +1,7 @@
+; re/Wings.lst 0x011754-0x01175E: vblank_server [asm], a part of 0x011754-0x011965
+; vblank_server   [asm]  far-call slot -32688(a4)
+;   asm. "Interrupt_Server": every 4th VBlank sample one input byte into the queue
+vblank_server:
+011754  48e7fffe             movem.l    d0-d7/a0-a6, -(a7)
+011758  287c0002affe         movea.l    #$2affe, a4                            ; $02affe
+01175e  50eca5c0             st.b       -$5a40(a4)                             ; vblank_flag

@@ -18,9 +18,13 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
          its name, with the comments directly above it
+    json a JSON file the entry's `file` names (a run description of tests/runs/, say), the
+         whole of it, laid out one key of the top-level object a line and one element of a
+         top-level list a line, so that a script of many short lists reads as one line each
 
 The first line of every file names the source and the line range (or the address range), in
-the comment syntax of its language, so that a chapter shows where the extract comes from.  A
+the comment syntax of its language (`//` for JSON, which the highlighter's JSON lexer takes),
+so that a chapter shows where the extract comes from.  A
 name that does not exist, or exists more than once without a `file` to choose, fails the run
 with the name; so does an extract longer than its limit (40 lines, or the entry's `lines`).
 
@@ -30,6 +34,7 @@ difference, 2 the manifest asks for something the sources do not have.
 import argparse
 import ast
 import csv
+import json
 import pathlib
 import re
 import subprocess
@@ -39,7 +44,7 @@ import tempfile
 from common import LISTINGS, ROOT, Failure, compare, manifest, rel, replace_tree
 
 DEFAULT_LINES = 40
-EXT = {'asm': 'lst', 'skel': 'lst', 'c': 'c', 'js': 'js', 'py': 'py'}
+EXT = {'asm': 'lst', 'skel': 'lst', 'c': 'c', 'js': 'js', 'py': 'py', 'json': 'json'}
 SKEL = ROOT / 'tools' / 'skel.py'
 SOURCES = {'c': ('src', '*.c'), 'js': ('web', '*.js'), 'py': ('tools', '*.py')}
 LISTING = ROOT / 're' / 'Wings.lst'
@@ -383,6 +388,44 @@ def source_extract(entry):
     return header, lines
 
 
+# ------------------------------------------------------------------ JSON
+
+def json_extract(entry):
+    """A JSON file, the whole of it, laid out by the book rather than by its writer: one key
+    of the top-level object a line, and a top-level list one element a line, each element
+    written compactly.  The extract must read back as the same data."""
+    name = entry['name']
+    if 'file' not in entry:
+        raise Failure('json %s: a json entry names its file' % name)
+    path = ROOT / entry['file']
+    if not path.exists():
+        raise Failure('json %s: no file %s' % (name, entry['file']))
+    data = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(data, dict):
+        raise Failure('json %s: %s is not a JSON object' % (name, entry['file']))
+
+    def compact(value):
+        return json.dumps(value, ensure_ascii=False, separators=(', ', ': '))
+
+    lines = ['{']
+    items = list(data.items())
+    for i, (key, value) in enumerate(items):
+        comma = ',' if i < len(items) - 1 else ''
+        if isinstance(value, list) and value:
+            lines.append('  %s: [' % compact(key))
+            for j, element in enumerate(value):
+                lines.append('    %s%s' % (compact(element), ',' if j < len(value) - 1 else ''))
+            lines.append('  ]%s' % comma)
+        else:
+            lines.append('  %s: %s%s' % (compact(key), compact(value), comma))
+    lines.append('}')
+    if json.loads('\n'.join(lines)) != data:
+        raise Failure('json %s: the laid-out extract does not read back as %s'
+                      % (name, entry['file']))
+    header = '// %s, the whole file, one entry a line' % rel(path)
+    return header, lines
+
+
 def extract(entry, table, listing):
     if entry.get('kind') not in EXT:
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
@@ -390,6 +433,8 @@ def extract(entry, table, listing):
         raise Failure('%s %s: from, to and head are for asm only' % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
+    elif entry['kind'] == 'json':
+        header, lines = json_extract(entry)
     elif entry['kind'] == 'skel':
         header, lines = skel_extract(entry, table)
     else:

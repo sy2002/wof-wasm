@@ -1,0 +1,11 @@
+; re/Wings.lst 0x01AA3E-0x01AA4E: wait_vblank [asm]
+; wait_vblank   [asm]  far-call slot -32292(a4)
+;   asm. busy-waits for vblank_flag, then clears it
+;   callers: frame_update, view_show_wait, cop_show_wait
+wait_vblank:
+01aa3e  41f900dff000         lea.l      $dff000.l, a0
+loc_01aa44:
+01aa44  4a2ca5c0             tst.b      -$5a40(a4)                             ; vblank_flag
+01aa48  67fa                 beq.b      $1aa44
+01aa4a  422ca5c0             clr.b      -$5a40(a4)                             ; vblank_flag
+01aa4e  4e75                 rts

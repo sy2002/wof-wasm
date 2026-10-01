@@ -13,9 +13,12 @@
 #           js    a function or a method of web/*.js, with the comment directly above it
 #           py    a function or a class of tools/*.py, or of the file `file` names (a test of
 #                 tests/, say), with the comments directly above it
+#           json  the JSON file `file` names, the whole of it, laid out one key of the top-level
+#                 object a line and one element of a top-level list a line; `name` names the
+#                 extract
 #   name    the routine; a method is Class.method
 #   file    the source file, needed only where the name alone is not unique or the file lies
-#           outside the kind's directory (not for asm)
+#           outside the kind's directory (not for asm; always for json)
 #   from    asm only: the part of the routine from this address ...
 #   to      ... to the instruction at this address, both inclusive
 #   head    asm only: true keeps the header the listing gives the routine above its label
@@ -168,3 +171,29 @@ file = "tools/m68k_fix.py"
 kind = "py"
 name = "_shift"
 file = "tools/m68k_fix.py"
+
+# The headless original, chapter 6: the VBlank server sets the flag ...
+[[listing]]
+kind = "asm"
+name = "vblank_server"
+head = true
+to = 0x01175E
+as = "vblank_server_flag"
+
+# ... and the spin waits for it, the place where the harness lets a VBlank happen.
+[[listing]]
+kind = "asm"
+name = "wait_vblank"
+head = true
+
+# A run description: the player's hands by VBlank, a key with its qualifier, and the stop.
+[[listing]]
+kind = "json"
+name = "flight-control-f"
+file = "tests/runs/flight-control-f.json"
+
+# Where a slice of emulation ends changes nothing: three slice lengths, the same run.
+[[listing]]
+kind = "py"
+name = "test_where_a_slice_ends_changes_nothing"
+file = "tests/test_headless.py"
