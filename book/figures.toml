@@ -19,6 +19,7 @@
 #            disk       the game's directory on the disk, its files in rows by kind, their bytes and
 #                       formats, and which of them tools/build.py packs into the page
 #            packed     the first bytes of a packed file against the bytes they unpack to
+#            codemap    the code hunk along its addresses from re/functions.csv, by kind and status
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -283,3 +284,36 @@ scale = 2
 shows = "The first bytes of shapes/selectrank.shp as the disk holds them, in the game's packed format, and the first bytes they unpack to: the header, four control bytes, the bytes they copy and the bytes they repeat, and the shape container that comes out."
 how = "The file's bytes from its start through its fourth control byte and what that writes; each control byte read as signed, a negative one copying that many bytes, any other repeating the next byte one time more than its value (SPEC.md 3.5); the bytes made checked against tools/rpck.py's unpacking of the whole file; the container's fields named from its count (SPEC.md 3.5, PPkc); the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py packed-selectrank"
+
+[[figure]]
+name = "code-map"
+file = "code-map.png"
+maker = "codemap"
+row_bytes = 8192
+pixel_bytes = 16
+# The end of the hand-written first third, and the blitter library's two ends (SPEC.md 3.2).
+marks = [0x015D62, 0x0209BC, 0x0215D8]
+scale = 2
+shows = "The executable's code hunk along its addresses, 0x010000 to 0x022F4B, in rows of 8 KB: once by the kind of each routine, hand-written assembly or compiled C, and once by its status in the port, with ticks at 0x015D62 and at the blitter library's two ends."
+how = "re/functions.csv read with csv.DictReader, every byte of the hunk given to the routine whose span holds it (the maker fails unless the spans tile the hunk exactly); each pixel 16 bytes, coloured by the value that holds most of them; the counts under each panel from the same rows; the colours entries of the game's palettes, kept apart for colour-blind readers over all pairs on the figure's ground, drop and todo neutral greys; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py code-map"
+
+# The panels, in order: the column of re/functions.csv, the panel's title, a note under its
+# legend if any, and each value with the words of its legend and its colour, a palette file and
+# an entry.
+[[figure.panels]]
+column = "kind"
+title = "by kind: re/functions.csv's column kind, C where the routine begins with link a5"
+note = "the ticks: 015D62, the end of the first third; 0209BC and 0215D8, the blitter library"
+values = [["asm", "hand-written assembly", ["selectrank", 6]],
+          ["C", "compiled C", ["selectrank", 17]]]
+
+[[figure.panels]]
+column = "status"
+title = "by status: where the port stands with each routine"
+values = [["verified", "verified", ["creditscreen", 26]],
+          ["ported", "ported", ["ocean.palette", 7]],
+          ["partial", "partial", ["wingstitle", 8]],
+          ["replace", "replace", ["broderbund", 8]],
+          ["drop", "drop", ["wingspalette", 28]],
+          ["todo", "todo, no status set", ["wingspalette", 26]]]

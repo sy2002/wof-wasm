@@ -1,0 +1,20 @@
+; re/Wings.lst 0x010006-0x010046: main [asm], a part of 0x010006-0x01020D
+; main   [asm]  far-call slot -32760(a4)
+;   asm. init, outer loop loc_010066 (title/menus/mission), inner per-frame loop loc_01010e
+;   callers: sub_021fa8
+main:
+010006  08f9000100bfe001     bset.b     #$1, $bfe001.l
+01000e  4eac81e2             jsr        -$7e1e(a4)                             ; -> sub_01aa50
+010012  4eba255c             jsr        $12570(pc)                             ; open_libraries
+010016  2c6cbf28             movea.l    -$40d8(a4), a6                         ; IntuitionBase
+01001a  4eaeffb2             jsr        -$4e(a6)                               ; intuition.CloseWorkBench
+01001e  50ec9650             st.b       -$69b0(a4)                             ; outside_mission
+010022  4eba28ec             jsr        $12910(pc)                             ; install_vblank_server
+010026  397cffff9cae         move.w     #$ffff, -$6352(a4)                     ; g_024cac
+01002c  0c6f00010004         cmpi.w     #$1, $4(a7)
+010032  6300000e             bls.w      $10042
+010036  206f0006             movea.l    $6(a7), a0
+01003a  297c00023458bf88     move.l     #$23458, -$4078(a4)                    ; demo_file_name | "wofdemo"
+loc_010042:
+010042  3f2f0004             move.w     $4(a7), -(a7)
+010046  4eac8218             jsr        -$7de8(a4)                             ; -> sub_01ccb6

@@ -10,7 +10,10 @@ Reads the manifest book/listings.toml and writes one plain-text file per entry,
 book/docs/generated/listings/<kind>/<name>.<ext>, from:
 
     asm  re/Wings.lst, a routine by its name in re/functions.csv: its lines from its start
-         address to its end (or a part of it between two addresses)
+         address to its end (or a part of it between two addresses), with `head` also the
+         header the listing gives it (its kind, frame, far-call slot, comment and callers)
+    skel the control-flow skeleton of a routine of re/Wings.lst, by its name: what
+         tools/skel.py prints for it, run at build time
     c    src/*.c, a C function by its name, with the comment directly above it
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, a function or a class by its name, with the comments directly above it
@@ -28,13 +31,15 @@ import ast
 import csv
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 
 from common import LISTINGS, ROOT, Failure, compare, manifest, rel, replace_tree
 
 DEFAULT_LINES = 40
-EXT = {'asm': 'lst', 'c': 'c', 'js': 'js', 'py': 'py'}
+EXT = {'asm': 'lst', 'skel': 'lst', 'c': 'c', 'js': 'js', 'py': 'py'}
+SKEL = ROOT / 'tools' / 'skel.py'
 SOURCES = {'c': ('src', '*.c'), 'js': ('web', '*.js'), 'py': ('tools', '*.py')}
 LISTING = ROOT / 're' / 'Wings.lst'
 FUNCTIONS = ROOT / 're' / 'functions.csv'
@@ -292,6 +297,16 @@ def asm_extract(entry, table, listing):
         raise Failure('asm %s: no instruction at 0x%06X in re/Wings.lst' % (name, hi))
     while begin > 0 and LABEL.match(listing[begin - 1]):
         begin -= 1                                       # the labels on the first instruction
+    if entry.get('head'):
+        if lo != start:
+            raise Failure('asm %s: a head belongs to the routine\'s start, not to a part from '
+                          '0x%06X' % (name, lo))
+        while begin > 0 and listing[begin - 1].startswith(';') \
+                and not listing[begin - 1].startswith('; ===='):
+            begin -= 1                                   # the header the listing gives it
+        if not listing[begin].startswith('; %s   [' % name):
+            raise Failure('asm %s: no header of that name above 0x%06X in re/Wings.lst'
+                          % (name, lo))
     out, last = [], lo
     for line in listing[begin:]:
         m = ADDRESS.match(line)
@@ -309,6 +324,32 @@ def asm_extract(entry, table, listing):
     part = '' if (lo, hi) == (start, end - 1) else ', a part of 0x%06X-0x%06X' % (start, end - 1)
     header = '; re/Wings.lst 0x%06X-0x%06X: %s %s%s' % (lo, last, name, kind, part)
     return header, out
+
+
+def skel_extract(entry, table):
+    """What tools/skel.py prints for a routine, with a first line that names the command, the
+    routine's address range and how many of its lines in the listing the skeleton keeps."""
+    name = entry['name']
+    row = table.get(name)
+    if row is None:
+        raise Failure('skel %s: no routine of that name in re/functions.csv' % name)
+
+    def skel(*options):
+        done = subprocess.run([sys.executable, str(SKEL), name, *options], cwd=ROOT,
+                              capture_output=True, text=True)
+        if done.returncode:
+            raise Failure('skel %s: tools/skel.py failed: %s'
+                          % (name, (done.stderr or done.stdout).strip()))
+        return [line.rstrip() for line in done.stdout.rstrip('\n').split('\n')]
+
+    lines, whole = skel(), skel('--all')
+    addresses = [int(m.group(1), 16) for m in map(ADDRESS.match, whole) if m]
+    if not addresses or addresses[0] != int(row['addr'], 16):
+        raise Failure('skel %s: tools/skel.py did not print the routine at 0x%s'
+                      % (name, row['addr'].upper()))
+    header = '; tools/skel.py %s: re/Wings.lst 0x%06X-0x%06X, %d of its %d lines' % (
+        name, addresses[0], addresses[-1], len(lines), len(whole))
+    return header, lines
 
 
 def source_extract(entry):
@@ -344,10 +385,12 @@ def source_extract(entry):
 def extract(entry, table, listing):
     if entry.get('kind') not in EXT:
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
-    if ('from' in entry or 'to' in entry) and entry['kind'] != 'asm':
-        raise Failure('%s %s: from and to are for asm only' % (entry['kind'], entry['name']))
+    if ('from' in entry or 'to' in entry or 'head' in entry) and entry['kind'] != 'asm':
+        raise Failure('%s %s: from, to and head are for asm only' % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
+    elif entry['kind'] == 'skel':
+        header, lines = skel_extract(entry, table)
     else:
         header, lines = source_extract(entry)
     limit = entry.get('lines', DEFAULT_LINES)

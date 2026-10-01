@@ -23,9 +23,12 @@ class WingsListingLexer(RegexLexer):
     tokens = {
         'root': [
             (r'^;.*\n?', Comment.Single),                         # a header or a note line
-            (r'^([A-Za-z_]\w*)(:)(\s*\n?)', bygroups(Name.Label, Punctuation, Whitespace)),
+            (r'^([A-Za-z_]\w*)(:)([ \t]*\n?)', bygroups(Name.Label, Punctuation, Whitespace)),
             (r'^([0-9a-f]{6})(\s+)([0-9a-f]+)(\s+)',
              bygroups(Name.Constant, Whitespace, Comment.Special, Whitespace), 'instruction'),
+            # a line of a control-flow skeleton (tools/skel.py): indented, without the bytes
+            (r'^([ \t]+)([0-9a-f]{6})([ \t]+)',
+             bygroups(Whitespace, Name.Constant, Whitespace), 'instruction'),
             (r'.+\n?', Text),
             (r'\n', Whitespace),
         ],

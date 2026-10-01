@@ -1,0 +1,23 @@
+; tools/skel.py map_load: re/Wings.lst 0x012ADC-0x012BBC, 22 of its 76 lines
+; map_load   [asm]  far-call slot -32628(a4)
+;   asm. opens maps/<letter>.map, reads the two longs and the records, then map_scan
+;   callers: main
+map_load:
+  012ae0  jsr $13554(pc) ; airfields_clear
+  012b06  bra.w $12b0c
+loc_012b0a:
+loc_012b0c:
+  012b0c  dbra d1, $12b0a
+  012b34  jsr -$1e(a6) ; dos.Open
+  012b3c  bne.w $12b40
+loc_012b40:
+  012b4e  jsr -$2a(a6) ; dos.Read
+  012b60  jsr -$2a(a6) ; dos.Read
+  012b74  jsr $158ec(pc) ; mem_alloc_asm
+  012b7c  bne.w $12b84
+  012b80  bra.w $124d8
+loc_012b84:
+  012b90  jsr -$2a(a6) ; dos.Read
+  012b96  jsr -$24(a6) ; dos.Close
+  012bb4  jsr $12d5a(pc) ; map_scan
+  012bbc  rts

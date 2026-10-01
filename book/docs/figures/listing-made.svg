@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" width="820" height="400" role="img" aria-labelledby="title desc">
+  <title id="title">How the listing is made</title>
+  <desc id="desc">Four inputs on the left: the program Wings from the disk, 94,292 bytes; re/names.txt, 798 names written by hand; re/libbases.txt, the five variables that hold a library's address, written by hand; and tools/fd/, each library's routines in order. All four go into tools/disasm.py in the middle, which follows the control flow and names what it can, in about two seconds. It writes two files on the right: re/Wings.lst, the listing, 32,434 lines, which tools/skel.py reads to print a routine's skeleton; and re/functions.csv, the inventory of 616 routines, whose status column is the one column kept by hand and is read back and carried over at every run. Below, tests/test_generated.py makes both files again into a directory of its own and compares them with the committed ones byte for byte.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .prog  { fill: #77AACC; /* wingspalette 22 */ }
+    .hand  { fill: #FFBB00; /* wingstitle 25 */ }
+    .made  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .tool  { fill: #AAAABB; /* wingspalette 29 */ }
+    .ref   { fill: #888899; /* wingspalette 28 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .back  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 1.5; stroke-dasharray: 5 3; fill: none; }
+    .backtip { fill: #FFBB00; /* wingstitle 25 */ }
+    .check { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    .frame { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The inputs -->
+  <text class="light label" x="20" y="24">read</text>
+  <rect class="prog" x="20" y="36" width="220" height="52" rx="3"/>
+  <text class="ink mono" x="30" y="57">Wings</text>
+  <text class="ink small" x="30" y="77">the program, 94,292 bytes</text>
+  <rect class="hand" x="20" y="100" width="220" height="52" rx="3"/>
+  <text class="ink mono" x="30" y="121">re/names.txt</text>
+  <text class="ink small" x="30" y="141">798 names, written by hand</text>
+  <rect class="hand" x="20" y="164" width="220" height="52" rx="3"/>
+  <text class="ink mono" x="30" y="185">re/libbases.txt</text>
+  <text class="ink small" x="30" y="205">5 library bases, written by hand</text>
+  <rect class="ref" x="20" y="228" width="220" height="52" rx="3"/>
+  <text class="ink mono" x="30" y="249">tools/fd/</text>
+  <text class="ink small" x="30" y="269">each library's routines, in order</text>
+
+  <!-- Into the disassembler -->
+  <path class="wire" d="M240 62 L312 140"/>
+  <path class="tip" d="M318 146 L308 143 L315 135 Z"/>
+  <path class="wire" d="M240 126 L310 150"/>
+  <path class="tip" d="M318 153 L307 154 L310 145 Z"/>
+  <path class="wire" d="M240 190 L310 168"/>
+  <path class="tip" d="M318 166 L310 173 L307 164 Z"/>
+  <path class="wire" d="M240 254 L312 180"/>
+  <path class="tip" d="M318 174 L315 184 L308 177 Z"/>
+
+  <rect class="tool" x="320" y="118" width="190" height="84" rx="3"/>
+  <text class="ink mono" x="332" y="141">tools/disasm.py</text>
+  <text class="ink small" x="332" y="161">follows the control flow,</text>
+  <text class="ink small" x="332" y="177">names what it can,</text>
+  <text class="ink small" x="332" y="193">in about two seconds</text>
+
+  <!-- Out of it -->
+  <text class="light label" x="580" y="24">written, never edited</text>
+  <path class="wire" d="M510 140 L572 74"/>
+  <path class="tip" d="M578 68 L575 79 L568 72 Z"/>
+  <path class="wire" d="M510 180 L572 236"/>
+  <path class="tip" d="M578 242 L567 239 L573 232 Z"/>
+
+  <rect class="made" x="580" y="36" width="220" height="52" rx="3"/>
+  <text class="ink mono" x="590" y="57">re/Wings.lst</text>
+  <text class="ink small" x="590" y="77">the listing, 32,434 lines</text>
+
+  <path class="wire" d="M690 88 L690 112"/>
+  <path class="tip" d="M690 119 L685 110 L695 110 Z"/>
+  <rect class="tool" x="600" y="120" width="180" height="46" rx="3"/>
+  <text class="ink mono" x="610" y="139">tools/skel.py</text>
+  <text class="ink small" x="610" y="157">a routine's skeleton</text>
+
+  <rect class="made" x="580" y="216" width="220" height="64" rx="3"/>
+  <text class="ink mono" x="590" y="237">re/functions.csv</text>
+  <text class="ink small" x="590" y="255">the inventory, 616 routines</text>
+  <rect class="hand" x="590" y="262" width="200" height="12" rx="2"/>
+  <text class="ink small" x="596" y="272" font-size="10">status: the column kept by hand</text>
+
+  <!-- The status column read back and carried over -->
+  <path class="back" d="M585 274 C 540 300, 470 270, 450 210"/>
+  <path class="backtip" d="M448 203 L455 212 L445 213 Z"/>
+  <text class="muted small" x="428" y="300">read back, carried over</text>
+
+  <!-- The test -->
+  <rect class="frame" x="320" y="318" width="420" height="72" rx="3"/>
+  <text class="light mono" x="332" y="341">tests/test_generated.py</text>
+  <text class="light small" x="332" y="361">makes both again, in a directory of its own,</text>
+  <text class="light small" x="332" y="378">and compares them with the committed files byte for byte</text>
+  <path class="check" d="M700 318 L700 280"/>
+  <path class="check" d="M740 354 L810 354 L810 62 L800 62"/>
+</svg>

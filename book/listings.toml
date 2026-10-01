@@ -7,6 +7,8 @@
 #
 #   kind    asm   a routine of re/Wings.lst, by its name in re/functions.csv: its lines from
 #                 its start address to its end
+#           skel  the control-flow skeleton of a routine of re/Wings.lst: what tools/skel.py
+#                 prints for it by name, run at build time
 #           c     a C function of src/*.c, with the comment directly above it
 #           js    a function or a method of web/*.js, with the comment directly above it
 #           py    a function or a class of tools/*.py, with the comments directly above it
@@ -14,6 +16,8 @@
 #   file    the source file, needed only where the name alone is not unique (not for asm)
 #   from    asm only: the part of the routine from this address ...
 #   to      ... to the instruction at this address, both inclusive
+#   head    asm only: true keeps the header the listing gives the routine above its label
+#           (its kind, frame, far-call slot, comment and callers); for a part, only from the start
 #   as      the name of the extract, where it is not the routine's (a part, say)
 #   lines   the most lines the extract may have, the first line not counted.  The default is
 #           40; a longer routine fails the run unless its entry asks for more here.
@@ -112,3 +116,18 @@ name = "sound_slots_init"
 from = 0x011FFE
 to = 0x01201C
 as = "sound_slots_init_boom"
+
+# The listing's columns and comments, chapter 4: the start of main with the header the listing
+# gives it, through its first call of an unnamed routine by its far-call slot.
+[[listing]]
+kind = "asm"
+name = "main"
+to = 0x010046
+head = true
+as = "main_start"
+
+# The control-flow skeleton of a hand-written routine of middling size, chapter 4: map_load
+# opens the map's file, reads its two longs and its records, and hands them to map_scan.
+[[listing]]
+kind = "skel"
+name = "map_load"

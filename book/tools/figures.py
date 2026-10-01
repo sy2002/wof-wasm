@@ -26,6 +26,8 @@ made and the command that remakes it, and writes PNG files:
                the formats their first bytes show and whether tools/build.py packs them
     packed     the first bytes of a packed file against the bytes they unpack to, with
                tools/rpck.py's unpacking, each control byte spelled out
+    codemap    the executable's code along its addresses from re/functions.csv, once by the
+               routines' kind and once by their status
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -658,6 +660,85 @@ def make_packed(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def make_codemap(figure, path):
+    """The code hunk along its addresses, once for each column of re/functions.csv the manifest
+    names (the kind, the status): rows of `row_bytes` at `pixel_bytes` a pixel, each pixel in
+    the colour of the value that holds most of its bytes, ticks above the rows at the marked
+    addresses, and under each panel its values with their routines and bytes.  The routines'
+    spans must tile the code hunk exactly, and every value must be one the manifest names."""
+    import csv
+    import hunk
+    from PIL import Image, ImageDraw
+    with open(ROOT / 're' / 'functions.csv', newline='') as handle:
+        rows = list(csv.DictReader(handle))
+    code = hunk.load(str(DISK / 'Wings'))[0]
+    lo, size = code['base'], len(code['data'])
+    at = lo
+    for row in rows:
+        if int(row['addr'], 16) != at:
+            raise Failure('re/functions.csv: %s begins at 0x%s, the previous routine ends at '
+                          '0x%06X' % (row['name'], row['addr'].upper(), at))
+        at += int(row['span'])
+    if at != lo + size:
+        raise Failure('re/functions.csv: the spans end at 0x%06X, the code hunk at 0x%06X'
+                      % (at, lo + size))
+
+    row_bytes, pixel_bytes = figure['row_bytes'], figure['pixel_bytes']
+    width, lines = row_bytes // pixel_bytes, (size + row_bytes - 1) // row_bytes
+    margin, label_w, row_h, gap, head, legend_h = 6, 48, 9, 5, 16, 13
+    panels = figure['panels']
+    panel_h = [head + lines * (row_h + gap) + 4 + legend_h * (len(p['values']) + ('note' in p))
+               + 10 for p in panels]
+    image = Image.new('RGB', (2 * margin + label_w + width, margin + sum(panel_h)), GROUND)
+    draw = ImageDraw.Draw(image)
+    y0 = margin
+    for panel, height in zip(panels, panel_h):
+        column, values = panel['column'], panel['values']
+        order = [v[0] for v in values]
+        colour = {v[0]: palette(v[2][0])[v[2][1]] for v in values}
+        owner = bytearray(size)                          # the value of every byte, by its index
+        for row in rows:
+            if row[column] not in order:
+                raise Failure('%s: %s has %s %r, which the manifest does not name'
+                              % (figure['name'], row['name'], column, row[column]))
+            a = int(row['addr'], 16) - lo
+            owner[a:a + int(row['span'])] = bytes([order.index(row[column])]) * int(row['span'])
+        text(draw, (margin, y0), panel['title'])
+        top = y0 + head
+        for line in range(lines):
+            y = top + line * (row_h + gap) + gap
+            text(draw, (margin, y - 2), '%06X' % (lo + line * row_bytes))
+            x0 = margin + label_w
+            first = line * row_bytes
+            span = min(row_bytes, size - first)
+            draw.rectangle((x0, y, x0 + width - 1, y + row_h - 1), fill=PANEL)
+            for px in range((span + pixel_bytes - 1) // pixel_bytes):
+                part = owner[first + px * pixel_bytes:min(first + (px + 1) * pixel_bytes, size)]
+                counts = collections.Counter(part)
+                best = max(counts, key=lambda v: (counts[v], -v))
+                draw.line((x0 + px, y, x0 + px, y + row_h - 1), fill=colour[order[best]])
+            for mark in figure['marks']:
+                offset = mark - lo - first
+                if 0 <= offset < row_bytes:
+                    x = x0 + offset // pixel_bytes
+                    draw.line((x, y - 4, x, y - 1), fill=LABEL)
+        y = top + lines * (row_h + gap) + 4
+        words_w = max(len(v[1]) for v in values)
+        for i, (value, words, _) in enumerate(values):
+            members = [r for r in rows if r[column] == value]
+            yy = y + i * legend_h
+            draw.rectangle((margin, yy + 2, margin + 15, yy + 9), fill=colour[value])
+            text(draw, (margin + 22, yy), '%-*s %4d %-8s %7s bytes' % (
+                words_w, words, len(members), 'routine' if len(members) == 1 else 'routines',
+                format(sum(int(r['span']) for r in members), ',')))
+        if 'note' in panel:
+            draw.text((margin, y + len(values) * legend_h), panel['note'], fill=MUTED,
+                      font=ppkc().FONT)
+        y0 += height
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -713,6 +794,8 @@ def generate(out, names=None, log=print):
             make_disk(figure, path)
         elif maker == 'packed':
             make_packed(figure, path)
+        elif maker == 'codemap':
+            make_codemap(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:
