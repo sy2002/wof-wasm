@@ -300,6 +300,14 @@ The one set of addresses at which all the project's tools load the game's progra
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2; [`tools/hunk.py`](repo:tools/hunk.py).
 
+### Fixture
+
+A function the test framework runs before a test, to set up what the test needs; the port's suite has one that gives every test a fresh core before it runs.
+
+First met and defined in [chapter 9](part-1/wrong.md). The detail: [`tests/conftest.py`](repo:tests/conftest.py); [`re/notes/testing.md`](repo:re/notes/testing.md#a-fresh-core-for-every-test), "A fresh core for every test".
+
+Elsewhere: [Test fixture](https://en.wikipedia.org/wiki/Test%5Ffixture), Wikipedia.
+
 ### FPGA recreation
 
 A computer rebuilt in programmable hardware, a chip whose circuits are configured to behave like the original machine's.
@@ -777,6 +785,14 @@ Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikiped
 The Amiga's standard font, eight pixels high, in the Kickstart ROM; the game's dialogs for names and files show it, and the port reads it from the ROM when it is built.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/system-font.md`](repo:re/notes/system-font.md).
+
+### Upper word
+
+The upper 16 bits of a 32-bit register or long, which an instruction on a word leaves as they were; a value one routine leaves there reaches the next.
+
+First met and defined in [chapter 9](part-1/wrong.md). The detail: [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#registers-that-cross-a-call), "Registers that cross a call".
+
+Elsewhere: [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### VBlank
 
