@@ -192,12 +192,12 @@ def with_comment_above(lines, start):
 def c_functions(text, name):
     """Every definition of the C function `name` in one file, as (first line, last line)."""
     code = masked(text)
+    lines = text.split('\n')
     found = []
     for m in re.finditer(r'(?m)^(?:[A-Za-z_][^\n;{}=()]*?\b)?%s\s*\(' % re.escape(name), code):
         span = body_after(code, m.end() - 1)
         if span is None:
             continue
-        lines = text.split('\n')
         first = line_of(text, m.start())
         if re.match(r'%s\s*\(' % re.escape(name), lines[first]) and first > 0:
             first -= 1                        # the return type stands on the line above
@@ -224,6 +224,8 @@ def js_functions(text, name):
             return []
         lo = m.end()
         hi = closing(code, lo, '{', '}')
+        if hi is None:
+            return []
     found = set()
     for pattern in JS_PATTERNS:
         for m in re.finditer(pattern % re.escape(name), code[:hi]):
