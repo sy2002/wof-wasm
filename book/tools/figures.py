@@ -20,6 +20,7 @@ made and the command that remakes it, and writes PNG files:
     font       a specimen of the game's font, drawn by the core's text_render
     planes     one shape of a container taken apart into its stored planes with tools/ppkc.py,
                and put together again as colour numbers and through a palette
+    blit       the blitter's cookie cut of one plane of a shape over a plain background
     sample     a sound effect's file as a waveform, the whole and a stretch enlarged
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
@@ -285,11 +286,10 @@ def make_font(figure, path):
     image.resize((image.width * sx, image.height * sy), Image.NEAREST).save(path)
 
 
-def make_planes(figure, path):
-    """One shape's stored planes, each as its bits, then the colour numbers they make, as
-    shades from black to white, then the same through a palette; one pixel marked in every
-    row, its bit, its number and its colour written beside the row."""
-    from PIL import Image, ImageDraw
+def shape_planes(figure):
+    """The record of figure['shape'] in figure['container'] and its stored planes as rows of
+    bits, the planes landing in planes 1, 2, 4, ... in order, checked against the pixels of
+    tools/ppkc.py's to_indexed()."""
     tool = ppkc()
     shapes = {s['name']: s for s in tool.parse(str(SHAPES / figure['container']))}
     if figure['shape'] not in shapes:
@@ -310,6 +310,16 @@ def make_planes(figure, path):
                for y in range(height)]
     if numbers != tool.to_indexed(shape):
         raise Failure('%s: the planes do not make the pixels of tools/ppkc.py' % figure['shape'])
+    return shape, planes, numbers
+
+
+def make_planes(figure, path):
+    """One shape's stored planes, each as its bits, then the colour numbers they make, as
+    shades from black to white, then the same through a palette; one pixel marked in every
+    row, its bit, its number and its colour written beside the row."""
+    from PIL import Image, ImageDraw
+    shape, planes, numbers = shape_planes(figure)
+    width, height = len(numbers[0]), len(numbers)
     colours = palette(figure['palette'])
     mark = palette(figure['mark'][0])[figure['mark'][1]]
     px, py = figure['pixel']
@@ -353,6 +363,53 @@ def make_planes(figure, path):
                                     x0 + (x + 1) * zoom - 1, y0 + (y + 1) * zoom - 1), fill=rgb)
         draw.rectangle((x0 + px * zoom - 1, y0 + py * zoom - 1,
                         x0 + (px + 1) * zoom, y0 + (py + 1) * zoom), outline=mark)
+        text(draw, (x0 + box_w + 10, y0 + (box_h - 11) // 2), note)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def make_blit(figure, path):
+    """The blitter's cookie cut for one plane, as shape_draw programmes it for a shape of two
+    or more stored planes (re/notes/drawing.md, minterm 0xCA): A the mask, the OR of the
+    shape's planes; B the shape's plane; C the screen's plane under the shape's box, here of a
+    plain background of one colour; D = A and B, or not A and C.  The result is checked
+    against the shape's pixels laid over the background, plane by plane."""
+    from PIL import Image, ImageDraw
+    shape, planes, numbers = shape_planes(figure)
+    width, height = len(numbers[0]), len(numbers)
+    plane, ground = figure['plane'], figure['ground']
+    if not 1 <= plane <= len(planes):
+        raise Failure('%s has no plane %d' % (figure['shape'], plane))
+    a = [[1 if numbers[y][x] else 0 for x in range(width)] for y in range(height)]
+    b = planes[plane - 1]
+    c = [[ground >> (plane - 1) & 1] * width for _ in range(height)]
+    d = [[a[y][x] & b[y][x] | (1 - a[y][x]) & c[y][x] for x in range(width)]
+         for y in range(height)]
+    over = [[numbers[y][x] if numbers[y][x] else ground for x in range(width)]
+            for y in range(height)]
+    if d != [[over[y][x] >> (plane - 1) & 1 for x in range(width)] for y in range(height)]:
+        raise Failure('%s: the cookie cut does not give the shape over the ground' % figure['shape'])
+    rows = [('A, the mask', a, 'the OR of all %d planes' % len(planes)),
+            ('B, the shape\'s plane %d' % plane, b, 'as %s stores it' % figure['container']),
+            ('C, the screen\'s plane %d' % plane, c, 'colour %d everywhere' % ground),
+            ('D, the result', d, '(A and B) or (not A and C)')]
+    zoom = figure['zoom']
+    label_w, gap, margin, head = 160, 7, 6, 18
+    box_w, box_h = width * zoom, height * zoom
+    image = Image.new('RGB', (margin + label_w + box_w + 10 + figure['note_width'],
+                              head + len(rows) * (box_h + gap) - gap + 2 * margin), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s over colour %d, plane %d of %d, one blitter run'
+         % (figure['shape'], ground, plane, len(planes)))
+    for r, (label, bits, note) in enumerate(rows):
+        x0, y0 = margin + label_w, margin + head + r * (box_h + gap)
+        text(draw, (margin, y0 + (box_h - 11) // 2), label)
+        draw.rectangle((x0, y0, x0 + box_w - 1, y0 + box_h - 1), fill=PANEL)
+        for y in range(height):
+            for x in range(width):
+                if bits[y][x]:
+                    draw.rectangle((x0 + x * zoom, y0 + y * zoom,
+                                    x0 + (x + 1) * zoom - 1, y0 + (y + 1) * zoom - 1), fill=LABEL)
         text(draw, (x0 + box_w + 10, y0 + (box_h - 11) // 2), note)
     scale = figure.get('scale', 1)
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
@@ -464,6 +521,8 @@ def generate(out, names=None, log=print):
             make_font(figure, path)
         elif maker == 'planes':
             make_planes(figure, path)
+        elif maker == 'blit':
+            make_blit(figure, path)
         elif maker == 'sample':
             make_sample(figure, path)
         else:

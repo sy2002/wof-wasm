@@ -15,6 +15,7 @@
 #            planes     one shape taken apart into its stored planes and put together again
 #                       (tools/ppkc.py, parse()), as colour numbers and through a palette
 #            sample     a sound effect's file as a waveform, the whole and a stretch enlarged
+#            blit       the blitter's cookie cut of one plane of a shape over a plain background
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -167,3 +168,18 @@ scale = 2
 shows = "The sound sample of a bomb's or a rocket's burst, sounds/boom, as Paula plays it: the whole of its 5,466 bytes, and bytes 400 to 499 enlarged, each byte held as a step."
 how = "The file's bytes read as signed 8-bit values (tools/rpck.py's load(), which leaves an unpacked file as it is); above, one column for every eleven or so bytes, from their smallest to their largest value, with a tick every 100 ms at period 500 (slot 4's, re/notes/sound.md) and PAL's 3,546,895 colour clocks a second; below, the stretch framed above, one step of five pixels for each byte; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py sample-boom"
+
+[[figure]]
+name = "blit-hellcat"
+file = "blit-hellcat.png"
+maker = "blit"
+container = "hellcat.shp"
+shape = "hc05"
+plane = 1
+ground = 1
+zoom = 3
+note_width = 160
+scale = 2
+shows = "One run of the blitter as shape_draw programmes it: the Hellcat hc05 drawn over the sky (colour 1), plane 1: A the mask, B the shape's plane 1, C the screen's plane 1 under the shape's box, D the result."
+how = "tools/ppkc.py's parse(); A the OR of the shape's five stored planes, as shape_draw writes it into MaskBuffer for a shape of two or more planes; B its first stored plane; C plane 1 of a background of colour 1, all set; D computed bit by bit as minterm 0xCA, (A and B) or (not A and C) (re/notes/drawing.md), and checked against plane 1 of the shape's pixels laid over colour 1; each pixel three wide and high, the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py blit-hellcat"

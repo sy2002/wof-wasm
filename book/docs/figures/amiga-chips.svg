@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" width="760" height="350" role="img" aria-labelledby="title desc">
   <title id="title">The chips around chip memory</title>
-  <desc id="desc">The 68000 processor on the left runs the game's code and writes the chips' registers. Across the top, the custom chips: Agnus, which holds the copper, that follows the beam, and the blitter, that draws the shapes; Denise, the display, which turns the bitplanes into the picture; and Paula, four channels of sound, which also serves the interrupts and the disk. All of them reach chip memory below them by themselves, and so does the processor: in it the game keeps the bitplanes of its two screens, the copper lists, the shapes, the sound effects and the songs. Below, reached by the processor alone: the CIAs with the music's timer and the fire button, the Kickstart ROM with the core of the operating system, among it the floating point, the keymap and the system font, and any other memory the machine has.</desc>
+  <desc id="desc">The 68000 processor on the left runs the game's code and writes the chips' registers. Across the top, the custom chips: Agnus, which holds the copper, that follows the beam, and the blitter, that draws the shapes; Denise, the display, which turns the bitplanes into the picture; and Paula, four channels of sound, which also serves the interrupts and the disk. All of them reach chip memory below them by themselves, and so does the processor: in it the game keeps the bitplanes of its two screens, the copper lists, the shapes, the sound effects and the songs. Below, reached by the processor alone: the CIAs with the music's timer and the fire button, the Kickstart ROM with the heart of the operating system, among it the floating point, the keymap and the system font, and any other memory the machine has.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .head  { fill: #003377; /* ocean.palette 13 */ }
@@ -94,7 +94,7 @@
   <rect class="head" x="200" y="270" width="270" height="28" rx="3"/>
   <text class="head-text label" x="335" y="290" text-anchor="middle">Kickstart ROM</text>
   <rect class="rom" x="200" y="298" width="270" height="44" rx="3"/>
-  <text class="ink" x="335" y="317" text-anchor="middle">the operating system's core:</text>
+  <text class="ink" x="335" y="317" text-anchor="middle">the heart of the operating system:</text>
   <text class="ink" x="335" y="334" text-anchor="middle">the floating point, keymap, font</text>
 
   <rect class="head" x="480" y="270" width="270" height="28" rx="3"/>

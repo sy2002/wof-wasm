@@ -34,7 +34,7 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`.
 
 ### Blitter
 
-The Amiga's chip for copying and combining rectangles of memory, which draws the game's shapes into the bitplanes while the processor goes on with other work.
+The Amiga's unit, inside the custom chip Agnus, for copying and combining rectangles of memory one bitplane at a time; it draws the game's shapes into the bitplanes while the processor goes on with other work.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`.
 
@@ -49,6 +49,12 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "
 One of the Amiga's two interface chips, which serve its ports and carry timers of their own; the game reads the fire button from one, and its music player takes one of their timers for its beat.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/music.md`, "The timer".
+
+### Colour clock
+
+The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL machine: half the processor's clock, and the unit of Paula's period.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/sound.md`, "The slots and what they play".
 
 ### Copper
 
@@ -73,6 +79,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 3.
 The Amiga's own chips beside the processor: Agnus with the copper and the blitter, Denise for the display, Paula for the sound. A program sets them to work through their registers, and they then work from chip memory by themselves.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
+
+### Double buffering
+
+Drawing into a hidden picture and showing it only when it is whole; the game keeps two screens, each with its own copper list, and swaps them with one register write.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "Double buffering and the swap".
 
 ### Emulator
 
@@ -104,6 +116,12 @@ The original program run from its `main` routine on under emulation without a sc
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/headless.md`.
 
+### Hexadecimal
+
+Numbers in base 16, the digits 0 to 9 and A to F; this book marks them with `0x`, as in `0xDFF000`, and the listing with a `$`, as Motorola's assemblers do.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `book/BOOK.md`, section 4, point 3.
+
 ### Input byte
 
 The byte that carries the stick's four directions and the button into one logic tick, the only way the stick and the button reach the game's logic; the key commands come in through the game's own key handler.
@@ -130,13 +148,13 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/porting-m4.
 
 ### Kickstart
 
-The Amiga's ROM with the core of its operating system; the port takes the font and the key table from Kickstart 1.3 when it is built and is held to its floating point, and the ROM is not part of the repository.
+The heart of AmigaOS, in the ROM of the Amiga 500 and 2000 and loaded from a disk by the 1000; the port takes the font and the key table from Kickstart 1.3 when it is built and is held to its floating point, and the ROM is not part of the repository.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/system-font.md`, "The ROM".
 
 ### Library
 
-A collection of the operating system's routines that a program opens by name and calls through a table of jumps at fixed offsets from the library's address; the game uses dos, exec, graphics and mathffp among others.
+A collection of the operating system's routines that a program calls through a table of jumps at fixed offsets from the library's address; the game uses dos, exec, graphics and mathffp among others.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
 
@@ -151,6 +169,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 3.
 A program as the processor reads it: its instructions as numbers in memory.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.2.
+
+### Mask
+
+A one-bit picture of where a shape has any colour at all: the OR of its planes, or, for a shape of one plane, that plane; the blitter draws the shape's bits where the mask is set and keeps the background elsewhere.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`, "What `shape_draw` does, exactly".
 
 ### Mission script
 
@@ -224,6 +248,18 @@ A recorded waveform that Paula plays back on one of its four channels, at its ow
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/sound.md`.
 
+### Split line
+
+The line of the playfield where the sky's palette gives way to the sea's, computed again in every pass; the copper changes the colours there.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "The split line".
+
+### Topaz 8
+
+The Amiga's standard font, eight pixels high, in the Kickstart ROM; the game's dialogs for names and files show it, and the port reads it from the ROM when it is built.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/system-font.md`.
+
 ### VBlank
 
 The vertical blank, the moment the beam has finished a picture and returns to the top: 50 times a second on a PAL Amiga, and the clock the game counts its time in.
@@ -241,3 +277,9 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/keys.md`, "
 A compact binary form of program that every current browser runs: the form the port's core is compiled to.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 5.
+
+### Workbench
+
+The Amiga's desktop, which the game closes when it starts.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.

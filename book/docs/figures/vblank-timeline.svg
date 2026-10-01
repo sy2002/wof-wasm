@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img" aria-labelledby="title desc">
+  <title id="title">Eight VBlanks</title>
+  <desc id="desc">Eight VBlanks of a quiet scene on a PAL Amiga, left to right. At VBlanks 1 and 5, every fourth, the VBlank routine takes an input byte into the queue. A pass begins at every second VBlank, 1, 3, 5 and 7: it draws, and then runs a logic tick for each input byte waiting, which happens in the passes that begin at VBlanks 1 and 5. The picture a pass draws comes on the screen at the VBlank that ends it, 3, 5, 7 and 9. A pass longer than four VBlanks would find two bytes waiting and run two ticks; up to six can wait.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .pass  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .tick  { fill: #FFBB00; /* wingstitle 25 */ }
+    .shown-a { fill: #77AACC; /* wingspalette 22 */ }
+    .shown-b { fill: #AAAABB; /* wingspalette 29 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .vblank { stroke: #666677; /* wingspalette 27 */ stroke-width: 1; stroke-dasharray: 3 3; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The VBlanks, 72 units apart: VBlank k at x = 160 + 72 (k - 1) -->
+  <text class="light label" x="10" y="30">VBlank</text>
+  <line class="vblank" x1="160" y1="38" x2="160" y2="192"/>
+  <line class="vblank" x1="232" y1="38" x2="232" y2="192"/>
+  <line class="vblank" x1="304" y1="38" x2="304" y2="192"/>
+  <line class="vblank" x1="376" y1="38" x2="376" y2="192"/>
+  <line class="vblank" x1="448" y1="38" x2="448" y2="192"/>
+  <line class="vblank" x1="520" y1="38" x2="520" y2="192"/>
+  <line class="vblank" x1="592" y1="38" x2="592" y2="192"/>
+  <line class="vblank" x1="664" y1="38" x2="664" y2="192"/>
+  <line class="vblank" x1="736" y1="38" x2="736" y2="192"/>
+  <text class="light" x="160" y="30" text-anchor="middle">1</text>
+  <text class="light" x="232" y="30" text-anchor="middle">2</text>
+  <text class="light" x="304" y="30" text-anchor="middle">3</text>
+  <text class="light" x="376" y="30" text-anchor="middle">4</text>
+  <text class="light" x="448" y="30" text-anchor="middle">5</text>
+  <text class="light" x="520" y="30" text-anchor="middle">6</text>
+  <text class="light" x="592" y="30" text-anchor="middle">7</text>
+  <text class="light" x="664" y="30" text-anchor="middle">8</text>
+  <text class="light" x="736" y="30" text-anchor="middle">9</text>
+
+  <!-- Input bytes: every fourth VBlank -->
+  <text class="light" x="10" y="62">input byte</text>
+  <text class="light small" x="10" y="78">every fourth VBlank</text>
+  <path class="tick" d="M152 54 L168 54 L160 70 Z"/>
+  <path class="tick" d="M440 54 L456 54 L448 70 Z"/>
+  <text class="light small" x="174" y="68">into the queue</text>
+  <text class="light small" x="462" y="68">into the queue</text>
+
+  <!-- Passes: one every second VBlank; it draws, then runs a tick for each byte waiting -->
+  <text class="light" x="10" y="112">pass</text>
+  <text class="light small" x="10" y="128">draws, then ticks</text>
+  <rect class="pass" x="162" y="96" width="140" height="36" rx="3"/>
+  <rect class="tick" x="262" y="100" width="36" height="28" rx="2"/>
+  <text class="ink" x="208" y="119" text-anchor="middle">draw</text>
+  <text class="ink small" x="280" y="118" text-anchor="middle">tick</text>
+  <rect class="pass" x="306" y="96" width="140" height="36" rx="3"/>
+  <text class="ink" x="376" y="119" text-anchor="middle">draw</text>
+  <rect class="pass" x="450" y="96" width="140" height="36" rx="3"/>
+  <rect class="tick" x="550" y="100" width="36" height="28" rx="2"/>
+  <text class="ink" x="496" y="119" text-anchor="middle">draw</text>
+  <text class="ink small" x="568" y="118" text-anchor="middle">tick</text>
+  <rect class="pass" x="594" y="96" width="140" height="36" rx="3"/>
+  <text class="ink" x="664" y="119" text-anchor="middle">draw</text>
+
+  <!-- The picture on the screen: each pass's picture from the VBlank that ends it -->
+  <text class="light" x="10" y="160">on the screen</text>
+  <text class="light small" x="10" y="176">swapped at a VBlank</text>
+  <rect class="shown-b" x="160" y="148" width="144" height="32"/>
+  <text class="ink small" x="232" y="168" text-anchor="middle">the picture before</text>
+  <rect class="shown-a" x="304" y="148" width="144" height="32"/>
+  <text class="ink small" x="376" y="168" text-anchor="middle">the first pass's</text>
+  <rect class="shown-b" x="448" y="148" width="144" height="32"/>
+  <text class="ink small" x="520" y="168" text-anchor="middle">the second pass's</text>
+  <rect class="shown-a" x="592" y="148" width="144" height="32"/>
+  <text class="ink small" x="664" y="168" text-anchor="middle">the third pass's</text>
+
+  <text class="light" x="10" y="216">A tick for every input byte waiting when a pass has drawn: two passes to a tick.</text>
+  <text class="light" x="10" y="238">A pass longer than four VBlanks finds two bytes waiting and runs two ticks; six can wait.</text>
+</svg>
