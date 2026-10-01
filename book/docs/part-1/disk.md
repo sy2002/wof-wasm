@@ -185,4 +185,4 @@ The files named here are in the repository, [`github.com/sy2002/wof-wasm`](repo:
 - [`re/notes/shapes.md`](repo:re/notes/shapes.md#container-and-lookup), "Container and lookup"; [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-saved-game), "The saved game".
 - [`tools/hunk.py`](repo:tools/hunk.py), [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py) and [`re/tables.toml`](repo:re/tables.toml).
 
-Outside the repository: *The AmigaDOS Manual*, for the hunk format; Laurent Clévy's *ADF format FAQ*, for the disk; Motorola's *M68000 Family Programmer's Reference Manual*, for `link` and the offsets from A4.
+Outside the repository: [*The AmigaDOS Manual*](https://archive.org/details/1991-baker-jesup-et-al-the-amigados-manual-3rd-ed), for the hunk format; Laurent Clévy's [*ADF format FAQ*](https://web.archive.org/web/20241206200729/http://lclevy.free.fr/adflib/adf%5Finfo.html), for the disk; Motorola's [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), for `link` and the offsets from A4.

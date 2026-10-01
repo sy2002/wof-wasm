@@ -8,7 +8,7 @@ Motorola's processor, the chip in the Amiga that runs the program: sixteen regis
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [3.2](repo:SPEC.md#32-executable) and [7.1](repo:SPEC.md#71-arithmetic).
 
-Elsewhere: [Motorola 68000](https://en.wikipedia.org/wiki/Motorola%5F68000), Wikipedia.
+Elsewhere: [Motorola 68000](https://en.wikipedia.org/wiki/Motorola%5F68000), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### A4
 
@@ -28,7 +28,7 @@ An Amiga Disk File: a copy of an Amiga floppy, block by block, in one file, a do
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [2](repo:SPEC.md#2-repository) and [3.1](repo:SPEC.md#31-disk).
 
-Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia.
+Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia; [Laurent Clévy's *ADF format FAQ*](https://web.archive.org/web/20241206200729/http://lclevy.free.fr/adflib/adf%5Finfo.html), the Wayback Machine's copy.
 
 ### Assembly language
 
@@ -68,7 +68,7 @@ One bit of every pixel's colour number, kept as a picture of its own; five bitpl
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md).
 
-Elsewhere: [Planar (computer graphics)](https://en.wikipedia.org/wiki/Planar%5F(computer%5Fgraphics)), Wikipedia.
+Elsewhere: [Planar (computer graphics)](https://en.wikipedia.org/wiki/Planar%5F(computer%5Fgraphics)), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Blitter
 
@@ -76,7 +76,7 @@ The Amiga's unit, inside the custom chip Agnus, for copying and combining rectan
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md).
 
-Elsewhere: [Blitter](https://en.wikipedia.org/wiki/Blitter), Wikipedia.
+Elsewhere: [Blitter](https://en.wikipedia.org/wiki/Blitter), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### BSS
 
@@ -92,7 +92,7 @@ The rules by which a caller hands a routine its arguments and gets the result ba
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
-Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconvention), Wikipedia.
+Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconvention), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### Chip memory
 
@@ -100,7 +100,7 @@ The memory the Amiga's custom chips can read and write by themselves, without th
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#memory), "Memory".
 
-Elsewhere: [Amiga Chip RAM](https://en.wikipedia.org/wiki/Amiga%5FChip%5FRAM), Wikipedia.
+Elsewhere: [Amiga Chip RAM](https://en.wikipedia.org/wiki/Amiga%5FChip%5FRAM), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### CIA
 
@@ -116,13 +116,15 @@ The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL ma
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Copper
 
 The Amiga's display coprocessor: it follows a list of waits and register writes in step with the beam, and so changes colours and screen modes part of the way down the picture.
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md).
 
-Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Core
 
@@ -144,7 +146,7 @@ The Amiga's own chips beside the processor: Agnus with the copper and the blitte
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
-Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Double buffering
 
@@ -224,7 +226,7 @@ A part of an Amiga program that is loaded into memory as a whole: code, data wit
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
-Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia.
+Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia; [*The AmigaDOS Manual*](https://archive.org/details/1991-baker-jesup-et-al-the-amigados-manual-3rd-ed), 3rd edition, Internet Archive.
 
 ### Hunk file
 
@@ -232,7 +234,7 @@ The AmigaDOS format for programs: a header giving the number of hunks and their 
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
-Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia.
+Elsewhere: [Amiga Hunk](https://en.wikipedia.org/wiki/Amiga%5FHunk), Wikipedia; [*The AmigaDOS Manual*](https://archive.org/details/1991-baker-jesup-et-al-the-amigados-manual-3rd-ed), 3rd edition, Internet Archive.
 
 ### IFF ILBM
 
@@ -290,7 +292,7 @@ A collection of the operating system's routines that a program calls through a t
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
-Elsewhere: [Library (computing)](https://en.wikipedia.org/wiki/Library%5F(computing)), Wikipedia.
+Elsewhere: [Library (computing)](https://en.wikipedia.org/wiki/Library%5F(computing)), Wikipedia; [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-rom-kernel-reference-manual-libraries-3rd-edition), 3rd edition, Internet Archive.
 
 ### Listing
 
@@ -313,6 +315,8 @@ Elsewhere: [Endianness](https://en.wikipedia.org/wiki/Endianness), Wikipedia.
 The routine of AmigaDOS that loads a hunk file: it puts each hunk wherever it finds free memory of the kind asked for and corrects the relocations; the game loads its music with it.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-two-files), "The two files".
+
+Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-rom-kernel-reference-manual-libraries-3rd-edition), 3rd edition, Internet Archive.
 
 ### Logic tick
 
@@ -386,7 +390,7 @@ The Amiga's chip for sound, four channels that each play 8-bit sound samples at 
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
-Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia.
+Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Period
 
@@ -408,7 +412,7 @@ A small named store inside a processor or a chip: the 68000's sixteen hold the v
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library".
 
-Elsewhere: [Processor register](https://en.wikipedia.org/wiki/Processor%5Fregister), Wikipedia.
+Elsewhere: [Processor register](https://en.wikipedia.org/wiki/Processor%5Fregister), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### Relocation
 
@@ -416,7 +420,7 @@ An entry in a hunk file that names a place in a hunk holding an address, which t
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
-Elsewhere: [Relocation (computing)](https://en.wikipedia.org/wiki/Relocation%5F(computing)), Wikipedia.
+Elsewhere: [Relocation (computing)](https://en.wikipedia.org/wiki/Relocation%5F(computing)), Wikipedia; [*The AmigaDOS Manual*](https://archive.org/details/1991-baker-jesup-et-al-the-amigados-manual-3rd-ed), 3rd edition, Internet Archive.
 
 ### Remake
 
@@ -450,7 +454,7 @@ Widening a number to more bits by copying its sign bit into the new ones, so tha
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1.
 
-Elsewhere: [Sign extension](https://en.wikipedia.org/wiki/Sign%5Fextension), Wikipedia.
+Elsewhere: [Sign extension](https://en.wikipedia.org/wiki/Sign%5Fextension), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### Signed byte
 
@@ -508,7 +512,7 @@ The vertical blank, the moment the beam has finished a picture and returns to th
 
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md).
 
-Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5Fblanking%5Finterval), Wikipedia.
+Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5Fblanking%5Finterval), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Vertical flip
 

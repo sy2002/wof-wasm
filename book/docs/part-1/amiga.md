@@ -181,4 +181,4 @@ The files named here are in the repository, [`github.com/sy2002/wof-wasm`](repo:
 - [`re/notes/headless.md`](repo:re/notes/headless.md#what-runs-and-what-does-not), "What runs and what does not"; [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#how-the-tests-establish-it), "How the tests establish it".
 - [`re/notes/keys.md`](repo:re/notes/keys.md#raw-code-to-character-consoledevice), "Raw code to character: console.device"; [`re/notes/system-font.md`](repo:re/notes/system-font.md).
 
-Outside the repository: the *Amiga Hardware Reference Manual*, for the custom chips, and Motorola's *M68000 Family Programmer's Reference Manual*, for the processor.
+Outside the repository: the [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), for the custom chips, and Motorola's [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), for the processor.
