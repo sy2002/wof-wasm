@@ -8,6 +8,12 @@ Motorola's processor, the chip in the Amiga that runs the program: sixteen regis
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, sections 3.2 and 7.1.
 
+### ADF
+
+An Amiga Disk File: a copy of an Amiga floppy, block by block, in one file, a double-density disk's 1,760 blocks of 512 bytes; the game's disk is `original/wof.adf`.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, sections 2 and 3.1.
+
 ### Assembly language
 
 The written form of machine code, one instruction a line, a short name for the operation followed by its operands: the form in which the listing shows the whole program, and in which much of the game was written by hand.
@@ -26,6 +32,12 @@ The point where the display is drawing the picture, sweeping each line from left
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/random.md`.
 
+### Big-endian
+
+The byte order that stores the most significant byte of a number first: the 68000's, and that of every file the project reads.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, sections 3.5 and 5.
+
 ### Bitplane
 
 One bit of every pixel's colour number, kept as a picture of its own; five bitplanes together give each pixel one of 32 colours.
@@ -37,6 +49,18 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`.
 The Amiga's unit, inside the custom chip Agnus, for copying and combining rectangles of memory one bitplane at a time; it draws the game's shapes into the bitplanes while the processor goes on with other work.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`.
+
+### BSS
+
+A hunk of memory that starts at zero and is given in the program's file by its size alone; the game's is 4 bytes at `0x028000`.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
+### Calling convention
+
+The rules by which a caller hands a routine its arguments and gets the result back: in the game's compiled C the arguments go onto the stack, 2 bytes for an int and 4 for a long or a pointer, and the result comes back in D0.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
 ### Chip memory
 
@@ -98,11 +122,23 @@ One game carried to another machine by rewriting its own logic, routine by routi
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 1.
 
+### Far-call table
+
+185 jump instructions at the start of the game's data hunk, `0x023000` to `0x023456`, each holding the full address of a routine; a call written `jsr d16(a4)` jumps through one of them.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
 ### Fast floating point
 
 Motorola's floating-point format of 32 bits, whose routines live in the Amiga's ROM; the game's flight model computes in it, and the port reproduces it bit for bit in integer code.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/ffp.md`.
+
+### Fixed load layout
+
+The one set of addresses at which all the project's tools load the game's program: the code at `0x010000`, the data at `0x023000`, the BSS at `0x028000`, A4 holding `0x02AFFE`. Every address in this book is one of it.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2; `tools/hunk.py`.
 
 ### FPGA recreation
 
@@ -122,6 +158,24 @@ Numbers in base 16, the digits 0 to 9 and A to F; this book marks them with `0x`
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `book/BOOK.md`, section 4, point 3.
 
+### Hunk
+
+A part of an Amiga program that is loaded into memory as a whole: code, data with its starting values, or BSS.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
+
+### Hunk file
+
+The AmigaDOS format for programs: a header naming the hunks and their sizes, then each hunk's contents, its relocations and an end mark; the game, its music player and its songs are hunk files.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `tools/hunk.py`; `SPEC.md`, section 3.2.
+
+### IFF ILBM
+
+The Amiga's standard format for pictures: a file of chunks, each a name of four letters, its length and its contents, giving a picture's size, colours and bitplanes; the game's pictures and three of its palettes use it.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.5, "Pictures".
+
 ### Input byte
 
 The byte that carries the stick's four directions and the button into one logic tick, the only way the stick and the button reach the game's logic; the key commands come in through the game's own key handler.
@@ -133,6 +187,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/input.md`.
 The taking of one input byte, which the game does every fourth VBlank, and the byte so taken; never a sound.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/input.md`.
+
+### int (the C type)
+
+C's ordinary type for whole numbers: 16 bits wide in Manx Aztec C as the game was built, 32 in the compilers that build the port, which therefore names the width of every value of the game.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 7.1.
 
 ### Interrupt
 
@@ -158,6 +218,12 @@ A collection of the operating system's routines that a program calls through a t
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
 
+### LoadSeg
+
+The routine of AmigaDOS that loads a hunk file: it puts each hunk wherever it finds free memory of the kind asked for and corrects the relocations; the game loads its music with it.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `re/notes/music.md`, "The two files".
+
 ### Logic tick
 
 One step of the game's simulation, one for every input byte, taken every fourth VBlank: 12.5 a second on a PAL Amiga, so that in a quiet scene two passes go to a tick.
@@ -169,6 +235,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 3.
 A program as the processor reads it: its instructions as numbers in memory.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.2.
+
+### Manx Aztec C
+
+The C compiler the game's C was built with: its int is 16 bits, its code reaches the variables through A4, and each of its routines keeps a stack frame on A5.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
 ### Mask
 
@@ -230,17 +302,41 @@ A small named store inside a processor or a chip: the 68000's sixteen hold the v
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`, "The blitter library".
 
+### Relocation
+
+An entry in a hunk file that names a place in a hunk holding an address, which the loader corrects by where the hunk landed.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `tools/hunk.py`; `SPEC.md`, section 3.2.
+
 ### Remake
 
 A new program made to look and play like an old one, written from watching the old one.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 1.
 
+### Rpck
+
+The game's own packed format, named after the four letters a packed file begins with: the unpacked size, then control bytes that copy bytes or repeat one; ten files of the disk use it.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.5; `tools/rpck.py`.
+
+### Shape container
+
+A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each record begins, and the records, each a header and the planes; the disk has twelve.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `re/notes/shapes.md`.
+
 ### Shell
 
 The thin layer of JavaScript around the core: the clock that paces it, the screen, a loudspeaker for the sound the core mixes, the keys, a place for saved games, and the help screen, the pause sign and fullscreen.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 6.2.
+
+### Small-data base
+
+The register A4 in the game's code, holding `0x02AFFE`, 32,766 bytes into the data, from which every variable is reached by an offset of 16 bits.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
 ### Sound sample
 
@@ -253,6 +349,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/sound.md`.
 The line of the playfield where the sky's palette gives way to the sea's, computed again in every pass; the copper changes the colours there.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "The split line".
+
+### Stack frame
+
+A routine's own stretch of the stack, from its arguments down to its own variables, which `link a5` builds at the start of each compiled C routine of the game; A5 points into it, the first argument at `8(a5)`.
+
+Introduced in [chapter 3](part-1/disk.md). The detail: `SPEC.md`, section 3.2.
 
 ### Topaz 8
 
