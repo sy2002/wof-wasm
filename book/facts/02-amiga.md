@@ -18,7 +18,7 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 6. The custom chips are driven through their registers at fixed addresses from `0xDFF000`; the game keeps that base in `custom_base` (`0x026938`) and writes the registers directly: `COP1LC` with copper lists of its own, the blitter's registers from the blitter library, the audio registers, `INTENA`, `INTREQ`. Source: `re/notes/drawing.md`, "The blitter library"; `SPEC.md` 3.4, the custom-chip rows.
 7. The game reads few custom-chip registers: the sound code reads the interrupt bits (`INTENAR`, `INTREQR`), the blitter's busy bit is read only to wait for it, and the two that matter are `JOY1DAT` (the stick) and `VHPOSR` (the beam's position). Source: `re/notes/drawing.md`, "Read-back", the table's first two rows.
 8. The CIAs are the Amiga's two interface chips, which serve its ports and carry timers; they sit at `0xBFD000` to `0xBFEFFF`; the game reads the fire button from CIA-A (bits 6 and 7 of its port register), and the music player takes CIA-A's timer A. Source: HRM 1 **(reference)** for their role; `re/notes/headless.md`, "Memory map"; `re/notes/input.md`, "Fire button and the tap/hold discrimination"; `re/notes/music.md`, "The timer". The CIA is an 8520 (`re/notes/music.md`, "The timer": "the 8520's reset state").
-9. The ROM, Kickstart, holds the core of the operating system (the image carries exec), and among it the floating point (`mathffp.library`), the key conversion (`console.device`) with the default keymap, and the system font. Source: `re/notes/system-font.md`, "The ROM" (`exec 34.2`) and "Where the fonts are"; `re/notes/headless.md`, "Game logic uses floating point" and "The keyboard needs the ROM too".
+9. The ROM and its contents are called Kickstart; it holds the core of the operating system, AmigaOS (the image carries exec), and among it the floating point (`mathffp.library`), the key conversion (`console.device`) with the default keymap, and the system font. Source: `re/notes/system-font.md`, "The ROM" (`exec 34.2`) and "Where the fonts are"; `re/notes/headless.md`, "Game logic uses floating point" and "The keyboard needs the ROM too".
 
 ## The 68000
 
@@ -156,7 +156,7 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 
 | Count | Value | Where, and the command |
 |---|---|---|
-| the chapter's words | 3,948 | `wc -w book/docs/part-1/amiga.md`, the whole file with alt texts, captions, sidebars and the further reading |
+| the chapter's words | 3,946 | `wc -w book/docs/part-1/amiga.md`, the whole file with alt texts, captions, sidebars and the further reading |
 | the 68000's clock on PAL | 7,093,790 a second ("about seven million") | HRM 1 **(reference)**; ten times the E clock of `re/notes/music.md` |
 | `rand_beam`'s call sites | 43 | `SPEC.md` 3.3; `re/notes/random.md` |
 | routines written in C | 223 of 616 | `SPEC.md` 3.2; `re/functions.csv` with `csv.DictReader` (kind C) |

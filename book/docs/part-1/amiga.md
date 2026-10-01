@@ -17,7 +17,7 @@ A program tells a custom chip what to do through its **registers**: small named 
 The chips around chip memory, and what the game keeps where.
 ///
 
-The **CIAs** are the Amiga's two interface chips, which serve its ports and carry timers of their own; the game reads the fire button from one of them, and its music player takes one of their timers. And the core of the operating system lives in the machine's ROM, the memory that cannot be changed: **Kickstart**, the Amiga's ROM with the core of AmigaOS, which holds among much else the floating point of chapter 1, the table that turns keys into characters, and the system's font.
+The **CIAs** are the Amiga's two interface chips, which serve its ports and carry timers of their own; the game reads the fire button from one of them, and its music player takes one of their timers. The core of the operating system, AmigaOS, lives in the machine's ROM, the memory that cannot be changed: **Kickstart**, the ROM and its contents. Among much else it holds the fast floating point of chapter 1, the table that turns keys into characters, and the system's font.
 
 ## The 68000
 
