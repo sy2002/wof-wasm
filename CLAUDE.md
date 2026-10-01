@@ -16,6 +16,7 @@ sh tools/setup.sh                        # a fresh clone: .venv from requirement
 .venv/bin/python tools/reach_observe.py   # which routines and blocks the mission scripts execute in the original; --cold lists the stand-ins owed
 .venv/bin/python tools/mdcheck.py SPEC.md # Markdown safety check, run on every .md that was edited
 .venv/bin/python tools/build.py --native  # build dist/wof.html, dist/core.wasm and tests/libwofcore.dylib
+.venv/bin/python tools/build.py --debug --native   # the same with the debug information kept in the core (the release page leaves it out)
 .venv/bin/python -m pytest tests/         # full suite, serially; page tests use Chrome and Firefox and skip a missing browser
 .venv/bin/python -m pytest tests/ --slow -m "not page" -n 8 --dist loadgroup   # phase 1: the emulator tests over the cores (about an hour)
 .venv/bin/python -m pytest tests/ --slow -m page                               # phase 2, after it, never beside it: the page tests alone (about twenty minutes)

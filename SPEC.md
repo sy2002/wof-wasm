@@ -251,7 +251,7 @@ Run everything with `.venv/bin/python` from the repository root.
 
 Expected output size is below 2 MB.
 
-A second target builds the same C sources natively with Apple clang as a shared library for the tests (`tests/libwofcore.dylib`). The core is compiled with `-ffile-prefix-map=<repository>=.`, so its debug information names the sources `./src/...` and the page is byte for byte the same wherever a checkout is built, naming no directory of the builder's machine; `dist/wof.html` is versioned (section 2) and `dist/core.wasm` and `tests/libwofcore.dylib` are not. The page carries the core's debug information, about 0.7 MB of its 1.8 MB, which the owner may decide to strip.
+A second target builds the same C sources natively with Apple clang as a shared library for the tests (`tests/libwofcore.dylib`). The core is compiled with `-g0`, so the page carries no debug information (the owner's decision of 2026-10-01: the page alone is the release, 1.16 MB against 1.89 MB with it), and every test runs on the core that ships. `tools/build.py --debug` keeps the DWARF that `zig cc` writes by default, for stepping through the core in a browser's developer tools; the core is compiled with `-ffile-prefix-map=<repository>=.` in both modes, so that a debug build too names the sources `./src/...` and no directory of the builder's machine. The wasm's `name` section, the function names, stays in both. Two default builds are byte for byte the same. `dist/wof.html` is versioned (section 2) and `dist/core.wasm` and `tests/libwofcore.dylib` are not.
 
 ## 6. Architecture
 
