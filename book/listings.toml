@@ -9,7 +9,8 @@
 #                 its start address to its end
 #           skel  the control-flow skeleton of a routine of re/Wings.lst: what tools/skel.py
 #                 prints for it by name, run at build time
-#           c     a C function of src/*.c, with the comment directly above it
+#           c     a C function of src/*.c, or a variable at file scope, with the comment
+#                 directly above it
 #           js    a function or a method of web/*.js, with the comment directly above it
 #           py    a function or a class of tools/*.py, or of the file `file` names (a test of
 #                 tests/, say), with the comments directly above it
@@ -197,3 +198,47 @@ file = "tests/runs/flight-control-f.json"
 kind = "py"
 name = "test_where_a_slice_ends_changes_nothing"
 file = "tests/test_headless.py"
+
+# Time, chapter 7: the VBlank server counts its divider down from four and samples on the
+# fourth VBlank ...
+[[listing]]
+kind = "asm"
+name = "vblank_server"
+from = 0x011774
+to = 0x011780
+as = "vblank_server_divider"
+
+# ... and puts the input byte at the end of the queue of six, dropping the oldest when full.
+[[listing]]
+kind = "asm"
+name = "vblank_server"
+from = 0x0117D4
+to = 0x0117FA
+as = "vblank_server_queue"
+
+# One logic tick per queued byte, the listing's assembly beside its port, orig 0x0114D8.
+[[listing]]
+kind = "asm"
+name = "run_queued_ticks"
+head = true
+
+[[listing]]
+kind = "c"
+name = "run_queued_ticks"
+
+# The fade step: the port's one setting of time that rests on no measurement, and the fade
+# that waits it out sixteen times.
+[[listing]]
+kind = "c"
+name = "fade_vblanks"
+
+[[listing]]
+kind = "c"
+name = "wof_fade"
+
+# The control: the same run at one, two and three VBlanks per pass differs only in what a
+# pass writes.
+[[listing]]
+kind = "py"
+name = "test_the_pass_rate_changes_only_what_the_pass_writes"
+file = "tests/test_passes.py"

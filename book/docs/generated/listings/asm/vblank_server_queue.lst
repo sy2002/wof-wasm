@@ -1,0 +1,17 @@
+; re/Wings.lst 0x0117D4-0x0117FA: vblank_server [asm], a part of 0x011754-0x011965
+loc_0117d4:
+0117d4  4eac820c             jsr        -$7df4(a4)                             ; -> read_joystick
+loc_0117d8:
+0117d8  41ecc358             lea.l      -$3ca8(a4), a0                         ; input_queue
+0117dc  322cc356             move.w     -$3caa(a4), d1                         ; input_queue_count
+0117e0  b27c0006             cmp.w      #$6, d1
+0117e4  64000008             bcc.w      $117ee
+0117e8  5241                 addq.w     #$1, d1
+0117ea  60000006             bra.w      $117f2
+loc_0117ee:
+0117ee  4ebaff24             jsr        $11714(pc)                             ; input_queue_pop
+loc_0117f2:
+0117f2  3941c356             move.w     d1, -$3caa(a4)                         ; input_queue_count
+0117f6  5341                 subq.w     #$1, d1
+0117f8  d241                 add.w      d1, d1
+0117fa  31acc3681000         move.w     -$3c98(a4), (a0, d1.w)                 ; input_byte

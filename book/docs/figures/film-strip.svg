@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 268" width="860" height="268" role="img" aria-labelledby="title desc">
+  <title id="title">A film strip at 240 frames a second</title>
+  <desc id="desc">Thirty film frames in a row, each a 240th of a second, with the PAL VBlanks above them, one every 4.8 film frames, numbered 1 to 7. The film frames where the measured part of the picture changed are marked: film frames 0, 10, 20 and 29, the first after VBlanks 1, 3, 5 and 7. Between them lie 10, 10 and 9 film frames. A change every 9 or 10 film frames is a change every second VBlank: one pass takes two VBlanks.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .frame  { fill: #888899; /* wingspalette 28 */ }
+    .change { fill: #FFBB00; /* wingstitle 25 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .vblank { stroke: #77AACC; /* wingspalette 22 */ stroke-width: 1.5; stroke-dasharray: 4 3; }
+    .vtext  { fill: #77AACC; /* wingspalette 22 */ }
+    .span   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The VBlanks, one every 4.8 film frames: VBlank n at film frame 4.8 (n - 1), x = 40 + 26 t -->
+  <text class="vtext label" x="10" y="22">VBlanks, 50 a second: one every 4.8 film frames</text>
+  <line class="vblank" x1="40.0" y1="34" x2="40.0" y2="126"/>
+  <text class="vtext" x="40.0" y="50" text-anchor="middle" dx="10">1</text>
+  <line class="vblank" x1="164.8" y1="34" x2="164.8" y2="126"/>
+  <text class="vtext" x="164.8" y="50" text-anchor="middle" dx="10">2</text>
+  <line class="vblank" x1="289.6" y1="34" x2="289.6" y2="126"/>
+  <text class="vtext" x="289.6" y="50" text-anchor="middle" dx="10">3</text>
+  <line class="vblank" x1="414.4" y1="34" x2="414.4" y2="126"/>
+  <text class="vtext" x="414.4" y="50" text-anchor="middle" dx="10">4</text>
+  <line class="vblank" x1="539.2" y1="34" x2="539.2" y2="126"/>
+  <text class="vtext" x="539.2" y="50" text-anchor="middle" dx="10">5</text>
+  <line class="vblank" x1="664.0" y1="34" x2="664.0" y2="126"/>
+  <text class="vtext" x="664.0" y="50" text-anchor="middle" dx="10">6</text>
+  <line class="vblank" x1="788.8" y1="34" x2="788.8" y2="126"/>
+  <text class="vtext" x="788.8" y="50" text-anchor="middle" dx="10">7</text>
+
+  <!-- Thirty film frames; the ones where the picture changed in gold -->
+  <rect class="change" x="40" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="66" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="92" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="118" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="144" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="170" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="196" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="222" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="248" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="274" y="64" width="22" height="44" rx="2"/>
+  <rect class="change" x="300" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="326" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="352" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="378" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="404" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="430" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="456" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="482" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="508" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="534" y="64" width="22" height="44" rx="2"/>
+  <rect class="change" x="560" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="586" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="612" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="638" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="664" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="690" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="716" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="742" y="64" width="22" height="44" rx="2"/>
+  <rect class="frame" x="768" y="64" width="22" height="44" rx="2"/>
+  <rect class="change" x="794" y="64" width="22" height="44" rx="2"/>
+  <text class="light small" x="51" y="124" text-anchor="middle">0</text>
+  <text class="light small" x="311" y="124" text-anchor="middle">10</text>
+  <text class="light small" x="571" y="124" text-anchor="middle">20</text>
+  <text class="light small" x="805" y="124" text-anchor="middle">29</text>
+
+  <!-- The intervals between the changes -->
+  <path class="span" d="M51.0 136 L51.0 144 L311.0 144 L311.0 136"/>
+  <text class="light" x="181.0" y="164" text-anchor="middle">10 film frames</text>
+  <path class="span" d="M311.0 136 L311.0 144 L571.0 144 L571.0 136"/>
+  <text class="light" x="441.0" y="164" text-anchor="middle">10 film frames</text>
+  <path class="span" d="M571.0 136 L571.0 144 L805.0 144 L805.0 136"/>
+  <text class="light" x="688.0" y="164" text-anchor="middle">9 film frames</text>
+
+  <text class="light" x="10" y="200">A change every 9 or 10 film frames is a change every second VBlank: a pass takes two VBlanks.</text>
+  <rect class="frame" x="10" y="222" width="14" height="20" rx="2"/>
+  <text class="light small" x="32" y="237">a film frame, a 240th of a second</text>
+  <rect class="change" x="270" y="222" width="14" height="20" rx="2"/>
+  <text class="light small" x="292" y="237">the measured part of the picture changed</text>
+  <line class="vblank" x1="590" y1="222" x2="590" y2="242"/>
+  <text class="light small" x="600" y="237">a VBlank of the Amiga</text>
+</svg>

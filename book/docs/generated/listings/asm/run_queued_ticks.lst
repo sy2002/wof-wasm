@@ -1,0 +1,24 @@
+; re/Wings.lst 0x0114D8-0x01150E: run_queued_ticks [asm]
+; run_queued_ticks   [asm]
+;   asm. one logic tick per queued input byte
+;   callers: main
+run_queued_ticks:
+0114d8  4a6cbd46             tst.w      -$42ba(a4)                             ; demo_bytes_owed
+0114dc  67000008             beq.w      $114e6
+0114e0  4eac81d6             jsr        -$7e2a(a4)                             ; -> wait_next_vblank
+0114e4  60f2                 bra.b      $114d8
+loc_0114e6:
+0114e6  4a2ca558             tst.b      -$5aa8(a4)                             ; pause_flag
+0114ea  6a000008             bpl.w      $114f4
+0114ee  4e75                 rts
+loc_0114f0:
+0114f0  4ebafe94             jsr        $11386(pc)                             ; logic_tick
+loc_0114f4:
+0114f4  4a6cc356             tst.w      -$3caa(a4)                             ; input_queue_count
+0114f8  6ef6                 bgt.b      $114f0
+0114fa  426cbd46             clr.w      -$42ba(a4)                             ; demo_bytes_owed
+0114fe  0c6c0000bd4e         cmpi.w     #$0, -$42b2(a4)                        ; demo_mode
+011504  67000008             beq.w      $1150e
+011508  397c0002bd46         move.w     #$2, -$42ba(a4)                        ; demo_bytes_owed
+loc_01150e:
+01150e  4e75                 rts

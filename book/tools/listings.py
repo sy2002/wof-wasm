@@ -14,7 +14,8 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
          header the listing gives it (its kind, frame, far-call slot, comment and callers)
     skel the control-flow skeleton of a routine of re/Wings.lst, by its name: what
          tools/skel.py prints for it, run at build time
-    c    src/*.c, a C function by its name, with the comment directly above it
+    c    src/*.c, a C function, or a variable at file scope, by its name, with the comment
+         directly above it
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
          its name, with the comments directly above it
@@ -216,6 +217,31 @@ def c_functions(text, name):
     return found
 
 
+def c_variables(text, name):
+    """Every definition of the C variable `name` at file scope in one file, as (first line,
+    last line): a declaration that begins its line, with or without an initialiser, up to the
+    semicolon that ends it, with the comment directly above it."""
+    code = masked(text)
+    lines = text.split('\n')
+    found = []
+    pattern = r'(?m)^(?!extern\b)[A-Za-z_][\w \t*]*?[ \t*]%s\s*(?:\[[^\]\n]*\]\s*)*(?==|;)'
+    for m in re.finditer(pattern % re.escape(name), code):
+        depth, k = 0, m.end()
+        while k < len(code) and not (code[k] == ';' and depth == 0):
+            depth += {'{': 1, '}': -1}.get(code[k], 0)
+            k += 1
+        if k == len(code):
+            continue
+        first = line_of(text, m.start())
+        found.append((with_comment_above(lines, first), line_of(text, k)))
+    return found
+
+
+def c_definitions(text, name):
+    """The C function `name` or the variable `name` at file scope."""
+    return c_functions(text, name) + c_variables(text, name)
+
+
 JS_PATTERNS = [
     r'\b(?:async\s+)?function\s*\*?\s*%s\s*\(',
     r'(?m)^[ \t]*(?:(?:static|async|get|set)\s+)*%s\s*\(',
@@ -367,7 +393,7 @@ def source_extract(entry):
             raise Failure('%s %s: no file %s' % (kind, name, entry['file']))
     else:
         paths = sorted((ROOT / folder).glob(glob))
-    finder = {'c': c_functions, 'js': js_functions, 'py': py_definitions}[kind]
+    finder = {'c': c_definitions, 'js': js_functions, 'py': py_definitions}[kind]
     hits = []
     for path in paths:
         text = path.read_text(encoding='utf-8')
@@ -375,7 +401,7 @@ def source_extract(entry):
             hits.append((path, text, first, last))
     if not hits:
         raise Failure('%s %s: no such %s in %s' % (
-            kind, name, {'c': 'function', 'js': 'function or method',
+            kind, name, {'c': 'function or variable', 'js': 'function or method',
                          'py': 'function or class'}[kind],
             entry.get('file', '%s/%s' % (folder, glob))))
     if len(hits) > 1:

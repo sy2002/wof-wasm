@@ -1,0 +1,5 @@
+; re/Wings.lst 0x011774-0x011780: vblank_server [asm], a part of 0x011754-0x011965
+011774  4eac8206             jsr        -$7dfa(a4)                             ; -> vblank_every_frame
+011778  536cc364             subq.w     #$1, -$3c9c(a4)                        ; vblank_divider
+01177c  6e0000c4             bgt.w      $11842
+011780  397c0004c364         move.w     #$4, -$3c9c(a4)                        ; vblank_divider
