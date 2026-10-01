@@ -1,0 +1,142 @@
+# The book's site: Material for MkDocs with a design of its own (book/BOOK.md, section 5).
+#
+#     .venv/bin/python book/tools/build.py          generate, then mkdocs build --strict into book/site/
+#     cd book && ../.venv/bin/mkdocs serve           the site at http://127.0.0.1:8000/wof-wasm/
+#
+# The listings, the figures and the web font are generated beforehand and committed
+# (book/tools/), so that this build needs only the packages of book/requirements.txt: no ROM,
+# no compiler, no native library and no browser.  hooks/game.py adds the repository's game,
+# ../dist/wof.html, to the site; hooks/lexer.py teaches the highlighter the listing's format.
+
+site_name: Bringing Back Wings of Fury
+site_description: A 1990 Amiga game ported to the browser, and how we know it is faithful
+site_author: sy2002
+site_url: https://sy2002.github.io/wof-wasm/
+repo_url: https://github.com/sy2002/wof-wasm
+repo_name: sy2002/wof-wasm
+edit_uri: ""
+copyright: >-
+  The book's text: CC BY-SA 4.0, sy2002 and the project.
+  The game and every figure of its art: Wings of Fury, Broderbund 1990,
+  kept here for preservation; no right to it is granted.
+
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+strict: true
+
+theme:
+  name: material
+  language: en
+  font: false                       # nothing is loaded from elsewhere: system fonts and our own
+  icon:
+    logo: material/airplane
+  features:
+    - navigation.sections
+    - navigation.footer
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Night
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Day
+
+extra_css:
+  - stylesheets/book.css
+
+hooks:
+  - hooks/game.py
+  - hooks/lexer.py
+
+plugins:
+  - search
+
+markdown_extensions:
+  - abbr
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  # The three sidebars of the style guide (book/BOOK.md, section 4, point 6), each with its
+  # own colour and icon in stylesheets/book.css:  /// know ... ///  and so on.
+  - pymdownx.blocks.admonition:
+      types:
+        - note
+        - tip
+        - warning
+        - name: know
+          title: How we know
+        - name: wrong
+          title: What went wrong
+        - name: dev
+          title: For the developer
+  - pymdownx.blocks.caption
+  - pymdownx.blocks.details
+  - pymdownx.blocks.html
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  # The generated listings and nothing else come in this way; a missing file fails the build.
+  - pymdownx.snippets:
+      base_path:
+        - !relative $docs_dir
+      check_paths: true
+
+nav:
+  - Bringing Back Wings of Fury: index.md
+  - Play the game: play.md
+  - "Part I: From the disk to a faithful game":
+      - "1. What faithful means": part-1/faithful.md
+      - "2. The Amiga in twenty minutes": part-1/amiga.md
+      - "3. The disk": part-1/disk.md
+      - "4. Reading the executable": part-1/reading.md
+      - "5. The oracle": part-1/oracle.md
+      - "6. The headless original": part-1/headless.md
+      - "7. Time": part-1/time.md
+      - "8. Porting a mission": part-1/mission.md
+      - "9. What went wrong, and what caught it": part-1/wrong.md
+      - "10. How the port was made": part-1/making.md
+  - "Part II: The game inside":
+      - "11. The display": part-2/display.md
+      - "12. Shapes": part-2/shapes.md
+      - "13. The world": part-2/world.md
+      - "14. The player": part-2/player.md
+      - "15. Weapons, targets and soldiers": part-2/weapons.md
+      - "16. The enemy": part-2/enemy.md
+      - "17. The campaign": part-2/campaign.md
+      - "18. Sound and music": part-2/sound.md
+      - "19. The front end and the keys": part-2/front-end.md
+      - "20. The original's quirks": part-2/quirks.md
+  - "Part III: The code, the tools and the build":
+      - "21. A tour of the repository": part-3/repository.md
+      - "22. The core": part-3/core.md
+      - "23. The shell": part-3/shell.md
+      - "24. The tests": part-3/tests.md
+      - "25. Build it yourself": part-3/build.md
+  - Appendices:
+      - The glossary: glossary.md
+      - The keys: keys.md
+      - The routine inventory: routines.md
+      - The licence and the game data: licence.md
+  - Specimen: specimen.md

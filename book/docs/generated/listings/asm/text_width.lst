@@ -1,0 +1,23 @@
+; re/Wings.lst 0x01591E-0x015954: text_width [asm]
+text_width:
+01591e  48e77ffe             movem.l    d1-d7/a0-a6, -(a7)
+015922  2a6cbf6c             movea.l    -$4094(a4), a5                         ; font_file
+015926  7600                 moveq      #$0, d3
+loc_015928:
+015928  7400                 moveq      #$0, d2
+01592a  1418                 move.b     (a0)+, d2
+01592c  b42cbf71             cmp.b      -$408f(a4), d2                         ; font_last_char
+015930  62000018             bhi.w      $1594a
+015934  942cbf70             sub.b      -$4090(a4), d2                         ; font_first_char
+015938  65000010             bcs.w      $1594a
+01593c  14352004             move.b     $4(a5, d2.w), d2
+015940  66000004             bne.w      $15946
+015944  740a                 moveq      #$a, d2
+loc_015946:
+015946  d642                 add.w      d2, d3
+015948  5243                 addq.w     #$1, d3
+loc_01594a:
+01594a  51c8ffdc             dbra       d0, $15928
+01594e  3003                 move.w     d3, d0
+015950  4cdf7ffe             movem.l    (a7)+, d1-d7/a0-a6
+015954  4e75                 rts

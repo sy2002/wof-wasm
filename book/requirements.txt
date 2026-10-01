@@ -1,0 +1,10 @@
+# The book's Python packages, pinned; installed into the project's .venv beside the port's:
+#     .venv/bin/python -m pip install -r book/requirements.txt
+# The site's engine, and the three packages its Markdown and highlighting rest on.
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+pymdown-extensions==12.1
+Markdown==3.11
+Pygments==2.21.0
+# The web font of the game's own lettering (book/tools/webfont.py).
+fonttools==4.66.1

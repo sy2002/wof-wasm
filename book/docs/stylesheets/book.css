@@ -1,0 +1,352 @@
+/* The book's design: Material for MkDocs with the game's colours and the game's own font.
+ *
+ * Every colour below is an entry of one of the game's palettes, as the files on the disk hold
+ * it (original/disk/Wings_of_Fury/shapes/), each 4-bit component widened to 8 bits by
+ * repeating it.  The comment after each colour names the file and the entry, and
+ * book/tools/build.py --check reads those comments and compares every colour with the file.
+ * Day is the day mission's palettes and the title's, night the night mission's:
+ *
+ *   wingspalette    the sky of a day mission             ocean.palette   its sea
+ *   night.p         the sky of a night mission           nightocean.p    its sea
+ *   wingstitle      the title picture                    iff-dash        the dashboard by day
+ *
+ * The headings are set in the game's font, newarmyfont, made into fonts/wof-newarmy.woff by
+ * book/tools/webfont.py.  One of its pixels is one unit wide and two high, so it stands
+ * sharp at 24 and 48 pixels and is used at those sizes only.  The text is a serif of the
+ * reader's system, the code the system's monospace: the site loads nothing from elsewhere.
+ */
+
+@font-face {
+  font-family: "WoF Newarmy";
+  src: url("../fonts/wof-newarmy.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --wof-pixel-font: "WoF Newarmy", var(--wof-sans);
+  --wof-serif: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Palatino,
+    "URW Palladio L", P052, Georgia, serif;
+  --wof-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --md-text-font: system-ui;
+  --md-code-font: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    "DejaVu Sans Mono";
+  --wof-measure: 34rem;                 /* the prose's line length */
+}
+
+/* ------------------------------------------------------------------ day */
+
+[data-md-color-scheme="default"] {
+  --wof-ink: #111122;                   /* wingspalette 6 */
+  --wof-paper: #FFFFFF;                 /* wingspalette 31 */
+  --wof-header: #003377;                /* ocean.palette 13 */
+  --wof-footer: #002255;                /* wingspalette 19 */
+  --wof-link: #0066AA;                  /* ocean.palette 10 */
+  --wof-hover: #EE6622;                 /* wingspalette 2 */
+  --wof-title: #FFBB00;                 /* wingstitle 25 */
+  --wof-heading: #003377;               /* ocean.palette 13 */
+  --wof-code: #EEEEEE;                  /* wingstitle 31 */
+  --wof-know: #339933;                  /* wingspalette 7 */
+  --wof-wrong: #BB0000;                 /* wingstitle 8 */
+  --wof-dev: #BB7700;                   /* wingstitle 23 */
+  --wof-on-header: #EEEEEE;             /* wingstitle 31 */
+}
+
+/* ------------------------------------------------------------------ night */
+
+[data-md-color-scheme="slate"] {
+  --wof-ink: #CCCCDD;                   /* night.p 31 */
+  --wof-paper: #111122;                 /* night.p 6 */
+  --wof-header: #001133;                /* nightocean.p 15 */
+  --wof-footer: #002244;                /* night.p 19 */
+  --wof-link: #88BBCC;                  /* nightocean.p 2 */
+  --wof-hover: #FFAA22;                 /* night.p 11 */
+  --wof-title: #FFBB00;                 /* wingstitle 25 */
+  --wof-heading: #FFBB00;               /* wingstitle 25 */
+  --wof-code: #222233;                  /* night.p 25 */
+  --wof-know: #44AA44;                  /* iff-dash 6 */
+  --wof-wrong: #FF5555;                 /* iff-dash 9 */
+  --wof-dev: #FFBB00;                   /* wingstitle 25 */
+  --wof-on-header: #CCCCDD;             /* night.p 31 */
+}
+
+/* Material's colour variables, from the tokens above, in both schemes. */
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: var(--wof-paper);
+  --md-default-fg-color: var(--wof-ink);
+  --md-default-fg-color--light: color-mix(in srgb, var(--wof-ink) 72%, transparent);
+  --md-default-fg-color--lighter: color-mix(in srgb, var(--wof-ink) 40%, transparent);
+  --md-default-fg-color--lightest: color-mix(in srgb, var(--wof-ink) 10%, transparent);
+  --md-primary-fg-color: var(--wof-header);
+  --md-primary-fg-color--light: var(--wof-link);
+  --md-primary-fg-color--dark: var(--wof-footer);
+  --md-primary-bg-color: var(--wof-on-header);
+  --md-primary-bg-color--light: color-mix(in srgb, var(--wof-on-header) 70%, transparent);
+  --md-accent-fg-color: var(--wof-hover);
+  --md-accent-fg-color--transparent: color-mix(in srgb, var(--wof-hover) 10%, transparent);
+  --md-accent-bg-color: var(--wof-paper);
+  --md-typeset-a-color: var(--wof-link);
+  --md-code-bg-color: var(--wof-code);
+  --md-code-fg-color: var(--wof-ink);
+  --md-footer-bg-color: var(--wof-footer);
+  --md-footer-bg-color--dark: var(--wof-header);
+  --md-footer-fg-color: var(--wof-on-header);
+}
+
+/* ------------------------------------------------------------------ type */
+
+.md-typeset {
+  font-family: var(--wof-serif);
+  font-size: .85rem;
+  line-height: 1.65;
+}
+
+.md-header__topic:first-child {
+  font-family: var(--wof-pixel-font);
+  font-size: 24px;
+  font-weight: normal;
+  letter-spacing: 0;
+  color: var(--wof-title);
+}
+
+.md-typeset h1,
+.md-typeset h2 {
+  font-family: var(--wof-pixel-font);
+  font-weight: normal;
+  letter-spacing: 0;
+  color: var(--wof-heading);
+}
+
+.md-typeset h1 {
+  font-size: 48px;
+  line-height: 1.25;
+  margin: 0 0 1em;
+}
+
+.md-typeset h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 2em 0 .6em;
+}
+
+.md-typeset h3,
+.md-typeset h4 {
+  font-family: var(--wof-sans);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--wof-heading);
+}
+
+.md-typeset .chapter-kicker {
+  font-family: var(--wof-sans);
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--wof-hover);
+  margin: 0 0 .4rem;
+}
+
+.md-typeset .subtitle {
+  font-size: 1.15em;
+  font-style: italic;
+  color: var(--md-default-fg-color--light);
+  margin-top: -.6em;
+}
+
+.md-typeset a:hover {
+  color: var(--wof-hover);
+}
+
+/* The prose keeps a book's measure; code, figures, tables and the game take the column. */
+.md-typeset > p,
+.md-typeset > ul,
+.md-typeset > ol,
+.md-typeset > dl,
+.md-typeset > blockquote,
+.md-typeset > h1,
+.md-typeset > h2,
+.md-typeset > h3,
+.md-typeset > h4,
+.md-typeset > .admonition {
+  max-width: var(--wof-measure);
+}
+
+.md-grid {
+  max-width: 72rem;
+}
+
+/* ------------------------------------------------------------------ code and listings */
+
+.md-typeset pre {
+  font-size: .625rem;
+  line-height: 1.5;
+}
+
+.md-typeset pre > code {
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+}
+
+/* The assembly beside its C: side by side where the column is wide enough, one under the
+   other elsewhere. */
+.md-typeset .listing-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: .8rem;
+}
+
+.md-typeset .listing-pair > div > :first-child {
+  margin-top: 0;
+}
+
+@media screen and (min-width: 76.25em) {
+  .md-typeset .listing-pair {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+}
+
+/* The lines of re/Wings.lst (hooks/lexer.py): the address, the bytes dimmed, the mnemonic,
+   the registers, the numbers, the generated comment. */
+.md-typeset .language-wingslst .no { color: var(--wof-link); }
+.md-typeset .language-wingslst .cs { color: var(--md-default-fg-color--lighter); font-style: normal; }
+.md-typeset .language-wingslst .k  { color: var(--md-code-hl-keyword-color); }
+.md-typeset .language-wingslst .nb { color: var(--md-code-hl-constant-color); }
+.md-typeset .language-wingslst .mh,
+.md-typeset .language-wingslst .mi { color: var(--md-code-hl-number-color); }
+.md-typeset .language-wingslst .nl { color: var(--wof-hover); }
+.md-typeset .language-wingslst .c1 { color: var(--md-code-hl-comment-color); }
+
+/* ------------------------------------------------------------------ the three sidebars */
+
+:root {
+  --md-admonition-icon--know: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M1 0h4v1h-4zM0 1h2v1h-2zM4 1h2v1h-2zM0 2h1v1h-1zM5 2h1v1h-1zM0 3h1v1h-1zM5 3h1v1h-1zM0 4h2v1h-2zM4 4h2v1h-2zM1 5h5v1h-5zM5 6h2v1h-2zM6 7h2v1h-2zM7 8h2v1h-2zM8 9h2v1h-2z"/></svg>');
+  --md-admonition-icon--wrong: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M3 0h4v1h-4zM3 1h4v1h-4zM3 2h4v1h-4zM4 3h2v1h-2zM4 4h2v1h-2zM4 5h2v1h-2zM4 7h2v1h-2zM4 8h2v1h-2z"/></svg>');
+  --md-admonition-icon--dev: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" shape-rendering="crispEdges"><path d="M0 0h2v1h-2zM1 1h2v1h-2zM2 2h2v1h-2zM3 3h2v1h-2zM2 4h2v1h-2zM1 5h2v1h-2zM0 6h2v1h-2zM4 8h6v1h-6zM4 9h6v1h-6z"/></svg>');
+}
+
+.md-typeset .admonition.know  { --wof-side: var(--wof-know); }
+.md-typeset .admonition.wrong { --wof-side: var(--wof-wrong); }
+.md-typeset .admonition.dev   { --wof-side: var(--wof-dev); }
+
+.md-typeset .admonition.know,
+.md-typeset .admonition.wrong,
+.md-typeset .admonition.dev {
+  border: none;
+  border-left: .3rem solid var(--wof-side);
+  border-radius: 0;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--wof-side) 6%, transparent);
+  font-size: .78rem;
+}
+
+.md-typeset .know > .admonition-title,
+.md-typeset .wrong > .admonition-title,
+.md-typeset .dev > .admonition-title {
+  font-family: var(--wof-sans);
+  background: color-mix(in srgb, var(--wof-side) 16%, transparent);
+  border: none;
+}
+
+.md-typeset .know > .admonition-title::before,
+.md-typeset .wrong > .admonition-title::before,
+.md-typeset .dev > .admonition-title::before {
+  background-color: var(--wof-side);
+}
+
+.md-typeset .know > .admonition-title::before {
+  -webkit-mask-image: var(--md-admonition-icon--know);
+  mask-image: var(--md-admonition-icon--know);
+}
+
+.md-typeset .wrong > .admonition-title::before {
+  -webkit-mask-image: var(--md-admonition-icon--wrong);
+  mask-image: var(--md-admonition-icon--wrong);
+}
+
+.md-typeset .dev > .admonition-title::before {
+  -webkit-mask-image: var(--md-admonition-icon--dev);
+  mask-image: var(--md-admonition-icon--dev);
+}
+
+/* The dev sidebar is the one for the deeper detail: its code may run wide. */
+.md-typeset .admonition.dev pre {
+  font-size: .6rem;
+}
+
+/* ------------------------------------------------------------------ figures */
+
+.md-typeset figure {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.6em 0;
+}
+
+.md-typeset figure > p {
+  margin: 0;
+}
+
+.md-typeset figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #000000;                  /* wingspalette 0 */
+}
+
+.md-typeset figure figcaption p {
+  margin: 0;
+}
+
+.md-typeset figure figcaption {
+  max-width: var(--wof-measure);
+  margin: .6em 0 0;
+  font-family: var(--wof-sans);
+  font-size: .68rem;
+  font-style: normal;
+  text-align: left;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ------------------------------------------------------------------ the game in the page */
+
+.md-typeset .wof-game {
+  margin: 1.2em 0;
+}
+
+.md-typeset .wof-game iframe {
+  display: block;
+  width: min(100%, calc((100vh - 8rem) * 1024 / 642));
+  aspect-ratio: 1024 / 642;
+  border: 0;
+  background: #000000;                  /* wingspalette 0 */
+}
+
+.md-typeset .wof-game-note {
+  font-family: var(--wof-sans);
+  font-size: .72rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ------------------------------------------------------------------ phone width */
+
+@media screen and (max-width: 44.984375em) {
+  .md-typeset {
+    font-size: .8rem;
+  }
+
+  .md-typeset h1 {
+    font-size: 24px;
+    line-height: 1.5;
+  }
+
+  .md-typeset h2 {
+    font-size: 24px;
+  }
+
+  .md-typeset pre {
+    font-size: .6rem;
+  }
+}

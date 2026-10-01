@@ -1,0 +1,88 @@
+# The listings the chapters show, named in one place.
+#
+# book/tools/listings.py extracts each entry from the real sources into
+# docs/generated/listings/<kind>/<name>.<ext>, with a first line that names the source file and
+# the line range (or the address range); a chapter includes the file with pymdownx.snippets.
+# A name that no longer exists fails the run with the name.
+#
+#   kind    asm   a routine of re/Wings.lst, by its name in re/functions.csv: its lines from
+#                 its start address to its end
+#           c     a C function of src/*.c, with the comment directly above it
+#           js    a function or a method of web/*.js, with the comment directly above it
+#           py    a function or a class of tools/*.py, with the comments directly above it
+#   name    the routine; a method is Class.method
+#   file    the source file, needed only where the name alone is not unique (not for asm)
+#   from    asm only: the part of the routine from this address ...
+#   to      ... to the instruction at this address, both inclusive
+#   as      the name of the extract, where it is not the routine's (a part, say)
+#   lines   the most lines the extract may have, the first line not counted.  The default is
+#           40; a longer routine fails the run unless its entry asks for more here.
+
+# A ported routine shown as the listing's assembly beside its C: the fade's arithmetic,
+# compiled C in the original, orig 0x016FF6 on both sides.
+[[listing]]
+kind = "asm"
+name = "colour_lerp"
+lines = 45
+
+[[listing]]
+kind = "c"
+name = "wof_colour_lerp"
+
+# Hand-written assembly beside its C: the unpacker of the packed files, orig 0x01FEE0.
+[[listing]]
+kind = "asm"
+name = "rpck_unpack"
+
+[[listing]]
+kind = "c"
+name = "wof_rpck_unpack"
+
+# The width of a text in the game's font, orig 0x01591E.
+[[listing]]
+kind = "asm"
+name = "text_width"
+
+[[listing]]
+kind = "c"
+name = "wof_text_width"
+
+# A part of a long routine: draw_world takes one map record, tests the draw flag and looks
+# its slot up in MasterList or AthList, skipping a null (re/notes/map.md, re/notes/shapes.md).
+[[listing]]
+kind = "asm"
+name = "draw_world"
+from = 0x013842
+to = 0x013870
+as = "draw_world_record"
+
+# The shell: the framebuffer through the palette of each row, a function of web/video.js.
+[[listing]]
+kind = "js"
+name = "convert"
+
+# The clock's frame, a function inside createClock in web/clock.js.
+[[listing]]
+kind = "js"
+name = "frame"
+file = "web/clock.js"
+
+# A method of the shell's core wrapper.
+[[listing]]
+kind = "js"
+name = "Core.vblank"
+
+# The tools: a map record's fields, a shape's planes into indexed pixels, a map file.
+[[listing]]
+kind = "py"
+name = "fields"
+file = "tools/map_decode.py"
+
+[[listing]]
+kind = "py"
+name = "to_indexed"
+
+[[listing]]
+kind = "py"
+name = "Map"
+file = "tools/map_decode.py"

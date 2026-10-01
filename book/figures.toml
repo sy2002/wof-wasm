@@ -1,0 +1,134 @@
+# The figures of the book, named in one place.
+#
+# book/tools/figures.py renders each into docs/generated/figures/<file> through the port's
+# native library and the repository's tools; `command` remakes that one figure, and
+# `figures.py --check` remakes all of them into a temporary directory and compares them with
+# the committed files byte for byte.  Every figure is the game's art rendered from its data,
+# under the reservation of README.md, Licence.
+#
+#   maker    screen     the port's 640 x 214 picture through its per-row palettes
+#                       (tests/m4_renders.py, picture()), at a VBlank of a run
+#            palettes   the per-row palettes of that picture, one band per run of rows
+#            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet())
+#            map        a map's drawn records (tools/map_decode.py, draw_list())
+#            font       a specimen of the game's font, drawn by the port's text_render
+#   shows    what the figure shows, for the caption and the alt text
+#   how      how it is made, beyond what the maker and the run say
+
+# The runs of the native core the screens come from.  The core is the one the tests load
+# (tests/libwofcore.dylib), seed 1, PAL (wof_set_video_hz 50), two VBlanks a fade step as the
+# page has them, on the files packed into dist/wof.html; one wof_vblank and one wof_pass per
+# VBlank, as the page's clock issues them.  Fire is the raw byte 16.
+[run.front]
+what = """The front end left to itself after the story scroller: fire held for three VBlanks from
+VBlank 30, which ends the scroller, and nothing after it, so that the first picture, the
+title and the credits follow by themselves."""
+fire_from = 30
+fire_held = 3
+
+[run.mission]
+what = """Fire held for three VBlanks in every 33 (VBlanks 31 to 33, 64 to 66, and so on) until
+the first mission begins, which it does at VBlank 659, and nothing after it: the player stands
+on the carrier's deck with the weapon menu up."""
+fire_every = 33
+fire_held = 3
+mission_at = 659
+
+[[figure]]
+name = "title-logo"
+file = "title-logo.png"
+maker = "screen"
+run = "front"
+vblank = 360
+size = [1024, 642]
+shows = "The first picture of the title sequence, shapes/broderbund in its own colours, which on this disk is the crack's MicroTech picture."
+how = "VBlank 360 of the front run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py title-logo"
+
+[[figure]]
+name = "title-screen"
+file = "title-screen.png"
+maker = "screen"
+run = "front"
+vblank = 640
+size = [1024, 642]
+shows = "The title screen, shapes/wingstitle."
+how = "VBlank 640 of the front run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py title-screen"
+
+[[figure]]
+name = "title-credits"
+file = "title-credits.png"
+maker = "screen"
+run = "front"
+vblank = 1100
+size = [1024, 642]
+shows = "The credit picture of the title sequence, shapes/creditscreen."
+how = "VBlank 1100 of the front run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py title-credits"
+
+[[figure]]
+name = "mission-start"
+file = "mission-start.png"
+maker = "screen"
+run = "mission"
+vblank = 759
+size = [1024, 642]
+shows = "The first mission, 100 VBlanks after it began: the carrier's deck, the weapon menu, the dashboard and the ticker."
+how = "VBlank 759 of the mission run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py mission-start"
+
+[[figure]]
+name = "mission-palettes"
+file = "mission-palettes.png"
+maker = "palettes"
+run = "mission"
+vblank = 759
+scale = 2
+shows = "The per-row palettes of the mission picture: one band for each run of rows that goes through the same palette, its 32 colours, the ones its pixels use drawn full."
+how = "The framebuffer, the row-to-palette table and the palettes of the core at VBlank 759 of the mission run; a band is named by its rows, its area of the play screen, and the palette file whose colours it carries, where one does."
+# The areas of the play screen, re/notes/display.md, "The play screen line by line".
+areas = [[0, 161, "playfield"], [162, 162, "blank"], [163, 199, "dashboard"],
+         [200, 200, "blank"], [201, 213, "ticker"]]
+# The palette files a band's colours are compared with (original/disk/Wings_of_Fury/shapes/).
+files = ["wingspalette", "ocean.palette", "night.p", "nightocean.p", "iff-dash", "nightdash"]
+command = ".venv/bin/python book/tools/figures.py mission-palettes"
+
+[[figure]]
+name = "shapes-torpedo"
+file = "shapes-torpedo.png"
+maker = "shapes"
+container = "torpedo.shp"
+palette = "wingspalette"
+shows = "Every shape of torpedo.shp with its name: the frames named bom.., hc.., rc.., ro.. and tor., bombs, the player's aircraft, rockets and the torpedo."
+how = "tools/ppkc.py's parse() and sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py shapes-torpedo"
+
+[[figure]]
+name = "map-a"
+file = "map-a.png"
+maker = "map"
+map = "a"
+container = "world.shp"
+names = "world_names"
+palette = "wingspalette"
+band = 960
+split_row = 151
+shows = "Map a, the first mission's world, as the strip of its drawn records: the islands with their palms, barracks and dug-outs on the left, the carrier on the right, in bands of 960 pixels of world x."
+how = "tools/map_decode.py's draw_list() over the whole map at full scale with the split row of the deck (151), each record's slot named by world_names (re/tables.toml, read from the executable) and drawn with that shape of world.shp at the position draw_world gives it, hotspot taken off, in the colours of wingspalette on its sky colour (entry 1). What islands_draw adds, the ground between an island's two beaches, is not part of the records and not drawn."
+command = ".venv/bin/python book/tools/figures.py map-a"
+
+[[figure]]
+name = "font-specimen"
+file = "font-specimen.png"
+maker = "font"
+lines = ["Bringing Back Wings of Fury",
+         " !\"#$%&'()*+,-./0123456789:;<=>?",
+         "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_",
+         "`abcdefghijklmnopqrstuvwxyz{|}~"]
+ink = ["wingstitle", 25]
+paper = ["wingstitle", 0]
+scale = [2, 4]
+shows = "The game's own font, newarmyfont, with every character it has: the lettering of the story scroller, the briefing and the ticker, and of this book's headings."
+how = "Each line drawn by the port's text_render (orig 0x015956) into a 640 x 12 template, as the story scroller draws it; each pixel shown two wide and four high, near the 1.6 : 3 of a high-resolution pixel on a PAL screen; ink and paper are entries 25 and 0 of the title picture's palette."
+command = ".venv/bin/python book/tools/figures.py font-specimen"

@@ -1,0 +1,29 @@
+; re/Wings.lst 0x01FEE0-0x01FF14: rpck_unpack [asm]
+rpck_unpack:
+01fee0  206f0004             movea.l    $4(a7), a0
+01fee4  202f0008             move.l     $8(a7), d0
+01fee8  226f000c             movea.l    $c(a7), a1
+01feec  2f0a                 move.l     a2, -(a7)
+01feee  2448                 movea.l    a0, a2
+01fef0  d5c0                 adda.l     d0, a2
+loc_01fef2:
+01fef2  b1ca                 cmpa.l     a2, a0
+01fef4  641c                 bcc.b      $1ff12
+01fef6  7000                 moveq      #$0, d0
+01fef8  1018                 move.b     (a0)+, d0
+01fefa  6d0a                 blt.b      $1ff06
+01fefc  1218                 move.b     (a0)+, d1
+loc_01fefe:
+01fefe  12c1                 move.b     d1, (a1)+
+01ff00  51c8fffc             dbra       d0, $1fefe
+01ff04  60ec                 bra.b      $1fef2
+loc_01ff06:
+01ff06  4400                 neg.b      d0
+01ff08  5340                 subq.w     #$1, d0
+loc_01ff0a:
+01ff0a  12d8                 move.b     (a0)+, (a1)+
+01ff0c  51c8fffc             dbra       d0, $1ff0a
+01ff10  60e0                 bra.b      $1fef2
+loc_01ff12:
+01ff12  245f                 movea.l    (a7)+, a2
+01ff14  4e75                 rts

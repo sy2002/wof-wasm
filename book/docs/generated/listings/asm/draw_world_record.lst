@@ -1,0 +1,19 @@
+; re/Wings.lst 0x013842-0x013870: draw_world [asm], a part of 0x013772-0x01391D
+loc_013842:
+013842  301d                 move.w     (a5)+, d0
+013844  222c962e             move.l     -$69d2(a4), d1                         ; map_records_end
+013848  b28d                 cmp.l      a5, d1
+01384a  6500006e             bcs.w      $138ba
+01384e  3200                 move.w     d0, d1
+013850  3400                 move.w     d0, d2
+013852  e449                 lsr.w      #$2, d1
+013854  c47c0003             and.w      #$3, d2
+013858  3601                 move.w     d1, d3
+01385a  0881000d             bclr.b     #$d, d1
+01385e  6700004c             beq.w      $138ac
+013862  e549                 lsl.w      #$2, d1
+013864  c27c07fc             and.w      #$7fc, d1
+013868  2047                 movea.l    d7, a0
+01386a  20701000             movea.l    (a0, d1.w), a0
+01386e  2008                 move.l     a0, d0
+013870  6700003a             beq.w      $138ac

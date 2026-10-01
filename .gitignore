@@ -22,3 +22,8 @@ __pycache__/
 
 # test runner
 .pytest_cache/
+
+# the book's site: built by book/tools/build.py (mkdocs build) and published from there, never
+# committed; the game it embeds is copied in from dist/wof.html at every build
+book/site/
+book/.cache/

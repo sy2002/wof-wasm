@@ -1,0 +1,43 @@
+; re/Wings.lst 0x016FF6-0x017082: colour_lerp [C]
+colour_lerp:
+016ff6  4e55fffe             link.w     a5, #$fffe
+016ffa  0c6d000f0008         cmpi.w     #$f, $8(a5)
+017000  6608                 bne.b      $1700a
+017002  302d000c             move.w     $c(a5), d0
+loc_017006:
+017006  4e5d                 unlk       a5
+017008  4e75                 rts
+loc_01700a:
+01700a  3b6d000afffe         move.w     $a(a5), -$2(a5)
+017010  302d000c             move.w     $c(a5), d0
+017014  c07c000f             and.w      #$f, d0
+017018  322d000a             move.w     $a(a5), d1
+01701c  c27c000f             and.w      #$f, d1
+017020  9041                 sub.w      d1, d0
+017022  c1ed0008             muls.w     $8(a5), d0
+017026  48c0                 ext.l      d0
+017028  81fc000f             divs.w     #$f, d0
+01702c  c07c000f             and.w      #$f, d0
+017030  d16dfffe             add.w      d0, -$2(a5)
+017034  302d000c             move.w     $c(a5), d0
+017038  c07c00f0             and.w      #$f0, d0
+01703c  322d000a             move.w     $a(a5), d1
+017040  c27c00f0             and.w      #$f0, d1
+017044  9041                 sub.w      d1, d0
+017046  c1ed0008             muls.w     $8(a5), d0
+01704a  48c0                 ext.l      d0
+01704c  81fc000f             divs.w     #$f, d0
+017050  c07c00f0             and.w      #$f0, d0
+017054  d16dfffe             add.w      d0, -$2(a5)
+017058  302d000c             move.w     $c(a5), d0
+01705c  c07c0f00             and.w      #$f00, d0
+017060  322d000a             move.w     $a(a5), d1
+017064  c27c0f00             and.w      #$f00, d1
+017068  9041                 sub.w      d1, d0
+01706a  c1ed0008             muls.w     $8(a5), d0
+01706e  720f                 moveq      #$f, d1
+017070  4eac83c2             jsr        -$7c3e(a4)                             ; -> sub_0223cc
+017074  c0bc00000f00         and.l      #$f00, d0
+01707a  d16dfffe             add.w      d0, -$2(a5)
+01707e  302dfffe             move.w     -$2(a5), d0
+017082  6082                 bra.b      $17006
