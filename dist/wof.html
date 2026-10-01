@@ -115,6 +115,13 @@ html, body {
     display: none;
 }
 
+/* No mouse cursor anywhere in the page's own fullscreen, the one F asks for: the page has
+   nothing to click.  web/main.js sets the class while document.fullscreenElement is set, so
+   that this does not depend on a browser's :fullscreen. */
+:root.page-fullscreen, :root.page-fullscreen * {
+    cursor: none;
+}
+
 /* The pause sign.  web/video.js puts its centre on the picture's and sets its font size from
    the picture's height, so everything here is in ems of that size: the block keeps the same
    small part of the picture at any size.  The colours are the key hint's and the shell's. */
@@ -16905,10 +16912,10 @@ async function boot() {
     }
 
     /* The help screen (SPEC 6.2).  It is up when the page opens, in place of a prompt for
-       sound, and goes by that prompt's rule: when the sound is really running, whatever key
-       started it doing what it always does.  After that H brings it back, except in the line
-       editor, where H is a letter; while it is up any key takes it away, and that key is the
-       shell's.  Over a running mission it asks for the pause and ends that pause when it
+       sound, and goes by that prompt's rule: when the sound is really running.  The key that
+       starts the sound is the shell's and does nothing else.  After that H brings it back,
+       except in the line editor, where H is a letter; while it is up any key takes it away,
+       and that key is the shell's too.  Over a running mission it asks for the pause and ends that pause when it
        goes; a pause it did not ask for - P, Escape, an absence, fullscreen left - stays, with
        its sign, when it goes.  Outside a mission the game runs on beneath it. */
     let waitingForAudio = true;
@@ -16970,6 +16977,9 @@ async function boot() {
             elementFullscreenLeftAt = performance.now();
         }
         hadFullscreenElement = !!document.fullscreenElement;
+        /* No mouse cursor in the page's own fullscreen: the page has nothing to click and
+           every input is the keyboard (web/style.css).  The browser's fullscreen keeps it. */
+        document.documentElement.classList.toggle('page-fullscreen', hadFullscreenElement);
     });
     function escapeLeavesFullscreen(event) {
         return event.code === 'Escape'
@@ -16984,30 +16994,32 @@ async function boot() {
     }
 
     /* Ahead of every other key listener of the page, in the capture phase: a key the shell
-       takes here - the Escape that leaves fullscreen, the key that closes the help screen, H
-       and F - goes no further, neither to the game nor to the shell's other keys.  A key held
-       with Control, Alt or Command is the browser's, and a repeat is not a press.  At the
-       start the help screen goes by its own rule and every key but F does what it always
-       does; F starts the sound as that key, and then is the fullscreen key.  In the line
-       editor H and F are letters. */
+       takes here - the Escape that leaves fullscreen, every key while the help screen is up,
+       H and F - goes no further, neither to the game nor to the shell's other keys.  A key
+       held with Control, Alt or Command is the browser's, and a repeat is not a press.
+       While the help screen is up at the start, the key starts the sound and does nothing
+       else; the screen goes once the sound runs (checkAudioStarted), so a key that cannot
+       start it, a dead key say, leaves the screen up for the next one.  While it is up after
+       that, the key takes it away.  In the line editor H and F are letters. */
     window.addEventListener('keydown', (event) => {
         if (MODIFIER_KEYS.has(event.key) || event.ctrlKey || event.altKey || event.metaKey) {
             return;
         }
         if (escapeLeavesFullscreen(event)) {
             /* nothing: the browser leaves fullscreen and the leave rule pauses */
-        } else if (helpShown && !waitingForAudio) {
+        } else if (waitingForAudio) {
+            if (!event.repeat) {
+                onGesture(event);                /* its listener below does not see this key */
+            }
+        } else if (helpShown) {
             if (!event.repeat) {
                 closeHelp();
             }
-        } else if (event.code === 'KeyH' && !waitingForAudio && !core.lineEditorActive()) {
+        } else if (event.code === 'KeyH' && !core.lineEditorActive()) {
             if (!event.repeat) {
                 openHelp();
             }
         } else if (event.code === 'KeyF' && !core.lineEditorActive()) {
-            if (waitingForAudio) {
-                onGesture(event);                /* its listener below does not see this key */
-            }
             if (!event.repeat) {
                 toggleFullscreen();
             }
