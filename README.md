@@ -50,7 +50,7 @@ python -m pytest tests/ --slow -m "not page" -n 8 --dist loadgroup
 python -m pytest tests/ --slow -m page
 ```
 
-The first phase, the emulator tests over eight cores, takes about an hour, and the second, the page tests in the two browsers, about twenty minutes. Without the ROM every test but a handful skips, with the same message as its reason. `re/notes/testing.md` has the details.
+The first phase, the emulator tests over the cores, takes about an hour, and the second, the page tests in the two browsers, about twenty minutes; `-n 8` is the number of physical cores, use your machine's (more workers than cores only slow it down). Without the ROM every test but a handful skips, with the same message as its reason. `re/notes/testing.md` has the details.
 
 ## Where things are
 
