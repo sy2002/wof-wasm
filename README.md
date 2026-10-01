@@ -1,8 +1,16 @@
 # Wings of Fury
 
-A faithful port of the Amiga game Wings of Fury, the 1990 Amiga version, to a single HTML file that runs in a browser, with a C core compiled to WebAssembly. The game's logic is ported routine by routine from the original executable, and a headless copy of that executable running under emulation holds the port to the original, pass by pass. It is a retro preservation project.
+*Broderbund's 1990 Amiga classic, brought back as a single HTML file: not emulated, not remade, but ported routine by routine from the original 68000 executable, and held to the original tick for tick.*
 
-![The title screen of Wings of Fury, as the port shows it](ref/title.png)
+![](ref/title.png)
+
+Open `dist/wof.html` and you are on the carrier's deck in 1944: the original's artwork, its sound effects and its music, in your browser, nothing to install. Under the hood there is no Amiga emulator. The game's own logic was taken out of the executable's machine code and rewritten in C, one routine at a time, and runs as WebAssembly; a small JavaScript shell gives it a screen, a sound chip and a keyboard.
+
+What makes it faithful is the method, not just the care. The original executable itself ran headless under emulation beside the port, and the two were compared after every logic tick and every drawn frame, over more than sixty scripted missions on all fifteen maps, through whole campaigns, saved games and the demo: the same game state, byte for byte; the same drawing calls with the same palettes; the same sound sample started on the same channel at the same moment. The flight model runs on the Amiga's own floating-point arithmetic, bit for bit. The speed is the one measured on a real PAL Amiga. The enemy pilots, the ships' gunners, the soldiers running for the dug-outs do exactly what they did in 1990, down to a bug the game always had. What was changed on purpose fits in one short list: the keys a browser allows, menus that take a tap where the original wanted a held stick, and a remembered preference for the stick's sense.
+
+The picture is as pixel-identical as a modern screen allows: the drawing routines are the original's, ported and held to a model of the Amiga's blitter, and what they draw is shown in the Amiga's own pixel aspect, every pixel crisp, at whatever size your window has. In a way it is better than the disk in an emulator: no emulator in between, no disk to boot, no settings to get right, just the game as it was, at the browser's full frame rate, with the sound and the music played by the original's own sound engine and music player, ported with the rest.
+
+It is a retro preservation project, and a case study in how one can be done today: the tools, the notes, the disassembly and the tests that hold the port to the original are all in this repository, and a book about the way is on its way in `book/`.
 
 ## Play
 
