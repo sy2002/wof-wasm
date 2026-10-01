@@ -90,7 +90,7 @@ The program on the disk, hunk by hunk, and where the project's tools load each h
 
 ## One layout for every address
 
-On a real Amiga, LoadSeg chooses the addresses, and they differ from one machine, and one start, to the next, so that an address written into a note would mean nothing the next day. So the project uses one **fixed load layout**: the one set of addresses at which all its tools load the program, the code at `0x010000`, the data at `0x023000` and the BSS at `0x028000`. It is the layout of `tools/hunk.py`: the first hunk at `0x010000`, each next one at the next 4 KB boundary.
+On a real Amiga, LoadSeg chooses the addresses, and they differ from one machine, and one start, to the next, so that an address written into a note would mean nothing the next day. So we use one **fixed load layout**: the one set of addresses at which all the project's tools load the program, the code at `0x010000`, the data at `0x023000` and the BSS at `0x028000`. It is the layout of `tools/hunk.py`: the first hunk at `0x010000`, each next one at the next 4 KB boundary.
 
 Every tool loads the program through `tools/hunk.py`: the disassembler that writes the listing, the oracle, the headless original and the build's extractor of tables. Every ported routine names its original's address in a comment. So an address names one place everywhere: `0x01C982` is the routine `record_at` in the listing, in the notes, under the oracle, in its port's comment, and below.
 
@@ -158,7 +158,7 @@ One more rule concerns the upper half of a register a routine leaves holding 32 
 
 ## Read from the executable, never retyped
 
-The port needs the game's numbers and words: the names of its shapes and files, its palettes, the story's text, the periods of its sounds. The project's rule is that hand-written sources hold code only: every table, text and tuning value comes out of the program when the port is built.
+The port needs the game's numbers and words: the names of its shapes and files, its palettes, the story's text, the periods of its sounds. We keep to one rule: hand-written sources hold code only, and every table, text and tuning value comes out of the program when the port is built.
 
 The manifest `re/tables.toml` lists them, each entry with a name, a kind (a list of shape names, a string, a run of numbers, a block of bytes), an address in the fixed layout and a count. At every build, `tools/extract_tables.py` reads the bytes at those addresses and writes them out as C, which is never committed. On the way it converts the byte order: the 68000 is **big-endian**, storing the most significant byte of a number first, as every file the project reads does, and the tables come out as ordinary C.
 

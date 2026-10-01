@@ -178,7 +178,7 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 | C routines, routines | 223 of 616; 223 `link a5` | `re/functions.csv` with `csv.DictReader`; `grep -c 'link.w     a5' re/Wings.lst` |
 | `record_at` | 22 instructions, `0x01C982`–`0x01C9C8` | `tools/skel.py 01c982 --all` |
 | the code hunk's relocations | 22: 5 into the code, 17 into the data | `tools/hunk.py original/disk/Wings_of_Fury/Wings` |
-| the chapter's words | 3,974 | `wc -w book/docs/part-1/disk.md`, the whole file with alt texts, captions, sidebars and the further reading |
+| the chapter's words | 3,975 | `wc -w book/docs/part-1/disk.md`, the whole file with alt texts, captions, sidebars and the further reading |
 | `songplay`'s symbols | 20 in its code hunk | `tools/hunk.py original/disk/Wings_of_Fury/songplay` |
 | tables | 122 entries: 113 `Wings`, 7 `songplay`, 2 ROM | `re/tables.toml` with `tomllib` |
 | `data_image` | 15,456 bytes | `re/tables.toml` |
