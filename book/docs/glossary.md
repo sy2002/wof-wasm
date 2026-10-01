@@ -102,6 +102,12 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconvention), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Change report
+
+A list a run of the headless original can write: for every record of its dump, each range of memory that changed, with the old and the new bytes, a name and the routines that wrote it.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#change-report-entropy-log-schedule), "Change report, entropy log, schedule".
+
 ### Chip memory
 
 The memory the Amiga's custom chips can read and write by themselves, without the processor; the game keeps its screens, copper lists, shapes, sound effects and songs there.
@@ -204,6 +210,12 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/di
 
 Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbuffering), Wikipedia.
 
+### Dump
+
+The file a run of the headless original writes: the game's whole state after every logic tick and every pass, each record with a SHA-256 fingerprint of the state, for the comparisons with the port.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/headless_dump.py`](repo:tools/headless%5Fdump.py); [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump".
+
 ### Emulator
 
 A program that imitates a computer's processor and chips closely enough that the computer's own programs run on it unchanged.
@@ -211,6 +223,14 @@ A program that imitates a computer's processor and chips closely enough that the
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
 
 Elsewhere: [Emulator](https://en.wikipedia.org/wiki/Emulator), Wikipedia.
+
+### Entropy stream
+
+The reproducible stream of values that stands in for the beam's position, one value for every read; the headless original and the port draw from the same one, so that both meet the same chance.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/random.md`](repo:re/notes/random.md#consequences), "Consequences"; [`re/notes/headless.md`](repo:re/notes/headless.md#entropy), "Entropy".
+
+Elsewhere: [Linear congruential generator](https://en.wikipedia.org/wiki/Linear%5Fcongruential%5Fgenerator), Wikipedia.
 
 ### Faithful port
 
@@ -253,6 +273,12 @@ Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-p
 The game's screens before and between missions: the story, the title, the rank selection, the briefing, the high scores and the dialogs.
 
 First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md).
+
+### Harness
+
+The headless original's own code around the original program, written in Python: the stubs, the hooks, the script, the entropy stream and the dump.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/headless.py`](repo:tools/headless.py); [`re/notes/headless.md`](repo:re/notes/headless.md).
 
 ### Headless original
 
@@ -448,6 +474,12 @@ The port's C compiled by the test machine's own compiler into a library that the
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [5](repo:SPEC.md#5-build) and [8](repo:SPEC.md#8-verification).
 
+### Observer
+
+A hook of the headless original on a routine's first instruction that records every entry with the registers and the arguments, and only reads, so that watching changes nothing.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#observers), "Observers".
+
 ### Opcode
 
 The first word of a 68000 instruction, which names the operation and how its operands are found, and so how many words the instruction has.
@@ -562,6 +594,18 @@ The game's own packed format, named after the four letters a packed file begins 
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5; [`tools/rpck.py`](repo:tools/rpck.py).
 
+### Run description
+
+A small JSON file that says what one run of the headless original is: its script of stick and key inputs by VBlank, its entropy stream, the VBlanks a pass and where it stops.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#run-description), "Run description"; [`tests/runs/`](repo:tests/runs/).
+
+### Schedule
+
+The order of a run's VBlanks, passes and logic ticks as they happened; the VBlanks a pass takes are a setting of the run, so the schedule is an input of the simulation.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md#what-the-question-is), "What the question is"; [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
 ### Shape container
 
 A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each shape's entry begins, and the entries, each a header and the planes; the disk has twelve.
@@ -589,6 +633,12 @@ A byte read as a number from −128 to 127 in two's complement, in which the top
 First met in [chapter 2](part-1/amiga.md), defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
 
 Elsewhere: [Two's complement](https://en.wikipedia.org/wiki/Two%27s%5Fcomplement), Wikipedia.
+
+### Slice
+
+A stretch of emulation that ends after a fixed number of instructions, after which the headless original's harness looks at the wall clock and goes on; where it ends changes nothing in the run.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
 
 ### Small-data base
 
@@ -659,6 +709,14 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 4](part-1/read
 The game's command that swaps the stick's forward and back, for players who want a pilot's stick; in the port a remembered preference.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-vertical-flip-and-how-long-it-lasts), "The vertical flip, and how long it lasts".
+
+### Wait point
+
+A place where the program waits for the next VBlank; the headless original lets VBlanks happen there and nowhere else.
+
+First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
+Elsewhere: [Busy waiting](https://en.wikipedia.org/wiki/Busy%5Fwaiting), Wikipedia.
 
 ### WebAssembly
 
