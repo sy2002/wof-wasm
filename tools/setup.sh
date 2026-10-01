@@ -5,7 +5,8 @@
 #
 # makes .venv with the machine's python3 (or $PYTHON) and installs requirements.txt into it,
 # says whether Node and the two browsers the page tests drive are there, checks the Kickstart
-# ROM (tools/rom.py) and builds dist/wof.html, dist/core.wasm and tests/libwofcore.dylib.
+# ROM (tools/rom.py) and builds dist/wof.html and dist/core.wasm, on macOS also
+# tests/libwofcore.dylib, which the tests load and which needs Apple clang.
 # Running it again is harmless: an existing .venv is kept and brought to the pinned versions.
 
 cd "$(dirname "$0")/.." || exit 1
@@ -43,7 +44,12 @@ echo "== The Kickstart ROM (original/kick.rom)"
 }
 
 echo "== The build"
-.venv/bin/python tools/build.py --native || { echo "the build failed"; exit 1; }
+if [ "$(uname)" = Darwin ]; then
+    .venv/bin/python tools/build.py --native || { echo "the build failed"; exit 1; }
+else
+    echo "(not macOS: the page is built; the native test library needs Apple clang and is not)"
+    .venv/bin/python tools/build.py || { echo "the build failed"; exit 1; }
+fi
 
 echo "== Done. Play: open dist/wof.html. Verify: README.md, section Build and verify."
 if [ -n "$missing" ]; then
