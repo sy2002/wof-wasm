@@ -302,7 +302,7 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 ### Fixture
 
-A function the test framework runs before a test, to set up what the test needs; the port's suite has one that gives every test a fresh core before it runs.
+A function the test framework runs before a test, to set up what the test needs; the port's suite has one that resets the shared core before every test that uses it and puts back the settings a test with a core of its own needs.
 
 First met and defined in [chapter 9](part-1/wrong.md). The detail: [`tests/conftest.py`](repo:tests/conftest.py); [`re/notes/testing.md`](repo:re/notes/testing.md#a-fresh-core-for-every-test), "A fresh core for every test".
 
@@ -726,7 +726,7 @@ Elsewhere: [Two's complement](https://en.wikipedia.org/wiki/Two%27s%5Fcomplement
 
 ### Slice
 
-A stretch of emulation that ends after a fixed number of instructions, after which the headless original's harness looks at the wall clock and goes on; where it ends changes nothing in the run.
+A stretch of emulation that ends after a fixed number of instructions, after which the headless original's harness looks at the wall clock and goes on; where it ends changes nothing in the run. Slices once ended after a time, which made two runs of one script differ (chapter 9).
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
 
@@ -788,7 +788,9 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sy
 
 ### Upper word
 
-The upper 16 bits of a 32-bit register or long, which an instruction on a word leaves as they were; a value one routine leaves there reaches the next.
+The upper 16 bits of a 32-bit value; in a data register an instruction on a word leaves them as they were, so a value one routine leaves there reaches the next.
+
+In memory a long's upper word comes first, so a word instruction at a long's address works on the upper word; an address register takes a word sign-extended, all 32 bits.
 
 First met and defined in [chapter 9](part-1/wrong.md). The detail: [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#registers-that-cross-a-call), "Registers that cross a call".
 

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 270" width="860" height="270" role="img" aria-labelledby="title desc">
   <title id="title">The replay's end</title>
-  <desc id="desc">The last steps of a recording of the original, left to right: P, T, P, P, T, then the original's last pass, P, and after it that pass's tick, T. A pass is recorded where frame_update, which draws, returns; the ticks of the pass run after it, in run_queued_ticks. Below, two spans from the left. The upper, dashed, is how far the comparison ran before: to the original's last pass, so that the tick after it was never compared. The lower, in gold, is how far it runs since: to the original's last tick.</desc>
+  <desc id="desc">The last steps of a recording of the original, left to right: P, T, P, P, T, then the original's last pass, P, and after it that pass's tick, T. The dump records a pass where frame_update, which draws, returns; the ticks of the pass run after it, in run_queued_ticks. Below, two spans from the left. The upper, dashed, is how far the comparison ran before: to the original's last pass, so that the tick after it was never compared. The lower, in gold, is how far it runs since: to the original's last tick.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .orig   { fill: #77AACC; /* wingspalette 22 */ }
@@ -20,7 +20,7 @@
 
   <!-- The steps, 64 units apart from x = 200, a box 52 wide: P T P P T, then the last pass at
        520 and its tick at 584 -->
-  <text class="muted small" x="200" y="30">P a pass, T a tick, in the order a recording keeps them</text>
+  <text class="muted small" x="200" y="30">P a pass, T a tick, in the order the dump keeps them</text>
   <line class="guide" x1="572" y1="182" x2="572" y2="252"/>
   <line class="guide" x1="636" y1="182" x2="636" y2="252"/>
 
@@ -45,9 +45,9 @@
 
   <!-- What the last two records are -->
   <path class="brace" d="M520 116 L520 122 L636 122 L636 116"/>
-  <text class="light small" x="520" y="140">the last pass: recorded where</text>
-  <text class="light small" x="520" y="155">frame_update returns, its tick</text>
-  <text class="light small" x="520" y="170">after it, in run_queued_ticks</text>
+  <text class="light small" x="520" y="140">the last pass, which the dump records</text>
+  <text class="light small" x="520" y="155">where frame_update returns, and its</text>
+  <text class="light small" x="520" y="170">tick after it, in run_queued_ticks</text>
 
   <!-- How far the comparison ran before, and how far it runs since -->
   <text class="light label" x="10" y="204">compared before</text>

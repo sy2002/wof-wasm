@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 370" width="860" height="370" role="img" aria-labelledby="title desc">
+  <title id="title">The stick's decode</title>
+  <desc id="desc">At the top the sixteen bits of JOY1DAT, the joystick's register, numbered 15 to 0. Bits 9 and 8 are marked in gold: the forward switch is bit 9 exclusive-or bit 8. Bits 1 and 0 are marked in blue: the back switch is bit 1 exclusive-or bit 0. Both pairs lead down into the decoder, read_joy_bits, which takes bits 9, 8, 1 and 0 as an index into a table of sixteen bytes. Out of it the gold line leads to bit 0 of the input byte, the stick pushed forward, and the blue line to bit 1, the stick pulled back. The byte's other bits: 2 right, 3 left, 4 fire held, 5 fire tapped, 6 and 7 unused. Below, the first reading, bit 0 the stick pulled back, struck through, and the original's answer: the forward switch alone, JOY1DAT 0x0100, gives bit 0.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .fwd   { fill: #FFBB00; /* wingstitle 25 */ }
+    .back  { fill: #77AACC; /* wingspalette 22 */ }
+    .made  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .cell  { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; fill: none; }
+    .wfwd  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 3; fill: none; }
+    .wback { stroke: #77AACC; /* wingspalette 22 */ stroke-width: 3; fill: none; }
+    .strike { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1.5; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- JOY1DAT: bit k at x = 220 + (15 - k) * 34, each cell 34 wide -->
+  <text class="light label" x="10" y="56">JOY1DAT</text>
+  <text class="light small" x="10" y="72">the joystick's register</text>
+  <text class="muted small" x="237" y="38" text-anchor="middle">15</text>
+  <text class="muted small" x="271" y="38" text-anchor="middle">14</text>
+  <text class="muted small" x="305" y="38" text-anchor="middle">13</text>
+  <text class="muted small" x="339" y="38" text-anchor="middle">12</text>
+  <text class="muted small" x="373" y="38" text-anchor="middle">11</text>
+  <text class="muted small" x="407" y="38" text-anchor="middle">10</text>
+  <text class="light small" x="441" y="38" text-anchor="middle">9</text>
+  <text class="light small" x="475" y="38" text-anchor="middle">8</text>
+  <text class="muted small" x="509" y="38" text-anchor="middle">7</text>
+  <text class="muted small" x="543" y="38" text-anchor="middle">6</text>
+  <text class="muted small" x="577" y="38" text-anchor="middle">5</text>
+  <text class="muted small" x="611" y="38" text-anchor="middle">4</text>
+  <text class="muted small" x="645" y="38" text-anchor="middle">3</text>
+  <text class="muted small" x="679" y="38" text-anchor="middle">2</text>
+  <text class="light small" x="713" y="38" text-anchor="middle">1</text>
+  <text class="light small" x="747" y="38" text-anchor="middle">0</text>
+  <rect class="cell" x="220" y="46" width="544" height="32"/>
+  <rect class="fwd" x="424" y="46" width="68" height="32"/>
+  <rect class="back" x="696" y="46" width="68" height="32"/>
+  <rect class="cell" x="424" y="46" width="34" height="32"/>
+  <rect class="cell" x="458" y="46" width="34" height="32"/>
+  <rect class="cell" x="696" y="46" width="34" height="32"/>
+  <rect class="cell" x="730" y="46" width="34" height="32"/>
+  <text class="light small" x="458" y="98" text-anchor="middle">forward: bit 9 xor bit 8</text>
+  <text class="light small" x="730" y="98" text-anchor="middle">back: bit 1 xor bit 0</text>
+
+  <!-- Both pairs into the decoder -->
+  <path class="wfwd" d="M458 106 L458 132"/>
+  <path class="fwd" d="M458 142 L453 130 L463 130 Z"/>
+  <path class="wback" d="M730 106 L730 132"/>
+  <path class="back" d="M730 142 L725 130 L735 130 Z"/>
+  <rect class="made" x="400" y="142" width="400" height="50" rx="3"/>
+  <text class="ink small" x="600" y="162" text-anchor="middle">the decoder, read_joy_bits: bits 9, 8, 1 and 0</text>
+  <text class="ink small" x="600" y="180" text-anchor="middle">as an index into a table of sixteen bytes</text>
+
+  <!-- Out of the decoder: the forward pair to the byte's bit 0, the back pair to bit 1 -->
+  <path class="wfwd" d="M750 192 L750 222"/>
+  <path class="fwd" d="M750 232 L745 220 L755 220 Z"/>
+  <path class="wback" d="M690 192 L690 222"/>
+  <path class="back" d="M690 232 L685 220 L695 220 Z"/>
+
+  <!-- The input byte: bit k at x = 300 + (7 - k) * 60, each cell 60 wide -->
+  <text class="light label" x="10" y="258">the input byte</text>
+  <text class="light small" x="10" y="274">what the logic reads</text>
+  <rect class="cell" x="300" y="234" width="480" height="32"/>
+  <rect class="back" x="660" y="234" width="60" height="32"/>
+  <rect class="fwd" x="720" y="234" width="60" height="32"/>
+  <rect class="cell" x="360" y="234" width="60" height="32"/>
+  <rect class="cell" x="420" y="234" width="60" height="32"/>
+  <rect class="cell" x="480" y="234" width="60" height="32"/>
+  <rect class="cell" x="540" y="234" width="60" height="32"/>
+  <rect class="cell" x="600" y="234" width="60" height="32"/>
+  <rect class="cell" x="660" y="234" width="60" height="32"/>
+  <text class="muted mono" x="330" y="255" text-anchor="middle">7</text>
+  <text class="muted mono" x="390" y="255" text-anchor="middle">6</text>
+  <text class="light mono" x="450" y="255" text-anchor="middle">5</text>
+  <text class="light mono" x="510" y="255" text-anchor="middle">4</text>
+  <text class="light mono" x="570" y="255" text-anchor="middle">3</text>
+  <text class="light mono" x="630" y="255" text-anchor="middle">2</text>
+  <text class="ink mono" x="690" y="255" text-anchor="middle">1</text>
+  <text class="ink mono" x="750" y="255" text-anchor="middle">0</text>
+  <text class="muted small" x="360" y="284" text-anchor="middle">unused</text>
+  <text class="light small" x="450" y="284" text-anchor="middle">tapped</text>
+  <text class="light small" x="510" y="284" text-anchor="middle">held</text>
+  <text class="light small" x="570" y="284" text-anchor="middle">left</text>
+  <text class="light small" x="630" y="284" text-anchor="middle">right</text>
+  <text class="light small" x="690" y="284" text-anchor="middle">back</text>
+  <text class="light small" x="750" y="284" text-anchor="middle">forward</text>
+
+  <!-- The reading and the original's answer -->
+  <text class="muted small" x="300" y="322">the first reading: bit 0, the stick pulled back</text>
+  <line class="strike" x1="298" y1="318" x2="522" y2="318"/>
+  <text class="fwd small" x="300" y="346">the original's answer: the forward switch alone, JOY1DAT 0x0100, gives bit 0</text>
+</svg>
