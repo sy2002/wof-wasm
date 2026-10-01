@@ -15,7 +15,8 @@ Nothing depends on instruction counts or on how fast the emulator is.
 
 Reads of the beam position 0xDFF006 take the next value of the entropy stream, the same
 generator the port has in src/rand.c.  The crack's text screen is skipped.  The music player
-is not run; calls into it are recorded.
+runs for real by default, on the model's timer, and every call into it is recorded; with
+"music" false it is answered as idle (re/notes/music.md, "The timer").
 
     .venv/bin/python tools/headless.py run RUN.json --out DUMP [--changes REPORT]
     .venv/bin/python tools/headless.py show DUMP [--step N]
@@ -599,7 +600,7 @@ class Headless(AmigaOS):
     def _map_rom_mathffp(self):
         """Game logic computes with mathffp.library.  Its routines are pure register arithmetic,
         so the real ones run, as 68000 code from the ROM, reached through a jump table of jmp
-        instructions.  Without the ROM the library does not open and the run stops there."""
+        instructions.  Without the ROM no run starts: _map_rom raises the ROM check's message first."""
         if self.rom is None:
             return None
         offset = self._rom_resident('mathffp.library')

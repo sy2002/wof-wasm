@@ -88,7 +88,7 @@ The machine has 8 cores and 16 hardware threads. With 8 workers, phase 1 uses ab
 
 ## The wall-clock limits of the headless original
 
-A run of the headless original is `Stuck` when it reaches no wait point for `STUCK_SECONDS` of wall time, or when the whole run takes longer than `WALL_LIMIT` (`tools/headless.py`). Neither changes a run; both only end one. Under phase 1 a run takes longer than alone, so both were measured there, the first as the time spent inside the emulation between two wait points, which is what the limit counts:
+A run of the headless original is `Stuck` when the harness hears nothing from it, no wait point and no library call (the clock restarts at every stop), for `STUCK_SECONDS` of wall time, or when the whole run takes longer than `WALL_LIMIT` (`tools/headless.py`). Neither changes a run; both only end one. Under phase 1 a run takes longer than alone, so both were measured there, the first as the time spent inside the emulation between two wait points, which is what the limit counts:
 
 | Limit | 8 workers, machine idle | 12 workers | 6 workers, the user at the machine | set to |
 |---|---|---|---|---|
