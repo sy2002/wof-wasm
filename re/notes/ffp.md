@@ -143,7 +143,7 @@ and once with a random value in all three (observed).
 
 ### How it is tested
 
-- A corpus of about 22,500 cases through **three builds** of the same file: the native
+- A corpus of about 27,000 cases (the edges, 2,500 random per operation and the observed operand pairs; 27,194 at `25a19a6`) through **three builds** of the same file: the native
   library, a stand-alone WebAssembly module the test builds with ziglang and runs in Node,
   and the same file under `-fsanitize=undefined`. Compared are the full 32-bit result, the
   second register and the condition codes.

@@ -102,7 +102,7 @@ at all and paints its `clear` and `set` bytes, `0x0E` and `0x11`, over a 16 by 1
 
 ## How the tests establish it
 
-`tests/test_oracle_m1.py`, 68 tests, about 30 seconds.
+`tests/test_oracle_m1.py`, 70 tests, about 30 seconds.
 
 Every pure routine runs twice on the same input, once as 68000 code under the oracle and
 once as the C the port compiled, and the results are compared byte for byte. What the
@@ -138,7 +138,7 @@ are the original's own, computed by its own code; a mistake in the port's clippi
 its plane arithmetic shows up at once. The blitter's area mode itself - the minterm, the
 barrel shifters, the first and last word masks applying to `BLTADAT` - is documented
 hardware behaviour that this project has modelled rather than re-derived, so the
-comparison cannot catch a mistake in that model. One test is independent of it:
+comparison cannot catch a mistake in that model. One test leaves the port out, though it replays through the model too:
 `test_the_blit_writes_exactly_the_shape_box` draws over an all-zero and an all-ones
 background and checks that the set of pixels that differ lies inside the shape's box
 intersected with the clip rectangle, which is a statement about the register programme,
