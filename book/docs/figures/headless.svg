@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 476" width="860" height="476" role="img" aria-labelledby="title desc">
+  <title id="title">The headless original</title>
+  <desc id="desc">In the middle, under the emulator Unicorn set to be a 68000 as in the oracle, the program Wings runs from its main routine on: the original's code, nothing of its logic rewritten, waiting for a VBlank at its wait points. Below it in the same machine the ROM's own routines run for real: the fast floating point and RawKeyConvert with its keymap. Above it the custom chips are plain memory and nothing is drawn. From above, two inputs: the script, the stick, the button and the keys by VBlank, goes into JOY1DAT and CIA-A's port at each VBlank; the entropy stream goes into the beam's register 0xDFF006 at each read. On the left, the program's library calls go to stubs in Python: files from the disk, memory never reused, the VBlank servers and the key handler listed, Text moving the pen. On the right, the harness's VBlanks come only where the program waits: the two spins, WaitTOF and Delay, a pass's start and the fade's wait. Below, what a run leaves: the dump, the whole state after every tick and every pass, and the schedule, the random reads and the change report.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .orig  { fill: #77AACC; /* wingspalette 22 */ }
+    .stand { fill: #888899; /* wingspalette 28 */ }
+    .input { fill: #FFBB00; /* wingstitle 25 */ }
+    .made  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .frame { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The two inputs, from above -->
+  <rect class="input" x="200" y="14" width="220" height="52" rx="3"/>
+  <text class="ink label" x="212" y="36">the script</text>
+  <text class="ink small" x="212" y="55">stick, button, keys by VBlank</text>
+  <rect class="input" x="440" y="14" width="220" height="52" rx="3"/>
+  <text class="ink label" x="452" y="36">the entropy stream</text>
+  <text class="ink small" x="452" y="55">one value for each beam read</text>
+  <path class="wire" d="M310 66 L310 118"/>
+  <path class="tip" d="M304 118 L316 118 L310 128 Z"/>
+  <path class="wire" d="M550 66 L550 118"/>
+  <path class="tip" d="M544 118 L556 118 L550 128 Z"/>
+
+  <!-- The emulated machine -->
+  <rect class="frame" x="220" y="104" width="420" height="266" rx="3"/>
+  <rect class="stand" x="236" y="128" width="388" height="70" rx="3"/>
+  <text class="ink label" x="248" y="147">custom chips: plain memory, nothing drawn</text>
+  <text class="ink small" x="248" y="166">the script into JOY1DAT and CIA-A's port, at each VBlank</text>
+  <text class="ink small" x="248" y="184">the stream at the beam's register, 0xDFF006, at each read</text>
+  <rect class="orig" x="236" y="210" width="388" height="64" rx="3"/>
+  <text class="ink mono" x="248" y="230">Wings, from main on</text>
+  <text class="ink small" x="248" y="249">the original's code, nothing of its logic rewritten</text>
+  <text class="ink small" x="248" y="266">it waits for a VBlank at its wait points</text>
+  <rect class="orig" x="236" y="286" width="388" height="52" rx="3"/>
+  <text class="ink label" x="248" y="305">the ROM's own routines, run for real</text>
+  <text class="ink small" x="248" y="324">fast floating point; RawKeyConvert with its keymap</text>
+  <text class="light small" x="236" y="358">Unicorn, set to be a 68000, as in the oracle</text>
+
+  <!-- The library calls, answered by stubs -->
+  <rect class="stand" x="12" y="210" width="164" height="126" rx="3"/>
+  <text class="ink label" x="22" y="230">library calls</text>
+  <text class="ink small" x="22" y="248">go to stubs in Python:</text>
+  <text class="ink small" x="22" y="270">files from the disk</text>
+  <text class="ink small" x="22" y="288">memory never reused</text>
+  <text class="ink small" x="22" y="306">VBlank servers listed</text>
+  <text class="ink small" x="22" y="324">Text: the pen moves</text>
+  <path class="wire" d="M186 250 L226 250"/>
+  <path class="tip" d="M176 250 L186 245 L186 255 Z"/>
+  <path class="tip" d="M236 250 L226 245 L226 255 Z"/>
+
+  <!-- Time: VBlanks only where the program waits -->
+  <rect class="stand" x="684" y="210" width="164" height="126" rx="3"/>
+  <text class="ink label" x="694" y="230">VBlanks</text>
+  <text class="ink small" x="694" y="248">only where it waits:</text>
+  <text class="ink small" x="694" y="270">the two spins</text>
+  <text class="ink small" x="694" y="288">WaitTOF and Delay</text>
+  <text class="ink small" x="694" y="306">a pass's start</text>
+  <text class="ink small" x="694" y="324">the fade's wait</text>
+  <path class="wire" d="M684 242 L634 242"/>
+  <path class="tip" d="M624 242 L634 237 L634 247 Z"/>
+
+  <!-- What a run leaves -->
+  <path class="wire" d="M430 370 L430 388"/>
+  <path class="tip" d="M424 388 L436 388 L430 398 Z"/>
+  <rect class="made" x="236" y="398" width="388" height="64" rx="3"/>
+  <text class="ink label" x="248" y="418">what a run leaves</text>
+  <text class="ink small" x="248" y="437">the dump: the whole state after every tick and every pass</text>
+  <text class="ink small" x="248" y="454">and the schedule, the random reads, the change report</text>
+</svg>
