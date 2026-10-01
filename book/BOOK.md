@@ -1,14 +1,14 @@
 # The book about the port: its handbook
 
-The reader model, the outline, the style guide, the site and the way of working for the book in this directory. **A draft of 2026-10-01**, written by the controller as a proposal: the owner's answers to the questions of section 7 settle it, and until then every point of it is a recommendation. Decided by the owner on 2026-10-01: the book covers the whole, what was done and how it was known to be right, and not the days, the hours or the quotes; the prose, this book included, is under CC BY-SA 4.0 (`../LICENSE-CC-BY-SA-4.0`).
+The reader model, the outline, the style guide, the site and the way of working for the book in this directory, settled with the owner on 2026-10-01. Three conditions of the owner's hold over everything below: the book covers the whole, what was done and how it was known to be right, and not the days, the hours or the quotes; everything of the book lives under `book/`, the interactive elements included, so that the directory is self-contained and is the base of the GitHub Pages site; and the book's prose is under CC BY-SA 4.0 (`../LICENSE-CC-BY-SA-4.0`), as the repository's prose is, while the figures rendered from the game's data are the game's art and stand under the same reservation as `original/` (`../README.md`, Licence).
 
 ## 1. What the book is
 
 A didactic book about how a 1990 Amiga game was ported, routine by routine, to the browser, and how one knows the port is faithful; then what is inside the game and how it uses the Amiga; then the code, the tools and how to build. In the spirit of Fabien Sanglard's *Game Engine Black Book*: concrete, sourced, illustrated from the real data, readable by an enthusiast who has never seen the source. Published as an interactive static site from `book/` in this repository.
 
-**Working title (recommendation):** *Bringing Back Wings of Fury*, subtitle *A 1990 Amiga game ported to the browser, and how we know it is faithful*. Alternatives: *Wings of Fury: The Port Book*; *The Wings of Fury Port*.
+**Title:** *Bringing Back Wings of Fury*, subtitle *A 1990 Amiga game ported to the browser, and how we know it is faithful*.
 
-**Language (recommendation):** English, as the repository and the audience.
+**Language:** English, as the repository and the audience.
 
 ## 2. The reader model
 
@@ -67,7 +67,7 @@ Three parts, in the owner's arc: the story and the method first, then the game i
 
 **Appendices.** The glossary. The keys. The routine inventory. The licence and the game data.
 
-**Recommendation on the writing order:** Part I first (the chronicle and the porting notes are the freshest sources), then Part II, then Part III; the preface last. About 25 chapters of 2,500 to 5,000 words, 60,000 to 90,000 words in all; the owner's read of each chapter is the final gate, which makes their reading time the pace.
+**The writing order:** Part I first (the chronicle and the porting notes are the freshest sources), then Part II, then Part III; the preface last. About 25 chapters of 2,500 to 5,000 words, 60,000 to 90,000 words in all; the owner's read of each chapter is the final gate, which makes their reading time the pace.
 
 ## 4. The style guide
 
@@ -84,11 +84,13 @@ Three parts, in the owner's arc: the story and the method first, then the game i
 
 ## 5. The site
 
-**Engine (recommendation):** Material for MkDocs, as the owner's AExp site, with a design of its own: a palette and fonts taken from the game (the game's own font as a web font made at build time for headings, the game's colours as accents), custom CSS, light and dark. It is Markdown-based, searchable, works on GitHub Pages, and the owner knows it. Alternatives: mdBook (Rust, simpler, fewer extensions) or a small generator of our own (full control, more work).
+**Engine:** Material for MkDocs, as the owner's AExp site, with a design of its own: a palette and fonts taken from the game (the game's own font as a web font made at build time for headings, the game's colours as accents), custom CSS, light and dark. It is Markdown-based, searchable, works on GitHub Pages, and the owner knows it.
+
+**Everything under `book/`:** the site's configuration and pages, its own pinned Python requirements (installed into the project's `.venv` beside the port's, so that a clone that only wants the game installs none of them), its tools, the generated listings, the rendered figures, the web font and the interactive elements. Nothing of the book lives elsewhere in the repository, and `mkdocs build` in `book/` needs only those packages: no ROM, no compiler and no browser, because everything that needs them is generated beforehand and committed.
 
 **The build** (`book/tools/`, Python from the project's `.venv`): a step before `mkdocs build` that (a) extracts the listings named by the chapters from `src/`, `web/`, `tools/` and `re/Wings.lst` into generated files, failing on a name that no longer exists; (b) renders the figures through the native library and the tools (`tools/ppkc.py`, `tools/map_decode.py`, the screens through the core) into committed images; (c) copies `dist/wof.html` into the site so that the embedded game is the repository's page. `mkdocs gh-deploy` publishes to a `gh-pages` branch; the site is built locally because the figures need the ROM's font, and the images are committed so that anyone can rebuild the site without it.
 
-**Interactive elements, first edition (recommendation):** the playable game (an iframe of the page, with a note on the keys); the shape browser (every shape of every container as a gallery with its name, size, planes and the mirror, from images made at build time, no WebAssembly needed); the map viewer (each map's picture with the records overlaid and an inspector for a record's fields). Later, if wanted: a tick stepper that runs the core one tick at a time and shows the registered state.
+**Interactive elements, first edition:** the playable game (an iframe of the page, with a note on the keys); the shape browser (every shape of every container as a gallery with its name, size, planes and the mirror, from images made at build time, no WebAssembly needed); the map viewer (each map's picture with the records overlaid and an inspector for a record's fields). Later, if wanted: a tick stepper that runs the core one tick at a time and shows the registered state.
 
 ## 6. The way of working
 
@@ -103,14 +105,3 @@ The controller is the editor: the outline, the style guide, the order, the revie
 5. **The controller's own read** and edit; then **the owner's read** as the final gate; then the merge, and the site rebuilt.
 
 Workflows with several agents only for the fan-out steps, the fact-checks and the readability reads over a few chapters at once, tried once and costed; never for the prose.
-
-## 7. The questions, each with its recommendation
-
-1. **The title:** *Bringing Back Wings of Fury*, subtitle as above.
-2. **The language:** English.
-3. **The outline:** the 25 chapters and the appendices of section 3, written Part I, II, III.
-4. **The voice and the AI:** the project's *we*, and the collaboration told in the open, in the preface and in chapter 10, because the case study is exactly that.
-5. **The engine:** Material for MkDocs with a design of its own; a `gh-pages` branch deployed from a local build.
-6. **The interactive elements of the first edition:** the playable game, the shape browser, the map viewer.
-7. **The book's licence:** CC BY 4.0 for the text and the diagrams, with the note that the figures rendered from the game's data are the game's art and stand under the same reservation as `original/`.
-8. **The pace:** one chapter at a time; the owner reads every chapter before it is merged.
