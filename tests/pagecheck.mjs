@@ -20,7 +20,7 @@ import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRound, fullscreenRun,
          walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, STORED_FILES, VIDEO, WEAPON_VIEW,
-         enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
+         enemyFlight, muteRun, startTheSound, weaponRun } from './pagemeasure.mjs';
 import { STATE_WATCH, demoRun, flightLoadRun, saveLoadRun } from './pageload.mjs';
 
 const pagePath = resolve(process.argv[2]);
@@ -84,12 +84,19 @@ try {
     const evaluateIn = (session, expression) => cdp.evaluate(session, expression);
     const evaluate = (expression) => evaluateIn(sessionId, expression);
 
+    /* A fresh page's first key starts the sound and does nothing else: the help screen takes
+       it (pagemeasure.mjs, startTheSound).  The diagnostics key, which the game never sees,
+       is that key here; pressed again, it opens the overlay. */
+    const soundOn = (session) => startTheSound(() => press(session, 'backquote'),
+                                               (expression) => evaluateIn(session, expression),
+                                               sleep);
+
     await open(sessionId, 'file://' + pagePath);
 
     report.audioBeforeKey = await evaluate('window.__wofAudio');
 
-    /* The same keypress opens the overlay and is the gesture that starts the audio. */
-    await press(sessionId, 'backquote');
+    await soundOn(sessionId);
+    await press(sessionId, 'backquote');            /* the overlay */
     await sleep(2000);
     report.audioAfterKey = await evaluate('window.__wofAudio');
 
@@ -472,6 +479,7 @@ try {
     await open(againSession, 'file://' + pagePath);
     await sleep(1500);
     storage.afterReload = await evaluateIn(againSession, STORED_FILES);
+    await soundOn(againSession);
     await press(againSession, 'backquote');
     await sleep(800);
     report.flipAfterReload = {
@@ -524,6 +532,7 @@ try {
     })).sessionId;
 
     await open(fallbackSession, 'file://' + pagePath + '?audio=buffers');
+    await soundOn(fallbackSession);
     await press(fallbackSession, 'backquote');
     await sleep(2000);
     report.fallback = {
@@ -590,6 +599,7 @@ try {
         targetId: stickTarget.targetId, flatten: true,
     })).sessionId;
     await open(stickSession, 'file://' + pagePath, [CORE_WATCH]);
+    await soundOn(stickSession);
     await press(stickSession, 'backquote');
     await sleep(600);
 
@@ -630,7 +640,8 @@ try {
             await cdp.release(enemySession, name);
         },
     };
-    await press(enemySession, 'backquote');          /* the overlay; also the gesture */
+    await soundOn(enemySession);
+    await press(enemySession, 'backquote');          /* the overlay */
     await sleep(800);
     await enemyKeys.tap('space', 250);               /* the scroller */
     await sleep(6600);
@@ -672,8 +683,10 @@ try {
         await sleep(ms);
         await cdp.release(fullSession, fullNames[name]);
     };
-    const walked = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullSession, PLAYER),
-                                       sleep, () => evaluateIn(fullSession, FULLSCREEN_LOOK));
+    const fullEvaluate = (expression) => evaluateIn(fullSession, expression);
+    const walked = await walkToTheHold({ tap: fullTap, evaluate: fullEvaluate },
+                                       () => fullEvaluate(PLAYER), sleep,
+                                       () => fullEvaluate(FULLSCREEN_LOOK));
     /* The tab put in front for a while is a blank one; the page's own comes back. */
     const blankTarget = await cdp.send('Target.createTarget', { url: 'about:blank', background: true });
     const { windowId } = await cdp.send('Browser.getWindowForTarget', { targetId: fullTarget.targetId });

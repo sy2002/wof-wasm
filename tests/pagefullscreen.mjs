@@ -21,6 +21,8 @@
 /* Installed before any page script runs: every change of the page's visibility, with the
    page's own time, so that a span can say the page really was hidden and for how long,
    whatever the shell makes of it. */
+import { startTheSound } from './pagemeasure.mjs';
+
 export const VISIBILITY_WATCH = `() => {
     window.__wofVisibility = [];
     document.addEventListener('visibilitychange', () => {
@@ -190,14 +192,16 @@ export async function fullscreenRound(d) {
 }
 
 /* The front end walked to the first rank's mission and into the hold, as the flight tabs
-   do; keys.tap(name, ms) with the names backquote, space, enter and p.  The overlay comes up
-   with the first key, which is also the page's gesture.  On the way the page is looked at
+   do; keys.tap(name, ms) with the names backquote, space, enter and p, and
+   keys.evaluate(expression).  The first key starts the sound, which is all the help screen
+   lets it do; the second brings the overlay up.  On the way the page is looked at
    (look evaluates FULLSCREEN_LOOK) at the title and in the rank menu, before and after a
    press of P, which the menu reads as Escape and lets fall through: outside a mission the
    game is never paused.  Returns the hold's player and those looks. */
 export async function walkToTheHold(keys, player, sleep, look) {
     const outside = [];
-    await keys.tap('backquote', 50);
+    await startTheSound(() => keys.tap('backquote', 50), keys.evaluate, sleep);
+    await keys.tap('backquote', 50);                /* the overlay */
     await sleep(800);
     await keys.tap('space', 250);                   /* the scroller */
     await sleep(6600);

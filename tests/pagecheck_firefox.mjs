@@ -24,7 +24,7 @@ import { AUDIO_WATCH } from './audiowatch.mjs';
 import { CORE_WATCH, STICK_LOOK } from './corewatch.mjs';
 import { FULLSCREEN_LOOK, VISIBILITY_WATCH, fullscreenRun, walkToTheHold } from './pagefullscreen.mjs';
 import { DISPLAY, GEOMETRY, PICTURE, PLAYER, PRESENT_COST, SKY_PNG, SOURCE_PNG, VIDEO,
-         WEAPON_VIEW, enemyFlight, muteRun, weaponRun } from './pagemeasure.mjs';
+         WEAPON_VIEW, enemyFlight, muteRun, startTheSound, weaponRun } from './pagemeasure.mjs';
 import { STATE_WATCH, demoRun, flightLoadRun, saveLoadRun } from './pageload.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
@@ -186,7 +186,14 @@ try {
     report.logsBeforeKey = logs.slice();
     report.audioBeforeKey = await evaluate('window.__wofAudio');
 
-    await press(context, KEY_BACKQUOTE);
+    /* A fresh page's first key starts the sound and does nothing else: the help screen takes
+       it (pagemeasure.mjs, startTheSound).  The diagnostics key, which the game never sees,
+       is that key here; pressed again, it opens the overlay. */
+    const soundOn = (tab) => startTheSound(() => press(tab, KEY_BACKQUOTE),
+                                           (expression) => evaluateIn(tab, expression), sleep);
+
+    await soundOn(context);
+    await press(context, KEY_BACKQUOTE);            /* the overlay */
     await sleep(2500);
 
     report.audioAfterKey = await evaluate('window.__wofAudio');
@@ -375,9 +382,7 @@ try {
                                       { context: flatTab })).data;
         return seen;
     };
-    await press(flatTab, KEY_BACKQUOTE);            /* the sound, and the overlay */
-    await sleep(2500);
-    await press(flatTab, KEY_BACKQUOTE);            /* nothing over the picture */
+    await soundOn(flatTab);                         /* the sound; nothing over the picture */
     await sleep(300);
     await flatFire();                               /* the scroller */
     await sleep(8700);                              /* the logo, then the title */
@@ -441,6 +446,7 @@ try {
         context: stickTab, url: 'file://' + pagePath, wait: 'complete',
     });
     await sleep(1500);
+    await soundOn(stickTab);
     await press(stickTab, KEY_BACKQUOTE);
     await sleep(800);
 
@@ -483,7 +489,8 @@ try {
         }
         return player();
     };
-    await press(flightTab, KEY_BACKQUOTE);          /* the overlay; also the page's gesture */
+    await soundOn(flightTab);
+    await press(flightTab, KEY_BACKQUOTE);          /* the overlay */
     await sleep(800);
     await holdIn(KEY_SPACE, 250);                   /* the scroller */
     await sleep(6600);
@@ -571,6 +578,7 @@ try {
     flight.flipped = await player();
     await send(socket, 'browsingContext.reload', { context: flightTab, wait: 'complete' });
     await sleep(1500);
+    await soundOn(flightTab);
     await press(flightTab, KEY_BACKQUOTE);
     await sleep(800);
     flight.afterReload = {
@@ -605,7 +613,8 @@ try {
             await keyAction(enemyTab, 'keyUp', byName[name]);
         },
     };
-    await press(enemyTab, KEY_BACKQUOTE);            /* the overlay; also the gesture */
+    await soundOn(enemyTab);
+    await press(enemyTab, KEY_BACKQUOTE);            /* the overlay */
     await sleep(800);
     await enemyKeys.tap('space', 250);               /* the scroller */
     await sleep(6600);
@@ -653,8 +662,10 @@ try {
         await sleep(ms);
         await keyAction(fullTab, 'keyUp', fullKeys[name]);
     };
-    const walked = await walkToTheHold({ tap: fullTap }, () => evaluateIn(fullTab, PLAYER), sleep,
-                                       () => evaluateIn(fullTab, FULLSCREEN_LOOK));
+    const fullEvaluate = (expression) => evaluateIn(fullTab, expression);
+    const walked = await walkToTheHold({ tap: fullTap, evaluate: fullEvaluate },
+                                       () => fullEvaluate(PLAYER), sleep,
+                                       () => fullEvaluate(FULLSCREEN_LOOK));
     /* The tab put in front for a while is a blank one; the page's own tab comes back. */
     const blankTab = (await send(socket, 'browsingContext.create', { type: 'tab', background: true })).context;
     let fullViewport = null;                        /* the tab's own size, before a small one */

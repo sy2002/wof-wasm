@@ -28,7 +28,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
-import { PLAYER, VIDEO, frameTimes } from './pagemeasure.mjs';
+import { PLAYER, VIDEO, frameTimes, startTheSound } from './pagemeasure.mjs';
 
 const DEFAULT_FIREFOX = '/Applications/Firefox.app/Contents/MacOS/firefox';
 const OWNER_SCREEN = [1792, 1120];
@@ -201,7 +201,9 @@ try {
     await browser.navigate(url);
     await sleep(2500);
     /* The front end walked as a player walks it, as tests/pagefullscreen.mjs does. */
-    await tap('backquote', 50);                     /* the sound, and the overlay */
+    /* The first key starts the sound, which is all the help screen lets it do. */
+    await startTheSound(() => tap('backquote', 50), browser.evaluate, sleep);
+    await tap('backquote', 50);                     /* the overlay */
     await sleep(800);
     await tap('space', 250);                        /* the scroller */
     await sleep(6600);

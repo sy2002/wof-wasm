@@ -405,3 +405,19 @@ export async function enemyFlight(keys, player, sky, sleep) {
     out.last = await player();
     return out;
 }
+
+/* The help screen that is up when a page opens takes the first key (SPEC 6.2): that key
+   starts the sound and does nothing else, and the screen goes once the sound runs.  A walk
+   whose first key meant something more - the overlay, a key the game reads - starts the
+   sound with this first and then presses its key.  tap() presses one key, evaluate(e) reads
+   the page; true once the screen is gone, false if it is still up after limitMs. */
+export async function startTheSound(tap, evaluate, sleep, limitMs = 10000) {
+    await tap();
+    for (let waited = 0; waited < limitMs; waited += 100) {
+        if (await evaluate("document.getElementById('help').classList.contains('off')")) {
+            return true;
+        }
+        await sleep(100);
+    }
+    return false;
+}

@@ -20,7 +20,7 @@
 import { resolve } from 'node:path';
 
 import { DEFAULT_CHROME, sleep, startChrome, stopChrome } from './chrome.mjs';
-import { DISPLAY, GEOMETRY, PICTURE, SOURCE_PNG, VIDEO } from './pagemeasure.mjs';
+import { DISPLAY, GEOMETRY, PICTURE, SOURCE_PNG, VIDEO, startTheSound } from './pagemeasure.mjs';
 
 const pagePath = resolve(process.argv[2]);
 const chromePath = process.argv[3] || process.env.WOF_CHROME || DEFAULT_CHROME;
@@ -56,12 +56,11 @@ try {
                    sessionId);
     await sleep(2000);
 
-    /* The backquote is the gesture that starts the sound, and the prompt that lies over the
-       whole page only goes when the sound is really running; it also opens the diagnostics
-       overlay, which is pressed away again before anything is photographed. */
-    await cdp.press(sessionId, 'backquote');
-    await sleep(2500);
-    await cdp.press(sessionId, 'backquote');
+    /* The first key starts the sound and does nothing else: the help screen that lies over
+       the picture takes it, and goes only when the sound is really running.  Nothing else is
+       opened, so nothing lies over the picture when it is photographed. */
+    await startTheSound(() => cdp.press(sessionId, 'backquote'),
+                        (expression) => cdp.evaluate(sessionId, expression), sleep);
     await sleep(500);
 
     /* The front end moves on its own, and a measurement that spanned a fade would be of no

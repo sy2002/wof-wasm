@@ -10,7 +10,7 @@
  * game holds is read off the overlay's player and game lines, the place a person reads it,
  * and the demo's ticks through STATE_WATCH, which the driver installs before the page's
  * own scripts run. */
-import { PLAYER, STORED_FILES } from './pagemeasure.mjs';
+import { PLAYER, STORED_FILES, startTheSound } from './pagemeasure.mjs';
 import { walkToTheHold } from './pagefullscreen.mjs';
 
 /* The campaign as the overlay's game line shows it (M7 part 2). */
@@ -89,9 +89,16 @@ async function game(d, test, limitMs, stepMs = 250) {
     return g;
 }
 
+/* A fresh page's first key starts the sound, which is all the help screen lets it do; the
+   second opens the overlay, which the readings here come from. */
+async function soundAndOverlay(d) {
+    await startTheSound(() => d.tap('backquote', 50), d.evaluate, d.sleep);
+    await d.tap('backquote', 50);
+}
+
 /* The title left with fire twice: the rank selection is up, its song playing. */
 async function toTheRanks(d) {
-    await d.tap('backquote', 50);                   /* the overlay, and the sound starts */
+    await soundAndOverlay(d);
     await d.sleep(800);
     await d.tap('space', 250);                      /* the scroller */
     await d.sleep(6600);
@@ -149,7 +156,7 @@ export async function saveLoadRun(d) {
     const out = {};
     await d.evaluate("(localStorage.removeItem('wof:files'), true)");
     await d.reload();
-    const walked = await walkToTheHold({ tap: d.tap }, () => d.evaluate(PLAYER), d.sleep,
+    const walked = await walkToTheHold({ tap: d.tap, evaluate: d.evaluate }, () => d.evaluate(PLAYER), d.sleep,
                                        async () => null);
     out.hold = walked.hold;
     out.before = await d.evaluate(GAME);
@@ -176,7 +183,7 @@ export async function saveLoadRun(d) {
 export async function flightLoadRun(d) {
     const out = {};
     await d.reload();
-    const walked = await walkToTheHold({ tap: d.tap }, () => d.evaluate(PLAYER), d.sleep,
+    const walked = await walkToTheHold({ tap: d.tap, evaluate: d.evaluate }, () => d.evaluate(PLAYER), d.sleep,
                                        async () => null);
     out.hold = walked.hold;
     out.flight = await takeOff(d);
@@ -205,7 +212,7 @@ export async function demoRun(d) {
     };
     await d.evaluate("(localStorage.removeItem('wof:files'), true)");
     await d.reload();
-    await d.tap('backquote', 50);
+    await soundAndOverlay(d);
     await d.sleep(800);
     await d.tap('four', 80);                        /* main's argument on */
     await d.sleep(400);
@@ -234,7 +241,7 @@ export async function demoRun(d) {
     out.stored = (await d.evaluate(STORED_FILES)).map((f) => [f.name, f.bytes]);
 
     await d.reload();
-    await d.tap('backquote', 50);
+    await soundAndOverlay(d);
     await d.sleep(800);
     await d.tap('space', 250);
     await d.sleep(6600);
