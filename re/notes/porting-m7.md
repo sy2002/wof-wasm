@@ -330,7 +330,7 @@ a test or the reach map needs it (`m7_scripts.demo_file`).
   port had a loop of its own that chose the rank the cursor moved to; the loaded game's
   `loaded_game`, fade and `music_stop`; the attract mode's request, the load of `wofdemo`,
   the seed, the rank from the demo or into it, the recording's buffer.
-- **The cruise ship's two guns** (`load_ship_shapes` `0x01331A`, `src/mission.c`): guns 1
+- **The cruise ship's two guns** (at `0x01331A` in `load_ship_shapes`, `src/mission.c`): guns 1
   and 2 get 5 at `+6` after `ship_guns_setup` for a loaded game too, whose list the file
   gave, where the port had left a loaded game's list alone (found by the completeness list
   over `load_hold`, whose save held 5 there already).
