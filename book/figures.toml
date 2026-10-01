@@ -16,6 +16,9 @@
 #                       (tools/ppkc.py, parse()), as colour numbers and through a palette
 #            sample     a sound effect's file as a waveform, the whole and a stretch enlarged
 #            blit       the blitter's cookie cut of one plane of a shape over a plain background
+#            disk       the game's directory on the disk, its files in rows by kind, their bytes and
+#                       formats, and which of them tools/build.py packs into the page
+#            packed     the first bytes of a packed file against the bytes they unpack to
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -183,3 +186,100 @@ scale = 2
 shows = "One run of the blitter as shape_draw programmes it: the Hellcat hc05 drawn over the sky (colour 1), plane 1: A the mask, B the shape's plane 1, C the screen's plane 1 under the shape's box, D the result."
 how = "tools/ppkc.py's parse(); A the OR of the shape's five stored planes, as shape_draw writes it into MaskBuffer for a shape of two or more planes; B its first stored plane; C plane 1 of a background of colour 1, all set; D computed bit by bit as minterm 0xCA, (A and B) or (not A and C) (re/notes/drawing.md), and checked against plane 1 of the shape's pixels laid over colour 1; each pixel three wide and high, the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py blit-hellcat"
+
+[[figure]]
+name = "disk-files"
+file = "disk-files.png"
+maker = "disk"
+packed_ink = ["wingstitle", 25]
+left_ink = ["wingspalette", 27]
+bar_width = 300
+scale = 2
+shows = "The game's directory on the disk, Wings_of_Fury, as eleven rows by kind of file: the files, their bytes as a bar to scale with a segment for each file, gold where the build packs the file into the page and grey where it is left out, and the formats the files' first bytes show."
+how = "Every file under original/disk/Wings_of_Fury but the Finder's .DS_Store, each in the one row whose patterns it matches; the format from its first four bytes (0x3F3 a hunk file, Rpck the packed format with what it unpacks to by tools/rpck.py, PPkc, FORM with its IFF type, CMAP), the row's own words for the rest; packed or not as tools/build.py's game_files() says; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py disk-files"
+
+# One row for each kind of file, in the order of chapter 3: `files` are patterns over the paths
+# under original/disk/Wings_of_Fury, `where` names them in the figure, `rest` says what a file
+# is whose first bytes name no format (SPEC.md 3.1 and 3.5).
+[[figure.groups]]
+label = "the program"
+files = ["Wings"]
+where = "Wings"
+rest = ""
+
+[[figure.groups]]
+label = "the music"
+files = ["songplay", "wofsongs"]
+where = "songplay, wofsongs"
+rest = ""
+
+[[figure.groups]]
+label = "shape containers"
+files = ["shapes/*.shp"]
+where = "shapes/*.shp"
+rest = ""
+
+[[figure.groups]]
+label = "pictures"
+files = ["shapes/broderbund", "shapes/wingstitle", "shapes/creditscreen", "shapes/selectrank",
+         "shapes/hiscoreslab", "shapes/hiscore.iff", "shapes/Rank.iff", "shapes/iff-dash",
+         "shapes/nightdash"]
+where = "nine files in shapes/"
+rest = ""
+
+[[figure.groups]]
+label = "palettes"
+files = ["shapes/wingspalette", "shapes/night.p", "shapes/nightocean.p", "shapes/ocean.palette",
+         "shapes/palette", "shapes/ocean.p"]
+where = "six files in shapes/"
+rest = ""
+
+[[figure.groups]]
+label = "maps"
+files = ["maps/*.map"]
+where = "maps/a.map to o.map"
+rest = "two longs, then two bytes for every eight pixels"
+
+[[figure.groups]]
+label = "sound effects"
+files = ["sounds/*"]
+where = "sounds/"
+rest = "signed bytes, no header"
+
+[[figure.groups]]
+label = "the game's font"
+files = ["newarmyfont"]
+where = "newarmyfont"
+rest = "a header of its own, then the glyphs"
+
+[[figure.groups]]
+label = "high scores"
+files = ["highscore"]
+where = "highscore"
+rest = "ten entries of 36 bytes"
+
+[[figure.groups]]
+label = "a saved game"
+files = ["wof.mission 3"]
+where = "wof.mission 3"
+rest = "the game's memory as it stood"
+
+[[figure.groups]]
+label = "not the game's"
+files = ["UFXintro", "wingt", "*.info"]
+where = "UFXintro, wingt, .info"
+rest = "other"
+
+[[figure]]
+name = "packed-selectrank"
+file = "packed-selectrank.png"
+maker = "packed"
+source = "shapes/selectrank.shp"
+controls = 4
+control_ink = ["wingstitle", 25]
+repeat_ink = ["wingspalette", 22]
+scale = 2
+shows = "The first bytes of shapes/selectrank.shp as the disk holds them, in the game's packed format, and the first bytes they unpack to: the header, four control bytes, the bytes they copy and the bytes they repeat, and the shape container that comes out."
+how = "The file's bytes from its start through its fourth control byte and what that writes; each control byte read as signed, a negative one copying that many bytes, any other repeating the next byte one time more than its value (SPEC.md 3.5); the bytes made checked against tools/rpck.py's unpacking of the whole file; the container's fields named from its count (SPEC.md 3.5, PPkc); the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py packed-selectrank"

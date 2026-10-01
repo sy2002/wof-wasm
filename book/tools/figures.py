@@ -22,6 +22,10 @@ made and the command that remakes it, and writes PNG files:
                and put together again as colour numbers and through a palette
     blit       the blitter's cookie cut of one plane of a shape over a plain background
     sample     a sound effect's file as a waveform, the whole and a stretch enlarged
+    disk       the game's directory on the disk, its files in rows by kind, with their bytes,
+               the formats their first bytes show and whether tools/build.py packs them
+    packed     the first bytes of a packed file against the bytes they unpack to, with
+               tools/rpck.py's unpacking, each control byte spelled out
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -32,7 +36,9 @@ Exit status: 0 done (or --check found the committed files equal), 1 --check foun
 difference, 2 a figure could not be made.
 """
 import argparse
+import collections
 import ctypes
+import fnmatch
 import os
 import pathlib
 import sys
@@ -47,6 +53,7 @@ LABEL = (200, 200, 200)         # the label colour and background of tools/ppkc.
 GROUND = (40, 40, 48)
 PANEL = (16, 16, 20)            # the box of a shape or a waveform on that background
 AXIS = (90, 90, 104)            # a zero line, a tick
+MUTED = (130, 130, 150)         # a label of lesser weight, a header's bytes
 
 
 def ppkc():
@@ -474,6 +481,183 @@ def make_sample(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def file_format(raw):
+    """What a file's first bytes say it is: a hunk file (0x3F3), the game's packed format
+    around what it unpacks to, a shape container, an IFF form with its type, or a bare IFF
+    colour chunk (SPEC.md 3.5); None for none of them."""
+    import rpck
+    if raw[:4] == b'\x00\x00\x03\xf3':
+        return 'hunk file'
+    if raw[:4] == b'Rpck':
+        inner = file_format(rpck.unrle(raw[8:]))
+        return 'Rpck around %s' % inner if inner else 'Rpck'
+    if raw[:4] == b'PPkc':
+        return 'PPkc'
+    if raw[:4] == b'FORM':
+        return 'IFF %s' % raw[8:12].decode('latin1')
+    if raw[:4] == b'CMAP':
+        return 'IFF CMAP'
+    return None
+
+
+def make_disk(figure, path):
+    """The game's directory on the disk, one row for each kind of file the manifest names:
+    the files' count and bytes, a bar of the bytes to scale with a segment for each file, in
+    one colour where tools/build.py packs the file into the page and in another where it is
+    left out, and under it the formats the files' first bytes show.  Every file of the
+    directory must belong to exactly one row."""
+    from PIL import Image, ImageDraw
+    from common import port_build
+    port_build()
+    import build
+    packed = set(build.game_files())
+    files = sorted(p.relative_to(DISK).as_posix() for p in DISK.rglob('*')
+                   if p.is_file() and p.name != '.DS_Store')
+    groups = figure['groups']
+    members = {i: [] for i in range(len(groups))}
+    for name in files:
+        owners = [i for i, g in enumerate(groups) if any(fnmatch.fnmatch(name, pattern)
+                                                         for pattern in g['files'])]
+        if len(owners) != 1:
+            raise Failure('%s belongs to %d rows of the figure, not to one' % (name, len(owners)))
+        members[owners[0]].append(name)
+    size = {name: (DISK / name).stat().st_size for name in files}
+    inside = palette(figure['packed_ink'][0])[figure['packed_ink'][1]]
+    outside = palette(figure['left_ink'][0])[figure['left_ink'][1]]
+
+    margin, pitch, bar_h, bar_w = 6, 30, 9, figure['bar_width']
+    label_w = max(len(g['label']) for g in groups) * 6 + 12
+    count_x, bytes_x = margin + label_w, margin + label_w + 4 * 6
+    bar_x = bytes_x + 9 * 6 + 12
+    head, legend = 22, 44
+    image = Image.new('RGB', (bar_x + bar_w + margin, head + pitch * len(groups) + legend + 16),
+                      GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s on the disk: %d files, %s bytes'
+         % (DISK.name, len(files), format(sum(size.values()), ',')))
+    largest = max(sum(size[n] for n in members[i]) for i in members)
+    for i, group in enumerate(groups):
+        names = members[i]
+        if not names:
+            raise Failure('no file of the directory falls in the row "%s"' % group['label'])
+        total = sum(size[n] for n in names)
+        y = head + i * pitch
+        text(draw, (margin, y), group['label'])
+        count = str(len(names))
+        text(draw, (count_x + 3 * 6 - 6 * len(count), y), count)
+        amount = format(total, ',')
+        text(draw, (bytes_x + 8 * 6 - 6 * len(amount), y), amount)
+        x = bar_x
+        for n in names:
+            w = max(2, round(size[n] * bar_w / largest))
+            draw.rectangle((x, y + 1, x + w - 2, y + bar_h), fill=inside if n in packed else outside)
+            x += w
+        kinds = collections.Counter(file_format((DISK / n).read_bytes()) or group['rest']
+                                    for n in names)
+        shown = [k if len(kinds) == 1 and (len(names) == 1 or k == group['rest'])
+                 else '%d x %s' % (c, k) for k, c in sorted(kinds.items(), key=lambda kc: -kc[1])]
+        draw.text((margin + 12, y + 12), '%s: %s' % (group['where'], ', '.join(shown)),
+                  fill=MUTED, font=ppkc().FONT)
+    y = head + len(groups) * pitch + 4
+    for row, (ink, words, names) in enumerate((
+            (inside, 'packed into the page', [n for n in files if n in packed]),
+            (outside, 'left out', [n for n in files if n not in packed]))):
+        draw.rectangle((margin, y + row * 16 + 2, margin + 15, y + row * 16 + 9), fill=ink)
+        text(draw, (margin + 22, y + row * 16), '%s: %d files, %s bytes'
+             % (words, len(names), format(sum(size[n] for n in names), ',')))
+    text(draw, (margin, y + 32), 'the bars to scale, a segment for each file')
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def make_packed(figure, path):
+    """The first bytes of a file in the game's packed format, Rpck, against the bytes they
+    unpack to: the header, then as many control bytes as the manifest asks for, each with
+    the bytes it copies or the byte it repeats; the bytes made are checked against
+    tools/rpck.py's unpacking of the whole file.  Where the file unpacks to a shape
+    container, the container's fields are named beside their rows."""
+    from PIL import Image, ImageDraw
+    import rpck
+    name = figure['source']
+    raw = (DISK / name).read_bytes()
+    if raw[:4] != b'Rpck':
+        raise Failure('%s is not packed' % name)
+    declared = int.from_bytes(raw[4:8], 'big')
+    roles, made, out = ['head'] * 8, [], bytearray()
+    notes_in = {0: 'Rpck, size %s' % format(declared, ',')}
+    at = 8
+    for _ in range(figure['controls']):
+        control = raw[at]
+        roles.append('control')
+        if control >= 0x80:
+            count = 256 - control
+            notes_in[at] = '%02X: copy %d' % (control, count)
+            roles += ['copy'] * count
+            out += raw[at + 1:at + 1 + count]
+            made += ['copy'] * count
+            at += 1 + count
+        else:
+            notes_in[at] = '%02X: %d x %02X' % (control, control + 1, raw[at + 1])
+            roles.append('value')
+            out += bytes([raw[at + 1]]) * (control + 1)
+            made += ['repeat'] * (control + 1)
+            at += 2
+    whole, _ = rpck.load(str(DISK / name))
+    if bytes(out) != whole[:len(out)]:
+        raise Failure('%s: the bytes shown do not unpack as tools/rpck.py unpacks them' % name)
+    notes_out = {}
+    if out[:4] == b'PPkc':
+        count = int.from_bytes(out[4:6], 'big')
+        first = out[6:10].decode('latin1')
+        fields = {0: 'PPkc', 4: '%d shapes' % count, 6: 'their names', 6 + 4 * count: 'their offsets',
+                  6 + 8 * count: '%s: its header' % first, 6 + 8 * count + 20: 'its planes'}
+        notes_out = {k: v for k, v in fields.items() if k < len(out)}
+    control_ink = palette(figure['control_ink'][0])[figure['control_ink'][1]]
+    repeat_ink = palette(figure['repeat_ink'][0])[figure['repeat_ink'][1]]
+    ink = {'head': MUTED, 'control': control_ink, 'copy': LABEL, 'value': repeat_ink,
+           'repeat': repeat_ink}
+
+    def row_notes(notes, row):
+        return '; '.join(v for k, v in sorted(notes.items()) if row * 16 <= k < row * 16 + 16)
+
+    margin, line, cell = 6, 13, 18
+    dump_x = margin + 30
+    note_x = dump_x + 16 * cell + 6
+    rows_in, rows_out = (at + 15) // 16, (len(out) + 15) // 16
+    notes_w = max(len(row_notes(n, r)) for n, rows in ((notes_in, rows_in), (notes_out, rows_out))
+                  for r in range(rows)) * 6
+    head = 16
+    height = margin + 2 * (head + 4) + (rows_in + rows_out) * line + 12 + 2 * 16
+    image = Image.new('RGB', (note_x + notes_w + margin, height), GROUND)
+    draw = ImageDraw.Draw(image)
+
+    def dump(y, title, data, kinds, notes, rows):
+        text(draw, (margin, y), title)
+        y += head + 4
+        for r in range(rows):
+            draw.text((margin, y + r * line), '+%02X' % (16 * r), fill=MUTED, font=ppkc().FONT)
+            for c, b in enumerate(data[16 * r:16 * r + 16]):
+                draw.text((dump_x + c * cell, y + r * line), '%02X' % b,
+                          fill=ink[kinds[16 * r + c]], font=ppkc().FONT)
+            text(draw, (note_x, y + r * line), row_notes(notes, r))
+        return y + rows * line
+
+    y = dump(margin, '%s on the disk, %s bytes: the first %d' % (name, format(len(raw), ','), at),
+             raw[:at], roles, notes_in, rows_in)
+    y = dump(y + 8, 'unpacked, %s bytes: the first %d' % (format(len(whole), ','), len(out)),
+             out, made, notes_out, rows_out) + 8
+    for i, (colour, words) in enumerate(((control_ink, 'a control byte'),
+                                         (repeat_ink, 'a byte a repeat writes'),
+                                         (LABEL, 'a byte copied as it is'),
+                                         (MUTED, 'the header'))):
+        x = margin + (i % 2) * 190
+        yy = y + (i // 2) * 16
+        draw.rectangle((x, yy + 2, x + 15, yy + 9), fill=colour)
+        text(draw, (x + 22, yy), words)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -525,6 +709,10 @@ def generate(out, names=None, log=print):
             make_blit(figure, path)
         elif maker == 'sample':
             make_sample(figure, path)
+        elif maker == 'disk':
+            make_disk(figure, path)
+        elif maker == 'packed':
+            make_packed(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:
