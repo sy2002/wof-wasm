@@ -1,6 +1,6 @@
 """M4's groundwork: what a pass writes and what a tick reads of it (SPEC 10 point 2).
 
-The findings are in re/notes/passes.md, made over seven scripts that together run 8,000 ticks
+The findings are in re/notes/passes.md, made over seven scripts that together run 5,310 ticks
 (tools/pass_observe.py, outside the suite).  What is held here is the part a short script
 already shows: the phase every coupled range is written in, the routine that writes it, the
 routine that reads it back, and the control that says state which is not coupled does not

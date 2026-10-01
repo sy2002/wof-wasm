@@ -29,7 +29,7 @@ tree, `M` in the main program outside all three (`re/notes/headless.md`, "Write 
 hook"). `tools/pass_observe.py` runs a script twice: the first run says which ranges phase `F`
 wrote, the second watches reads of exactly those ranges and says who reads them in a tick.
 
-Seven scripts, together 8,000 ticks and 16,000 passes (observed):
+Seven scripts, together 5,310 ticks and about 10,600 passes (observed; the table's ticks sum to 5,310, and a re-run of the seven at 5302294 counted 10,572 passes):
 
 | Script | What it covers | Ticks |
 |---|---|---|
@@ -65,7 +65,7 @@ table below this one lists the ones that are read but that no script reached.
 
 | Written in a pass | By | Read in a tick by | What it is |
 |---|---|---|---|
-| `object_records` `+0x0C` of each of the 16 records | `snapshot_for_draw` | `0x011AE2` | the drawing copy the logic reads back |
+| `object_records` `+0x0C` of each of the fifteen records | `snapshot_for_draw` | `0x011AE2` | the drawing copy the logic reads back |
 | `object_records` `+0x20` of each record | `0x010702`, in `draw_world`'s tree | `0x0107F2`, `0x010820`, `0x010A72`, `0x010AA6` | the record's kind: **the pass frees and changes object records** |
 | `pass_counter` `0x0253C8` | `draw_world` | `0x010AA6`, `0x011460`, `0x013684` | the pass counter, 0 to 99 |
 | `frame_drawn` `0x026E3C` | `frame_update` | `0x010AA6` | a frame was drawn since the last tick |
