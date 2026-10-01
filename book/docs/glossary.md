@@ -54,6 +54,12 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes
 
 Elsewhere: [Attract mode](https://en.wikipedia.org/wiki/Attract%5Fmode), Wikipedia.
 
+### Autopilot
+
+A program that flies the headless original by a policy, looking at the game's state every VBlank and choosing the stick and the button; its choices, compressed into runs of VBlanks, become a mission script, which the original then flies the same way without it.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/m4_autopilot.py`](repo:tools/m4%5Fautopilot.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-scripts-of-part-2), "The scripts of part 2".
+
 ### Beam
 
 The point where the display is drawing the picture, sweeping each line from left to right and the lines from top to bottom; its position, which a register of the custom chips reports, is the game's only source of chance.
@@ -124,6 +130,20 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/mu
 
 Elsewhere: [MOS Technology CIA](https://en.wikipedia.org/wiki/MOS%5FTechnology%5FCIA), Wikipedia.
 
+### Closed loop
+
+The comparison in which the port runs on its own from the program's start, handed nothing but the entropy seed and the address of the map's records, and is compared with the original after every pass and every tick, so that every error it carries over shows.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`SPEC.md`](repo:SPEC.md#8-verification), section 8, "Mission, pass by pass".
+
+### Cold region
+
+A stretch of a ported routine's instructions that no run of the mission scripts executed; each must be covered by a stand-in's marker or by a note saying what it is.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/reach_observe.py`](repo:tools/reach%5Fobserve.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#appendix-the-regions-no-run-executed), "Appendix: the regions no run executed".
+
+Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikipedia.
+
 ### Colour clock
 
 The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL machine: half the processor's clock, and the unit of Paula's period.
@@ -131,6 +151,12 @@ The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL ma
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Completeness list
+
+The list that sorts every address the original writes during a mission into a registered field of the port, state compared in another form, or state the port does not keep, with its reason and the milestone that owes it; each row names the routines that write it.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4complete.py`](repo:tests/m4complete.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-completeness-list), "The completeness list".
 
 ### Condition codes
 
@@ -141,6 +167,14 @@ They sit in the low byte of the status register. The emulator the tests run on w
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/oracle.py`](repo:tools/oracle.py); [`re/notes/ffp.md`](repo:re/notes/ffp.md#how-the-game-reaches-it), "How the game reaches it".
 
 Elsewhere: [Status register](https://en.wikipedia.org/wiki/Status%5Fregister), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
+### Control
+
+A deliberate change of the port in one place, made to see that the test meant to catch it fails, and at which step; a positive control is a change that must leave the result as it is.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original"; [`tools/m7_controls.py`](repo:tools/m7%5Fcontrols.py).
+
+Elsewhere: [Mutation testing](https://en.wikipedia.org/wiki/Mutation%5Ftesting), Wikipedia.
 
 ### Control flow
 
@@ -508,6 +542,12 @@ First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/dis
 
 Elsewhere: [Opcode](https://en.wikipedia.org/wiki/Opcode), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Open loop
+
+The comparison in which the port is set to the original's state after every pass and every tick, so that each step starts from the original's state and is compared alone, and a difference names its step.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`SPEC.md`](repo:SPEC.md#8-verification), section 8, "Mission, pass by pass".
+
 ### Oracle
 
 The instrument that runs one original routine on an emulated 68000 beside its port, on the same inputs, and compares the results.
@@ -554,6 +594,14 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+### Poke
+
+A value written into one address of the game's state at a fixed point of a run, on both sides, the original and the port, so that a script reaches a state no flight of its length reaches.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-scripts), "The scripts".
+
+Elsewhere: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK%5Fand%5FPOKE), Wikipedia.
+
 ### Program counter
 
 The 68000's register that holds the address of the instruction being executed; an address given relative to it names a distance from the instruction, not a place, so such a call needs no correcting wherever the program is loaded.
@@ -569,6 +617,14 @@ A routine that computes from its inputs alone, without touching anything else; e
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
 Elsewhere: [Pure function](https://en.wikipedia.org/wiki/Pure%5Ffunction), Wikipedia.
+
+### Reach map
+
+The record of which routines, and which of their instructions, the mission scripts execute in the headless original, counted by the window of the run and the phase; what it shows the game runs is what the port carries.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/reach_observe.py`](repo:tools/reach%5Fobserve.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
+
+Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikipedia.
 
 ### Register
 
@@ -687,6 +743,12 @@ A routine's own stretch of the stack, from its arguments down to its own variabl
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
 Elsewhere: [Call stack](https://en.wikipedia.org/wiki/Call%5Fstack), Wikipedia.
+
+### Stand-in
+
+A marked place in the port's C where the original has code the port does not carry; reaching it counts in the game's state, fails every comparison in a test build, and in the release build skips what it stands for.
+
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-stands-in-and-where), "What stands in, and where".
 
 ### Stub
 
