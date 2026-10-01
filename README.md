@@ -60,6 +60,7 @@ The first phase, the emulator tests over the cores, takes about an hour, and the
 - `ref/sheets/`: contact sheets of the game's artwork.
 - `original/`: the disk image, the files extracted from it and the manual's text, plus the ROM you place.
 - `dist/wof.html`: the built game.
+- `book/`: the book about the port, *Bringing Back Wings of Fury*, as a MkDocs site: its handbook, its pages, and the tools that extract its listings and render its figures from the real sources (`book/BOOK.md`).
 
 ## Amiga to Web
 

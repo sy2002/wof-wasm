@@ -54,6 +54,9 @@ dist/wof.html           the built page, versioned: rebuilt and committed by the 
 README.md               for a reader who has just cloned: play, build, verify, the ROM, where things are, the licence
 LICENSE                 GPL-3.0-or-later, the licence of the code and the tools (the owner's decision of 2026-10-01)
 LICENSE-CC-BY-SA-4.0    CC BY-SA 4.0, the licence of the prose: this document, the notes, the book
+book/                   the book about the port: its handbook (BOOK.md), the MkDocs site (mkdocs.yml, docs/),
+                        its generators (tools/) and its pinned packages (requirements.txt); the listings,
+                        figures and web font it generates are committed, book/site/ is not
 requirements.txt        the pinned Python packages; tools/setup.sh installs them into .venv
 .venv/                  project-local Python environment
 ```
@@ -64,7 +67,7 @@ requirements.txt        the pinned Python packages; tools/setup.sh installs them
 .venv/bin/python -m ziglang cc -target wasm32-freestanding -O2 -nostdlib -Wl,--no-entry -o core.wasm src/*.c
 ```
 
-Node 26 is available for running the core headlessly. Apple clang is available for native test builds of the same C sources. Nothing else needs to be installed.
+Node 26 is available for running the core headlessly. Apple clang is available for native test builds of the same C sources. Nothing else needs to be installed. The book's packages are pinned separately in `book/requirements.txt` and are installed into the same `.venv` only by whoever builds the book (`book/BOOK.md`, section 5).
 
 ## 3. The original program
 
