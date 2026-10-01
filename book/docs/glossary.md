@@ -30,6 +30,14 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia; [Laurent Clévy's *ADF format FAQ*](https://web.archive.org/web/20241206200729/http://lclevy.free.fr/adflib/adf%5Finfo.html), the Wayback Machine's copy.
 
+### Arithmetic shift
+
+A shift of a number's bits that copies the sign bit into the top as it shifts right, so that a negative number stays negative and is halved, rounded down: the 68000's `asr`.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py); [`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1.
+
+Elsewhere: [Arithmetic shift](https://en.wikipedia.org/wiki/Arithmetic%5Fshift), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
 ### Assembly language
 
 The written form of machine code, one instruction a line, a short name for the operation followed by its operands: the form in which the listing shows the whole program, and in which much of the game was written by hand.
@@ -118,6 +126,16 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/so
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Condition codes
+
+The five bits X, N, Z, V and C that the 68000 sets after most instructions, saying whether the result was negative, zero or too large for its width and whether a carry came out; a conditional branch reads them.
+
+They sit in the low byte of the status register. The emulator the tests run on works them out only when an instruction needs them, so the oracle reads them through an instruction of the 68000's own ([`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here").
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/oracle.py`](repo:tools/oracle.py); [`re/notes/ffp.md`](repo:re/notes/ffp.md#how-the-game-reaches-it), "How the game reaches it".
+
+Elsewhere: [Status register](https://en.wikipedia.org/wiki/Status%5Fregister), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
 ### Control flow
 
 The order in which a program's instructions run, set by its branches, jumps, calls and returns; the disassembler follows it to tell the code from the data among it.
@@ -161,6 +179,14 @@ The Amiga's own chips beside the processor: Agnus with the copper and the blitte
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Differential test
+
+A test that hands two implementations of the same thing the same input and demands the same output; the oracle's tests run the original's routine and its port so.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [`tests/test_oracle_m1.py`](repo:tests/test%5Foracle%5Fm1.py).
+
+Elsewhere: [Differential testing](https://en.wikipedia.org/wiki/Differential%5Ftesting), Wikipedia.
 
 ### Disassembler
 
@@ -241,6 +267,14 @@ Numbers in base 16, the digits 0 to 9 and A to F; this book marks them with `0x`
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`book/BOOK.md`](repo:book/BOOK.md#4-the-style-guide), section 4, point 3.
 
 Elsewhere: [Hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal), Wikipedia.
+
+### Hook
+
+A routine of a test's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py); [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
+
+Elsewhere: [Hooking](https://en.wikipedia.org/wiki/Hooking), Wikipedia.
 
 ### Hunk
 
@@ -362,6 +396,14 @@ One step of the game's simulation, one for every input byte, taken every fourth 
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#33-runtime-model), section 3.3.
 
+### Logical shift
+
+A shift of a number's bits that fills the vacated places with zeros, which halves a number without a sign as it shifts right but turns a negative one into a large positive one: the 68000's `lsr`.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py).
+
+Elsewhere: [Logical shift](https://en.wikipedia.org/wiki/Logical%5Fshift), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
 ### Machine code
 
 A program as the processor reads it: its instructions as numbers in memory.
@@ -386,11 +428,25 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/dr
 
 Elsewhere: [Mask (computing)](https://en.wikipedia.org/wiki/Mask%5F(computing)), Wikipedia.
 
+### Memory-form shift
+
+A 68000 shift that works on a word in memory, by one bit, rather than on a register; the emulator the tests run on takes three of the game's for logical shifts where they are arithmetic, and a hook corrects them.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-emulators-memory-form-shift-observed), "The emulator's memory-form shift (observed)"; [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py).
+
+Elsewhere: [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
 ### Mission script
 
 A recorded sequence of stick and key inputs that flies a mission the same way every time, for the original and the port alike.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original".
+
+### Native library
+
+The port's C compiled by the test machine's own compiler into a library that the tests load and call directly, beside the WebAssembly of the page, which is built from the same sources.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [5](repo:SPEC.md#5-build) and [8](repo:SPEC.md#8-verification).
 
 ### Opcode
 
@@ -404,7 +460,9 @@ Elsewhere: [Opcode](https://en.wikipedia.org/wiki/Opcode), Wikipedia; [*M68000 F
 
 The instrument that runs one original routine on an emulated 68000 beside its port, on the same inputs, and compares the results.
 
-First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [7.4](repo:SPEC.md#74-working-method) and [8](repo:SPEC.md#8-verification).
+The original runs under the emulator Unicorn with the program at the fixed load layout, called by the compiler's convention or with its registers set by hand; the port runs as the native library; the result, the memory each side touched and, where they matter, the condition codes are compared, on every input where the inputs are few and on random ones from a fixed seed where they are many.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [7.4](repo:SPEC.md#74-working-method) and [8](repo:SPEC.md#8-verification); [`tools/oracle.py`](repo:tools/oracle.py); [chapter 5](part-1/oracle.md).
 
 Elsewhere: [Test oracle](https://en.wikipedia.org/wiki/Test%5Foracle), Wikipedia.
 
@@ -559,6 +617,14 @@ A routine's own stretch of the stack, from its arguments down to its own variabl
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
 Elsewhere: [Call stack](https://en.wikipedia.org/wiki/Call%5Fstack), Wikipedia.
+
+### Stub
+
+A stand-in that answers for something a routine calls but that is not under test, such as a call into the operating system.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tests/original.py`](repo:tests/original.py); [`re/notes/headless.md`](repo:re/notes/headless.md#the-stubs), "The stubs".
+
+Elsewhere: [Test stub](https://en.wikipedia.org/wiki/Test%5Fstub), Wikipedia.
 
 ### Symbol
 

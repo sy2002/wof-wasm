@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 430" width="820" height="430" role="img" aria-labelledby="title desc">
+  <title id="title">The oracle</title>
+  <desc id="desc">At the top, the same inputs, drawn from a fixed seed: the arguments, the registers and a state of the game's variables. They go to two sides. On the left, the original: the emulator Unicorn, set to be a 68000, with the program Wings loaded at the fixed layout, its code from 0x010000 and A4 at 0x02AFFE; the routine is taken at its address in the listing, its arguments are pushed onto the stack as the compiler passes them, stubs answer for what is not under test, and it returns to a trap address where the emulation stops. On the right, the port: the same routine in C, compiled for the test machine into the native library tests/libwofcore.dylib and called directly. At the bottom both outputs meet: the result in D0, the memory each side touched and, where they matter, the condition codes. They must be equal, or the test fails.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .orig  { fill: #77AACC; /* wingspalette 22 */ }
+    .port  { fill: #44AA44; /* iff-dash 6 */ }
+    .input { fill: #FFBB00; /* wingstitle 25 */ }
+    .made  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .frame { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <!-- The inputs -->
+  <rect class="input" x="250" y="14" width="320" height="58" rx="3"/>
+  <text class="ink label" x="264" y="37">the same inputs</text>
+  <text class="ink small" x="264" y="58">arguments, registers, a state of the variables</text>
+  <path class="wire" d="M300 72 L208.0 113.5"/>
+  <path class="tip" d="M198.0 118.0 L206.0 108.9 L210.1 118.0 Z"/>
+  <path class="wire" d="M520 72 L612.0 113.5"/>
+  <path class="tip" d="M622.0 118.0 L609.9 118.0 L614.0 108.9 Z"/>
+  <text class="muted small" x="410" y="92" text-anchor="middle">from a fixed seed</text>
+
+  <!-- The original, under the emulator -->
+  <text class="light label" x="20" y="112">the original</text>
+  <rect class="frame" x="20" y="122" width="360" height="190" rx="3"/>
+  <text class="light small" x="32" y="142">Unicorn, set to be a 68000</text>
+  <rect class="orig" x="32" y="152" width="336" height="46" rx="3"/>
+  <text class="ink mono" x="42" y="171">Wings</text>
+  <text class="ink small" x="42" y="189">the program at the fixed layout, code from 0x010000</text>
+  <rect class="orig" x="32" y="206" width="336" height="46" rx="3"/>
+  <text class="ink mono" x="42" y="225">the routine at its address</text>
+  <text class="ink small" x="42" y="243">arguments on the stack, A4 at 0x02AFFE</text>
+  <rect class="orig" x="32" y="260" width="336" height="40" rx="3"/>
+  <text class="ink small" x="42" y="277">stubs for what is not under test;</text>
+  <text class="ink small" x="42" y="293">returns to a trap address, and the emulation stops</text>
+
+  <!-- The port, natively -->
+  <text class="light label" x="440" y="112">the port</text>
+  <rect class="frame" x="440" y="122" width="360" height="190" rx="3"/>
+  <text class="light small" x="452" y="142">the native library</text>
+  <rect class="port" x="452" y="152" width="336" height="46" rx="3"/>
+  <text class="ink mono" x="462" y="171">tests/libwofcore.dylib</text>
+  <text class="ink small" x="462" y="189">the port's C, compiled for the test machine</text>
+  <rect class="port" x="452" y="206" width="336" height="46" rx="3"/>
+  <text class="ink mono" x="462" y="225">the same routine in C</text>
+  <text class="ink small" x="462" y="243">called directly, its state set from the same inputs</text>
+
+  <!-- The comparison -->
+  <path class="wire" d="M200 312 L311.4 344.9"/>
+  <path class="tip" d="M322.0 348.0 L310.0 349.7 L312.9 340.1 Z"/>
+  <path class="wire" d="M620 312 L508.6 344.9"/>
+  <path class="tip" d="M498.0 348.0 L507.1 340.1 L510.0 349.7 Z"/>
+  <rect class="made" x="250" y="350" width="320" height="66" rx="3"/>
+  <text class="ink label" x="264" y="372">compared</text>
+  <text class="ink small" x="264" y="390">D0, the memory touched, the condition codes</text>
+  <text class="ink small" x="264" y="407">equal, or the test fails</text>
+</svg>
