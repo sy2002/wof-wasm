@@ -118,6 +118,20 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/so
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Control flow
+
+The order in which a program's instructions run, set by its branches, jumps, calls and returns; the disassembler follows it to tell the code from the data among it.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/disasm.py`](repo:tools/disasm.py).
+
+Elsewhere: [Control flow](https://en.wikipedia.org/wiki/Control%5Fflow), Wikipedia.
+
+### Control-flow skeleton
+
+A routine shown with only its labels, calls, branches, tests and returns, as [`tools/skel.py`](repo:tools/skel.py) prints it from the listing: the first step of porting a routine, before it is read in full.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
+
 ### Copper
 
 The Amiga's display coprocessor: it follows a list of waits and register writes in step with the beam, and so changes colours and screen modes part of the way down the picture.
@@ -147,6 +161,14 @@ The Amiga's own chips beside the processor: Agnus with the copper and the blitte
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Disassembler
+
+A tool that turns machine code back into assembly language; the project's, [`tools/disasm.py`](repo:tools/disasm.py), follows the program's control flow and writes the listing and the routine inventory.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#4-tools), section 4.
+
+Elsewhere: [Disassembler](https://en.wikipedia.org/wiki/Disassembler), Wikipedia.
 
 ### Double buffering
 
@@ -286,6 +308,14 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sy
 
 Elsewhere: [Kickstart (Amiga)](https://en.wikipedia.org/wiki/Kickstart%5F(Amiga)), Wikipedia.
 
+### Label
+
+A name the listing gives an address that a branch or a call leads to, on a line of its own and ending in a colon: a routine's name, or `loc_` and the address for a place inside one.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/Wings.lst`](repo:re/Wings.lst).
+
+Elsewhere: [Label (computer science)](https://en.wikipedia.org/wiki/Label%5F(computer%5Fscience)), Wikipedia.
+
 ### Library
 
 A collection of the operating system's routines that a program calls through a table of jumps at fixed offsets from the library's address; the game uses dos, exec, graphics and mathffp among others.
@@ -293,6 +323,14 @@ A collection of the operating system's routines that a program calls through a t
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
 Elsewhere: [Library (computing)](https://en.wikipedia.org/wiki/Library%5F(computing)), Wikipedia; [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-rom-kernel-reference-manual-libraries-3rd-edition), 3rd edition, Internet Archive.
+
+### Library base
+
+The address of a library in memory, which a program keeps in a variable and loads into A6 to call one of the library's routines at a fixed offset below it; [`re/libbases.txt`](repo:re/libbases.txt) names the game's five.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/disasm.py`](repo:tools/disasm.py); [`tools/fd/`](repo:tools/fd/).
+
+Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-rom-kernel-reference-manual-libraries-3rd-edition), 3rd edition, Internet Archive.
 
 ### Listing
 
@@ -353,6 +391,14 @@ Elsewhere: [Mask (computing)](https://en.wikipedia.org/wiki/Mask%5F(computing)),
 A recorded sequence of stick and key inputs that flies a mission the same way every time, for the original and the port alike.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original".
+
+### Opcode
+
+The first word of a 68000 instruction, which names the operation and how its operands are found, and so how many words the instruction has.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/disasm.py`](repo:tools/disasm.py).
+
+Elsewhere: [Opcode](https://en.wikipedia.org/wiki/Opcode), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### Oracle
 
@@ -429,6 +475,20 @@ A new program made to look and play like an old one, written from watching the o
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#1-goal), section 1.
 
 Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Fremake), Wikipedia.
+
+### Routine
+
+A piece of the program that is called, does one job and returns to its caller; the game's program has 616, 223 of them compiled from C, each a row of the routine inventory.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/functions.csv`](repo:re/functions.csv).
+
+Elsewhere: [Function (computer programming)](https://en.wikipedia.org/wiki/Function%5F(computer%5Fprogramming)), Wikipedia.
+
+### Routine inventory
+
+[`re/functions.csv`](repo:re/functions.csv): a row for each of the program's 616 routines, with its address, name, kind, size, frame, callers, calls, library calls and its status in the port, made with the listing; the status is the one column kept by hand.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [the routine inventory](routines.md).
 
 ### Rpck
 
@@ -513,6 +573,12 @@ The vertical blank, the moment the beam has finished a picture and returns to th
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md).
 
 Elsewhere: [Vertical blanking interval](https://en.wikipedia.org/wiki/Vertical%5Fblanking%5Finterval), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Verified
+
+The status of a routine that is ported and held to the original under the oracle: both run on the same inputs, and every result is equal.
+
+First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [chapter 5](part-1/oracle.md).
 
 ### Vertical flip
 
