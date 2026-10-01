@@ -40,7 +40,7 @@ Values in the files: `+12` is 0 or `0x10` in most shapes (clear plane 4, so a 4-
 
 The container in memory is the unpacked file (`SPEC.md` section 3.5). The record of entry `i` is at `container + 6 + 8n + offset[i]`.
 
-`shape_find` (`0x020560`; A0 = container, D0 = name as a big-endian long; result in A0 and D0) walks the name table with `cmp.l (a1)+,d0` / `dble`: it stops at the first stored name that is **greater than or equal to** the wanted one, as signed longs, and then tests for equality. It is a linear search with early exit and **requires ascending names**. All 13 containers on the disk are strictly ascending without duplicates, so the result always equals an exact-match lookup; the oracle run confirms this for every name list entry against every container. A port may use any exact-match lookup. The count is the word at `+4`; a count of 0 or less returns 0.
+`shape_find` (`0x020560`; A0 = container, D0 = name as a big-endian long; result in A0 and D0) walks the name table with `cmp.l (a1)+,d0` / `dble`: it stops at the first stored name that is **greater than or equal to** the wanted one, as signed longs, and then tests for equality. It is a linear search with early exit and **requires ascending names**. All twelve containers on the disk are strictly ascending without duplicates, so the result always equals an exact-match lookup; the oracle run confirms this for every name list entry against every container. A port may use any exact-match lookup. The count is the word at `+4`; a count of 0 or less returns 0.
 
 `shape_by_index` (`0x02050E`; container, index) returns the record of entry `index`. Its range check is compiled without effect, so an index outside the container reads garbage.
 
@@ -153,7 +153,7 @@ all 216 records of `hellcat.shp` and `Torpedo.shp`. Details, and what the compar
 the blit does and does not prove, are in `re/notes/porting-m1.md`. Two things the port
 found: no container has overlapping plane masks, so the blit's mask is exactly "the
 converted pixel is not 0" and needs no storage of its own; and the nine name lists are
-not in ascending order, although the thirteen containers are, which is all that
+not in ascending order, although the twelve containers are, which is all that
 `shape_find`'s early exit needs.
 
 ## Consequences for the port

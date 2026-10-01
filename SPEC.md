@@ -111,7 +111,7 @@ The program was built with **Manx Aztec C** plus hand-written assembly.
 - **Far calls** go through a table of 185 `JMP abs.l` slots at `0x023000`–`0x023456`. `jsr d16(a4)` into that table is resolved to its real target in the listing.
 - **C routines** start with `LINK A5`. Arguments are pushed right to left: 2 bytes for `int`, 4 bytes for `long` and pointers. First argument at `8(a5)`. Result in D0.
 - **`switch`** compiles to a bounds check, a table of 16-bit offsets, and `jmp base(pc,d0.w)`. The listing resolves the tables and labels each case.
-- **String literals live in the CODE hunk**, after the routine that uses them. Pointers from DATA into CODE are therefore often string pointers, not code pointers.
+- **String literals live in the CODE hunk**, after the routine that uses them, except the file names and the format strings, which lie in the DATA hunk. Pointers from DATA into CODE are therefore often string pointers, not code pointers.
 - Layout: `0x010000`–`0x015D62` is almost entirely hand-written assembly (main loop, drawing, interrupt servers, object movement). From `0x015D62` on: 223 C routines, the C library's among them, then the OS glue at the end. A second block of hand-written assembly, the blitter library that does all shape, rectangle and line drawing, sits at `0x0209BC`–`0x0215D8`.
 
 Inventory: 616 routines, of which 223 are C. The listing classifies all but 39 bytes of the CODE hunk.

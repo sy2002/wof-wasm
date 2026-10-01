@@ -114,5 +114,6 @@ The fact-check and the readability read are fresh Opus agents the controller spa
 |---|---|
 | 1. What faithful means | merged, awaiting the owner's read |
 | 2. The Amiga in twenty minutes | merged, awaiting the owner's read |
+| 3. The disk | merged, awaiting the owner's read |
 
 A chapter not listed is a stub. The states, in order: drafted (on its branch); reviewed (the fact-check, the readability read and the controller's read done and folded in); merged, awaiting the owner's read; final (the owner's read done and folded in).
