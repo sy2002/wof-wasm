@@ -108,6 +108,13 @@ html, body {
     display: none;
 }
 
+/* No mouse cursor anywhere in the page's own fullscreen, the one F asks for: the page has
+   nothing to click.  web/main.js sets the class while document.fullscreenElement is set, so
+   that this does not depend on a browser's :fullscreen. */
+:root.page-fullscreen, :root.page-fullscreen * {
+    cursor: none;
+}
+
 /* The pause sign.  web/video.js puts its centre on the picture's and sets its font size from
    the picture's height, so everything here is in ems of that size: the block keeps the same
    small part of the picture at any size.  The colours are the key hint's and the shell's. */
