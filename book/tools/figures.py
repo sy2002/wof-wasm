@@ -18,6 +18,9 @@ made and the command that remakes it, and writes PNG files:
     shapes     a contact sheet of a shape container with tools/ppkc.py
     map        a map's drawn records with tools/map_decode.py and the shapes of tools/ppkc.py
     font       a specimen of the game's font, drawn by the core's text_render
+    planes     one shape of a container taken apart into its stored planes with tools/ppkc.py,
+               and put together again as colour numbers and through a palette
+    sample     a sound effect's file as a waveform, the whole and a stretch enlarged
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -36,10 +39,13 @@ import tempfile
 
 from common import FIGURES, ROOT, Failure, compare, core, manifest, rel, replace_tree
 
-SHAPES = ROOT / 'original' / 'disk' / 'Wings_of_Fury' / 'shapes'
+DISK = ROOT / 'original' / 'disk' / 'Wings_of_Fury'
+SHAPES = DISK / 'shapes'
 FIRE = 16                       # the raw controller byte of fire (tests/runs/, title_shot)
 LABEL = (200, 200, 200)         # the label colour and background of tools/ppkc.py's sheets
 GROUND = (40, 40, 48)
+PANEL = (16, 16, 20)            # the box of a shape or a waveform on that background
+AXIS = (90, 90, 104)            # a zero line, a tick
 
 
 def ppkc():
@@ -279,6 +285,138 @@ def make_font(figure, path):
     image.resize((image.width * sx, image.height * sy), Image.NEAREST).save(path)
 
 
+def make_planes(figure, path):
+    """One shape's stored planes, each as its bits, then the colour numbers they make, as
+    shades from black to white, then the same through a palette; one pixel marked in every
+    row, its bit, its number and its colour written beside the row."""
+    from PIL import Image, ImageDraw
+    tool = ppkc()
+    shapes = {s['name']: s for s in tool.parse(str(SHAPES / figure['container']))}
+    if figure['shape'] not in shapes:
+        raise Failure('%s has no shape %s' % (figure['container'], figure['shape']))
+    shape = shapes[figure['shape']]
+    masks = shape['masks']
+    if masks != [1 << i for i in range(len(masks))]:
+        raise Failure('%s: its planes land in %s, not in planes 1, 2, 4, ... in order'
+                      % (figure['shape'], masks))
+    wb, height = shape['wbytes'], shape['h']
+    width = 8 * wb
+    planes = []
+    for i in range(len(masks)):
+        data = shape['data'][i * wb * height:(i + 1) * wb * height]
+        planes.append([[data[y * wb + (x >> 3)] >> (7 - (x & 7)) & 1 for x in range(width)]
+                       for y in range(height)])
+    numbers = [[sum(planes[i][y][x] << i for i in range(len(planes))) for x in range(width)]
+               for y in range(height)]
+    if numbers != tool.to_indexed(shape):
+        raise Failure('%s: the planes do not make the pixels of tools/ppkc.py' % figure['shape'])
+    colours = palette(figure['palette'])
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    px, py = figure['pixel']
+    value = numbers[py][px]
+    top = (1 << len(planes)) - 1                     # the largest colour number, white
+
+    def plane_ink(i):
+        return lambda x, y: LABEL if planes[i][y][x] else None
+
+    def shade(x, y):
+        c = numbers[y][x]
+        return (round(c * 255 / top),) * 3 if c else None
+
+    def colour(x, y):
+        return colours[numbers[y][x]] if numbers[y][x] else None
+
+    rows = [('plane %d, worth %d' % (i + 1, 1 << i), plane_ink(i),
+             'bit %d' % planes[i][py][px]) for i in range(len(planes))]
+    rows.append(('colour number', shade,
+                 '%d = %s' % (value, ' + '.join(str(1 << i) for i in range(len(planes))
+                                                if planes[i][py][px]))))
+    rows.append(('through %s' % figure['palette'], colour,
+                 'colour %d, #%02X%02X%02X' % ((value,) + colours[value])))
+    zoom = figure['zoom']
+    label_w, gap, margin, head = 136, 7, 6, 18
+    box_w, box_h = width * zoom, height * zoom
+    image = Image.new('RGB', (margin + label_w + box_w + 10 + figure['note_width'],
+                              head + len(rows) * (box_h + gap) - gap + 2 * margin), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s, %s: %d x %d pixels, %d planes'
+         % (figure['container'], figure['shape'], width, height, len(planes)))
+    for r, (label, ink, note) in enumerate(rows):
+        x0, y0 = margin + label_w, margin + head + r * (box_h + gap)
+        text(draw, (margin, y0 + (box_h - 11) // 2), label)
+        draw.rectangle((x0, y0, x0 + box_w - 1, y0 + box_h - 1), fill=PANEL)
+        for y in range(height):
+            for x in range(width):
+                rgb = ink(x, y)
+                if rgb:
+                    draw.rectangle((x0 + x * zoom, y0 + y * zoom,
+                                    x0 + (x + 1) * zoom - 1, y0 + (y + 1) * zoom - 1), fill=rgb)
+        draw.rectangle((x0 + px * zoom - 1, y0 + py * zoom - 1,
+                        x0 + (px + 1) * zoom, y0 + (py + 1) * zoom), outline=mark)
+        text(draw, (x0 + box_w + 10, y0 + (box_h - 11) // 2), note)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def make_sample(figure, path):
+    """A sound effect's file, signed 8-bit bytes, as a waveform: the whole of it, one column
+    per few bytes from their smallest to their largest value, with a tick every 100 ms at the
+    figure's period; then a stretch of it enlarged, each byte held as a step, as Paula holds
+    it for one period."""
+    from PIL import Image, ImageDraw
+    import rpck
+    name = 'sounds/%s' % figure['sound']
+    raw, _ = rpck.load(str(DISK / name))
+    values = [b - 256 if b > 127 else b for b in raw]
+    count, period, clock = len(values), figure['period'], figure['clock']
+    seconds = count * period / clock
+    first, many = figure['zoom']
+    if first + many > count:
+        raise Failure('%s has %d bytes, the stretch %d + %d does not fit'
+                      % (name, count, first, many))
+    ink = palette(figure['ink'][0])[figure['ink'][1]]
+    width, strip, margin, head, gap = figure['width'], figure['height'], 6, 14, 26
+    image = Image.new('RGB', (width + 2 * margin, 2 * margin + 2 * (head + strip) + gap), GROUND)
+    draw = ImageDraw.Draw(image)
+    half = strip // 2 - 1
+
+    def level(y0, v):
+        return y0 + half - round(v * half / 128)
+
+    def frame(y0, title):
+        text(draw, (margin, y0 - head), title)
+        draw.rectangle((margin, y0, margin + width - 1, y0 + strip - 1), fill=PANEL)
+        draw.line((margin, y0 + half, margin + width - 1, y0 + half), fill=AXIS)
+
+    y0 = margin + head
+    frame(y0, '%s: %s bytes, %d ms at period %d on PAL'
+          % (name, format(count, ','), round(seconds * 1000), period))
+    for ms in range(0, int(seconds * 1000) + 1, 100):
+        x = margin + round(ms / 1000 * clock / period * width / count)
+        draw.line((x, y0 + strip, x, y0 + strip + 3), fill=AXIS)
+        text(draw, (x + 2, y0 + strip + 1), '%d ms' % ms)
+    for x in range(width):
+        part = values[x * count // width:max(x * count // width + 1, (x + 1) * count // width)]
+        draw.line((margin + x, level(y0, max(part)), margin + x, level(y0, min(part))), fill=ink)
+    a = margin + first * width // count
+    b = margin + (first + many) * width // count
+    draw.rectangle((a - 1, y0, b, y0 + strip - 1), outline=LABEL)
+
+    y1 = y0 + strip + gap + head
+    frame(y1, 'bytes %d to %d, %.1f ms: each byte held for %d colour clocks'
+          % (first, first + many - 1, many * period / clock * 1000, period))
+    step = width / many
+    last = None
+    for i, v in enumerate(values[first:first + many]):
+        xa, xb, y = margin + round(i * step), margin + round((i + 1) * step) - 1, level(y1, v)
+        if last is not None:
+            draw.line((xa, last, xa, y), fill=ink)
+        draw.line((xa, y, xb, y), fill=ink)
+        last = y
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -324,6 +462,10 @@ def generate(out, names=None, log=print):
             make_map(figure, path)
         elif maker == 'font':
             make_font(figure, path)
+        elif maker == 'planes':
+            make_planes(figure, path)
+        elif maker == 'sample':
+            make_sample(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

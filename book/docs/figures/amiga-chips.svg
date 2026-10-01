@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 350" width="760" height="350" role="img" aria-labelledby="title desc">
+  <title id="title">The chips around chip memory</title>
+  <desc id="desc">The 68000 processor on the left runs the game's code and writes the chips' registers. Across the top, the custom chips: Agnus, which holds the copper, that follows the beam, and the blitter, that draws the shapes; Denise, the display, which turns the bitplanes into the picture; and Paula, four channels of sound, which also serves the interrupts and the disk. All of them reach chip memory below them by themselves, and so does the processor: in it the game keeps the bitplanes of its two screens, the copper lists, the shapes, the sound effects and the songs. Below, reached by the processor alone: the CIAs with the music's timer and the fire button, the Kickstart ROM with the core of the operating system, among it the floating point, the keymap and the system font, and any other memory the machine has.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .head  { fill: #003377; /* ocean.palette 13 */ }
+    .head-text { fill: #EEEEEE; /* wingstitle 31 */ }
+    .cpu   { fill: #77AACC; /* wingspalette 22 */ }
+    .chip  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .chipmem-head { fill: #FFBB00; /* wingstitle 25 */ }
+    .chipmem { fill: #FFDD77; /* wingstitle 28 */ }
+    .rom   { fill: #AAAABB; /* wingspalette 29 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .rule  { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 13px; }
+    .label { font-size: 15px; font-weight: 700; }
+  </style>
+
+  <!-- The 68000 -->
+  <rect class="head" x="10" y="10" width="170" height="28" rx="3"/>
+  <text class="head-text label" x="95" y="30" text-anchor="middle">68000</text>
+  <rect class="cpu" x="10" y="38" width="170" height="192" rx="3"/>
+  <text class="ink" x="95" y="70" text-anchor="middle">the processor:</text>
+  <text class="ink" x="95" y="89" text-anchor="middle">runs the game's code</text>
+  <text class="ink" x="95" y="108" text-anchor="middle">and writes the chips'</text>
+  <text class="ink" x="95" y="127" text-anchor="middle">registers</text>
+
+  <!-- The custom chips -->
+  <rect class="head" x="200" y="10" width="270" height="28" rx="3"/>
+  <text class="head-text label" x="335" y="30" text-anchor="middle">Agnus</text>
+  <rect class="chip" x="200" y="38" width="270" height="72" rx="3"/>
+  <line class="rule" x1="335" y1="46" x2="335" y2="102"/>
+  <text class="ink label" x="267" y="62" text-anchor="middle">the copper</text>
+  <text class="ink" x="267" y="80" text-anchor="middle">follows the beam,</text>
+  <text class="ink" x="267" y="97" text-anchor="middle">writes registers</text>
+  <text class="ink label" x="402" y="62" text-anchor="middle">the blitter</text>
+  <text class="ink" x="402" y="80" text-anchor="middle">copies rectangles,</text>
+  <text class="ink" x="402" y="97" text-anchor="middle">draws the shapes</text>
+
+  <rect class="head" x="480" y="10" width="125" height="28" rx="3"/>
+  <text class="head-text label" x="542" y="30" text-anchor="middle">Denise</text>
+  <rect class="chip" x="480" y="38" width="125" height="72" rx="3"/>
+  <text class="ink" x="542" y="62" text-anchor="middle">the display:</text>
+  <text class="ink" x="542" y="80" text-anchor="middle">the bitplanes</text>
+  <text class="ink" x="542" y="97" text-anchor="middle">into the picture</text>
+
+  <rect class="head" x="615" y="10" width="135" height="28" rx="3"/>
+  <text class="head-text label" x="682" y="30" text-anchor="middle">Paula</text>
+  <rect class="chip" x="615" y="38" width="135" height="72" rx="3"/>
+  <text class="ink" x="682" y="62" text-anchor="middle">four channels</text>
+  <text class="ink" x="682" y="80" text-anchor="middle">of sound; the</text>
+  <text class="ink" x="682" y="97" text-anchor="middle">interrupts, the disk</text>
+
+  <!-- Each chip reads and writes chip memory by itself -->
+  <path class="tip" d="M261 120 L273 120 L267 113 Z"/>
+  <line class="wire" x1="267" y1="120" x2="267" y2="132"/>
+  <path class="tip" d="M261 132 L273 132 L267 139 Z"/>
+  <path class="tip" d="M396 120 L408 120 L402 113 Z"/>
+  <line class="wire" x1="402" y1="120" x2="402" y2="132"/>
+  <path class="tip" d="M396 132 L408 132 L402 139 Z"/>
+  <path class="tip" d="M536 120 L548 120 L542 113 Z"/>
+  <line class="wire" x1="542" y1="120" x2="542" y2="132"/>
+  <path class="tip" d="M536 132 L548 132 L542 139 Z"/>
+  <path class="tip" d="M676 120 L688 120 L682 113 Z"/>
+  <line class="wire" x1="682" y1="120" x2="682" y2="132"/>
+  <path class="tip" d="M676 132 L688 132 L682 139 Z"/>
+
+  <!-- Chip memory -->
+  <rect class="chipmem-head" x="200" y="140" width="550" height="28" rx="3"/>
+  <text class="ink label" x="475" y="160" text-anchor="middle">Chip memory: shared by the processor and the custom chips</text>
+  <rect class="chipmem" x="200" y="168" width="550" height="62" rx="3"/>
+  <text class="ink" x="475" y="192" text-anchor="middle">the bitplanes of the two screens, 88,480 bytes; the copper lists;</text>
+  <text class="ink" x="475" y="214" text-anchor="middle">the shapes, whole containers; the sound effects; the songs</text>
+
+  <!-- The processor reaches chip memory too -->
+  <path class="tip" d="M187 193 L187 205 L181 199 Z"/>
+  <line class="wire" x1="187" y1="199" x2="193" y2="199"/>
+  <path class="tip" d="M193 193 L193 205 L199 199 Z"/>
+
+  <!-- What only the processor reaches -->
+  <polyline class="wire" points="95,230 95,250 615,250"/>
+  <line class="wire" x1="95" y1="250" x2="95" y2="270"/>
+  <line class="wire" x1="335" y1="250" x2="335" y2="270"/>
+  <line class="wire" x1="615" y1="250" x2="615" y2="270"/>
+
+  <rect class="head" x="10" y="270" width="170" height="28" rx="3"/>
+  <text class="head-text label" x="95" y="290" text-anchor="middle">CIAs</text>
+  <rect class="chip" x="10" y="298" width="170" height="44" rx="3"/>
+  <text class="ink" x="95" y="317" text-anchor="middle">the music's timer,</text>
+  <text class="ink" x="95" y="334" text-anchor="middle">the fire button</text>
+
+  <rect class="head" x="200" y="270" width="270" height="28" rx="3"/>
+  <text class="head-text label" x="335" y="290" text-anchor="middle">Kickstart ROM</text>
+  <rect class="rom" x="200" y="298" width="270" height="44" rx="3"/>
+  <text class="ink" x="335" y="317" text-anchor="middle">the operating system's core:</text>
+  <text class="ink" x="335" y="334" text-anchor="middle">the floating point, keymap, font</text>
+
+  <rect class="head" x="480" y="270" width="270" height="28" rx="3"/>
+  <text class="head-text label" x="615" y="290" text-anchor="middle">Other memory</text>
+  <rect class="rom" x="480" y="298" width="270" height="44" rx="3"/>
+  <text class="ink" x="615" y="317" text-anchor="middle">where a machine has any:</text>
+  <text class="ink" x="615" y="334" text-anchor="middle">the processor's alone</text>
+</svg>

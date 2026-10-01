@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 440" width="760" height="440" role="img" aria-labelledby="title desc">
+  <title id="title">The beam and the copper</title>
+  <desc id="desc">On the left, the play screen as the beam draws it, its 214 lines from top to bottom: the playfield under the sky's palette down to the split line, then under the sea's palette to line 161; a blank line; the dashboard from line 163; a blank line; the ticker from line 201 to 213. The beam sweeps each line from left to right and the lines from top to bottom; after the picture it runs out the frame and returns to the top, the VBlank. On the right, the copper's list beside the lines where it acts: at line 0 the playfield's colours and bitplanes; at the split line the sea's colours; at line 162 the bitplanes off and from 163 the dashboard; at line 200 the bitplanes off and from 201 a new grey on each of the ticker's lines; at the VBlank the list starts again from the top.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .sky   { fill: #00AAFF; /* wingspalette 1 */ }
+    .sea   { fill: #0066AA; /* ocean.palette 10 */ }
+    .dash  { fill: #888899; /* wingspalette 28 */ }
+    .ticker { fill: #777777; /* wingstitle 13 */ }
+    .entry { fill: #FFDD77; /* wingstitle 28 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .beam  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; fill: none; }
+    .retrace { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 1; stroke-dasharray: 3 3; fill: none; }
+    .tip   { fill: #FFBB00; /* wingstitle 25 */ }
+    .leader { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <text class="light label" x="10" y="22">The play screen as the beam draws it</text>
+  <text class="light label" x="380" y="22">The copper's list</text>
+
+  <!-- The picture, 320 pixels wide, 1.5 units a line: line L at y = 44 + 1.5 L -->
+  <rect class="sky" x="10" y="44" width="320" height="226.5"/>
+  <rect class="sea" x="10" y="270.5" width="320" height="16.5"/>
+  <rect class="dash" x="10" y="288.5" width="320" height="55.5"/>
+  <rect class="ticker" x="10" y="345.5" width="320" height="19.5"/>
+
+  <text class="ink" x="170" y="120" text-anchor="middle">the beam: each line from left to right,</text>
+  <text class="ink" x="170" y="139" text-anchor="middle">the lines from top to bottom</text>
+  <text class="ink label" x="170" y="205" text-anchor="middle">playfield, lines 0 to 161</text>
+  <text class="ink" x="170" y="224" text-anchor="middle">320 pixels, 5 bitplanes, 32 colours</text>
+  <text class="light small" x="170" y="283" text-anchor="middle">the sea's palette</text>
+  <text class="ink label" x="170" y="315" text-anchor="middle">dashboard, lines 163 to 199</text>
+  <text class="ink" x="170" y="334" text-anchor="middle">640 pixels, 4 bitplanes, 16 colours</text>
+  <text class="ink small" x="170" y="360" text-anchor="middle">ticker, lines 201 to 213, 1 bitplane</text>
+
+  <!-- The beam's first lines, and its way back to the top after the frame -->
+  <line class="beam" x1="18" y1="50" x2="314" y2="50"/>
+  <path class="tip" d="M314 46 L314 54 L321 50 Z"/>
+  <line class="retrace" x1="318" y1="52" x2="20" y2="58"/>
+  <line class="beam" x1="18" y1="60" x2="318" y2="60"/>
+  <line class="retrace" x1="318" y1="62" x2="20" y2="68"/>
+  <line class="beam" x1="18" y1="70" x2="318" y2="70"/>
+  <line class="retrace" x1="318" y1="72" x2="20" y2="78"/>
+  <line class="beam" x1="18" y1="80" x2="318" y2="80"/>
+  <polyline class="retrace" points="326,378 4,378 4,50 9,50"/>
+  <path class="tip" d="M9 46 L9 54 L16 50 Z"/>
+  <text class="light" x="10" y="402">after the picture the beam runs out the frame's 313 lines</text>
+  <text class="light" x="10" y="421">and returns to the top: the VBlank, 50 times a second</text>
+
+  <!-- The list, each entry beside the line where it acts -->
+  <polyline class="leader" points="332,44 356,44 356,60 378,60"/>
+  <rect class="entry" x="380" y="39" width="370" height="42" rx="3"/>
+  <text class="ink" x="390" y="56">wait for line 0, beam line 44:</text>
+  <text class="ink" x="390" y="74">the playfield's 32 colours and 5 bitplanes</text>
+
+  <text class="light" x="380" y="118">Each entry waits for a line of the beam, then</text>
+  <text class="light" x="380" y="137">writes values into the chips' registers: colours,</text>
+  <text class="light" x="380" y="156">the bitplanes' addresses, the mode. The game</text>
+  <text class="light" x="380" y="175">writes this list itself and points the copper</text>
+  <text class="light" x="380" y="194">at it through one register.</text>
+
+  <polyline class="leader" points="332,270.5 356,270.5 356,249 378,249"/>
+  <rect class="entry" x="380" y="228" width="370" height="42" rx="3"/>
+  <text class="ink" x="390" y="245">wait for the split line, 151 here:</text>
+  <text class="ink" x="390" y="263">the sea's colours, 15 of them by day</text>
+
+  <polyline class="leader" points="332,288 356,288 356,301 378,301"/>
+  <rect class="entry" x="380" y="280" width="370" height="42" rx="3"/>
+  <text class="ink" x="390" y="297">wait for line 162: bitplanes off;</text>
+  <text class="ink" x="390" y="315">line 163: the dashboard's colours and planes</text>
+
+  <polyline class="leader" points="332,345 356,345 356,353 378,353"/>
+  <rect class="entry" x="380" y="332" width="370" height="42" rx="3"/>
+  <text class="ink" x="390" y="349">wait for line 200: bitplanes off;</text>
+  <text class="ink" x="390" y="367">lines 201 to 210: a new grey on each line</text>
+
+  <polyline class="leader" points="332,378 356,378 356,405 378,405"/>
+  <rect class="entry" x="380" y="384" width="370" height="42" rx="3"/>
+  <text class="ink" x="390" y="401">at the VBlank the copper starts</text>
+  <text class="ink" x="390" y="419">its list again from the top</text>
+</svg>

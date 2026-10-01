@@ -1,0 +1,9 @@
+; re/Wings.lst 0x0203BE-0x0203D8: rand_beam [asm]
+rand_beam:
+0203be  302cb914             move.w     -$46ec(a4), d0                         ; rand_seed_const
+0203c2  c1fc1afb             muls.w     #$1afb, d0
+0203c6  d0bc0001fccd         add.l      #$1fccd, d0
+0203cc  323900dff006         move.w     $dff006.l, d1
+0203d2  b340                 eor.w      d1, d0
+0203d4  3940b912             move.w     d0, -$46ee(a4)                         ; rand_state
+0203d8  4e75                 rts

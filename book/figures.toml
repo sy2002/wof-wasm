@@ -12,6 +12,9 @@
 #            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet())
 #            map        a map's drawn records (tools/map_decode.py, draw_list())
 #            font       a specimen of the game's font, drawn by the port's text_render
+#            planes     one shape taken apart into its stored planes and put together again
+#                       (tools/ppkc.py, parse()), as colour numbers and through a palette
+#            sample     a sound effect's file as a waveform, the whole and a stretch enlarged
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -132,3 +135,35 @@ scale = [2, 4]
 shows = "The game's own font, newarmyfont, with every character it has: the lettering of the story scroller and the briefing, and of this book's headings."
 how = "Each line drawn by the port's text_render (orig 0x015956) into a 640 x 12 template, as the story scroller draws it; each pixel shown two wide and four high, near the 1.6 : 3 of a high-resolution pixel on a PAL screen; ink and paper are entries 25 and 0 of the title picture's palette."
 command = ".venv/bin/python book/tools/figures.py font-specimen"
+
+[[figure]]
+name = "planes-hellcat"
+file = "planes-hellcat.png"
+maker = "planes"
+container = "hellcat.shp"
+shape = "hc05"
+palette = "wingspalette"
+pixel = [22, 8]
+mark = ["wingstitle", 25]
+zoom = 3
+note_width = 118
+scale = 2
+shows = "The Hellcat in level flight, hc05 of hellcat.shp, taken apart into its five bitplanes and put together again: each plane's bits, the colour numbers they make and the same through wingspalette, one pixel marked in every row."
+how = "tools/ppkc.py's parse(); each stored plane read from the record's plane data, a set bit drawn light; the colour number of a pixel the sum of its planes' bits times 1, 2, 4, 8 and 16, checked against ppkc.py's to_indexed() and drawn as a grey from black (0) to white (31); the same numbers through wingspalette; colour 0 left as the empty box; each pixel three wide and high, the whole twice enlarged, the marked pixel framed in entry 25 of the title picture's palette."
+command = ".venv/bin/python book/tools/figures.py planes-hellcat"
+
+[[figure]]
+name = "sample-boom"
+file = "sample-boom.png"
+maker = "sample"
+sound = "boom"
+period = 500
+clock = 3546895
+zoom = [400, 100]
+ink = ["wingstitle", 25]
+width = 500
+height = 90
+scale = 2
+shows = "The sound sample of a bomb's or a rocket's burst, sounds/boom, as Paula plays it: the whole of its 5,466 bytes, and bytes 400 to 499 enlarged, each byte held as a step."
+how = "The file's bytes read as signed 8-bit values (tools/rpck.py's load(), which leaves an unpacked file as it is); above, one column for every eleven or so bytes, from their smallest to their largest value, with a tick every 100 ms at period 500 (slot 4's, re/notes/sound.md) and PAL's 3,546,895 colour clocks a second; below, the stretch framed above, one step of five pixels for each byte; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py sample-boom"

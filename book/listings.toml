@@ -86,3 +86,10 @@ name = "to_indexed"
 kind = "py"
 name = "Map"
 file = "tools/map_decode.py"
+
+# The 68000's machine code as the listing shows it: the game's only random source in use,
+# hand-written assembly, a read of the beam's position (VHPOSR, 0xDFF006) among its seven
+# instructions (re/notes/random.md).
+[[listing]]
+kind = "asm"
+name = "rand_beam"

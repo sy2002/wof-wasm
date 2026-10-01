@@ -2,11 +2,29 @@
 
 Every term the book introduces, in alphabetical order. An entry gives the term, its definition in one line, the chapter that introduces it, and the note of the repository that holds the detail.
 
+### 68000
+
+Motorola's processor, the chip in the Amiga that runs the program: sixteen registers of 32 bits, eight for data and eight for addresses, and instructions that work on bytes, words of 16 bits and longs of 32.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, sections 3.2 and 7.1.
+
+### Assembly language
+
+The written form of machine code, one instruction a line, a short name for the operation followed by its operands: the form in which the listing shows the whole program, and in which much of the game was written by hand.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.2.
+
 ### Attract demo
 
 A recorded game that the program plays by itself when left alone at the rank selection, and which it can record from a game played; not a demoscene production.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/demo.md`.
+
+### Beam
+
+The point where the display is drawing the picture, sweeping each line from left to right and the lines from top to bottom; its position, which a register of the custom chips reports, is the game's only source of chance.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/random.md`.
 
 ### Bitplane
 
@@ -19,6 +37,18 @@ Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`.
 The Amiga's chip for copying and combining rectangles of memory, which draws the game's shapes into the bitplanes while the processor goes on with other work.
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`.
+
+### Chip memory
+
+The memory the Amiga's custom chips can read and write by themselves, without the processor; the game keeps its screens, copper lists, shapes, sound effects and songs there.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/display.md`, "Memory".
+
+### CIA
+
+One of the Amiga's two interface chips, which serve its ports and carry timers of their own; the game reads the fire button from one, and its music player takes one of their timers for its beat.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/music.md`, "The timer".
 
 ### Copper
 
@@ -37,6 +67,12 @@ Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 6.
 A change made to a program to remove its copy protection; the disk this port was made from carries one.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 3.1.
+
+### Custom chips
+
+The Amiga's own chips beside the processor: Agnus with the copper and the blitter, Denise for the display, Paula for the sound. A program sets them to work through their registers, and they then work from chip memory by themselves.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
 
 ### Emulator
 
@@ -80,17 +116,41 @@ The taking of one input byte, which the game does every fourth VBlank, and the b
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/input.md`.
 
+### Interrupt
+
+A signal from the hardware that makes the processor put aside what it is doing, run a short routine and carry on where it was; the VBlank and Paula's channels raise them.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/headless.md`, "Scheduling".
+
 ### Keyboard assist
 
 The port's switch that makes one key press one step in the weapon menu and lets a short tap reach the game exactly once everywhere else; off in every comparison with the original.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `re/notes/porting-m4.md`, "The keyboard assist".
 
+### Kickstart
+
+The Amiga's ROM with the core of its operating system; the port takes the font and the key table from Kickstart 1.3 when it is built and is held to its floating point, and the ROM is not part of the repository.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/system-font.md`, "The ROM".
+
+### Library
+
+A collection of the operating system's routines that a program opens by name and calls through a table of jumps at fixed offsets from the library's address; the game uses dos, exec, graphics and mathffp among others.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.4.
+
 ### Logic tick
 
 One step of the game's simulation, one for every input byte, taken every fourth VBlank: 12.5 a second on a PAL Amiga, so that in a quiet scene two passes go to a tick.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 3.3.
+
+### Machine code
+
+A program as the processor reads it: its instructions as numbers in memory.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `SPEC.md`, section 3.2.
 
 ### Mission script
 
@@ -128,11 +188,23 @@ The Amiga's chip for sound, four channels that each play 8-bit sound samples at 
 
 Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/sound.md`.
 
+### Period
+
+Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second on a PAL Amiga, each byte of a sound sample is held; a smaller period plays higher.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/sound.md`.
+
 ### Pure routine
 
 A routine that computes from its inputs alone, without touching anything else; every pure routine is held to the original under the oracle.
 
 Introduced in [chapter 1](part-1/faithful.md). The detail: `SPEC.md`, section 7.4.
+
+### Register
+
+A small named store inside a processor or a chip: the 68000's sixteen hold the values it computes with, and a custom chip's, at fixed addresses from `0xDFF000`, tell the chip what to do.
+
+Introduced in [chapter 2](part-1/amiga.md). The detail: `re/notes/drawing.md`, "The blitter library".
 
 ### Remake
 
