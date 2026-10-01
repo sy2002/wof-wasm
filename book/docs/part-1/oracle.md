@@ -101,7 +101,13 @@ The reason lies in the instruction's first word, its [opcode](../glossary.md#opc
 One bit, two meanings. In a shift of a register, bit 3 is the low bit of the type; in a shift of a memory word it belongs to the mode, which says where the word lies. The emulator takes it for the type in both, so an arithmetic shift of a word reached through an address register with an offset, as the game's are, runs as a logical one.
 ///
 
-One failing case says little about the rest, so we went through every shift and rotate with a memory operand in the whole program, 48 in all. Three are arithmetic shifts of that kind, which the emulator gets wrong: the two of the bounce, and one in a compiled routine that builds a copper list, which the port does its own way, so that one matters only to the whole original running under the emulator. The one logical shift of a memory word comes out right, by the same fault. Two left shifts give the right word and a wrong overflow flag, which the next instructions overwrite before anything reads it. The other 42 are rotates in the routine that scrolls the ticker's text, and the emulator executes them right.
+One failing case says little about the rest, so we went through every shift and rotate with a memory operand in the whole program, 48 in all. Three are arithmetic shifts of that kind, which the emulator gets wrong: the two of the bounce, and one in a compiled routine that builds a copper list, where it halves one of the routine's arguments when a flag of its own is set:
+
+```wingslst
+--8<-- "generated/listings/asm/cop_vport_planes_shift.lst"
+```
+
+The port builds its copper lists its own way, so that one matters only to the whole original running under the emulator. The one logical shift of a memory word comes out right, by the same fault. Two left shifts give the right word and a wrong overflow flag, which the next instructions overwrite before anything reads it. The other 42 are rotates in the routine that scrolls the ticker's text, and the emulator executes them right.
 
 The correction is a [**hook**](../glossary.md#hook): a routine of the test's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory. [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py) puts one on each of the three instructions. It works out the word's address from the instruction, shifts the word as a 68000 does, sets the five flags as a 68000 would, and moves the program counter past the instruction, so the emulator never executes it. The flags are not a nicety: the `bne.w` after the second shift reads them. Here is the shift, and then the hook:
 
