@@ -103,11 +103,17 @@
   line-height: 1.65;
 }
 
-.md-header__topic:first-child {
+/* The header: the book's title in the game's font and the title's gold; the page's title,
+   which takes its place on scrolling, in the same font. */
+.md-header__topic {
   font-family: var(--wof-pixel-font);
   font-size: 24px;
   font-weight: normal;
   letter-spacing: 0;
+}
+
+.md-header__topic:first-child {
+  font-weight: normal;
   color: var(--wof-title);
 }
 
@@ -180,12 +186,11 @@
 
 /* ------------------------------------------------------------------ code and listings */
 
-.md-typeset pre {
+/* Material sizes code at .85em of the text; a listing is smaller still, 12.5 pixels at the
+   default size, so that the listing's columns fit beside its C. */
+.md-typeset pre > code {
   font-size: .625rem;
   line-height: 1.5;
-}
-
-.md-typeset pre > code {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
 }
@@ -272,7 +277,7 @@
 }
 
 /* The dev sidebar is the one for the deeper detail: its code may run wide. */
-.md-typeset .admonition.dev pre {
+.md-typeset .admonition.dev pre > code {
   font-size: .6rem;
 }
 
@@ -283,6 +288,7 @@
   width: 100%;
   max-width: 100%;
   margin: 1.6em 0;
+  text-align: left;
 }
 
 .md-typeset figure > p {
@@ -291,6 +297,7 @@
 
 .md-typeset figure img {
   display: block;
+  margin: 0;
   max-width: 100%;
   height: auto;
   background: #000000;                  /* wingspalette 0 */
@@ -346,7 +353,7 @@
     font-size: 24px;
   }
 
-  .md-typeset pre {
+  .md-typeset pre > code {
     font-size: .6rem;
   }
 }
