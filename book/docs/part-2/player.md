@@ -41,7 +41,7 @@ The other values never occur. Beside the record lie the variables of the flight.
 
 Once a tick, while the aircraft is in the air, the routine `player_motion` turns the pitch and the airspeed into a step. It moves the pitch a quarter of the way to its target, so that the nose swings over a few ticks when the stick moves the target; the division rounds towards zero, so the pitch stops a few hundredths short.
 
-The sine and the cosine of the angle come from a table of 91 sines, one for each whole degree from 0 to 90; the cosine is the sine of 90 degrees less the angle. From them the routine splits the airspeed into a speed along the ground and a speed across it, each divided by 100. The horizontal speed is also multiplied by a factor for the attitude, which falls from 1 in straight flight to 0 at the middle of a turn, the stage where the facing changes; the result has 50 added before the division, so that it is rounded to the nearest whole pixel. In level flight at 1,400 the aircraft moves 14 pixels a tick: the airspeed counts hundredths of a pixel a tick.
+The sine and the cosine of the angle come from a table of sines, one for each whole degree from 0 to 90; the cosine is the sine of 90 degrees less the angle. From them the routine splits the airspeed into a speed along the ground and a speed across it, each divided by 100. The horizontal speed is also multiplied by a factor for the attitude, which falls from 1 in straight flight to 0 at the middle of a turn, the stage where the facing changes; the result has 50 added before the division, so that it is rounded to the nearest whole pixel. In level flight, then, the airspeed counts hundredths of a pixel a tick.
 
 ![The aircraft pitched up by an angle; the airspeed along its nose split into a horizontal and a vertical speed; a height axis from the water line to the ceiling at 1,100 with a climb that bounces off it; an airspeed bar from 0 to 1,400 with the region below 1,000 marked.](../figures/flight-model.svg)
 
@@ -104,13 +104,13 @@ The frames of a turn from facing west to facing east, in the order the attitude 
 
 The stick left alone lets a turn finish once it is past its sixth stage; earlier, the aircraft rolls back.
 
-Since straight flight takes its frame from the pitch's target, not from the pitch, the frame shows where the nose is going. The [**landing stall**](../glossary.md#landing-stall) uses that. The stick forward alone, flying west, sets a flag and moves the target to 6 degrees up, so the aircraft is drawn nose up; but while the flag is set the motion eases the pitch towards 8 degrees down instead, and the aircraft drops. A player knows it as the stall the manual teaches for the landing (page 6): the nose raised, the stick forward alone, the aircraft sinking onto the deck. Flying east, the same stick lowers the target instead.
+Since straight flight takes its frame from the pitch's target, not from the pitch, the frame shows where the nose is going. The [**landing stall**](../glossary.md#landing-stall) uses that: a flag the stick forward alone sets while the aircraft flies west. It moves the target to 6 degrees up, so the aircraft is drawn nose up; but while the flag is set the motion eases the pitch towards 8 degrees down instead, and the aircraft drops. A player knows it as the stall the manual teaches for the landing (page 6): the nose raised, the stick forward alone, the aircraft sinking onto the deck. Flying east, the same stick lowers the target instead.
 
 ## On the deck and off it
 
 On the deck another routine reads the stick. Pushed towards the facing it raises the airspeed by its step, as in the air; against the facing it takes 8 off the airspeed a tick and, once the aircraft stands, turns it round on the spot; left alone the airspeed falls by 8 a tick to 0. Each tick the aircraft rolls a hundredth of its airspeed along the deck, rounded.
 
-The deck runs between two ends, the carrier's span sixteen pixels in from both sides, which in map a are world x 6,608 and 7,344. Past either end the aircraft is in the air, state 0, with the airspeed the roll gave it. Below 1,000 that is slow flight: in the landing run below, the aircraft left the deck at 708, sank from a height of 37 to 18 and only then climbed, the stick pushed east and forward, much as the manual tells the player to take off (page 5). Too slow to climb, it comes down in the sea.
+The deck runs between two ends, the carrier's span sixteen pixels in from both sides, which in map a are world x 6,608 and 7,344. Past either end the aircraft is in the air, state 0, with the airspeed the roll gave it. That can be slow flight: in the landing run below, the aircraft left the deck at an airspeed of 708, sank from a height of 37 to 18 and only then climbed, the stick pushed east and forward, much as the manual tells the player to take off (page 5). Too slow to climb, it comes down in the sea.
 
 ## The landing
 
@@ -148,7 +148,7 @@ On the deck the tailhook does the rest. An [**arresting cable**](../glossary.md#
 | At an airspeed of | 600 or more, with the deck's flag clear |
 ///
 
-The deck's flag is the catch. While the aircraft rolls along the deck faster than 600, its routine sets a flag whenever the stick is not held forward; the aircraft is then drawn in its frame of straight flight instead of its deck frame, and the hook does not catch. So the stick must stay forward after the touch-down: that is what the [autopilot](../glossary.md#autopilot) of chapter 8 found, and here is why. In the listing, look at `tst.w g_025a9c` and the loop of four: the hook's x, the cable's x minus and plus 8 compared with it, then `addi.w #$38` to the next cable. A catch writes 7 into the record's state and keeps the cable's x for the drawing.
+The deck's flag is the catch. While the aircraft rolls along the deck faster than 600, its routine sets a flag whenever the stick is not held forward; the aircraft is then drawn in its frame of straight flight instead of its deck frame, and the hook does not catch. So the stick must stay forward after the touch-down: that is what the [autopilot](../glossary.md#autopilot) of chapter 8 found, and here is why. In the listing, look at `cmpi.w #$258`, the airspeed of 600, then `tst.w g_025a9c` and the loop of four: the hook's x, the cable's x minus and plus 8 compared with it, then `addi.w #$38` to the next cable. A catch writes 7 into the record's state and keeps the cable's x for the drawing.
 
 //// html | div.listing-pair
 
