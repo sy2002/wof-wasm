@@ -52,6 +52,21 @@ python -m pytest tests/ --slow -m page
 
 The first phase, the emulator tests over the cores, takes about an hour, and the second, the page tests in the two browsers, about twenty minutes; `-n 8` is the number of physical cores, use your machine's (more workers than cores only slow it down). Without the ROM every test but a handful skips, with the same message as its reason. `re/notes/testing.md` has the details.
 
+## The book
+
+*Bringing Back Wings of Fury* is a book about this port: how a 1990 Amiga game was ported routine by routine and how one knows the port is faithful, then what is inside the game, then the code and the tools. It lives in `book/` as a MkDocs site, with a handbook of its own, `book/BOOK.md`. To read it on your machine:
+
+```
+sh tools/setup.sh --book
+cd book && ../.venv/bin/mkdocs serve
+```
+
+and open `http://127.0.0.1:8000/wof-wasm/`. With `--book` the setup does everything it does for the game, installs the book's packages from `book/requirements.txt` into the same `.venv`, and builds the site once with `mkdocs build --strict`. It does that before it looks for the ROM, so a clone without the ROM still gets the book; without `--book` it installs none of the book's packages.
+
+Reading and building the site need only Python and those packages, no ROM: the listings, the figures and the web font of the headings are generated beforehand from the real sources and committed. Regenerating them, `.venv/bin/python book/tools/build.py`, needs the ROM and the built repository (`python tools/build.py --native`, on macOS), as the tests do, and `book/tools/build.py --check` makes them all again in a temporary directory and holds the committed files to that regeneration, byte for byte. `book/site/` is the built site and is never committed.
+
+The book's packages are pinned whole in `book/requirements.txt`, the ones they pull in as well, so that every clone builds the site with the same set and the engine stays at MkDocs 1.6.1: a future MkDocs 2.0 is never pulled in by accident.
+
 ## Where things are
 
 - `SPEC.md`: the specification, the porting rules and the milestones.

@@ -1,16 +1,28 @@
 #!/bin/sh
 # Sets a clone of the repository up for building and testing (README.md):
 #
-#     sh tools/setup.sh
+#     sh tools/setup.sh          the game
+#     sh tools/setup.sh --book   the game and the book
 #
 # makes .venv with the machine's python3 (or $PYTHON) and installs requirements.txt into it,
 # says whether Node and the two browsers the page tests drive are there, checks the Kickstart
 # ROM (tools/rom.py) and builds dist/wof.html and dist/core.wasm, on macOS also
 # tests/libwofcore.dylib, which the tests load and which needs Apple clang.
+# With --book it also installs the book's packages (book/requirements.txt) into the same .venv
+# and builds the book's site into book/site/ with mkdocs build --strict, before the ROM check,
+# because the site is built from committed files and needs no ROM: a clone without the ROM
+# still gets the book. Without --book none of the book's packages is installed.
 # Running it again is harmless: an existing .venv is kept and brought to the pinned versions.
 
 cd "$(dirname "$0")/.." || exit 1
 PYTHON=${PYTHON:-python3}
+BOOK=""
+for arg in "$@"; do
+    case "$arg" in
+        --book) BOOK="yes" ;;
+        *) echo "usage: sh tools/setup.sh [--book]"; exit 2 ;;
+    esac
+done
 
 echo "== Python environment (.venv, requirements.txt)"
 if [ ! -x .venv/bin/python ]; then
@@ -19,6 +31,15 @@ fi
 .venv/bin/python -m pip install --quiet --disable-pip-version-check -r requirements.txt \
     || { echo "could not install requirements.txt into .venv"; exit 1; }
 .venv/bin/python --version
+
+if [ -n "$BOOK" ]; then
+    echo "== The book (book/requirements.txt, book/site/)"
+    .venv/bin/python -m pip install --quiet --disable-pip-version-check -r book/requirements.txt \
+        || { echo "could not install book/requirements.txt into .venv"; exit 1; }
+    (cd book && NO_MKDOCS_2_WARNING=1 ../.venv/bin/mkdocs build --strict --quiet) \
+        || { echo "the book's site did not build (cd book && ../.venv/bin/mkdocs build --strict)"; exit 1; }
+    echo "book/site/ built with mkdocs build --strict"
+fi
 
 echo "== Node and the browsers (the WebAssembly tests and the page tests)"
 missing=""
@@ -40,6 +61,10 @@ if [ -x "$FIREFOX" ]; then echo "Firefox: $FIREFOX"; else
 echo "== The Kickstart ROM (original/kick.rom)"
 .venv/bin/python tools/rom.py || {
     echo "The build and nearly every test need it. Place it and run tools/setup.sh again."
+    if [ -n "$BOOK" ]; then
+        echo "The book is built and needs no ROM: cd book && ../.venv/bin/mkdocs serve,"
+        echo "then http://127.0.0.1:8000/wof-wasm/"
+    fi
     exit 1
 }
 
@@ -52,6 +77,9 @@ else
 fi
 
 echo "== Done. Play: open dist/wof.html. Verify: README.md, section Build and verify."
+if [ -n "$BOOK" ]; then
+    echo "   The book: cd book && ../.venv/bin/mkdocs serve, then http://127.0.0.1:8000/wof-wasm/"
+fi
 if [ -n "$missing" ]; then
     echo "   (Some tests will skip: see 'missing' above.)"
 fi
