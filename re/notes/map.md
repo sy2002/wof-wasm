@@ -18,7 +18,7 @@ rank and the mission number, reads two longs, allocates and reads the record lis
 
 ```text
 +0  u32  the file's own length, which is also the length of the record list in bytes
-+4  u32  the byte offset of the carrier's first record
++4  u32  the byte offset of a record on the carrier's deck, 54 records past the carrier's first in every map: where the player starts
 +8  u16 records to the end of the file
 ```
 
@@ -63,7 +63,7 @@ All 15 maps parse with nothing left over (observed):
 
 The kinds that occur per map are what `tools/map_decode.py` prints; every map has the carrier
 (slots `0x1F` to `0x27`), the islands with their targets (slots 1 to 9, `0x0B`, `0x0F`) and
-one slot `0x113`, and the later maps add enemy ships (`0xCC`, `0xE4`–`0xE7`, `0xF1`–`0xF6`,
+a slot `0x113` record per island (none on map j, two for map l's three islands), and the later maps add enemy ships (`0xCC`, `0xE4`–`0xE7`, `0xF1`–`0xF6`,
 `0x10C`–`0x110`) and the airfield markers `0x114` and `0x115`.
 
 ## The record
@@ -75,7 +75,7 @@ whole map is that strip; there is nothing else in the file.
 |---|---|
 | 15 | **draw**: only such a record puts its shape on the screen |
 | 14 | never set in any of the 34,473 records of the 15 maps (observed) |
-| 13–11 | the height in steps of four screen rows above the horizon, 0 to 7 |
+| 13–11 | the height in steps of four screen rows down from the split row (`draw_world` draws at split row + 4 x height), 0 to 7 |
 | 10–2 | the slot in `MasterList` or `AthList` (`re/notes/shapes.md`) |
 | 1–0 | 0 nothing, 2 stands on the world, 1 rides on a ship |
 
@@ -191,12 +191,12 @@ The read hook over the map allocation, by phase, over a take-off and 568 ticks o
 | Phase | Routine | Reads |
 |---|---|---|
 | `M` | `map_scan`, `0x012C84` | 2,865: the two walks of the mission setup |
-| `T` | `ground_height` | 547: **the only reader inside a tick** |
+| `T` | `ground_height` | 547: **the only reader inside a tick in this run**; in runs with weapons `map_slot_at` (`0x0150C8`, for `weapon_hit`, `gun_splashes`, `splash_spawn`, `object_step`) and `on_water` (`0x01CB74`, for the crash) read a record's slot and low bits in the tick too, and `weapon_hit` rewrites the list |
 | `F` | `draw_world` | 71,635: the strip on the screen |
 | `F` | `0x014206`, `0x014430` | 48,639: the map window of the dashboard |
 | `F` | `0x0103A6`, `0x01CB34` | 76 |
 
-So the tick takes exactly one thing from the map — the ground under an object — and everything
+So in this flight the tick takes one thing from the map — the ground under an object — and everything
 else the map feeds is drawing.
 
 ## The decoder and its controls

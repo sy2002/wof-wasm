@@ -130,7 +130,7 @@ with the original's, nothing left out (`test_the_setup_agrees_at_step_s`).
 
 ### The map loader
 
-- `map_scan`'s first walk reads **one record past the end of the list** (the loop ends on
+- `map_scan`'s second walk reads **one record past the end of the list** (the loop ends on
   `dbmi`); the record list's pool is one record longer than the longest map for that.
 - Each enemy ship's block of deck planes (`ship_block`, `0x01252C`) comes from two bytes of a
   count table by map number and a list of words. The four lists lie back to back from
