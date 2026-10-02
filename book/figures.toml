@@ -448,3 +448,13 @@ shows = "The ten hull pieces too large for a mask, from world.shp and the four s
 how = "tools/ppkc.py's parse() and packed_sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, colour 0 left as the sheet's ground, the tallest first, twice enlarged, the names in Pillow's bitmap font."
 command = ".venv/bin/python book/tools/figures.py opaque-hulls"
 
+[[figure]]
+name = "shapes-japcarrier"
+file = "shapes-japcarrier.png"
+maker = "shapes"
+container = "japcarrier.shp"
+layout = "packed"
+palette = "wingspalette"
+shows = "Every shape of japcarrier.shp with its name, packed: the Japanese carrier's pieces and its flags, jcrm in the colour numbers its planes store, red and blue, not the greys its set byte gives it on the screen."
+how = "tools/ppkc.py's parse() and packed_sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, colour 0 left as the sheet's ground, the tallest first, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py shapes-japcarrier"

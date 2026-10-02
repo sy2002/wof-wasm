@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 390" width="820" height="390" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 390" width="860" height="390" role="img" aria-labelledby="title desc">
   <title id="title">One row of a clipped blit</title>
-  <desc id="desc">One row of the screen from pixel 32 to pixel 79, three words of sixteen pixels: 32 to 47, 48 to 63 and 64 to 79. A shape 32 pixels wide is drawn at x 37, so its box covers pixels 37 to 68; the clip rectangle begins at pixel 48, a multiple of 16. The blit spans three words, the shape's two and one more, because 37 is not a multiple of 16. The mask channel A, as the blitter feeds it, is 0 at pixels 32 to 36, where the shift of 5 brings in zeros; 0 at 37 to 47, where the first word mask, 0x001F, has blanked the shape's columns left of the clip; the mask itself at 48 to 68, here set across the whole box; and 0 at 69 to 79, where the last word mask, 0x0000, has blanked the extra word. With the minterm 0xCA a 0 in A leaves the screen's bit as it was, so the pixels written are 48 to 68: the shape's box inside the clip, and nothing else.</desc>
+  <desc id="desc">One row of the screen from pixel 32 to pixel 79, three words of sixteen pixels: 32 to 47, 48 to 63 and 64 to 79. A shape 32 pixels wide is drawn at x 37, so its box covers pixels 37 to 68; the clip rectangle begins at pixel 48, a multiple of 16. The blit spans three words, the shape's two and one more, because 37 is not a multiple of 16. The mask channel A, as the blitter feeds it, is 0 at pixels 32 to 36, where the shift of 5 brings in zeros; 0 at 37 to 47, where the first word mask, 0x001F, has blanked the shape's columns left of the clip; the mask itself at 48 to 68, here set across the whole box; and 0 at 69 to 79, where the last word mask, 0x0000, has blanked the extra word. With the logic function 0xCA a 0 in A leaves the screen's bit as it was, so the pixels written are 48 to 68: the shape's box inside the clip, and nothing else.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .box    { fill: #CCCCDD; /* wingspalette 30 */ }
@@ -164,6 +164,6 @@
   <!-- The clip's edge through the rows -->
   <line class="edge" x1="388" y1="92" x2="388" y2="300"/>
   <!-- The rule -->
-  <text class="light" x="10" y="350">With the minterm <tspan class="mono">0xCA</tspan>, D = A and B, or not A and C: where A is 0, the screen keeps its own bit.</text>
+  <text class="light" x="10" y="350">With the logic function <tspan class="mono">0xCA</tspan>, D = A and B, or not A and C: where A is 0, the screen keeps its own bit.</text>
   <text class="light" x="10" y="372">So the pixels written are the shape's box inside the clip, and no other, wherever the shape lies.</text>
 </svg>

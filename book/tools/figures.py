@@ -984,7 +984,7 @@ def make_record(figure, path):
     header_h = len(fields) * line
     blocks_y = top + header_h + 10
     columns = figure.get('columns', 2)
-    blocks = [('+%d, stored plane %d, mask %02X: %s' % (20 + i * wb * height, i + 1, mask,
+    blocks = [('+%d, stored plane %d, plane mask 0x%02X: %s' % (20 + i * wb * height, i + 1, mask,
                                                        planes_named(mask)), data, bits)
               for i, (mask, data, bits) in enumerate(planes)]
     blocks.append(('its colours through %s' % figure['palette'], None, None))
