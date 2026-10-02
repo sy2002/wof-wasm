@@ -1,0 +1,52 @@
+; re/Wings.lst 0x019C80-0x019D16: cop_vport_split [C]
+cop_vport_split:
+019c80  4e55fffe             link.w     a5, #$fffe
+019c84  206d000c             movea.l    $c(a5), a0
+019c88  3f280092             move.w     $92(a0), -(a7)
+019c8c  206d000c             movea.l    $c(a5), a0
+019c90  3f280090             move.w     $90(a0), -(a7)
+019c94  2f2d0008             move.l     $8(a5), -(a7)
+019c98  4ebafe02             jsr        $19a9c(pc)                             ; cop_wait
+019c9c  504f                 addq.w     #$8, a7
+019c9e  426dfffe             clr.w      -$2(a5)
+019ca2  605a                 bra.b      $19cfe
+loc_019ca4:
+019ca4  302dfffe             move.w     -$2(a5), d0
+019ca8  48c0                 ext.l      d0
+019caa  e380                 asl.l      #$1, d0
+019cac  206d000c             movea.l    $c(a5), a0
+019cb0  2268009c             movea.l    $9c(a0), a1
+019cb4  322dfffe             move.w     -$2(a5), d1
+019cb8  48c1                 ext.l      d1
+019cba  e381                 asl.l      #$1, d1
+019cbc  206d000c             movea.l    $c(a5), a0
+019cc0  2c680098             movea.l    $98(a0), a6
+019cc4  34310800             move.w     (a1, d0.l), d2
+019cc8  b4761800             cmp.w      (a6, d1.l), d2
+019ccc  672c                 beq.b      $19cfa
+019cce  302dfffe             move.w     -$2(a5), d0
+019cd2  48c0                 ext.l      d0
+019cd4  e380                 asl.l      #$1, d0
+019cd6  206d000c             movea.l    $c(a5), a0
+019cda  2268009c             movea.l    $9c(a0), a1
+019cde  3f310800             move.w     (a1, d0.l), -(a7)
+019ce2  302dfffe             move.w     -$2(a5), d0
+019ce6  d06dfffe             add.w      -$2(a5), d0
+019cea  d07c0180             add.w      #$180, d0
+019cee  3f00                 move.w     d0, -(a7)
+019cf0  2f2d0008             move.l     $8(a5), -(a7)
+019cf4  4ebafcc6             jsr        $199bc(pc)                             ; cop_move
+019cf8  504f                 addq.w     #$8, a7
+loc_019cfa:
+019cfa  526dfffe             addq.w     #$1, -$2(a5)
+loc_019cfe:
+019cfe  206d000c             movea.l    $c(a5), a0
+019d02  7000                 moveq      #$0, d0
+019d04  10280009             move.b     $9(a0), d0
+019d08  7201                 moveq      #$1, d1
+019d0a  e161                 asl.w      d0, d1
+019d0c  302dfffe             move.w     -$2(a5), d0
+019d10  b041                 cmp.w      d1, d0
+019d12  6590                 bcs.b      $19ca4
+019d14  4e5d                 unlk       a5
+019d16  4e75                 rts

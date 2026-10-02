@@ -28,6 +28,14 @@ made and the command that remakes it, and writes PNG files:
                tools/rpck.py's unpacking, each control byte spelled out
     codemap    the executable's code along its addresses from re/functions.csv, once by the
                routines' kind and once by their status
+    pairs      colour tables side by side, each read from its file by the port's own readers
+               through the native library, the entries that differ from another table marked
+    fade       the sixteen steps of fades through the port's colour_lerp, each step's colour
+               and its twelve bits, framed where the carry between components shows
+
+A run of the core may poke the registered state at the rank selection's end, as the
+comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
+library's test hook; the pokes are cleared when the run ends.
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -121,19 +129,30 @@ def run_core(name, spec, wanted):
     ported.reset_core()
     lib = ported.lib
     lib.wof_set_video_hz(50)
+    lib.wt_poke_address.argtypes = [ctypes.c_uint] * 4
+    lib.wt_pokes_clear()
+    for address, size, value in spec.get('pokes', []):
+        lib.wt_poke_address(address, size, value, 0)    # point 0: the rank selection's end
     out, last = {}, max(wanted)
-    for vblank in range(1, last + 1):
-        lib.wof_vblank(raw_input(spec, vblank, lib))
-        lib.wof_pass()
-        if 'mission_at' in spec and lib.wt_mission_count() and 'begun' not in out:
-            out['begun'] = vblank
-            if vblank != spec['mission_at']:
-                raise Failure('run %s: the mission began at VBlank %d, the manifest says %d'
-                              % (name, vblank, spec['mission_at']))
-        if vblank in wanted:
-            image = picture(ported)
-            width, height = image.size
-            out[vblank] = (image,) + capture(lib, width, height)
+    try:
+        for vblank in range(1, last + 1):
+            lib.wof_vblank(raw_input(spec, vblank, lib))
+            lib.wof_pass()
+            if 'mission_at' in spec and lib.wt_mission_count() and 'begun' not in out:
+                out['begun'] = vblank
+                if vblank != spec['mission_at']:
+                    raise Failure('run %s: the mission began at VBlank %d, the manifest says %d'
+                                  % (name, vblank, spec['mission_at']))
+            if vblank in wanted:
+                image = picture(ported)
+                width, height = image.size
+                out[vblank] = (image,) + capture(lib, width, height)
+    finally:
+        lib.wt_pokes_clear()
+    if 'dash_night' in spec and lib.wt_dash_night() != spec['dash_night']:
+        raise Failure('run %s: the dashboard of the %s was loaded, the manifest says the %s'
+                      % (name, *(('night', 'day')[1 - v] for v in (lib.wt_dash_night(),
+                                                                    spec['dash_night']))))
     if 'mission_at' in spec and 'begun' not in out:
         raise Failure('run %s: no mission began within %d VBlanks' % (name, last))
     return out
@@ -739,6 +758,128 @@ def make_codemap(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def rgb4(word):
+    """A colour word as the hardware shows it: bits 12 to 15 ignored, each 4-bit component
+    widened as src/video.c's wof_colour_rgba widens it."""
+    return tuple(((word >> shift) & 0xF) * 17 for shift in (8, 4, 0))
+
+
+def colour_table(entry):
+    """One colour table read from its file under shapes/ as the game reads it, by the port's
+    own readers through the native library: a picture (`picture`: the viewport's width, rows
+    and depth) through iff_to_vport, which takes its CMAP, as many colours as the depth gives;
+    a bare palette file through cmap_file_to_table, 32 colours."""
+    ported = core()
+    path = 'shapes/%s' % entry['file']
+    if 'picture' in entry:
+        width, rows, depth = entry['picture']
+        _, colours = ported.iff_decode(path, width, rows, depth)
+        return colours[:1 << depth]
+    return ported.cmap_file_to_table(path)
+
+
+def make_pairs(figure, path):
+    """Colour tables in rows, grouped by a time of day, each row its area, its file and its
+    colours; a row with `against` marks every entry that differs from that area's table of
+    the same group, and counts them."""
+    from PIL import Image, ImageDraw
+    core().reset_core()
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    swatch, gap, label_w, row_h, top, group_gap, margin = 9, 2, 250, 16, 18, 8, 6
+    tables = figure['tables']
+    groups = []
+    for entry in tables:
+        if not groups or groups[-1][0] != entry['time']:
+            groups.append((entry['time'], []))
+        groups[-1][1].append(entry)
+    width = margin + label_w + 32 * (swatch + gap) + figure['note_width']
+    height = top + sum(len(g[1]) * row_h for g in groups) + (len(groups) - 1) * group_gap + margin
+    image = Image.new('RGB', (width, height), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, 2), 'time      area       file')
+    for c in range(0, 32, 4):
+        text(draw, (margin + label_w + c * (swatch + gap), 2), str(c))
+    y0 = top
+    for time, entries in groups:
+        read = {entry['area']: colour_table(entry) for entry in entries}
+        for i, entry in enumerate(entries):
+            colours = read[entry['area']]
+            text(draw, (margin, y0), '%-9s %-10s %s' % (time if i == 0 else '', entry['area'],
+                                                          entry['file']))
+            differ = set()
+            if 'against' in entry:
+                other = read[entry['against']]
+                differ = {c for c in range(len(colours)) if colours[c] != other[c]}
+            for c, word in enumerate(colours):
+                x = margin + label_w + c * (swatch + gap)
+                draw.rectangle((x, y0, x + swatch - 1, y0 + swatch - 1), fill=rgb4(word))
+                if c in differ:
+                    draw.rectangle((x, y0 + swatch + 2, x + swatch - 1, y0 + swatch + 3), fill=mark)
+            note = '%d colours' % len(colours)
+            if 'against' in entry:
+                note = '%d differ from the %s\'s' % (len(differ), entry['against'])
+            text(draw, (margin + label_w + 32 * (swatch + gap) + 4, y0), note)
+            y0 += row_h
+        y0 += group_gap
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def table_colour(value):
+    """A colour of the fade figure's manifest: a word, or [file, entry] of a bare palette."""
+    if isinstance(value, int):
+        return value
+    return core().cmap_file_to_table('shapes/%s' % value[0])[value[1]]
+
+
+def make_fade(figure, path):
+    """The sixteen steps of fades through the port's colour_lerp (orig 0x016FF6), one row
+    each: every step's colour as the hardware shows it and its twelve bits in hexadecimal;
+    framed where the step differs from the colour each component would give computed alone,
+    the start plus the truncated share of its own difference, which is where the carry from
+    a falling component into the next shows (re/notes/display.md, "Fades")."""
+    from PIL import Image, ImageDraw
+    ported = core()
+    ported.reset_core()
+    frame = palette(figure['frame'][0])[figure['frame'][1]]
+
+    def alone(step, start, end):
+        if step == 15:
+            return end
+        out = 0
+        for shift in (0, 4, 8):
+            a, b = start >> shift & 0xF, end >> shift & 0xF
+            out |= a + int((b - a) * step / 15) << shift
+        return out
+
+    swatch_w, swatch_h, gap, label_w, row_h, top, margin = 22, 14, 3, 230, 30, 16, 6
+    rows = figure['rows']
+    image = Image.new('RGB', (margin + label_w + 16 * (swatch_w + gap) + margin,
+                              top + len(rows) * row_h + margin), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, 2), 'from   to     step')
+    for step in range(16):
+        text(draw, (margin + label_w + step * (swatch_w + gap) + 4, 2), str(step))
+    framed = 0
+    for r, row in enumerate(rows):
+        start, end = table_colour(row['from']), table_colour(row['to'])
+        y0 = top + r * row_h
+        text(draw, (margin, y0), '%03X -> %03X' % (start, end))
+        text(draw, (margin, y0 + 12), row['note'])
+        for step in range(16):
+            word = ported.colour_lerp(step, start, end) & 0xFFF
+            x = margin + label_w + step * (swatch_w + gap)
+            draw.rectangle((x, y0, x + swatch_w - 1, y0 + swatch_h - 1), fill=rgb4(word))
+            if word != alone(step, start, end):
+                draw.rectangle((x - 1, y0 - 1, x + swatch_w, y0 + swatch_h), outline=frame)
+                framed += 1
+            draw.text((x + 2, y0 + swatch_h + 1), '%03X' % word, fill=LABEL, font=ppkc().FONT)
+    if not framed:
+        raise Failure('%s: no step shows the carry' % figure['name'])
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -796,6 +937,10 @@ def generate(out, names=None, log=print):
             make_packed(figure, path)
         elif maker == 'codemap':
             make_codemap(figure, path)
+        elif maker == 'pairs':
+            make_pairs(figure, path)
+        elif maker == 'fade':
+            make_fade(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

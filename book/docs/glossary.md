@@ -60,6 +60,12 @@ A program that flies the headless original by a policy, looking at the game's st
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/m4_autopilot.py`](repo:tools/m4%5Fautopilot.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-scripts-of-part-2), "The scripts of part 2".
 
+### Band
+
+In the port, a run of output rows that share a source row and a set of colours: what the copper builder does that can be seen, handed from the views to the picture, two bands with the same colours sharing a palette.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`src/video.c`](repo:src/video.c), [`src/screen.c`](repo:src/screen.c); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#views-viewports-and-what-reaches-the-output), "Views, viewports and what reaches the output".
+
 ### Beam
 
 The point where the display is drawing the picture, sweeping each line from left to right and the lines from top to bottom; its position, which a register of the custom chips reports, is the game's only source of chance.
@@ -114,6 +120,14 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [.bss](https://en.wikipedia.org/wiki/.bss), Wikipedia.
 
+### ByteRun1
+
+The packing of a picture's rows in IFF ILBM: a control byte says either copy the next bytes as they are or repeat the next byte; the game's reader assumes it, and every picture on the disk uses it.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`src/iff.c`](repo:src/iff.c); [`re/notes/display.md`](repo:re/notes/display.md#how-pictures-reach-a-viewport), "How pictures reach a viewport".
+
+Elsewhere: [PackBits](https://en.wikipedia.org/wiki/PackBits), Wikipedia; [ILBM](https://en.wikipedia.org/wiki/ILBM), Wikipedia.
+
 ### Calling convention
 
 The rules by which a caller hands a routine its arguments and gets the result back: in the game's compiled C the arguments go onto the stack, 2 bytes for an int and 4 for a long or a pointer, and the result comes back in D0.
@@ -165,6 +179,12 @@ The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL ma
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Colour table
+
+A viewport's 32 colours, 12 bits each, which the copper builder turns into writes to the colour registers; the playfield has two, the sky's and the sea's.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#records), "Records".
 
 ### Commit (version control)
 
@@ -226,6 +246,14 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amig
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Copper list
+
+The list of waits and register writes the copper follows through a frame; the game builds one for each of its two views, and a spare, in buffers of its own.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-copper-builder), "The copper builder".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Core
 
 The port's game: the ported logic, written in C and compiled to WebAssembly, which knows nothing of the browser around it.
@@ -254,6 +282,12 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](r
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Dashboard
+
+The play screen's middle area, 640 by 37 in high resolution with four bitplanes: the instruments and the 3-D view, drawn by day and by night from pictures and shapes of their own.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-pass), "The pass"; [`src/dash.c`](repo:src/dash.c).
+
 ### Differential test
 
 A test that hands two implementations of the same thing the same input and demands the same output; the oracle's tests run the original's routine and its port so.
@@ -270,6 +304,12 @@ First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`]
 
 Elsewhere: [Disassembler](https://en.wikipedia.org/wiki/Disassembler), Wikipedia.
 
+### Display line
+
+A line of the picture counted from its top, as the game's records count them; display line 0 is beam line 44.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
+
 ### Double buffering
 
 Drawing into a hidden picture and showing it only when it is whole; the game keeps two screens, each with its own copper list, and swaps them with one register write.
@@ -283,6 +323,12 @@ Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbufferi
 The file a run of the headless original writes: the game's whole state when a mission is set up and after every logic tick and every pass, each record with a SHA-256 fingerprint of the state, for the comparisons with the port.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/headless_dump.py`](repo:tools/headless%5Fdump.py); [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump".
+
+### Eighth-scale view
+
+The view the game switches to while the aircraft is high: eight pixels of the world to one of the screen, the shapes taken from a container of their own.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates"; [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
 
 ### Emulator
 
@@ -299,6 +345,12 @@ The reproducible stream of values that stands in for the beam's position, one va
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/random.md`](repo:re/notes/random.md#consequences), "Consequences"; [`re/notes/headless.md`](repo:re/notes/headless.md#entropy), "Entropy".
 
 Elsewhere: [Linear congruential generator](https://en.wikipedia.org/wiki/Linear%5Fcongruential%5Fgenerator), Wikipedia.
+
+### Fade
+
+Sixteen steps that carry a colour table to another, most often from black or to black, the copper list built again at each; the arithmetic of a step carries from one colour component into the next.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#fades), "Fades"; [`src/fade.c`](repo:src/fade.c).
 
 ### Faithful port
 
@@ -376,6 +428,14 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`book/BOOK.m
 
 Elsewhere: [Hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal), Wikipedia.
 
+### High resolution
+
+The Amiga's mode of 640 pixels across a line, each half as wide as a low-resolution pixel; the dashboard and the ticker use it.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#screens), "Screens".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Hook
 
 A routine of the instrument's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
@@ -407,6 +467,14 @@ The Amiga's standard format for pictures: a file of chunks, each a name of four 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5, "Pictures".
 
 Elsewhere: [ILBM](https://en.wikipedia.org/wiki/ILBM), Wikipedia; [Interchange File Format](https://en.wikipedia.org/wiki/Interchange%5FFile%5FFormat), Wikipedia.
+
+### Indexed framebuffer
+
+A picture that holds one colour number per pixel, a byte, the palette applied only when it is shown: the port's form of every viewport and of its picture of 640 by 214.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`SPEC.md`](repo:SPEC.md#64-video-model), section 6.4; [`src/video.c`](repo:src/video.c).
+
+Elsewhere: [Indexed color](https://en.wikipedia.org/wiki/Indexed%5Fcolor), Wikipedia.
 
 ### Input byte
 
@@ -526,6 +594,14 @@ First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k
 
 Elsewhere: [Logical shift](https://en.wikipedia.org/wiki/Logical%5Fshift), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Low resolution
+
+The Amiga's mode of 320 pixels across a line, each twice as wide as a high-resolution pixel; the playfield and the front end's pictures use it.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#screens), "Screens".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Machine code
 
 A program as the processor reads it: its instructions as numbers in memory.
@@ -641,6 +717,12 @@ Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FS
 Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second on a PAL Amiga, each byte of a sound sample is held; a smaller period plays higher.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
+
+### Playfield
+
+The play screen's upper area, where the game is played: 320 by 162 in low resolution with five bitplanes, under the sky's palette above the split line and the sea's below.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
 
 ### Poke
 
@@ -828,6 +910,12 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.p
 
 Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikipedia.
 
+### Ticker
+
+The message line at the bottom of the play screen: one bitplane, 640 of its 672 pixels shown, scrolled a pixel every VBlank by the VBlank server.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
+
 ### Topaz 8
 
 The Amiga's standard font, eight pixels high, in the Kickstart ROM; the game's dialogs for names and files show it, and the port reads it from the ROM when it is built.
@@ -871,6 +959,22 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 4](part-1/read
 The game's command that swaps the stick's forward and back, for players who want a pilot's stick; in the port a remembered preference.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-vertical-flip-and-how-long-it-lasts), "The vertical flip, and how long it lasts".
+
+### View
+
+The game's record of one whole screen, 14 bytes: its copper list, its first viewport, its bitplanes; the game keeps two and shows one while it draws into the other.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#records), "Records".
+
+Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries and Devices*](https://archive.org/details/amiga-rom-kernel-reference-manual-libraries-and-devices), Internet Archive, for the operating system's own View, which the game does without.
+
+### Viewport
+
+One area of a view, a band of the screen with its own size, mode, bitplanes and colour tables; each names the next one down, and the play screen has three.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#records), "Records".
+
+Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries and Devices*](https://archive.org/details/amiga-rom-kernel-reference-manual-libraries-and-devices), Internet Archive, for the operating system's own ViewPort.
 
 ### Wait point
 

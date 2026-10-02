@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" width="760" height="480" role="img" aria-labelledby="title desc">
+  <title id="title">What the game keeps about a screen</title>
+  <desc id="desc">The two views of the play screen, A on the left and B on the right, each a record of 14 bytes with four fields: its offset into the dashboard's cache, its copper list, its first viewport and its bitplanes. Each view's copper list is a buffer of 1,000 bytes; a third buffer, the spare, lies between them, and a fade swaps it with the list on view. COP1LC, the copper's register, points at the list on view, here view A's. Each view's bitplanes are its half of one block of chip memory. From each record's first viewport a chain runs down: the playfield's viewport, 320 by 162 with five bitplanes and two colour tables, the sky's and the sea's; the dashboard's viewport, 640 by 37 with four bitplanes and one colour table; and the ticker's viewport, 640 by 13 with one bitplane and one colour table, which ends both chains and is shared by both views.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .rec    { fill: #FFDD77; /* wingstitle 28 */ }
+    .list   { fill: #77AACC; /* wingspalette 22 */ }
+    .planes { fill: #CCCCDD; /* wingspalette 30 */ }
+    .sky    { fill: #00AAFF; /* wingspalette 1 */ }
+    .sea    { fill: #0066AA; /* ocean.palette 10 */ }
+    .dash   { fill: #888899; /* wingspalette 28 */ }
+    .ticker { fill: #777777; /* wingstitle 13 */ }
+    .chip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .tip    { fill: #FFBB00; /* wingstitle 25 */ }
+    .wire   { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; fill: none; }
+    .cell   { stroke: #111122; /* wingspalette 6 */ stroke-width: 1; fill: none; }
+    .frame  { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 14px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <text class="light label" x="10" y="22">What the game keeps about a screen</text>
+
+  <!-- COP1LC points at the list on view, here view A's -->
+  <text class="light mono" x="380" y="52" text-anchor="middle">COP1LC</text>
+  <polyline class="wire" points="348,47 260,47 260,98"/>
+  <path class="tip" d="M255 98 L265 98 L260 106 Z"/>
+  <text class="muted small" x="380" y="70" text-anchor="middle">the list on view</text>
+
+  <!-- View A: the record, its four fields in the record's order -->
+  <rect class="rec" x="20" y="70" width="150" height="120" rx="3"/>
+  <text class="ink label" x="30" y="88">view A, 14 bytes</text>
+  <rect class="cell" x="20" y="94" width="150" height="24"/>
+  <rect class="cell" x="20" y="118" width="150" height="24"/>
+  <rect class="cell" x="20" y="142" width="150" height="24"/>
+  <rect class="cell" x="20" y="166" width="150" height="24"/>
+  <text class="ink small" x="30" y="110">its dashboard cache</text>
+  <text class="ink small" x="30" y="134">its copper list</text>
+  <text class="ink small" x="30" y="158">its first viewport</text>
+  <text class="ink small" x="30" y="182">its bitplanes</text>
+
+  <!-- View B, mirrored -->
+  <rect class="rec" x="590" y="70" width="150" height="120" rx="3"/>
+  <text class="ink label" x="600" y="88">view B, 14 bytes</text>
+  <rect class="cell" x="590" y="94" width="150" height="24"/>
+  <rect class="cell" x="590" y="118" width="150" height="24"/>
+  <rect class="cell" x="590" y="142" width="150" height="24"/>
+  <rect class="cell" x="590" y="166" width="150" height="24"/>
+  <text class="ink small" x="600" y="110">its dashboard cache</text>
+  <text class="ink small" x="600" y="134">its copper list</text>
+  <text class="ink small" x="600" y="158">its first viewport</text>
+  <text class="ink small" x="600" y="182">its bitplanes</text>
+
+  <!-- The copper lists: A's, the spare, B's -->
+  <rect class="list" x="190" y="106" width="140" height="48" rx="3"/>
+  <text class="ink label" x="260" y="126" text-anchor="middle">copper list A</text>
+  <text class="ink small" x="260" y="144" text-anchor="middle">1,000 bytes</text>
+  <rect class="list" x="430" y="106" width="140" height="48" rx="3"/>
+  <text class="ink label" x="500" y="126" text-anchor="middle">copper list B</text>
+  <text class="ink small" x="500" y="144" text-anchor="middle">1,000 bytes</text>
+  <rect class="frame" x="342" y="106" width="76" height="48" rx="3"/>
+  <text class="light small" x="380" y="126" text-anchor="middle">the spare</text>
+  <text class="light small" x="380" y="142" text-anchor="middle">list</text>
+  <text class="muted small" x="380" y="176" text-anchor="middle">a fade swaps it</text>
+  <text class="muted small" x="380" y="191" text-anchor="middle">with the list</text>
+  <text class="muted small" x="380" y="206" text-anchor="middle">on view</text>
+
+  <!-- The bitplanes: each view's half of one block -->
+  <rect class="planes" x="190" y="162" width="140" height="36" rx="3"/>
+  <text class="ink small" x="260" y="177" text-anchor="middle">its half of one</text>
+  <text class="ink small" x="260" y="192" text-anchor="middle">bitplane block</text>
+  <rect class="planes" x="430" y="162" width="140" height="36" rx="3"/>
+  <text class="ink small" x="500" y="177" text-anchor="middle">its half of one</text>
+  <text class="ink small" x="500" y="192" text-anchor="middle">bitplane block</text>
+
+  <!-- The record's pointers -->
+  <line class="wire" x1="170" y1="130" x2="182" y2="130"/>
+  <path class="tip" d="M182 125 L182 135 L190 130 Z"/>
+  <line class="wire" x1="170" y1="178" x2="182" y2="178"/>
+  <path class="tip" d="M182 173 L182 183 L190 178 Z"/>
+  <line class="wire" x1="590" y1="130" x2="578" y2="130"/>
+  <path class="tip" d="M578 125 L578 135 L570 130 Z"/>
+  <line class="wire" x1="590" y1="178" x2="578" y2="178"/>
+  <path class="tip" d="M578 173 L578 183 L570 178 Z"/>
+  <polyline class="wire" points="20,154 10,154 10,250 12,250"/>
+  <path class="tip" d="M12 245 L12 255 L20 250 Z"/>
+  <polyline class="wire" points="740,154 750,154 750,250 748,250"/>
+  <path class="tip" d="M748 245 L748 255 L740 250 Z"/>
+
+  <!-- The chains: the playfield's viewport with its two colour tables -->
+  <rect class="sky" x="20" y="222" width="310" height="62" rx="3"/>
+  <text class="ink label" x="30" y="244">playfield viewport</text>
+  <text class="ink small" x="30" y="262">320 x 162, 5 bitplanes</text>
+  <rect class="chip" x="208" y="229" width="114" height="22" rx="2"/>
+  <text class="ink small" x="215" y="244">table 1: the sky</text>
+  <rect class="sea" x="208" y="255" width="114" height="22" rx="2"/>
+  <text class="light small" x="215" y="270">table 2: the sea</text>
+
+  <rect class="sky" x="430" y="222" width="310" height="62" rx="3"/>
+  <text class="ink label" x="440" y="244">playfield viewport</text>
+  <text class="ink small" x="440" y="262">320 x 162, 5 bitplanes</text>
+  <rect class="chip" x="618" y="229" width="114" height="22" rx="2"/>
+  <text class="ink small" x="625" y="244">table 1: the sky</text>
+  <rect class="sea" x="618" y="255" width="114" height="22" rx="2"/>
+  <text class="light small" x="625" y="270">table 2: the sea</text>
+
+  <!-- next: the dashboard's viewport -->
+  <line class="wire" x1="95" y1="284" x2="95" y2="300"/>
+  <path class="tip" d="M90 300 L100 300 L95 308 Z"/>
+  <text class="muted small" x="104" y="300">next</text>
+  <line class="wire" x1="665" y1="284" x2="665" y2="300"/>
+  <path class="tip" d="M660 300 L670 300 L665 308 Z"/>
+  <text class="muted small" x="674" y="300">next</text>
+
+  <rect class="dash" x="20" y="308" width="310" height="52" rx="3"/>
+  <text class="ink label" x="30" y="329">dashboard viewport</text>
+  <text class="ink small" x="30" y="347">640 x 37, 4 bitplanes</text>
+  <rect class="chip" x="208" y="323" width="114" height="22" rx="2"/>
+  <text class="ink small" x="215" y="338">table 1</text>
+
+  <rect class="dash" x="430" y="308" width="310" height="52" rx="3"/>
+  <text class="ink label" x="440" y="329">dashboard viewport</text>
+  <text class="ink small" x="440" y="347">640 x 37, 4 bitplanes</text>
+  <rect class="chip" x="618" y="323" width="114" height="22" rx="2"/>
+  <text class="ink small" x="625" y="338">table 1</text>
+
+  <!-- next: the ticker's viewport, which ends both chains -->
+  <polyline class="wire" points="175,360 175,380 300,380 300,394"/>
+  <path class="tip" d="M295 394 L305 394 L300 402 Z"/>
+  <text class="muted small" x="184" y="374">next</text>
+  <polyline class="wire" points="585,360 585,380 460,380 460,394"/>
+  <path class="tip" d="M455 394 L465 394 L460 402 Z"/>
+  <text class="muted small" x="594" y="374">next</text>
+
+  <rect class="ticker" x="190" y="402" width="380" height="62" rx="3"/>
+  <text class="ink label" x="200" y="424">ticker viewport, in both chains</text>
+  <text class="ink small" x="200" y="442">640 x 13, 1 bitplane of its own,</text>
+  <text class="ink small" x="200" y="457">shared by both views</text>
+  <rect class="chip" x="448" y="417" width="114" height="22" rx="2"/>
+  <text class="ink small" x="455" y="432">table 1</text>
+</svg>

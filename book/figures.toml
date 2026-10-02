@@ -20,6 +20,10 @@
 #                       formats, and which of them tools/build.py packs into the page
 #            packed     the first bytes of a packed file against the bytes they unpack to
 #            codemap    the code hunk along its addresses from re/functions.csv, by kind and status
+#            pairs      colour tables read from their files by the port's own readers, side by
+#                       side, the entries that differ from another table marked and counted
+#            fade       the sixteen steps of fades through the port's colour_lerp, framed where
+#                       a step differs from each component computed alone
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -41,6 +45,17 @@ on the carrier's deck with the weapon menu up."""
 fire_every = 33
 fire_held = 3
 mission_at = 659
+
+[run.night]
+what = """The mission run as a night mission: night_flag (0x025390, a word) poked to 1 at the rank
+selection's end through the native library's test hook, as the comparisons reach the night
+(re/notes/porting-m4.md, "Night"; tests/test_world.py, NIGHT); the mission begins at the same
+VBlank, with the night dashboard loaded."""
+fire_every = 33
+fire_held = 3
+mission_at = 659
+pokes = [[0x025390, 2, 1]]
+dash_night = 1
 
 [[figure]]
 name = "title-logo"
@@ -317,3 +332,51 @@ values = [["verified", "verified", ["iff-dash", 6]],
           ["replace", "replace", ["wingspalette", 10]],
           ["drop", "drop", ["wingspalette", 28]],
           ["todo", "todo, no status set", ["wingspalette", 26]]]
+
+[[figure]]
+name = "night-start"
+file = "night-start.png"
+maker = "screen"
+run = "night"
+vblank = 759
+size = [1024, 642]
+shows = "The first mission as a night mission, 100 VBlanks after it began: the carrier under a black sky, the night sea and the night dashboard."
+how = "VBlank 759 of the night run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py night-start"
+
+[[figure]]
+name = "day-night-palettes"
+file = "day-night-palettes.png"
+maker = "pairs"
+mark = ["wingstitle", 25]
+note_width = 150
+scale = 2
+shows = "The colour tables of a mission by day and by night: the sky's, the sea's and the dashboard's, the sea's entries that differ from the sky's marked, which are the colours the copper list sets at the split line."
+how = "Each table read from its file as the game reads it, by the port's own readers through the native library: the four palette files through cmap_file_to_table (orig 0x016DD6), 32 colours, and the dashboard pictures through iff_to_vport (orig 0x01A548) into a viewport of 640 x 37 with four planes, 16 colours; the marks and the counts computed entry by entry; each swatch the 12-bit colour widened as src/video.c widens it; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py day-night-palettes"
+# The four file pairs night_flag chooses between (re/notes/display.md, "Day and night").
+tables = [
+    {time = "by day", area = "sky", file = "wingspalette"},
+    {time = "by day", area = "sea", file = "ocean.palette", against = "sky"},
+    {time = "by day", area = "dashboard", file = "iff-dash", picture = [640, 37, 4]},
+    {time = "by night", area = "sky", file = "night.p"},
+    {time = "by night", area = "sea", file = "nightocean.p", against = "sky"},
+    {time = "by night", area = "dashboard", file = "nightdash", picture = [640, 37, 4]},
+]
+
+[[figure]]
+name = "fade-steps"
+file = "fade-steps.png"
+maker = "fade"
+frame = ["wingstitle", 25]
+scale = 2
+shows = "The sixteen steps of five fades through the port's colour_lerp: three of the day's colours up from black, the sky's colour down to black, and 0x005 down to black, each step's colour and its twelve bits, framed where it differs from each component computed alone."
+how = "wof_colour_lerp (orig 0x016FF6) through the native library for steps 0 to 15; the colours of wingspalette read by the port's cmap_file_to_table; bits 12 to 15 left out, as the hardware ignores them; a step framed where its colour is not the start plus the truncated share of each component's own difference; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py fade-steps"
+rows = [
+    {from = 0x000, to = ["wingspalette", 1], note = "up: the day's sky"},
+    {from = 0x000, to = ["wingspalette", 2], note = "up: wingspalette 2"},
+    {from = 0x000, to = ["wingspalette", 31], note = "up: white"},
+    {from = ["wingspalette", 1], to = 0x000, note = "down: the day's sky"},
+    {from = 0x005, to = 0x000, note = "down: a dark blue"},
+]

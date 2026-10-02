@@ -1,0 +1,22 @@
+; re/Wings.lst 0x0111FC-0x011232: choose_night [asm]
+; choose_night   [asm]
+;   asm. night_flag = 0, or bit 15 of the fourth of four rand_beam when the map number from mission_map_table is above 6; only between two missions of a campaign
+;   callers: main
+choose_night:
+0111fc  322ca3c0             move.w     -$5c40(a4), d1                         ; rank_played
+011200  e549                 lsl.w      #$2, d1
+011202  d26ca3c2             add.w      -$5c3e(a4), d1                         ; mission_number
+011206  47ec8461             lea.l      -$7b9f(a4), a3                         ; mission_map_table
+01120a  12331000             move.b     (a3, d1.w), d1
+01120e  7000                 moveq      #$0, d0
+011210  b23c0006             cmp.b      #$6, d1
+011214  6f000018             ble.w      $1122e
+011218  4eac82b4             jsr        -$7d4c(a4)                             ; -> rand_beam
+01121c  4eac82b4             jsr        -$7d4c(a4)                             ; -> rand_beam
+011220  4eac82b4             jsr        -$7d4c(a4)                             ; -> rand_beam
+011224  4eac82b4             jsr        -$7d4c(a4)                             ; -> rand_beam
+011228  e358                 rol.w      #$1, d0
+01122a  c07c0001             and.w      #$1, d0
+loc_01122e:
+01122e  3940a392             move.w     d0, -$5c6e(a4)                         ; night_flag
+011232  4e75                 rts

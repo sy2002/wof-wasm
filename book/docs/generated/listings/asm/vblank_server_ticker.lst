@@ -1,0 +1,21 @@
+; re/Wings.lst 0x011856-0x011882: vblank_server [asm], a part of 0x011754-0x011965
+011856  206cc2a4             movea.l    -$3d5c(a4), a0                         ; g_0272a2
+01185a  2248                 movea.l    a0, a1
+01185c  d0fc0444             adda.w     #$444, a0
+011860  303c000c             move.w     #$c, d0
+011864  7200                 moveq      #$0, d1
+011866  536ca5ca             subq.w     #$1, -$5a36(a4)                        ; g_0255c8
+loc_01186a:
+01186a  e309                 lsl.b      #$1, d1
+01186c  e5e0                 roxl.w     -(a0)
+01186e  e5e0                 roxl.w     -(a0)
+011870  e5e0                 roxl.w     -(a0)
+011872  e5e0                 roxl.w     -(a0)
+011874  e5e0                 roxl.w     -(a0)
+011876  e5e0                 roxl.w     -(a0)
+011878  e5e0                 roxl.w     -(a0)
+01187a  e5e0                 roxl.w     -(a0)
+01187c  e5e0                 roxl.w     -(a0)
+01187e  e5e0                 roxl.w     -(a0)
+011880  e5e0                 roxl.w     -(a0)
+011882  e5e0                 roxl.w     -(a0)

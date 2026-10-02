@@ -1,0 +1,21 @@
+; re/Wings.lst 0x01876E-0x0187B8: cop_set_split_line [C]
+cop_set_split_line:
+01876e  4e55fffe             link.w     a5, #$fffe
+018772  206cbe2e             movea.l    -$41d2(a4), a0                         ; back_view
+018776  22680002             movea.l    $2(a0), a1
+01877a  3b690002fffe         move.w     $2(a1), -$2(a5)
+018780  206cbe2e             movea.l    -$41d2(a4), a0                         ; back_view
+018784  22680002             movea.l    $2(a0), a1
+018788  336ccc6e0002         move.w     -$3392(a4), $2(a1)                     ; cop_split_index
+01878e  3f2d0008             move.w     $8(a5), -(a7)
+018792  206cbe22             movea.l    -$41de(a4), a0                         ; back_vport
+018796  3f280090             move.w     $90(a0), -(a7)
+01879a  206cbe2e             movea.l    -$41d2(a4), a0                         ; back_view
+01879e  2f280002             move.l     $2(a0), -(a7)
+0187a2  4eba12f8             jsr        $19a9c(pc)                             ; cop_wait
+0187a6  504f                 addq.w     #$8, a7
+0187a8  206cbe2e             movea.l    -$41d2(a4), a0                         ; back_view
+0187ac  22680002             movea.l    $2(a0), a1
+0187b0  336dfffe0002         move.w     -$2(a5), $2(a1)
+0187b6  4e5d                 unlk       a5
+0187b8  4e75                 rts

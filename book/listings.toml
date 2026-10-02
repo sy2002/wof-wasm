@@ -302,3 +302,53 @@ file = "tests/m4compare.py"
 from = "vblank = 0"
 to = "break"
 as = "replay_end"
+
+# The display, chapter 11: the copper builder's split, a wait for the split line and one move
+# for each colour whose second table differs from the first (re/notes/display.md, step 6).
+[[listing]]
+kind = "asm"
+name = "cop_vport_split"
+lines = 51
+
+# The split rewritten in place every pass: the list's count set back to the split's entry, the
+# wait written there, the count restored; beside the port, which keeps the line in the record.
+[[listing]]
+kind = "asm"
+name = "cop_set_split_line"
+
+[[listing]]
+kind = "c"
+name = "wof_cop_set_split_line"
+
+# Day or night, between two missions of a campaign: the top bit of the fourth draw of the beam
+# above map 6, orig 0x0111FC on both sides.
+[[listing]]
+kind = "asm"
+name = "choose_night"
+head = true
+
+[[listing]]
+kind = "c"
+name = "wof_choose_night"
+
+# The ticker's scroll in the VBlank server: the head of the loop over thirteen rows and the
+# first of a row's 42 shifts of a word through the extend flag, by the processor inside the
+# interrupt; the chain runs on to 0x0118BE and dbra closes the loop at 0x0118C0.
+[[listing]]
+kind = "asm"
+name = "vblank_server"
+from = 0x011856
+to = 0x011882
+as = "vblank_server_ticker"
+
+# The port's play screen, row by row: the sea's colours below the split where they differ, the
+# flash's colour 1 above it, the ticker's ramp; what the copper's list showed, as a palette.
+[[listing]]
+kind = "c"
+name = "play_colours"
+
+# The fades held to the original over random tables: one routine with two shapes, its cases.
+[[listing]]
+kind = "py"
+name = "test_the_fades_agree_with_the_original"
+file = "tests/test_oracle_m3.py"
