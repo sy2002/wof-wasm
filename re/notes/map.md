@@ -111,7 +111,7 @@ position (read, observed in every pass of the flights):
 view_shift = 3 in the eighth-scale view, otherwise 0
 view_x     = player_x - (160 << view_shift)
 view_y     = 151 + max(player_y - 131, 0),  or 1208 in the eighth-scale view
-split_row  = the same value, clamped to 162 for the copper split
+split_row  = the same value, clamped to 162 for the copper split; 151 flat in the eighth-scale view (0x010278)
 ```
 
 `draw_world_shape` (`0x015174`) turns a world position into a screen position:

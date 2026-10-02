@@ -195,12 +195,14 @@ executable sets its guard `0x024F24`.
   drawn with its mask under the drums' clip rows.
 - **`flip_buffers`** pokes COLOR01 of the back list's copper with the sky colour, or with
   `flash_colour` on odd counts while `flash_count` runs, then shows the back view. The poke
-  lands in the first viewport of the view only, above the split line.
+  lands in the first viewport of the view, above the split line and below it too, since
+  the sea's table gives colour 1 the sky's value (`re/notes/porting-m5.md`, "The sky's flash
+  (observed)").
 - **The VBlank's mission half** (`0x011842` to `0x01195C`): nothing outside a mission; in
   one, `0x025410` counts VBlanks and the ticker scrolls its plane one pixel left on every
   VBlank while a message runs, taking the next character into the hidden column at byte 80
   whenever the last one has scrolled its width. **The messages are formatted at run time**
-  by the tick with `sprintf` into `ticker_text` (`0x02716A`, 300 bytes) or
+  with exec's `RawDoFmt` through `format_to` (`0x015078`), by the tick and by the pass, into `ticker_text` (`0x02716A`, 300 bytes) or
   `ticker_text_2` (`0x027E00`, 102 bytes); the port keeps both buffers in its registered
   state and reads the message pointer's bytes from there. No script shows a message; the
   ticker is held to the original under the oracle, VBlank by VBlank.

@@ -103,7 +103,7 @@ Each screen is set up by one routine that fills in sizes and depths and calls `v
 
 Display line 0 is beam line `0x2C`, so the picture ends at beam line 257, inside an NTSC frame. The horizontal window is the standard one: `DIWSTRT` x `0x81`, `DIWSTOP` x `0xC1`, `DDFSTRT` `0x38` and `DDFSTOP` `0xD0` in low resolution, `0x3C` and `0xD4` in high resolution.
 
-The ticker bitmap is 84 bytes wide with 80 shown (`BPL1MOD` = 4). `vblank_server` draws each new glyph into the hidden 32 pixels at byte 80 and shifts the whole plane left by one pixel per VBlank with a `roxl` chain over 42 words x 13 rows (`0x011856`–`0x0118C0`). This is CPU work inside the interrupt, not a blit. The message the pointer `ticker_message` (`0x0257B6`) walks is not a text of the executable: the tick formats it with `sprintf` into `ticker_text` (`0x02716A`, 300 bytes) or `ticker_text_2` (`0x027E00`, 102 bytes) and hands it over through `0x01555A`, which takes it only while no message runs.
+The ticker bitmap is 84 bytes wide with 80 shown (`BPL1MOD` = 4). `vblank_server` draws each new glyph into the hidden 32 pixels at byte 80 and shifts the whole plane left by one pixel per VBlank with a `roxl` chain over 42 words x 13 rows (`0x011856`–`0x0118C0`). This is CPU work inside the interrupt, not a blit. The message the pointer `ticker_message` (`0x0257B6`) walks is not a text of the executable: the game formats it at run time with exec's `RawDoFmt` through `format_to` (`0x015078`), from the tick and from the pass (the soldiers), into `ticker_text` (`0x02716A`, 300 bytes) or `ticker_text_2` (`0x027E00`, 102 bytes) and hands it over through `0x01555A`, which takes it only while no message runs.
 
 ### The story scroller
 
@@ -131,8 +131,8 @@ In the play screen the list begins: entry 0 `BPLCON0`, entries 1–32 sprites, e
 One pass of play:
 
 1. `frame_update` (`0x010228`) starts with `wait_vblank` (`0x01AA3E`), which returns as soon as `vblank_flag` (`0x0255BE`) is set and clears it. `vblank_server` sets the flag on every VBlank, and `cop_install` clears it. The wait is therefore for the first VBlank **after the previous pass installed its list**: if one already went by while the logic ticks ran, there is no wait.
-2. It selects `back_rastport` as the draw target, draws the playfield, then selects the RastPort of the back view's second viewport and draws the dashboard.
-3. It calls `cop_set_split_line` (`0x01876E`) on the back list.
+2. It computes the view and calls `cop_set_split_line` (`0x01876E`) on the back list (`0x0102AE`, before any drawing).
+3. It selects `back_rastport` as the draw target, draws the playfield (`draw_world`, `0x0102CE`), then selects the RastPort of the back view's second viewport and draws the dashboard.
 4. It falls into `flip_buffers` (`0x01030C`): the flash poke described below, then `flip_view` (`0x0150B0`), which is `view_show(back_view)`.
 
 The hardware reloads the copper position from `COP1LC` at the next vertical blank, so the new buffer appears then. `vblank_server` takes no part in the swap: it touches neither `COP1LC` nor the view pointers, and it does not read `g_026E3C`, the flag `frame_update` sets just before the swap.
@@ -146,7 +146,7 @@ Every global that holds a BitMap, a plane pointer or a RastPort is listed in the
 | Mechanism | Routine | What it does |
 |---|---|---|
 | Picture colours | `iff_cmap_to_table` `0x01A1F6` | `CMAP` chunk into colour table 1, at most 32 entries, each component masked to its high nibble |
-| Palette files | `cmap_file_to_table` `0x016DD6` | searches the first 4000 bytes for `CMAP`, skips the length, converts 32 triplets as `(r << 4) or g or (b >> 4)` **without masking**. All four files in use have zero low nibbles, so the result equals the masked conversion |
+| Palette files | `cmap_file_to_table` `0x016DD6` | searches the first 4000 bytes for `CMAP`, skips the length, converts 32 triplets as `(r << 4) or g or (b >> 4)` **without masking**. All four files in use have zero low nibbles, so the result equals the masked conversion. Three are bare `CMAP` chunks; `ocean.palette` is an Rpck-packed ILBM with a `BMHD`, a `CMAP`, a `GRAB`, four `CRNG` chunks and a `BODY`, of which the scan finds the `CMAP` and nothing else is read |
 | Day and night | `mission_display_setup` `0x018806` | see below |
 | Horizon split | `cop_set_split_line` `0x01876E` | rewrites the split `WAIT` of the back list in place, using `cop_split_index` |
 | Sky flash | `flip_buffers` `0x01030C` | pokes `COLOR01` of the back list at buffer + `0x92`: normally table 1 colour 1, but while `flash_count` (`0x025416`) is non-zero it is decremented and odd counts show `flash_colour` (`0x025418`) |
@@ -163,7 +163,7 @@ Sky and ocean palettes differ in colours 2–15 and 24 by day (15 moves after th
 
 ### The split line
 
-`view_set_game` presets the split line to 150. During play `frame_update` computes it every pass: `0x97` plus the amount by which the word at `0x026E60` exceeds `0x83`; when the word at `0x024F36` is 1 it is `0x97` flat. The value is stored in `split_row` (`0x0253A0`) and passed on clamped to 162. At 162 the split falls on the blank line and the ocean palette is never seen. Established: the arithmetic. Inferred: `0x026E60` is the vertical scroll position, so the split follows the horizon.
+`view_set_game` presets the split line to 150. During play `frame_update` computes it every pass: `0x97` plus the amount by which the word at `0x026E60` exceeds `0x83`; when the word at `0x024F36` is 1 it is `0x97` flat. The value is stored in `split_row` (`0x0253A0`) and passed on clamped to 162. At 162 the split falls on the blank line and the ocean palette is never seen. Established: the arithmetic. `0x026E60` is the drawing's copy of the player's height, so the split follows the horizon: 151 plus the height's excess over 131 (`re/notes/map.md`, "World coordinates", read and observed in every pass of the M4 flights).
 
 ### Fades
 
@@ -178,7 +178,7 @@ r += ((((to & 0x0f0) - (from & 0x0f0)) * step) / 15) & 0x0f0;
 r += ((((to & 0xf00) - (from & 0xf00)) * step) / 15) & 0xf00;
 ```
 
-A falling component therefore adds its negative quotient as a masked two's complement value and **carries into the next higher component**: `0x005` towards 0 at step 8 gives `0x013`, and `0xFFF` towards 0 at step 8 gives `0x1887`. The hardware ignores bits 12 to 15. This model agrees with the original under the oracle on 400 random inputs; the port has to keep the arithmetic as it is, because the intermediate colours of every fade-out depend on it.
+A falling component therefore adds its negative quotient as a masked two's complement value and **carries into the next higher component**: `0x005` towards 0 at step 8 gives `0x013`, and `0xFFF` towards 0 at step 8 gives `0x1887`. The hardware ignores bits 12 to 15. This model agrees with the original under the oracle over the sixteen steps against black and white in both directions and 20,000 random triples (`tests/test_oracle_m1.py`); the port has to keep the arithmetic as it is, because the intermediate colours of every fade-out depend on it.
 
 Pictures appear like this: `load_picture_black` (`0x017422`) decodes the file into the back view, hands the picture's colours to the caller and blacks the table; the caller shows the view and calls `fade_to` with the saved colours. The publisher logo fades first to the fixed `logo_fade_palette` (`0x02594C`), waits 60 frames with `wait_frames_or_fire` (`0x016EEE`, a `WaitTOF` loop), then fades to the picture's own colours.
 
