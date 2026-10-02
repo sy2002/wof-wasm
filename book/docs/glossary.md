@@ -62,7 +62,7 @@ First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/m4_
 
 ### Band
 
-In the port, a run of output rows that share a source row and a set of colours: what the copper builder does that can be seen, handed from the views to the picture, two bands with the same colours sharing a palette.
+In the port, a run of consecutive output rows of one viewport that share a set of colours: what the copper builder does that can be seen, handed from the views to the picture, two bands with the same colours sharing a palette.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`src/video.c`](repo:src/video.c), [`src/screen.c`](repo:src/screen.c); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#views-viewports-and-what-reaches-the-output), "Views, viewports and what reaches the output".
 
@@ -122,7 +122,7 @@ Elsewhere: [.bss](https://en.wikipedia.org/wiki/.bss), Wikipedia.
 
 ### ByteRun1
 
-The packing of a picture's rows in IFF ILBM: a control byte says either copy the next bytes as they are or repeat the next byte; the game's reader assumes it, and every picture on the disk uses it.
+The packing of a picture's rows in IFF ILBM: a control byte says either copy the next bytes as they are or repeat the next byte; the game's reader assumes it, and every picture the game shows uses it.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`src/iff.c`](repo:src/iff.c); [`re/notes/display.md`](repo:re/notes/display.md#how-pictures-reach-a-viewport), "How pictures reach a viewport".
 
@@ -284,9 +284,17 @@ Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FS
 
 ### Dashboard
 
-The play screen's middle area, 640 by 37 in high resolution with four bitplanes: the instruments and the 3-D view, drawn by day and by night from pictures and shapes of their own.
+The play screen's middle area, 640 by 37 in high resolution with four bitplanes: the instruments and the 3-D window, drawn by day and by night from pictures and shapes of their own.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-pass), "The pass"; [`src/dash.c`](repo:src/dash.c).
+
+### Depth
+
+The number of a picture's bitplanes, which gives it 2 to that number colours: five for the playfield's 32, four for the dashboard's 16, one for the ticker's two.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#screens), "Screens".
+
+Elsewhere: [Color depth](https://en.wikipedia.org/wiki/Color%5Fdepth), Wikipedia.
 
 ### Differential test
 
@@ -326,7 +334,7 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/he
 
 ### Eighth-scale view
 
-The view the game switches to while the aircraft is high: eight pixels of the world to one of the screen, the shapes taken from a container of their own.
+The zoomed-out picture the game switches to while the aircraft is high, "view" in the everyday sense and not the record: eight pixels of the world to one of the screen, the shapes taken from a container of their own.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates"; [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
 
@@ -854,6 +862,12 @@ First met in [chapter 2](part-1/amiga.md), defined in [chapter 3](part-1/disk.md
 
 Elsewhere: [Two's complement](https://en.wikipedia.org/wiki/Two%27s%5Fcomplement), Wikipedia.
 
+### Sky flash
+
+The sky's colour, colour 1, changed for a few passes to white, or to red for a target, when a rocket hits land or the aircraft crashes, by a poke into the copper list.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-skys-flash-observed), "The sky's flash (observed)".
+
 ### Slice
 
 A stretch of emulation that ends after a fixed number of instructions, after which the headless original's harness looks at the wall clock and goes on; where it ends changes nothing in the run. Slices once ended after a time, which made two runs of one script differ (chapter 9).
@@ -879,6 +893,14 @@ Elsewhere: [Pulse-code modulation](https://en.wikipedia.org/wiki/Pulse-code%5Fmo
 The line of the playfield where the sky's palette gives way to the sea's, computed again in every pass; the copper changes the colours there.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-split-line), "The split line".
+
+### Sprite
+
+One of the Amiga's eight small pictures that the hardware fetches through pointers of their own and draws over the bitplanes by itself; the game uses none and points all eight at zeros.
+
+First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#memory), "Memory".
+
+Elsewhere: [Sprite (computer graphics)](https://en.wikipedia.org/wiki/Sprite%5F(computer%5Fgraphics)), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Stack frame
 
@@ -912,7 +934,7 @@ Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikiped
 
 ### Ticker
 
-The message line at the bottom of the play screen: one bitplane, 640 of its 672 pixels shown, scrolled a pixel every VBlank by the VBlank server.
+The message line at the bottom of the play screen: one bitplane, 640 of its 672 pixels shown, scrolled a pixel every VBlank by the VBlank server while a message runs.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
 
