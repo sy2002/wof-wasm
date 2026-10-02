@@ -190,6 +190,12 @@ A routine shown with only its labels, calls, branches, comparisons and returns, 
 
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
+### Controller
+
+The session that leads the work: the owner talks to it alone; it sends the workers their tasks, reviews and merges what they deliver, keeps the specification and the rules true, and is the only session that asks the owner for anything.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#the-arrangement), "The arrangement".
+
 ### Copper
 
 The Amiga's display coprocessor: it follows a list of waits and register writes in step with the beam, and so changes colours and screen modes part of the way down the picture.
@@ -321,6 +327,12 @@ Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-p
 The game's screens before and between missions: the story, the title, the rank selection, the briefing, the high scores and the dialogs.
 
 First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md).
+
+### Handover
+
+The lead passed from a controller whose context is filling to a fresh session, at a quiet point, through the repository and a message saying where things stand.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#the-arrangement), "The arrangement"; [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol".
 
 ### Harness
 
@@ -664,6 +676,14 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`
 
 Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Fremake), Wikipedia.
 
+### Review
+
+The controller's check of a worker's report before a merge, in seven steps, among them a clean rebuild, the full suite and one check of the reviewer's own that the worker's tests could not make.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#reviewing-a-report), "Reviewing a report".
+
+Elsewhere: [Code review](https://en.wikipedia.org/wiki/Code%5Freview), Wikipedia.
+
 ### Routine
 
 A piece of the program that is called, does one job and returns to its caller; the game's program has 616, 223 of them compiled from C, each a row of the routine inventory.
@@ -695,6 +715,12 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 The order of a run's VBlanks, passes and logic ticks as they happened; the VBlanks a pass takes are a setting of the run, so the schedule is an input of the simulation.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md#what-the-question-is), "What the question is"; [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
+### Session
+
+One conversation with an AI coding assistant in a terminal opened in the repository, which reads files, runs commands and commits; what it has read and written, its context, has a limit, and a session whose context fills makes way for a fresh one.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#the-arrangement), "The arrangement".
 
 ### Shape container
 
@@ -849,3 +875,9 @@ The Amiga's desktop, which the game closes when it starts.
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4.
 
 Elsewhere: [Workbench (AmigaOS)](https://en.wikipedia.org/wiki/Workbench%5F(AmigaOS)), Wikipedia.
+
+### Worker
+
+A session that does one task the controller sends it, a milestone or a bounded part of one, on a branch of its own, and reports to the controller alone.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#what-a-task-contains), "What a task contains".
