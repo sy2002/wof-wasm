@@ -1,0 +1,350 @@
+# Fact sheet: chapter 11, The display
+
+Every claim the chapter makes, one line each, with its source, in the order of the chapter. A claim without a source goes to the list at the end and stays out of the draft. A general fact about the machine that the notes do not state is sourced in a reference work with its chapter and marked **(reference)**, so that the fact-check can weigh it; what the game does with the machine always comes from the notes. Part II opens here: the chapter tells the mechanism, why the game does it so, what the port made of it, and in one plain sentence per mechanism which instrument of Part I holds it, with no "How we know" box (`book/BOOK.md` 4, point 6; the controller's task).
+
+Counts are of the branch's base, `1cf35c0`, counted in the files named, by reading or with the command in the counts table at the end. Nothing was run but the book's build and short runs of the native library (`tests/libwofcore.dylib`, built before the base, not rebuilt), one core, under a minute each: the night run, the palette files through the port's readers, `colour_lerp` over the sixteen steps, the play screen's palettes and bands. No headless original, no comparison, no test, no browser. By the owner's rule on numbers the prose keeps about three numbers a sentence, puts clusters into tables and figures boxes and leaves derived numbers out; this sheet keeps every figure exact.
+
+The reference works:
+
+- *Amiga Hardware Reference Manual*, Commodore-Amiga, third edition, cited as HRM with the chapter: 2 "Coprocessor Hardware", 3 "Playfield Hardware". The Internet Archive copy the glossary links.
+- *Amiga ROM Kernel Reference Manual: Libraries and Devices*, Commodore-Amiga, 1989, cited as RKM with its chapter 1, "Graphics Primitives" (the operating system's View and ViewPort). Fetched once, `https://archive.org/details/amiga-rom-kernel-reference-manual-libraries-and-devices`; its text has 189 mentions of `ViewPort`, and its first chapter is "Graphics Primitives". For the Elsewhere lines of View and Viewport.
+- Wikipedia, "PackBits", `https://en.wikipedia.org/wiki/PackBits`, fetched once: "PackBits is a fast, simple lossless compression scheme for run-length encoding of data"; "Packbit compression was also used in ILBM files". For the Elsewhere line of ByteRun1.
+- Wikipedia, "ILBM", `https://en.wikipedia.org/wiki/ILBM`, fetched once: "PackBits, a simple form of compression is supported to make ILBM files more compact". Already linked by the glossary's IFF ILBM entry; for the Elsewhere line of ByteRun1.
+- *M68000 Family Programmer's Reference Manual*, Motorola, cited as PRM with the instruction `ROXL` (rotate with extend: the bit shifted out goes to the extend flag and the extend flag comes in at the other end). The Internet Archive copy the glossary links.
+- Wikipedia, "Indexed color", `https://en.wikipedia.org/wiki/Indexed_color`, fetched once: "indexed color is a technique to manage digital images' colors in a limited fashion"; it names the Amiga's chip sets among the systems that used such palettes. For the Elsewhere line of Indexed framebuffer.
+
+## Opening
+
+1. By the chapter's end the reader knows how the game builds its own display: what it keeps about a screen, its eight screens, how its copper builder writes a list, how the two views swap, how the colours change (the split, the flash, the ticker's ramp, the fades), day and night, the two scales, how a picture reaches the screen, the dashboard and the ticker as areas; what the port made of it; and which instrument holds each part. Source: `book/BOOK.md` 3, chapter 11; the controller's task.
+2. Part II opens the game itself; Part I told what faithful means and how the port was held. Source: `book/BOOK.md` 3 (Part I, Part II).
+3. The play screen is 320 by 214 in three areas; chapter 2 gave them a table and the copper a paragraph. Source: `book/docs/part-1/amiga.md`, "Bitplanes" and "The beam and the copper".
+
+## 1. A display of its own
+
+4. The game builds no View of the operating system: it keeps its own view and viewport records, writes its own copper lists through a small C library of its own (`0x019958`–`0x01A1F4`), and points the hardware at a list by writing `COP1LC` (`0xDFF080`) itself. Source: `re/notes/display.md`, Summary; `SPEC.md` 3.4, the last graphics row and the `COP1LC` row; 6.4, third point.
+5. The system's display routines (`InitVPort`, `GetColorMap`, `MakeVPort`, `MrgCop`) are linked in but nothing references them; they are dead code, as is an IFF library beside them. Source: `re/notes/display.md`, Summary; `SPEC.md` 3.4 (they occur only in dead code and in the crack's text screen).
+6. A View and a ViewPort are the operating system's own records of a display and of an area of it, from which its routines make a copper list. Source: RKM 1 **(reference)**.
+7. What the game wants of the display, chapter 2 told: three areas in different modes set up at exact lines of every frame without the processor, and more colours than one palette holds. Source: `book/docs/part-1/amiga.md`, "The beam and the copper" (its paragraph "The game wants two things of it").
+8. What building it itself buys: the game knows where every instruction of its list lies, the split's wait at an index it keeps (`cop_split_index`, `0x027C6C`) and the sky's colour at entry 35, so a pass can change the picture's colours by rewriting one instruction in place instead of building the list again. Source: `re/notes/display.md`, "The copper builder" (step 6; "In the play screen the list begins: ... entry 35 `COLOR01`") and "How colours change" (the split and flash rows: rewrites in place, pokes at buffer + `0x92`). The "buys" is the chapter's reasoning from these.
+9. What it costs: records of its own, a copper builder of its own, and memory taken once. Source: `re/notes/display.md`, "Records", "The copper builder", "Memory". The chapter's summary of them.
+10. Each viewport record carries a graphics.library BitMap and RastPort inside it, so that the system's drawing calls (`Text`, `RectFill`, `Draw`) can draw on the game's screens; the front end's dialogs do. Source: `re/notes/display.md`, "Records" (+0x04 BitMap, +0x2C RastPort, its BitMap pointer at +0x04) and "Answered elsewhere" ("They draw text with graphics.library `Text` on these RastPorts"); `re/notes/drawing.md`, "Text" (the dialogs' `Text`, `RectFill`, `Draw`). That this is why they are embedded is the chapter's reasoning from the calls.
+11. `display_init` (`0x016670`), called once from `main`, allocates every buffer from chip memory and never resizes it. Source: `re/notes/display.md`, "Memory".
+12. The planes of one view are `0xACD0` bytes, 44,240, exactly the play screen: 40 x 162 x 5 for the playfield plus 80 x 37 x 4 for the dashboard; both views' planes are one block of `0x159A0`. Source: `re/notes/display.md`, "Memory".
+13. The high-score screen needs 61,400 bytes and runs over into view B's half; it uses view A alone, so nothing is lost. Source: `re/notes/display.md`, "Memory".
+14. A black copper list (`cop_blank`) is shown between screens; all eight sprite pointers point at a null sprite, because the game uses no sprites. Source: `re/notes/display.md`, "Memory" (the `cop_blank` and `null_sprite` rows).
+
+## 2. What the game keeps about a screen
+
+15. A view is 14 bytes; two exist, A and B: its entry's offset into `view_caches` (0 for A, `0x14` for B), its copper list buffer, the first viewport of its chain, its bitplane memory. Source: `re/notes/display.md`, "Records", "View, 14 bytes".
+16. A viewport is `0xAC` bytes; five exist: the playfield's and the dashboard's for each view and one for the ticker. It holds the next viewport (0 ends the chain), the BitMap and RastPort, the split's fields (x, line, enabled), colour table 1 and colour table 2, the displayed bytes per row and rows, its position and size. Source: `re/notes/display.md`, "Records", "Viewport, `0xAC` bytes" (`vport_a1`, `vport_b1`, `vport_a2`, `vport_b2`, `vport_ticker`).
+17. Above `0x3C` displayed bytes per row a viewport is high resolution. Source: `re/notes/display.md`, the viewport table, +0xA0.
+18. A colour table is 32 words, one 12-bit colour each; there is no `ColorMap` and no `LoadRGB4`. Source: `re/notes/display.md`, Summary ("Colours are 12-bit words in per-viewport tables of 32 entries ... There is no `ColorMap` and no `LoadRGB4`").
+19. Only the first viewport of each view, the playfield, has a table 2: the sea's. Source: `re/notes/display.md`, "Records" ("Only the first viewport of each view has a table 2"; `coltab_a1_split`, `coltab_b1_split`); `src/screen.c`, `wof_display_init` (its comment: "the ocean palette below the horizon").
+20. A copper list buffer is a capacity, a count of entries used and the instructions, four bytes each; three buffers of 1,000 bytes, view A's, view B's and a spare. Source: `re/notes/display.md`, "Copper list buffer" and "Memory" (the copper buffers row); `re/Wings.lst` `0x0166EE`–`0x016762` (`pea.l $3e8.w`, three times) and `cop_init` `0x019968` ("(list, bytes)").
+21. The ticker's plane is 84 x 13 bytes, `0x444`, single-buffered and shared by both views. Source: `re/notes/display.md`, "Memory" (`ticker_plane`) and Summary.
+22. The figure `display-records.svg` (claims 15 to 21, 44, 45).
+
+## 3. Eight screens
+
+23. Each screen is set up by one routine that fills in sizes and depths and lays the view out; all viewports are at x 0. Source: `re/notes/display.md`, "Screens".
+24. No screen uses dual playfield, HAM, extra-halfbrite or interlace. Source: `re/notes/display.md`, "Screens".
+25. The eight screen routines and their geometry, as the chapter's table: the play screen on both views, 320 x 162 x 5 at line 0, 640 x 37 x 4 at 163, the ticker 640 x 13 x 1 at 201 (a mission); the picture screen on both views, 320 x 200 x 5 (the first picture, the title, the credits, the rank selection); the story screen on both views, 640 x 200 x 1 at line 5, 230 rows shown (the story scroller); a screen of 640 x 147 x 3 on both views (the briefing, `0x018590` `mission_briefing`); a screen of 640 x 200 x 2 on both views (the crack's text screen, not ported); the dialog screen on the back view only, 320 x 200 x 4 (the load and save dialog, the high-score entry); the high-score screen on view A only, 320 x 75 x 5 at 0 and 640 x 145 x 4 at 76 (the high-score display); and the play screen restored on the back view, after the in-game dialog, its bitmaps and colours copied from the front view. Source: `re/notes/display.md`, "Screens", the table (eight rows, counted); `re/functions.csv` (`mission_briefing` calls `screen_hires3`); `SPEC.md` 6.6 (the crack screen not ported).
+26. The play screen line by line: lines 0 to 161 the playfield, low resolution, 32 colours, the sky's palette above the split line and the sea's below; 162 blank, colour 0; 163 to 199 the dashboard, high resolution, 16 colours; 200 blank; 201 to 213 the ticker, high resolution, one plane, 640 of 672 pixels shown. Source: `re/notes/display.md`, "The play screen line by line".
+27. A display line is a line counted from the picture's top; display line 0 is beam line 44 (`0x2C`). Source: `re/notes/display.md`, the viewport table, +0xA6 ("line 0 is beam line `0x2C`"), and "The play screen line by line"; told in chapter 2 (its sheet, claim 55).
+28. Every lower viewport has a blank line above it: the builder waits for the line above it and switches the planes off there (`BPLCON0 = 0x0200`). Source: `re/notes/display.md`, "The copper builder", step 2 ("This is what makes the line above each lower viewport blank").
+29. That line gives the copper time to write the next area's colours, window, modulos, plane pointers and mode, dozens of writes, with nothing on view. Source: `re/notes/display.md`, "The copper builder", steps 2, 4 and 5; chapter 2's sheet, claim 129. Told in chapter 2; here as the builder's steps.
+30. A low-resolution playfield is `BPLCON0 = 0x5200` for five planes; high resolution sets bit 15: `0xC200` for four planes, `0x9200` for one. Source: `re/notes/display.md`, "Screens". (For the developer sidebar only.)
+
+## 4. The copper builder
+
+31. `view_build_copper` (`0x01A0D4`) makes a view's list again from its viewport chain, in six steps. Source: `re/notes/display.md`, "The copper builder" (six numbered steps, counted).
+32. Step 1: the planes off (`BPLCON0 = 0x0200`), then the eight sprite pointers parked, 32 moves (`cop_sprites_off`, `0x01A06C`). Source: the same, step 1; "Memory" (`null_sprite`).
+33. Step 2: for every viewport but the first, a wait for the line above it and the planes off. Source: the same, step 2.
+34. Step 3: a viewport not at least two lines above the next one is skipped. Source: the same, step 3 ("A viewport whose y is not at least 2 below the next one's y is skipped"). Sidebar only, or left out.
+35. Step 4: for each viewport a wait for the line above it, then 2^depth moves to the colour registers from colour table 1 (`cop_vport_colours`, `0x019C0A`). Source: the same, step 4.
+36. Step 5: a wait for the line above, the planes off, the scroll, the display window, the data fetch, the two modulos and the plane pointers, then a wait for the viewport's first line and `BPLCON0` with its depth and resolution (`cop_vport_planes`, `0x019D18`); its clipping for positions outside the screen never takes effect. Source: the same, step 5.
+37. Step 6: if the split is enabled and table 2 exists, the entry's index is kept in `cop_split_index`, and `cop_vport_split` (`0x019C80`) writes a wait for the split line and one move for each colour whose table 2 value differs from table 1. Source: the same, step 6.
+38. Why only the differing colours: a move for a colour that does not change would change nothing on the screen; the builder writes the sea's colours where they differ. Source: `re/notes/display.md`, step 6; the listing `0x019CC4`–`0x019CF4` (`cmp.w`, `beq.b` past the move). The why is the chapter's reasoning; the fewer moves the copper makes on the split line is not claimed.
+39. The listing `cop_vport_split`: the wait, then the loop over 2^depth colours, the compare of table 2 (`$9c`) with table 1 (`$98`), and the move to register `0x180 + 2i`. Source: `re/Wings.lst` `0x019C80`–`0x019D16`.
+40. A move to `0x180` plus twice the index is the colour register of that index, `COLOR00` at `0xDFF180`. Source: HRM 2 and 3 **(reference)**; the listing's `add.w #$180, d0` after doubling the index; `re/notes/display.md` ("moves to `COLOR00` upward").
+41. A wait's position is the display line plus 44, the beam line; `cop_wait` (`0x019A9C`) also clamps it and, beyond beam line 255, first writes the wait for the end of line 255. Source: `re/notes/display.md`, "The copper builder", the paragraph on `cop_wait`. The rule that the copper needs that wait to reach lines past 255: HRM 2 **(reference)**. Sidebar only.
+42. The play screen's list begins: entry 0 `BPLCON0`, entries 1 to 32 the sprites, entry 33 the wait, entry 34 `COLOR00`, entry 35 `COLOR01`. Source: `re/notes/display.md`, "The copper builder", last paragraph.
+43. `mission_display_setup` (`0x018806`) appends the ticker's ramp to both views' lists after building them: ten pairs of a wait and a `COLOR01` (`cop_add_ticker_ramp`, `0x0187BA`). Source: `re/notes/display.md`, "Day and night" (the last sentence) and "How colours change" (the ticker ramp row); `re/Wings.lst` `0x0187BA` (its header: "appends ten WAIT + COLOR01 pairs from `ticker_ramp`, lines 201..210").
+
+## 5. Two views and the swap
+
+44. `view_show` (`0x016F20`) installs a view's list with `cop_install` and sets the working pointers to the front and back view and their first viewports; it does not wait. Source: `re/notes/display.md`, "Double buffering and the swap".
+45. `cop_install` writes an end marker behind the last used entry and loads `COP1LC` with the buffer's first instruction. Source: the same, "Copper list buffer" (`0xFFFFFFFE`, buffer + 4).
+46. One pass of play: wait for the VBlank; draw the playfield into the back view, then the dashboard into the back view's second viewport; rewrite the back list's split; poke the sky's colour into the back list and show the back view. Source: `re/notes/display.md`, "Double buffering and the swap", the four steps (counted).
+47. The hardware reloads the copper from `COP1LC` at the next VBlank, so the new picture appears then; the VBlank server takes no part in the swap. Source: the same. The concept and the timing are chapter 2's and 7's (`amiga.md`, "The beam and the copper", "The VBlank"; `time.md`).
+48. The dashboard is double-buffered like the playfield, so the drawing keeps per-view state in `view_caches`: each buffer must be brought up to date separately. Source: `re/notes/display.md`, "Double buffering and the swap", "Consequences for the port".
+49. `story_screen` is the only code that changes a plane pointer after a view is laid out. Source: the same, the last paragraph. Not in the prose unless needed.
+
+## 6. How the colours change
+
+50. Colours change in two ways: a table changed and the list built again (a picture loaded, a fade), or a built list poked in place (the flash, the split). Source: `re/notes/display.md`, Summary.
+51. There is no colour cycling: no code reads a picture's `CRNG` chunk and nothing rotates a colour table. Source: `re/notes/display.md`, Summary; `src/iff.c`, opening comment.
+52. A picture's colours: `iff_cmap_to_table` (`0x01A1F6`) takes the `CMAP` chunk into colour table 1, at most 32 entries, each component masked to its high nibble. Source: `re/notes/display.md`, "How colours change", the first row; `src/iff.c`, `cmap_to_table` comment.
+53. A `CMAP` holds each component as a byte; the Amiga's four bits are its high nibble. Source: `src/iff.c`, `cmap_to_table` (`(r << 4) & 0x0F00`, `g & 0x00F0`, `(b >> 4) & 0x000F`); `book/tools/figures.py`, `palette()` (each 4-bit component widened from the high nibble). The IFF format: Wikipedia "ILBM" **(reference)**.
+54. The palette files: `cmap_file_to_table` (`0x016DD6`) searches the first 4,000 bytes for `CMAP`, skips the length and converts 32 triplets as `(r << 4) | g | (b >> 4)` without masking; a non-zero low nibble would spill into the next component; all four files in use have zero low nibbles, so the result equals the masked conversion, and the port keeps the arithmetic anyway. Source: `re/notes/display.md`, "How colours change", the second row; `src/iff.c`, `wof_cmap_file_to_table` comment. The spill is the chapter's reading of the expression (`r << 4` keeps red's low nibble in green's place; `| g` keeps green's in blue's).
+55. The horizon split: every pass, `cop_set_split_line` (`0x01876E`) rewrites the split's wait of the back list in place, at the index `cop_split_index` holds. Source: `re/notes/display.md`, "How colours change", the split row; `re/notes/drawing.md`, "The scene routines".
+56. How it rewrites one instruction: it saves the list's count of entries, sets the count to the split's index, lets `cop_wait` write the wait there as if appending, and puts the count back. Source: `re/Wings.lst` `0x01876E`–`0x0187B8` (the count `$2(a1)` saved to `-$2(a5)`, set from `cop_split_index`, `cop_wait` called, the count restored).
+57. The port's `wof_cop_set_split_line` keeps the line in the back view's playfield viewport, from which the row colours are made. Source: `src/screen.c`, `wof_cop_set_split_line` and `play_colours`.
+58. The listing pair `cop_set_split_line` beside `wof_cop_set_split_line`. Source: `re/Wings.lst` `0x01876E`; `src/screen.c`.
+59. `view_set_game` presets the split line to 150. Source: `re/notes/display.md`, "The split line"; `src/screen.c`, `view_set_game` (`0x96`).
+60. Every pass the split line is 151 plus the amount by which the aircraft's height exceeds 131 pixels (`view_y` and `split_row`), and is passed to the copper clamped to 162. Source: `re/notes/map.md`, "World coordinates" (`view_y = 151 + max(player_y - 131, 0)`; `split_row` "the same value, clamped to 162 for the copper split"; read, observed in every pass of the flights); `re/notes/porting-m4.md`, "The pass"; `re/notes/display.md`, "The split line".
+61. The split line is the row where the sky's fill ends: `draw_world` fills the sky in colour 1 down to `view_y`. Source: `re/notes/drawing.md`, "The scene routines" (`draw_world`: "sky (`rect_fill` colour 1 down to `view_y`)"); `re/notes/map.md`, "World coordinates" (`split_row` the same value as `view_y`).
+62. As the aircraft climbs, the horizon sinks down the screen; at 162 the split falls on the blank line and the sea's palette is not seen. Source: `re/notes/display.md`, "The split line" ("At 162 the split falls on the blank line and the ocean palette is never seen"); claim 60.
+63. The sky flash: every pass `flip_buffers` (`0x01030C`) pokes `COLOR01` of the back list, entry 35, with the sky's colour, table 1's colour 1; while `flash_count` runs it counts it down and on odd counts pokes `flash_colour` instead. Source: `re/notes/display.md`, "How colours change", the flash row; `re/notes/porting-m5.md`, "The sky's flash (observed)".
+64. The tick sets the count to 5, with white (`0xFFF`), and red (`0xF00`) when the hit is a target, for a rocket's hit on land or a crash on land; a hit on or a crash into a ship flashes too; a bomb or the torpedo never flashes. So five passes show the colour, the sky, the colour, the sky, the colour. Source: `re/notes/porting-m5.md`, "The sky's flash (observed)" (`rockets_a`, passes 1,178 to 1,182 red and 1,822 to 1,826 white); `re/notes/frontend.md`, "Sky flash" (the writers).
+65. The poke reaches the rows above the split line, and below it too, because the sea's table gives colour 1 no colour of its own. Source: `re/notes/porting-m5.md`, "The sky's flash (observed)"; the files: colour 1 is `0x0AF` in both day tables and `0x000` in both night tables (counts table).
+66. The ticker's ramp: ten waits on lines 201 to 210 with `COLOR01` from `ticker_ramp` (`0x025994`): 777, 999, BBB, DDD, FFF, DDD, BBB, 999, 777, 555; `mission_display_setup` sets the ticker's colour 1 to `0x777`. Source: `re/notes/display.md`, "How colours change", the ticker ramp row, and "Day and night". Told in chapter 2; here named only.
+67. A fade: `fade_to` steps every colour of the front view's first viewport, in table 1 and table 2, by `colour_lerp`; then swaps the front view's list buffer with the spare, builds the list again and installs it; sixteen times. Source: `re/notes/display.md`, "Fades".
+68. Why the spare: the list on view is never written into while the copper reads it. Source: `re/notes/display.md`, "The story scroller" ("so that the displayed list is never written to"); chapter 2's sheet, claim 130. Told in chapter 2.
+69. The view copy: `view_poke_colours1` and `view_poke_colours2` patch the colour moves of a built list and copy into the table; every caller builds the list again right afterwards. Source: `re/notes/display.md`, "How colours change", the view copy row.
+70. The private `CMP2` chunk would set the split line, table 2 and the split enabled from a picture; no file on the disk carries one. Source: the same, the last row. Told in chapter 3 (`disk.md`); named only, if at all.
+
+## 7. Day and night
+
+71. `choose_night` (`0x0111FC`) is called from `main` only on the way from one mission of a campaign to the next (`0x010160`), after the next mission has been counted on. Source: `re/notes/display.md`, "Day and night"; `re/notes/campaign.md`, "Day and night"; `src/mission.c`, `wof_choose_night` comment.
+72. It looks the next map's number up in `mission_map_table` (`0x02345F`), index rank x 4 + mission; at 6 or below `night_flag` is 0; above 6 (maps h to o) it draws `rand_beam` four times and takes the top bit, bit 15, of the last draw: an even chance. Source: `re/notes/display.md`, "Day and night"; `re/notes/campaign.md`, "Day and night"; `re/Wings.lst` `0x0111FC`–`0x011232` (`cmp.b #$6`, `ble.w`, four `jsr` to `rand_beam`, `rol.w #$1`, `and.w #$1`).
+73. The chance comes from the beam, chapter 2's only source of chance. Source: `book/docs/part-1/amiga.md`, "The 68000" (`rand_beam`); claim 72.
+74. It is the only writer of `night_flag`, which nothing clears between campaigns: the program's first campaign begins by day, because the data hunk starts with 0 there, and a campaign begun after a game lost at night begins at night (observed in `night_again`). Source: `re/notes/campaign.md`, "Day and night"; `re/notes/porting-m4.md`, the reach map's answers ("Day and night"); `SPEC.md` 6.4, the colours point.
+75. Night was observed in `cap_a`: map m, four draws by `0x0111FC`, night. Source: `re/notes/campaign.md`, "Day and night". Sheet only.
+76. The listing pair `choose_night` beside `wof_choose_night` (`src/mission.c`). Source: `re/Wings.lst` `0x0111FC`; `src/mission.c`.
+77. Why so: the night is chosen once per mission and there is no change during a mission. Source: `re/notes/display.md`, Summary ("Day and night are two sets of files chosen once per mission by `night_flag`. There is no transition during a mission").
+78. `night_flag` selects one file of each of four pairs: `wingspalette` or `night.p` into the playfield's table 1, `ocean.palette` or `nightocean.p` into its table 2, `iff-dash` or `nightdash` as the dashboard's picture with its own 16 colours, and `dash.shp` or `nightdash.shp`. Source: `re/notes/display.md`, "Day and night"; `re/notes/porting-m4.md`, "The mission setup" (`load_dash_assets` loads the container and the picture by `night_flag`).
+79. `mission_display_setup` loads them into the back view, sets the ticker's colour 1, copies everything to the other view with `view_copy`, builds both lists and appends the ticker's ramp to both. Source: `re/notes/display.md`, "Day and night".
+80. Sky and sea differ in colours 2 to 15 and 24 by day, 15 moves after the split's wait, and in 2 to 15, 20 and 22 to 24 by night, 18 moves. Source: `re/notes/display.md`, "Day and night"; the files read through the port's readers (counts table), and the figure's maker counts them again at every build.
+81. Colour 1, the sky's, is `0x0AF` by day and `0x000`, black, by night, in both the sky's and the sea's table. Source: the files read through the port's `wof_cmap_file_to_table` (counts table).
+82. The files `palette` and `ocean.p` are never opened; the executable does not contain their names. Source: `re/notes/display.md`, "Day and night". Chapter 3 told it (`disk.md`, "What is on the disk"); named only.
+83. The figure `day-night-palettes.png` (claims 78, 80, 81).
+84. The figure `night-start.png`: the first mission as a night mission, 100 VBlanks after it began, the same moment as chapter 1's `mission-start.png`. Source: `book/figures.toml`, run `night`; the run's start at VBlank 659 checked by the maker (counts table).
+85. The night mission is reached for a comparison by a poke: `night_flag` set to 1 on both sides at the rank selection's end (`0x01009E`), before `load_dash_assets` reads it; the whole flight script then agrees in both loops (`test_the_night_mission_agrees_in_both_loops`). Source: `re/notes/porting-m4.md`, "Night"; `tests/test_world.py`, the test and `NIGHT`. The instrument is chapter 8's.
+86. The figure's run makes the same poke in the port alone, through the native library's test hook (`wt_poke_address`, the point of the rank selection's end). Source: `tests/shim.c` (`wt_poke_address`); `src/trace.c`, the pokes' comment ("which is how the night mission is reached in the comparison"); `book/tools/figures.py`.
+87. `choose_night` is held under the oracle over 2,000 states, the draws served on both sides from the port's stream (`test_choose_night_matches_the_original`). Source: `tests/test_oracle_m7.py`, its docstring. The instrument is chapter 5's.
+
+## 8. Two scales
+
+88. The game switches to an eighth-scale view while the aircraft is above a height: `view_step` (`0x024F36`), written every pass by `snapshot_for_draw` from a byte the player update sets to 1 while the aircraft is above y `0xBA` (186), else 8. Source: `re/notes/porting-m4.md`, the reach map's answers ("The eighth-scale view").
+89. World y is a height in pixels measured upward from the water line. Source: `re/notes/map.md`, "World coordinates".
+90. In the eighth-scale view eight world pixels are one screen pixel; `view_shift` is 3, `view_x` is 1,280 behind the player, which puts the player at screen x 160 at both scales; `view_y` is 1,208. Source: `re/notes/map.md`, "World coordinates"; `re/notes/drawing.md`, "The scene routines" (`draw_world_shape` shifts both coordinates right by three).
+91. So the screen then spans eight times as much of the world, and the aircraft stays at the same place on it. Source: claim 90 (the arithmetic); the consequence is the chapter's. Why the game switches is not stated in the notes (U1); the chapter claims no intent.
+92. The eighth-scale view draws its shapes from a second table, `AthList`, resolved in a container of its own, `8thscale.shp`; `draw_world` takes `AthList` when `view_step` is 1 and `MasterList` otherwise, and skips a record whose slot is empty. Source: `re/notes/shapes.md`, Summary and "MasterList and AthList".
+93. 84 of the 184 world names are absent from `8thscale.shp`: those shapes are not drawn at the eighth scale. Source: `re/notes/shapes.md`, Summary ("84 of the 184 world names are absent from `8thscale.shp`. Null entries are skipped by the map drawing loop").
+94. In the eighth-scale view the split line is 151, flat. Source: `re/notes/display.md`, "The split line" ("when the word at `0x024F36` is 1 it is `0x97` flat"); `re/notes/map.md`; `re/notes/porting-m4.md`, "The pass".
+95. Two resolutions in one picture: the playfield is low resolution, 320 wide, the dashboard and the ticker high, 640; the port's picture is 640 wide with each low-resolution pixel doubled. Source: `src/video.c`, opening comment; `src/wof.h`, the comment above `WOF_FB_W`; `SPEC.md` 6.4 ("The shell output is 640 pixels wide with low-resolution pixels doubled"). Told in chapter 2; named here.
+96. A PAL low-resolution pixel is 16/15 as wide as tall, and the 640 x 214 picture is shown in a box of 1024 : 642; chapter 1 showed it, chapter 23 tells the scaling. Source: `SPEC.md` 6.2, Video, "Aspect"; `book/docs/part-1/faithful.md` (the caption of `mission-start.png`).
+97. Low resolution is 320 pixels across a line, high resolution 640, in the same time of the beam. Source: HRM 3 **(reference)**; `re/notes/display.md`, "Screens" (320 x and 640 x areas side by side in one picture).
+
+## 9. The fade's arithmetic
+
+98. `colour_lerp` (`0x016FF6`) returns the target at step 15; otherwise it starts from the whole start word and, for blue, green and red in that order, adds the masked quotient of the component's difference times the step over 15 into the whole word, the division truncating toward zero. Source: `re/notes/display.md`, "Fades" (the code block); `src/iff.c`, `wof_colour_lerp` comment.
+99. A falling component adds its negative quotient as a masked two's complement value and so carries into the next higher component: `0x005` towards 0 at step 8 gives `0x013`. Source: `re/notes/display.md`, "Fades"; `src/iff.c`, `wof_colour_lerp` comment.
+100. Worked: blue's difference is −5; times 8 is −40; over 15 is −2; masked to four bits that is 14; 5 plus 14 is 19, `0x013`: blue 3, and a carry of 1 into green. Source: the arithmetic of claim 98; the port's `wof_colour_lerp` gives `0x0013` at step 8 (counts table).
+101. The steps of `0x005` to black through the port: 005, 005, 005, 014, 014, 014, 013, 013, 013, 012, 012, 012, 011, 011, 011, 000; a component computed alone would give 004, 003, 002, 001. Source: the port's `wof_colour_lerp` over the sixteen steps (counts table).
+102. `0xFFF` towards 0 at step 8 gives `0x1887`; the hardware ignores bits 12 to 15. Source: `re/notes/display.md`, "Fades". Sheet only, unless the figure needs it.
+103. The sky's colour `0x0AF` faded to black takes on a red component of 1 from the first step (`0x1AE` from step 1), where a component alone would stay without red. Source: the port's `wof_colour_lerp` (counts table). In the figure.
+104. A fade from black to a colour rises in every component and shows no carry. Source: the port's `wof_colour_lerp` from `0x000` to `0x0AF` and to `0xE62` (counts table): equal to each component computed alone.
+105. The port must keep the arithmetic as it is, because the intermediate colours of every fade-out depend on it. Source: `re/notes/display.md`, "Fades"; `SPEC.md` 6.4 ("16-step fades whose arithmetic carries between colour components and must be kept").
+106. The four fades of the original are one routine with two shapes: one viewport and one target, or a pair of viewports and two targets; the number of colours is 2^depth of the first viewport, the pair's too; the pair moves the first viewport's table 2 towards the first target. Source: `re/notes/porting-m3.md`, "The fades, and the one provisional setting".
+107. `load_picture_black` (`0x017422`) decodes a picture into the back view, hands its colours to the caller and blacks the table; the caller shows the view and fades to the saved colours: so a picture comes up from black. Source: `re/notes/display.md`, "Fades", the paragraph "Pictures appear like this".
+108. The first picture fades first to a fixed palette (`logo_fade_palette`, `0x02594C`), waits 60 frames, then fades to its own colours. Source: the same. On this disk that picture is the crack's (chapter 1: `faithful.md`, "What was left out").
+109. How long a step takes is chapter 7's: no wait in the loop, processor time, set in the port. Source: `book/docs/part-1/time.md`, "The fade step". Named, not retold.
+110. `colour_lerp` is held under the oracle (chapter 5); the four fades against the original over random tables, eight cases (`test_the_fades_agree_with_the_original`), and the number of colours from the first viewport's depth by a test of its own. Source: `tests/test_oracle_m1.py`, `test_colour_lerp_matches_over_its_range`; `tests/test_oracle_m3.py`, the two tests (eight parameter rows, counted) and their docstrings.
+111. The listing `test_the_fades_agree_with_the_original` with its cases: the picture screens, `fade_out`, a viewport with a second table, the briefing, the high-score screen's pair, `fade_out_pair`, which ends the mission. Source: `tests/test_oracle_m3.py`, the decorator's comments.
+112. The figure `fade-steps.png` (claims 99 to 104).
+
+## 10. How a picture reaches a viewport
+
+113. The ILBM reader in use is `iff_to_vport` (`0x01A548`) with `iff_parse_ilbm` (`0x01A452`); it knows `BMHD`, `CMAP`, `CMP2` and `BODY` and ignores every other chunk. Source: `re/notes/display.md`, "How pictures reach a viewport".
+114. `iff_body_to_vport` (`0x01A362`) clears the viewport's planes, then decodes the lesser of the picture's rows and the viewport's height, of the lesser of the picture's planes and the viewport's depth, with `byterun1_row` (`0x0203E8`), rows written back to back. Source: the same.
+115. It assumes ByteRun1 without looking at the picture's compression byte, and skips no mask plane and no surplus plane; no file the game loads needs either. Source: the same.
+116. Every picture on the disk is compressed with method 1, ByteRun1. Source: the files' `BMHD` (counts table: compression byte 1 in all nine).
+117. ByteRun1's control byte: from 0 to 127, copy that many bytes plus one; from −1 to −127, repeat the next byte that many times plus one, as a negative count; −128 does nothing. Source: `src/iff.c`, `byterun1_row` comment ("A control byte of 0x80 is a no-op, one above it repeats the next byte 257 - c times, one below copies c + 1 literals"). Wikipedia "PackBits" **(reference)** for the scheme. The chapter states it in a clause, or leaves the detail to the glossary.
+118. Pictures taller than their viewport are cut off at the bottom: `broderbund`, `wingstitle` and `selectrank` are 256 rows high and show their first 200, and `hiscoreslab`, 200 high, shows its first 145. Source: `re/notes/display.md`, "How pictures reach a viewport"; the heights from the files' `BMHD` (counts table).
+119. Why 256 rows: this disk's added artwork is of PAL height, 256 lines. Source: `SPEC.md` 6.2, Video ("its added artwork is 256 lines high"); `book/docs/part-1/faithful.md`, "The same pixels and the same palette" ("its extra pictures are of PAL height"). The chapter says the game shows only the first 200; which pictures are the crack's is chapter 1's.
+120. `shapes/Rank.iff` is on the disk and its name is in the data at `0x0238C3`, but nothing points at the string and no run opens the file; the briefing draws the shape `rank` from `world.shp` instead. Source: `re/notes/display.md`, "How pictures reach a viewport".
+121. The port carries the reader over rather than replacing it, because its cropping is what puts the first 200 rows of a 256-row picture on the screen and nothing else; a picture whose width differs from the viewport's shears rather than being clipped, and the port keeps the shear. Source: `src/iff.c`, opening comment; `book/docs/part-1/disk.md` (the reader carried over).
+122. The reader is held under the oracle on every picture and palette file of the disk, and the cut by a test of its own (`test_iff_to_vport_matches_on_every_picture`, twelve files; `test_cmap_file_to_table_matches`, six; `test_a_picture_taller_than_its_viewport_is_cut_off`). Source: `tests/test_oracle_m1.py`, `PICTURES` (12 entries, counted), `PALETTE_FILES` (6), the tests' docstrings. The instrument is chapter 5's.
+
+## 11. The dashboard
+
+123. The dashboard is a high-resolution area of 640 x 37 with four planes, 16 colours, the second viewport of each view. Source: `re/notes/display.md`, "Screens" and "The play screen line by line".
+124. It has its own picture by day and by night (`iff-dash`, `nightdash`, 16 colours each) and its own shape container (`dash.shp`, `nightdash.shp`). Source: `re/notes/display.md`, "Day and night"; the files' `CMAP` (16 colours each, counts table).
+125. Its instruments are drawn every pass into the back view's dashboard viewport. Source: `src/dash.c`, opening comment; `re/notes/display.md`, "Double buffering and the swap", step 2.
+126. The instruments, the manual's pages 8 and 9: the weapon counter, the Hellcat counter, the oil pressure and fuel gauges, the 3-D view in the middle, the score counter and the enemy plane counter. Source: `original/manual.txt`, pages 8 and 9; `re/notes/porting-m4.md`, "The pass" (the dashboard's instruments). Cited by page, not quoted.
+127. One cache of every instrument per buffer (`view_caches`, `0x027F30`); an instrument is drawn only when its value differs from what that buffer shows. Source: `re/notes/porting-m4.md`, "The pass"; `src/dash.c`, opening comment.
+128. Why per buffer: the dashboard is double-buffered, so a value drawn into one buffer is not yet in the other; each must be brought up to date separately. Source: `re/notes/display.md`, "Double buffering and the swap" (last sentence of the consequences).
+129. The digits are slices of one shape (dashboard frame 7) blitted without a mask; the score's are clipped to rows 11 to 17. Source: `re/notes/porting-m4.md`, "The pass"; `re/notes/drawing.md`, "The scene routines" (`draw_dashboard`).
+130. The 3-D view is chapter 16's. Source: `book/BOOK.md` 3, chapter 16.
+
+## 12. The ticker
+
+131. The ticker is one plane, 84 bytes a row, of which 80 are shown (`BPL1MOD` = 4): 640 of 672 pixels. Source: `re/notes/display.md`, "The play screen line by line" (the paragraph on the ticker bitmap); `src/screen.c`, `ticker_vport_init` comment.
+132. A modulo is the number of bytes the display skips at the end of each line of a plane. Source: HRM 3 **(reference)**. In a clause.
+133. `vblank_server` draws each new glyph into the hidden 32 pixels at byte 80 and shifts the whole plane left by one pixel on every VBlank while a message runs, with a `roxl` chain over 42 words x 13 rows (`0x011856`–`0x0118C0`): work of the processor inside the interrupt, not a blit. Source: `re/notes/display.md`, the same paragraph; `re/notes/porting-m4.md`, "The pass" (the VBlank's mission half: "while a message runs"); `re/notes/drawing.md`, "Other drawing", the ticker row.
+134. The listing: the plane's end in A0 (`$444` past its start), 13 rows by `dbra`, and in each row 42 `roxl.w -(a0)`, each shifting a word left by one and passing the bit that falls out to the next word on its left through the extend flag. Source: `re/Wings.lst` `0x011856`–`0x0118C0` (42 `roxl.w`, counted; `move.w #$c, d0`; `adda.w #$444, a0`). The extend flag as the carry of `roxl`: PRM **(reference)**, the instruction's description.
+135. A glyph drawn into the hidden 32 pixels slides into view a pixel a VBlank; the next is taken in when the last has scrolled its width. Source: `re/notes/porting-m4.md`, "The pass" ("taking the next character into the hidden column at byte 80 whenever the last one has scrolled its width").
+136. Because it scrolls in the interrupt, the text moves one pixel every VBlank whatever a pass costs. Source: claim 133; `book/docs/part-1/amiga.md`, "The VBlank" (the interrupt keeps its pace whatever the drawing costs). The chapter's reasoning from them.
+137. The ticker does not use the game's text routines: `vblank_server` copies glyph words into the plane itself. Source: `re/notes/drawing.md`, "Text", the last paragraph.
+138. The messages are formatted at run time: the tick writes each with `sprintf` into `ticker_text` (300 bytes) or `ticker_text_2` (102 bytes); a message is taken only while no other runs. Source: `re/notes/display.md`, the ticker paragraph; `re/notes/porting-m4.md`, "The pass".
+139. The ticker is held under the oracle VBlank by VBlank, from a noisy plane until the message has scrolled out (`test_the_ticker_matches_the_original`). Source: `tests/test_oracle_m4.py`, its docstring; `re/notes/porting-m5.md`, "The completeness list". The instrument is chapter 5's.
+140. The listing `vblank_server`'s shift, `0x011856`–`0x0118C0`.
+
+## 13. What the port made of it
+
+141. The port has no planes, no copper and no list: every viewport is one indexed surface at its native width, 320 pixels in low resolution and 640 in high, with its two colour tables, and the palette is applied when the picture is shown. Source: `src/video.c`, opening comment; `src/screen.c`, opening comment; `SPEC.md` 6.4 ("8-bit indexed framebuffers and applies the palette at presentation").
+142. An indexed framebuffer holds a colour number per pixel, one byte; the colours come from a palette applied at presentation. Source: `SPEC.md` 6.4; `src/video.c`; chapter 2's "The port keeps no planes" paragraph (`amiga.md`, "Bitplanes").
+143. Why native width: the drawing works in the game's own coordinates and clipping, on the area's own pixels. Source: `SPEC.md` 6.4 ("identical clipping and identical draw order"); `src/video.c`, opening comment. The chapter's reasoning from these.
+144. The port keeps the same two views and the same chains; installing a list is only saying which view the picture is made from. Source: `src/screen.c`, opening comment; `re/notes/porting-m3.md`, "Views, viewports and what reaches the output".
+145. What the copper builder does that is visible, the blank line above a lower viewport, the colour tables, the split, the flash, the ramps, comes out of the bands `src/screen.c` hands to `src/video.c`, one per run of output rows that share a source row and a set of colours. Source: `src/screen.c`, opening comment; `src/video.c`, `wof_screen_band` comment; `re/notes/porting-m3.md`, the same section.
+146. A band carries its colours with it, because the mechanisms that change colours part way down a screen are runs of rows of one viewport with a table of their own. Source: `src/video.c`, `wof_screen_band` comment.
+147. Two bands that want the same colours share a palette. Source: `src/video.c`, `palette_for` comment.
+148. The picture is 640 x 214 (`WOF_FB_W`, `WOF_FB_H`); at most 48 bands (`WOF_MAX_BANDS`); 24 palettes of 32 colours (`WOF_PAL_COUNT`, `WOF_PAL_COLOURS`); palette 0 reserved and black (`WOF_PAL_BLANK`). Source: `src/wof.h`.
+149. 24 because the story scroller needs seventeen: it changes `COLOR01` on every row of two sixteen-row ramps; the play screen's split and ramp fit in the same budget. Source: `src/wof.h`, the comment above `WOF_PAL_COUNT`; `re/notes/porting-m3.md`, "The story scroller's ring and its ramps"; `tests/test_oracle_m3.py`, `test_the_scrollers_ramps_are_the_grey_ramp_of_the_copper_builder` (`used == 17`).
+150. The scroller's 33 bands carry 17 distinct tables. Source: `src/video.c`, `palette_for` comment. Sheet only.
+151. The play screen of the first mission uses ten palettes in fifteen bands: the sky's, the sea's, black (twice), the dashboard's, and the ticker's ramp in six greys over ten bands. Source: the core at VBlank 759 of the figures' mission run, day and night alike (counts table). The figures box, perhaps.
+152. Palette 0 applies to rows no viewport covers, the blank lines 162 and 200, where the original's list switches the planes off. Source: `SPEC.md` 6.4; `src/video.c`, `wof_screen_present` comment; `src/screen.c`, `wof_screen_from_front_view` comment.
+153. A viewport names its surface by an offset into one block of display memory and its neighbour by an index, so nothing in the core's state is a host pointer, and a saved state of the core, loaded again, brings the picture back with the logic. Source: `re/notes/porting-m3.md`, "Views, viewports and what reaches the output"; `src/video.c`, `wof_vport_pixels` comment; `SPEC.md` 7.3 (`wof_state_save` and `wof_state_load` round-trip exactly) and 6.1 (a save state is the bytes of the core's state, which holds no pointers).
+154. A view's block is 640 x 260, not the machine's `0xACD0` bytes: the story scroller's plane walks 210 rows and the display reads up to row 258; the high-score screen simply fits. Source: `re/notes/porting-m3.md`, the same section; `src/wof.h`, the comment above `WOF_VIEW_W` (`WOF_VIEW_ROWS 260`).
+155. Not ported, because it has no meaning without a copper: the list buffers, the sprite parking, the window and data-fetch registers, the plane pointers; all marked `replace`. Source: `src/screen.c`, opening comment; `SPEC.md` 6.6 ("view and copper construction (its semantics, the colour tables, the split line, the colour pokes and ramps, are reproduced through the palette rows)"); `re/functions.csv`, status `replace` for `view_build_copper`, `cop_vport_split`, `cop_vport_planes`, `cop_set_split_line`, `cop_add_ticker_ramp`, `cop_wait`, `cop_install`.
+156. Of `cop_install` the port keeps the one thing a waiting routine can see: it clears `vblank_flag`, so the next wait really waits. Source: `src/screen.c`, opening comment and `cop_install`.
+157. The listing `wof_band_t` with its comment (`src/wof.h`). Source: `src/wof.h`, lines of `WOF_MAX_BANDS` and `wof_band_t`.
+158. The shell sends the framebuffer and the palettes to the screen; the scaling is chapter 23's. Source: `SPEC.md` 6.2, Video (the framebuffer as a 640 x 214 texture, the palettes and the row table as two small textures); `book/BOOK.md` 3, chapter 23.
+
+## 14. How it is held (one sentence each, in the sections above)
+
+159. The two loops of chapter 8 hold every pass's row colours to a model made from the original's colour tables and split row alone: the split, the flash, the ticker's ramp, day and night. Source: `tests/m4compare.py`, `expected_rows` docstring ("Built from the original's colour tables and `split_row` alone, which is what makes it a separate voice") and `row_differences`; `tests/test_world.py`, `compare_passes.on_pass` (the `rows` check), shown in chapter 8.
+160. The flash's rows are compared on the scripts that fire rockets. Source: `re/notes/porting-m5.md`, "The sky's flash (observed)" ("every pass of them agrees in its rows (`tests/test_weapons.py`)").
+161. The scroller's ramps are held to the copper builder's values as read, `i x 0x111`, and its palettes counted (seventeen); this test runs the port alone. Source: `tests/test_oracle_m3.py`, `test_the_scrollers_ramps_are_the_grey_ramp_of_the_copper_builder`, its docstring and body.
+162. Every row of the picture has a palette, and the native library and the WebAssembly draw the same picture. Source: `tests/test_core_native.py`, `test_palette_rows_cover_the_whole_picture` and `test_native_and_wasm_draw_the_same_picture`.
+163. The page's picture is held to the core's framebuffer, pixel by pixel, in a browser's screenshot; chapter 24's. Source: `tests/picture.py`, its docstring ("Comparing what a browser puts on the screen with the framebuffer it was given"); `book/BOOK.md` 3, chapter 24.
+
+## 15. What comes next and further reading
+
+164. Chapter 12 tells the shapes: what the pixels of these surfaces are made from, the containers, the blit, the mirrors and clipping. Source: `book/BOOK.md` 3, chapter 12.
+165. The further reading: `re/notes/display.md`; `re/notes/porting-m3.md`, "The fades, and the one provisional setting", "Views, viewports and what reaches the output", "The story scroller's ring and its ramps"; `SPEC.md` 6.4; `src/video.c`, `src/screen.c`. Source: the controller's task.
+
+## For the developer (sidebar)
+
+166. The routines: the copper library `0x019958`–`0x01A1F4`, `view_build_copper` `0x01A0D4`, `cop_wait` `0x019A9C`; `BPLCON0` values; the port's `src/video.c` (`wof_screen_band`, `wof_screen_present`), `src/screen.c` (`play_colours`, `band_vport`), `src/iff.c`, `src/fade.c`, `src/dash.c`, `wof_choose_night` in `src/mission.c`; the figures' hook. Source: claims 4, 30, 41, 141 to 157; the files.
+
+## The chapter references the prose makes, each checked against `book/BOOK.md` 3
+
+| Chapter | For | `book/BOOK.md` 3 says |
+|---|---|---|
+| 1 | the picture in its PAL box; the crack's first picture | "What faithful means" (the same pixels and palette; what was left out) |
+| 2 | the copper, bitplanes, the palette split, double buffering | "The Amiga in twenty minutes" |
+| 3 | IFF ILBM, the palette files, `CMP2` | "The disk" |
+| 5 | the oracle | "The oracle" |
+| 7 | the fade step's duration | "Time" ("The fade step, processor time ... set by eye in the port") |
+| 8 | the two loops, the poke | "Porting a mission" |
+| 12 | the shapes and the blit | "Shapes" |
+| 13 | the world, the scrolling, the map | "The world" |
+| 16 | the 3-D view | "The enemy" ("the 3-D view") |
+| 17 | the campaign, the night | "The campaign" ("the night") |
+| 19 | the front end's screens, the story scroller | "The front end and the keys" ("The scroller, the title, the menus") |
+| 23 | the WebGL picture and the two-step scaling | "The shell" |
+| 24 | the page tests | "The tests" ("the page tests under a true scale factor") |
+
+## Counts and where they were counted
+
+| Count | Value | Where, and how, at `1cf35c0` |
+|---|---|---|
+| the screens | 8 routines | `re/notes/display.md`, "Screens", the table's rows, counted |
+| the builder's steps | 6 | `re/notes/display.md`, "The copper builder", counted |
+| a pass's steps | 4 | `re/notes/display.md`, "Double buffering and the swap", counted |
+| the mechanisms of colour | 9 rows | `re/notes/display.md`, "How colours change", counted |
+| the list's first entries | 0 `BPLCON0`, 1 to 32 sprites, 33 wait, 34 `COLOR00`, 35 `COLOR01` | `re/notes/display.md`, "The copper builder" |
+| a list buffer | 1,000 bytes, three | `re/Wings.lst` `0x0166EE`, `0x016702`, `0x016716` (`pea.l $3e8.w`); `cop_init` `0x019968` |
+| sky and sea differ, by day | 15: 2 to 15, 24 | `wof_cmap_file_to_table` through `tests/conftest.py`'s `Ported.cmap_file_to_table` on `shapes/wingspalette` and `shapes/ocean.palette`, compared entry by entry (scratch script, one core) |
+| sky and sea differ, by night | 18: 2 to 15, 20, 22, 23, 24 | the same on `night.p` and `nightocean.p` |
+| colour 1 | `0x0AF` by day in both, `0x000` by night in both | the same |
+| the dashboard's colours | 16 in `iff-dash` and in `nightdash` | `Ported.iff_decode(path, 640, 37, 4)` colours, and the `CMAP` lengths (48 bytes) |
+| the pictures' heights and compression | broderbund 320 x 256 x 4, wingstitle 320 x 256 x 5, creditscreen 320 x 200 x 5, selectrank 320 x 256 x 5, Rank.iff 640 x 256 x 3, hiscoreslab 640 x 200 x 4, hiscore.iff 320 x 75 x 5, iff-dash and nightdash 640 x 37 x 4; compression 1 in all nine | `BMHD` of each file read with `tools/rpck.py`'s `load()` and `int.from_bytes` (scratch script) |
+| the night run | the mission begins at VBlank 659, as the day run | `figures.run_core` with `wt_poke_address(0x025390, 2, 1, 0)` |
+| the play screen's palettes | 10 palettes, 15 bands, day and night alike, at VBlank 759 | `figures.run_core` and the row table (scratch script) |
+| `colour_lerp`, `0x005` to `0x000` | 005 005 005 014 014 014 013 013 013 012 012 012 011 011 011 000 | `Ported.colour_lerp` over steps 0 to 15 (scratch script) |
+| `colour_lerp`, `0x0AF` to `0x000` | 0AF 1AE 19D 19C 18B 17A 179 168 157 156 145 134 133 122 111 000 | the same |
+| `colour_lerp`, `0xFFF` to `0x000` | step 8: `0x1887` | the same; agrees with `re/notes/display.md` |
+| `colour_lerp`, from `0x000` up | equal, step by step, to each component alone, for `0x0AF`, `0xE62`, `0xFFF` | the same |
+| the ticker's shift | 42 `roxl.w`, 51 lines from `0x011856` to `0x0118C0` | `awk '/^011856/,/^0118c0/' re/Wings.lst \| grep -c roxl.w`; `\| wc -l` |
+| `cop_vport_split` in the listing | 50 lines, `0x019C80`–`0x019D16` | `awk` over `re/Wings.lst` |
+| `cop_set_split_line` | 19 lines | the same |
+| `choose_night` | 17 lines | the same |
+| the port's constants | `WOF_FB_W` 640, `WOF_FB_H` 214, `WOF_PAL_COLOURS` 32, `WOF_PAL_COUNT` 24, `WOF_PAL_BLANK` 0, `WOF_MAX_BANDS` 48, `WOF_VIEW_W` 640, `WOF_VIEW_ROWS` 260 | `grep -n` in `src/wof.h` |
+| the fades' cases | 8 | `tests/test_oracle_m3.py`, the decorator's rows |
+| the pictures and palette files under the oracle | 12 and 6 | `tests/test_oracle_m1.py`, `PICTURES`, `PALETTE_FILES` |
+| `choose_night` under the oracle | 2,000 states | `tests/test_oracle_m7.py`, the docstring and the loop |
+| world names absent at the eighth scale | 84 of 184 | `re/notes/shapes.md`, Summary |
+| the instruments | 7 on pages 8 and 9 | `original/manual.txt`, read |
+
+## Figures
+
+- `display-records.svg` (new, drawn by hand under `book/docs/figures/`, its colours commented with their palette entries and held by the build's colour check): claims 15 to 21, 44. View A and view B, each a record of four fields (its cache's offset, its copper list, its first viewport, its bitplane memory); each view's chain, the playfield's viewport with its two colour tables, the dashboard's with one, and the ticker's, shared by both chains; the two list buffers and the spare between them; `COP1LC` pointing at the front view's list. Numbers in it: 14 bytes (claim 15), 1,000 bytes (claim 20), 32 colours (claim 18), the three areas' sizes and planes (claim 25). Colours: the playfield `#00AAFF` (wingspalette 1), the sea's table `#0066AA` (ocean.palette 10), the dashboard `#888899` (wingspalette 28), the ticker `#777777` (wingstitle 13), the records `#FFDD77` (wingstitle 28), the lists `#77AACC` (wingspalette 22), the pointers `#FFBB00` (wingstitle 25), labels `#EEEEEE` (wingstitle 31), the ink `#111122` (wingspalette 6), muted labels `#AAAABB` (wingspalette 29), the spare's frame `#888899` (wingspalette 28).
+- `day-night-palettes.png` (new maker `pairs`): claims 78, 80, 81. Rows by day and by night: the sky's table, the sea's table with each entry that differs from the sky's marked and the count at the row's end, the dashboard picture's colours; each file read as the game reads it, the bare palettes through the port's `wof_cmap_file_to_table` and the dashboard pictures through the port's ILBM reader, both through the native library (`tests/conftest.py`, `Ported`).
+- `night-start.png` (the `screen` maker, a new run `night` in `book/figures.toml` with a poke of `night_flag` at the rank selection's end through the native library's test hook): claim 84. The maker gains `pokes` in a run: a list of an address, a size and a value, made at the rank selection's end through `wt_poke_address` and cleared after the run.
+- `fade-steps.png` (new maker `fade`): claims 99 to 104. Rows of sixteen swatches through the port's `wof_colour_lerp`, each labelled with the 12 bits the hardware shows, framed where the step differs from each component computed alone: from black up to the sky's day colour, `wingspalette` 1, and to `wingspalette` 2 and 31; the sky's colour down to black; `0x005` down to black, the note's example.
+- Not shown again: `beam-copper.svg`, `mission-palettes.png`, `planes-hellcat.png` (chapter 2), `mission-start.png` (chapter 1; referred to).
+
+## Listings
+
+- `cop_vport_split` (kind `asm`, the whole routine, `lines = 50`): claims 37 to 40.
+- `cop_set_split_line` (kind `asm`) beside `wof_cop_set_split_line` (kind `c`), a listing pair: claims 55 to 58.
+- `choose_night` (kind `asm`, `head = true`) beside `wof_choose_night` (kind `c`), a listing pair: claims 72, 76.
+- `vblank_server` from `0x011856` to `0x0118C0`, as `vblank_server_ticker` (kind `asm`, `lines = 51`): claims 133, 134.
+- `wof_band_t` (kind `c`, `file = "src/wof.h"`), the typedef with the comment above `WOF_MAX_BANDS`... the comment directly above the typedef: claim 145. `book/tools/listings.py` gains a typedef for the `c` kind: a `typedef struct { ... } name;` found by its name, with the comment directly above it; `file` may name a header. No existing listing changes.
+- `test_the_fades_agree_with_the_original` (kind `py`, `file = "tests/test_oracle_m3.py"`), with its cases: claims 110, 111.
+
+## Terms and glossary entries
+
+Introduced in chapter 11, in bold with an entry, each "First met and defined in chapter 11" unless an earlier chapter links the entry:
+
+- View: the game's record of one whole screen, 14 bytes: its copper list, its first viewport, its bitplane memory; two exist. Elsewhere: RKM (the system's own View). The detail: `re/notes/display.md`, "Records".
+- Viewport: one area of a view, stacked down the screen, with its own size, mode, bitplanes and colour tables; the play screen has three. Elsewhere: RKM. The detail: the same.
+- Copper list: the list of waits and moves the copper follows; the game builds one for each view in a buffer of its own. Elsewhere: HRM. The detail: `re/notes/display.md`, "The copper builder".
+- Colour table: a viewport's 32 colours, 12 bits each, which the copper builder turns into moves to the colour registers; the playfield has two, the sky's and the sea's. The detail: `re/notes/display.md`, "Records".
+- Display line: a line of the picture counted from its top; display line 0 is beam line 44. The detail: `re/notes/display.md`, "The play screen line by line".
+- Low resolution and High resolution (two entries): 320 and 640 pixels across a line; the playfield is low, the dashboard and the ticker high. Elsewhere: HRM. The detail: `re/notes/display.md`, "Screens".
+- Playfield: the play screen's upper area, 320 x 162 in low resolution with five planes, where the game is played. The detail: the same.
+- Dashboard: the area under the playfield, 640 x 37 in high resolution with four planes, the instruments and the 3-D view. The detail: `re/notes/display.md`; `re/notes/porting-m4.md`, "The pass".
+- Ticker: the message line at the bottom of the play screen, one plane, scrolled a pixel a VBlank by the VBlank server. The detail: `re/notes/display.md`, "The play screen line by line".
+- Eighth-scale view: the view the game switches to while the aircraft is high, eight world pixels to a screen pixel. The detail: `re/notes/map.md`, "World coordinates"; `re/notes/shapes.md`, "MasterList and AthList".
+- Fade: sixteen steps that carry a colour table to another, the list built again at each. The detail: `re/notes/display.md`, "Fades".
+- ByteRun1: the packing of a picture's rows in IFF ILBM, a control byte saying copy the next bytes or repeat the next one. Elsewhere: Wikipedia "PackBits", "ILBM". The detail: `src/iff.c`; `re/notes/display.md`, "How pictures reach a viewport".
+- Indexed framebuffer: the port's picture as one colour number per pixel, the palette applied when it is shown. Elsewhere: Wikipedia "Indexed color". The detail: `SPEC.md` 6.4; `src/video.c`.
+- Band: in the port, a run of output rows that share a source row and a set of colours, which becomes the rows' palette. The detail: `src/video.c`, `src/screen.c`.
+
+Linked at their first use, not redefined: copper, bitplane, chip memory, custom chips, beam, palette, split line, double buffering, VBlank, VBlank server, IFF ILBM, mask, front end, poke, pass, oracle, closed loop, open loop, native library, core, shell, shape container, headless original, entropy stream, listing, register, PAL. Glossed in words without an entry: the sky flash, the story scroller, the modulo, the extend flag.
+
+## Figures boxes
+
+- "The figures" for what the game keeps (claims 15, 16, 18, 20, 21): a view 14 bytes, two; a viewport `0xAC` bytes (172), five; a colour table 32 colours of 12 bits; a list buffer 1,000 bytes, three; one view's planes 44,240 bytes; the ticker's plane 84 x 13 bytes.
+- "The figures" for the port (claims 148, 151, 154): the picture 640 x 214; palettes 24 of 32 colours, palette 0 black; bands at most 48; the play screen 10 palettes in 15 bands; a view's block 640 x 260.
+- The table of the eight screens (claim 25); the play screen line by line (claim 26).
+
+## Sidebars
+
+- For the developer: claim 166.
+
+No "How we know" box and no "What went wrong" box.
+
+## Left to later chapters
+
+The shapes, the containers and the blit (12); the scrolling, the map and world coordinates in full (13); the 3-D view (16); the night as part of the campaign and the saved game (17); the front end's screens, the story scroller's text and its timing (19); the shell's WebGL, the two-step scaling and the aspect (23); the page tests and the picture's comparison (24).
+
+## Where a source was wrong or silent
+
+- The task's outline says that the display memory by offsets lets "a saved game's state" bring the picture back; the sources say a saved state of the core (`wof_state_save`, `wof_state_load`, `SPEC.md` 7.3 and 6.1), which is not the game's own saved game (`wof.mission` files). The chapter says "a saved state of the core".
+- The task's outline lists "the fades and the scroller's ramps against the original over random tables"; the fades are (`test_the_fades_agree_with_the_original`), the scroller's ramps are not: their test runs the port alone against the values the note read (claim 161). The chapter says so.
+- `re/notes/display.md`, "Fades", says the model agrees with the original "on 400 random inputs"; the test has 20,000 random triples and the sweeps of every fade (`tests/test_oracle_m1.py`; chapter 5). The chapter names no count.
+- `re/notes/display.md`, "The split line", calls `0x026E60` "inferred" the vertical scroll position; `re/notes/map.md` and `re/notes/porting-m4.md` give the computation from the player's height as read and observed. The chapter follows the later notes.
+- `re/notes/porting-m4.md`, "The pass", says the flash's poke "lands in the first viewport of the view only, above the split line"; `re/notes/porting-m5.md` adds that it reaches below the split as well where the sea's table gives colour 1 no colour of its own, which is always (claim 65). The chapter follows the later note.
+- The task's sources name `re/notes/porting-m4.md`'s eighth-scale bullet as the source of the switch's height; no note says why the game switches, beyond what changes (claim 91).
+
+## Unsourced
+
+- U1. Why the game switches to the eighth-scale view (to show more of the world, to keep the aircraft on the screen when high): the notes state the switch and its arithmetic, not the purpose. Left out; the chapter says what changes.
+- U2. Why the game builds no View of the system's own (speed, control, the split): the notes state that it does not, not why. The chapter tells what building its own buys from what the notes show (claim 8) and claims no intent.
+- U3. How many processor cycles the ticker's shift takes, and whether it ends before the beam reaches the ticker: not in the notes. Left out.
