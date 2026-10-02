@@ -302,10 +302,3 @@ file = "tests/m4compare.py"
 from = "vblank = 0"
 to = "break"
 as = "replay_end"
-
-# How the port was made, chapter 10: a rule of CLAUDE.md written as a test - the committed
-# listings and inventory are what the disassemblers make from the names, byte for byte.
-[[listing]]
-kind = "py"
-name = "test_the_listings_are_their_regeneration"
-file = "tests/test_generated.py"

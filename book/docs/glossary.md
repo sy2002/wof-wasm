@@ -92,6 +92,20 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amig
 
 Elsewhere: [Blitter](https://en.wikipedia.org/wiki/Blitter), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Branch (version control)
+
+A line of commits kept apart from the repository's main line, so that a worker's changes stay separate until the controller merges them, folding the branch's commits into the main line.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#driving-workers), "Driving workers"; [`CLAUDE.md`](repo:CLAUDE.md#rules), "Rules".
+
+Elsewhere: [Branching (version control)](https://en.wikipedia.org/wiki/Branching%5F(version%5Fcontrol)), Wikipedia.
+
+### Brief
+
+The controller's short account to the owner: where things stand, in a few lines, then every open ask in full, each with its context and a recommendation.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#the-users-conventions), "The user's conventions".
+
 ### BSS
 
 A hunk of memory that starts at zero and is given in the program's file by its size alone; the game's is 4 bytes at `0x028000`.
@@ -151,6 +165,14 @@ The clock the Amiga's custom chips run on, 3,546,895 cycles a second on a PAL ma
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Commit (version control)
+
+A set of changes recorded in the repository's history, with a message saying what they are; every commit of this project carries the owner as its author.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol".
+
+Elsewhere: [Commit (version control)](https://en.wikipedia.org/wiki/Commit%5F(version%5Fcontrol)), Wikipedia.
 
 ### Completeness list
 
@@ -718,7 +740,7 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 
 ### Session
 
-One conversation with an AI coding assistant in a terminal opened in the repository, which reads files, runs commands and commits; what it has read and written, its context, has a limit, and a session whose context fills makes way for a fresh one.
+One conversation with an AI coding assistant in a terminal opened in the repository, which only the owner can open: it reads files, runs commands and commits; what it has read and written, its context, has a limit, and a session whose context fills makes way for a fresh one.
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#the-arrangement), "The arrangement".
 
@@ -878,6 +900,6 @@ Elsewhere: [Workbench (AmigaOS)](https://en.wikipedia.org/wiki/Workbench%5F(Amig
 
 ### Worker
 
-A session that does one task the controller sends it, a milestone or a bounded part of one, on a branch of its own, and reports to the controller alone.
+A session that does the tasks the controller sends it, one at a time, each a milestone or a bounded part of one, on a branch of its own, and reports to the controller alone.
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#what-a-task-contains), "What a task contains".

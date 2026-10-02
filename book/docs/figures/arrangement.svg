@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 500" width="860" height="500" role="img" aria-labelledby="title desc">
   <title id="title">The arrangement</title>
-  <desc id="desc">At the top, the owner. Below, the controller, one session: the owner hands it decisions and findings from the eyes and the ears, and it asks the owner, each ask with a recommendation. To its left a worker, a session with one task on its branch: the controller sends it the task as one message and gets its report, a claim, back. Above that worker, two more workers, idle, opened in advance. To the right, the controller before, whose context is filling, hands the lead to the controller at a quiet point by a message. At the bottom, the repository in one working directory, the handover, holding the code, the notes, the specification and the rules: the main branch, and one task branch out at a time, on which the worker commits; the controller merges it into main after its review and rebuilds the page; the controller before has written everything down there.</desc>
+  <desc id="desc">At the top, the owner, who has one chat and opens every session. Below, the controller, one session: the owner hands it decisions and findings from the eyes and the ears, and it asks the owner, each ask with a recommendation. To its left a worker, a session doing its task on its branch: the controller sends it the task as one message and gets its report, a claim, back. Above that worker, two more workers, idle, opened in advance. To the right, the previous controller, whose context is filling, hands the lead to the controller at a quiet point by a message. At the bottom, the repository in one working directory, the handover, holding the code, the notes, the specification and the rules: the main branch, and one task branch out at a time, on which the worker commits; the controller merges it into main after its review and rebuilds the page; the previous controller has written everything down there.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .owner  { fill: #FFBB00; /* wingstitle 25 */ }
@@ -23,15 +23,16 @@
   </style>
 
   <!-- The owner, at the top: one chat, with the controller alone -->
-  <rect class="owner" x="345" y="20" width="170" height="60" rx="4"/>
-  <text class="ink label" x="430" y="46" text-anchor="middle">the owner</text>
-  <text class="ink small" x="430" y="66" text-anchor="middle">one chat</text>
-  <path class="wire" d="M410 84 L410.0 155.0"/>
+  <rect class="owner" x="345" y="14" width="170" height="72" rx="4"/>
+  <text class="ink label" x="430" y="38" text-anchor="middle">the owner</text>
+  <text class="ink small" x="430" y="57" text-anchor="middle">one chat,</text>
+  <text class="ink small" x="430" y="73" text-anchor="middle">opens every session</text>
+  <path class="wire" d="M410 90 L410.0 155.0"/>
   <path class="light" d="M410 166 L404.5 155.0 L415.5 155.0 Z"/>
   <text class="light small" x="400" y="118" text-anchor="end">decisions, findings,</text>
   <text class="light small" x="400" y="133" text-anchor="end">eyes and ears</text>
-  <path class="wire" d="M450 166 L450.0 95.0"/>
-  <path class="light" d="M450 84 L455.5 95.0 L444.5 95.0 Z"/>
+  <path class="wire" d="M450 166 L450.0 101.0"/>
+  <path class="light" d="M450 90 L455.5 101.0 L444.5 101.0 Z"/>
   <text class="light small" x="460" y="118">asks, each with</text>
   <text class="light small" x="460" y="133">a recommendation</text>
 
@@ -48,7 +49,7 @@
   <text class="light small" x="120" y="122" text-anchor="middle">a worker, idle</text>
   <rect class="work" x="40" y="170" width="160" height="70" rx="4"/>
   <text class="ink label" x="120" y="199" text-anchor="middle">a worker</text>
-  <text class="ink small" x="120" y="219" text-anchor="middle">one task, its branch</text>
+  <text class="ink small" x="120" y="219" text-anchor="middle">its task, on its branch</text>
   <path class="wire" d="M341 192 L215.0 192.0"/>
   <path class="light" d="M204 192 L215.0 186.5 L215.0 197.5 Z"/>
   <text class="light small" x="272" y="183" text-anchor="middle">a task, one message</text>
@@ -56,11 +57,11 @@
   <path class="light" d="M341 220 L330.0 225.5 L330.0 214.5 Z"/>
   <text class="light small" x="272" y="238" text-anchor="middle">its report, a claim</text>
 
-  <!-- The controller before, on the right: the handover at a quiet point -->
+  <!-- The previous controller, on the right: the handover at a quiet point -->
   <rect class="frame" x="660" y="170" width="170" height="70" rx="4"/>
-  <text class="light label" x="745" y="195" text-anchor="middle">the controller</text>
-  <text class="light small" x="745" y="213" text-anchor="middle">the one before,</text>
-  <text class="light small" x="745" y="228" text-anchor="middle">its context filling</text>
+  <text class="light label" x="745" y="193" text-anchor="middle">the previous</text>
+  <text class="light label" x="745" y="211" text-anchor="middle">controller</text>
+  <text class="light small" x="745" y="229" text-anchor="middle">its context filling</text>
   <path class="wire" d="M656 205 L530.0 205.0"/>
   <path class="light" d="M519 205 L530.0 199.5 L530.0 210.5 Z"/>
   <text class="light small" x="588" y="196" text-anchor="middle">the handover</text>
@@ -85,7 +86,7 @@
   <text class="ink label" x="40" y="450">the repository, in one working directory</text>
   <text class="ink small" x="40" y="470">the handover: the code, the notes, the specification and the rules</text>
 
-  <!-- Into the repository: the worker commits on its branch, the controller merges, the controller before wrote everything down -->
+  <!-- Into the repository: the worker commits on its branch, the controller merges, the previous controller wrote everything down -->
   <path class="twork" d="M150 246 L313.9 355.9"/>
   <path class="work" d="M323 362 L310.8 360.4 L316.9 351.3 Z"/>
   <text class="light small" x="200" y="296" text-anchor="end">commits on</text>
