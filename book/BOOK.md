@@ -59,7 +59,7 @@ Three parts, in the owner's arc: the story and the method first, then the game i
 
 **Part III: The code, the tools and the build.**
 
-21. *A tour of the repository.* Where everything is, the notes, the specification, the listing, the chronicle.
+21. *A tour of the repository.* Where everything is, the notes, the specification, the listing, the handbook.
 22. *The core.* The porting rules (the 16-bit int, the registered state, blocking code as coroutines), the arena, the file system, the interface the shell sees.
 23. *The shell.* The clock, the WebGL picture and the two-step scaling, the audio worklet, the keys, the storage, the help screen, the pause sign, fullscreen.
 24. *The tests.* The layers, the two phases, the page tests under a true scale factor, the replays; what one run proves.
@@ -121,5 +121,6 @@ The fact-check and the readability read are fresh Opus agents the controller spa
 | 7. Time | merged, awaiting the owner's read |
 | 8. Porting a mission | merged, awaiting the owner's read |
 | 9. What went wrong, and what caught it | merged, awaiting the owner's read |
+| 10. How the port was made | merged, awaiting the owner's read |
 
 A chapter not listed is a stub. The states, in order: drafted (on its branch); reviewed (the fact-check, the readability read and the controller's read done and folded in); merged, awaiting the owner's read; final (the owner's read done and folded in).
