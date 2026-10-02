@@ -227,3 +227,40 @@ The player's flight, the take-off, the deck, the lift and the landing (14); the 
 | the loop's last record | full scale: screen x 448 when x mod 8 is 0, 449 when 7 (73 or 74 records); eighth scale: −128 to 455, 584 records | the arithmetic of claim 46 |
 | the port's record table | 3,576 words; map m 3,569 records | `src/mission.def` |
 | `MasterList`, `AthList` | 278 entries, 273 filled (184 + 24 + 27 + 13 + 25) | `re/notes/shapes.md`; `src/mission.c` |
+| the wave shapes `wava` to `wave` of `world.shp` | each 96 by 11, hotspot (16, 10) | `ppkc.parse` |
+| the island run | levels at y 109, flies west at full scale; at VBlank 3500 x 3,381; map a's island records from world x 32 (`bchl`) to 3,944 (`bchr`) | a scratch run of the native library (`common.core()`, the run's schedule, `Ported.g`), two seconds; `tools/map_decode.py --map a --list` |
+
+## The controller's notes on the sheet, folded in
+
+1. The height says "down the screen from the horizon's row, four rows a step", the horizon's row named as chapter 11's split line, and keeps the palms standing on different rows (claims 32, 33).
+2. The island figure's caption and alt text claim only what the run computes and checks: the VBlank, the map, the stick's letters of the run, the drawing's copy of the player's x and y and the full scale (`expect` in `book/figures.toml`); nothing about what the picture shows.
+3. The six class heights in a small table beside the routine, the prose saying "six classes"; the draw flag's column in a figures box; the reads by phase in a figures box, the prose keeping that the tick takes one thing and "tens of thousands" for the drawing.
+4. The markers: 278 entries, 273 filled (`re/notes/shapes.md`, "MasterList and AthList", `alloc_pools`, `0x458` bytes), the five past them null, three used by the maps as markers; the island's flag drawn as the record's extra, not through the slot (claims 37, 53).
+5. The port's records: a fixed table of the core's state, cleared before the file is read, with the zeroed-memory rule as what it shares with the arena (claim 14).
+
+## Draft
+
+`book/docs/part-2/world.md`, 3,965 words by `wc -w`. The order of the chapter as drafted: a world in one file (with the table of the fifteen maps), the record bit by bit, from the world to the screen, a picture painted anew, the ground under the aircraft, what the loader builds, what the port made of it, the sidebar, what comes next, further reading. Claims made while drafting that the sheet above did not hold, each with its source:
+
+95. The waves and the island's ground are drawn after the strip, over the rows from the horizon's row down, so a palm lowered by its height shows less of its trunk and an island's palms rise from the shore to different heights. Source: claim 55 (the order: the waves and the islands last); `src/world.c`, `ocean` (the waves at the split row plus 10 less the shape's hotspot y) and `islands` (the fill from the split row); the five wave shapes `wava` to `wave` of `world.shp` are 96 by 11 with the hotspot (16, 10), so they cover the split row and the ten below it (`ppkc.parse`, counts table); `world-island.png` shows palms of different heights over the shore.
+96. A burnt barracks smokes for a while: a puff while its target record's `+0x0C` runs. Source: `src/targets.c`, the comment of `0x014E18`.
+97. Figure `world-island`: VBlank 3500 of the run `island`, the aircraft's drawing x 3,381 and y 109 and the full scale's step 8, which the run checks. Source: `book/figures.toml`, `run.island` and `world-island`; `book/tools/figures.py`, `run_core` (`expect`).
+98. A control in chapter 8's sense is a deliberate change made to see that the test catches it; here the change is to the map. Source: `book/docs/part-1/mission.md`, "Breaking the port on purpose"; claim 64.
+99. The changed record of the control is the first drawn record of slot `0x27` in map a, given slot `0x24` and height 3. Source: the listing of the test (`index = next(...)`, `(0x24 << 2) | (3 << 11)`). The prose says "another slot and another height"; the listing shows the values.
+
+Claims of the sheet that the draft leaves out: 7 (the width's arithmetic), 11 (the reference for `MEMF_CLEAR`, which the prose glosses as the flag that asks for cleared memory), 28 (the target's flag on the third, `0x014AE4`), 47 (in the sidebar), 54 kept as one sentence, 58 (in the sidebar), 62 (left out), 76.
+
+Choices made while drafting:
+
+- The term "map offset" is not introduced; the prose says "a byte offset into the records" once and "the span of the record list" for a ship's span.
+- "View" is not used as a noun; the prose says "where the screen lies in the world" and names `view_x` and `view_y` as the game's variables.
+- The horizon's row is `view_y`, which at full scale is also the row the records are drawn from (`split_row`, unclamped); the copper's split line is the same row clamped to 162, as chapter 11 told. The prose calls the records' row "the horizon's row" throughout.
+- The figure of the island is a screen of the port rendered at a VBlank of a run whose stick follows letters after the mission's start; the letters are those of `tools/pass_observe.py`'s take-off and turn with a longer wait before the weapon is chosen (200 VBlanks for 40: with 40 the aircraft did not leave the deck in this run; the scripts' 40 counts from the end of their own presses in the front end, not from the mission's start) and a shorter climb (190 for 400), found by short runs of the native library (one core, about two seconds each) until the aircraft levelled out at y 109 and flew west over the island at full scale; VBlank 3500 was chosen from three rendered moments (3340, 3500, 3840) for showing palms, a dug-out and the sea in one picture.
+
+## Generator changes, for `book/BOOK.md` 5
+
+- `book/tools/figures.py`: a new maker `maprecord` (a run of a map's records, the columns of one shape: the shape drawn over its columns with its hotspot framed, and each record's sixteen bits grouped by field and decoded with `tools/map_decode.py`'s `fields()`; checked: one drawn record carrying the run's slot, the shape within the run's columns, and `draw_list()` drawing that record at its world x on the row of its height).
+- `book/tools/figures.py`: a run of the core may, after the mission begins, move the stick by `after`, runs of `[VBlanks, letters]` counted from the VBlank after `mission_at`, each letter the bit `tools/headless.py`'s `RAW_BITS` gives it; and may name registered globals in `expect` with the values they must have at a VBlank, which the run checks and fails on otherwise.
+- `book/listings.toml`: five new extracts in the existing kinds (`draw_world_loop`, `draw_list`, `alloc_clear`, `ground_height_answers` and `wof_ground_height_switch`, the changed map's test); no change to `book/tools/listings.py`.
+
+Proposed for `book/BOOK.md` 5, the list of makers in (b): "... one record's bytes, a run of a map's records with their bits, ..." and "a screen's run may carry pokes made at the rank selection's end through the test hooks, and the stick's letters after the mission begins with values it checks".

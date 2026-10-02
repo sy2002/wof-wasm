@@ -348,6 +348,12 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/di
 
 Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbuffering), Wikipedia.
 
+### Draw flag
+
+Bit 15 of a map record: only a record that carries it draws its shape, so that a shape wider than eight pixels, whose slot all its records carry, is drawn once.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record".
+
 ### Dump
 
 The file a run of the headless original writes: the game's whole state when a mission is set up and after every logic tick and every pass, each record with a SHA-256 fingerprint of the state, for the comparisons with the port.
@@ -431,6 +437,12 @@ Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-p
 The game's screens before and between missions: the story, the title, the rank selection, the briefing, the high scores and the dialogs.
 
 First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md).
+
+### Ground height
+
+How high what stands at a map record reaches, which a tick asks for under an object: a class's height less the record's height bits, a ship's deck from the ship's record, or zero; the one thing the game's logic takes from the map.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-ground-height), "The ground height".
 
 ### Handover
 
@@ -653,6 +665,18 @@ The C compiler the game's C was built with: its int, as the game was built, is 1
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
 Elsewhere: [Aztec C](https://en.wikipedia.org/wiki/Aztec%5FC), Wikipedia.
+
+### Map decoder
+
+The project's reader of the map files, [`tools/map_decode.py`](repo:tools/map%5Fdecode.py), written apart from the port: it takes a record apart and predicts the map's draws of a pass, and is held to the original's draws.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-decoder-and-its-controls), "The decoder and its controls".
+
+### Map record
+
+One word of a map file, two bytes for eight pixels of the world from west to east: the draw flag, the height, the slot of its shape and whether it stands on the world or rides on a ship.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
 
 ### Mask
 
@@ -1123,3 +1147,9 @@ Elsewhere: [Workbench (AmigaOS)](https://en.wikipedia.org/wiki/Workbench%5F(Amig
 A session that does the tasks the controller sends it, one at a time, each a milestone or a bounded part of one, on a branch of its own, and reports to the controller alone.
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#what-a-task-contains), "What a task contains".
+
+### World coordinates
+
+Positions in a mission's world: x in pixels from the map's west end, eight to a map record, and y in pixels upward from the water line.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates".
