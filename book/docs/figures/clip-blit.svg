@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 390" width="820" height="390" role="img" aria-labelledby="title desc">
+  <title id="title">One row of a clipped blit</title>
+  <desc id="desc">One row of the screen from pixel 32 to pixel 79, three words of sixteen pixels: 32 to 47, 48 to 63 and 64 to 79. A shape 32 pixels wide is drawn at x 37, so its box covers pixels 37 to 68; the clip rectangle begins at pixel 48, a multiple of 16. The blit spans three words, the shape's two and one more, because 37 is not a multiple of 16. The mask channel A, as the blitter feeds it, is 0 at pixels 32 to 36, where the shift of 5 brings in zeros; 0 at 37 to 47, where the first word mask, 0x001F, has blanked the shape's columns left of the clip; the mask itself at 48 to 68, here set across the whole box; and 0 at 69 to 79, where the last word mask, 0x0000, has blanked the extra word. With the minterm 0xCA a 0 in A leaves the screen's bit as it was, so the pixels written are 48 to 68: the shape's box inside the clip, and nothing else.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .box    { fill: #CCCCDD; /* wingspalette 30 */ }
+    .clip   { fill: #888899; /* wingspalette 28 */ }
+    .one    { fill: #EEEEEE; /* wingstitle 31 */ }
+    .zero   { fill: #111122; /* wingspalette 6 */ stroke: #888899; /* wingspalette 28 */ stroke-width: 1; }
+    .kept   { fill: #111122; /* wingspalette 6 */ stroke: #888899; /* wingspalette 28 */ stroke-width: 1; }
+    .written { fill: #FFBB00; /* wingstitle 25 */ }
+    .span   { stroke: #EE6622; /* wingspalette 2 */ stroke-width: 2; fill: none; }
+    .edge   { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; fill: none; }
+    .word   { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1; stroke-dasharray: 3 3; fill: none; }
+    .brace  { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1.2; fill: none; }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .gold   { fill: #FFBB00; /* wingstitle 25 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="10" y="22">One row of a clipped blit</text>
+  <!-- The three words, pixels 32 to 79, their boundaries through every row -->
+  <text class="muted small" x="284" y="46" text-anchor="middle">a word: pixels 32 to 47</text>
+  <text class="muted small" x="492" y="46" text-anchor="middle">a word: pixels 48 to 63</text>
+  <text class="muted small" x="700" y="46" text-anchor="middle">a word: pixels 64 to 79</text>
+  <line class="word" x1="180" y1="52" x2="180" y2="306"/>
+  <line class="word" x1="388" y1="52" x2="388" y2="306"/>
+  <line class="word" x1="596" y1="52" x2="596" y2="306"/>
+  <line class="word" x1="804" y1="52" x2="804" y2="306"/>
+  <!-- The shape's box: 37 to 68 -->
+  <text class="light" x="10" y="78">the shape's box</text>
+  <rect class="box" x="245" y="64" width="416" height="18" rx="2"/>
+  <text class="ink small" x="249" y="77">x 37</text>
+  <text class="ink small" x="657" y="77" text-anchor="end">68</text>
+  <!-- The clip rectangle, from 48 on -->
+  <text class="light" x="10" y="110">the clip rectangle</text>
+  <rect class="clip" x="388" y="96" width="416" height="18" rx="2"/>
+  <text class="ink small" x="394" y="109">from 48, a multiple of 16</text>
+  <!-- The blit's span: three words -->
+  <text class="light" x="10" y="135">the blit's span,</text>
+  <text class="light" x="10" y="151">three words</text>
+  <rect class="span" x="181" y="128" width="622" height="18" rx="2"/>
+  <!-- A, the mask channel: a cell a pixel, set or 0 -->
+  <text class="light" x="10" y="184">A, the mask,</text>
+  <text class="light" x="10" y="200">as the blitter feeds it</text>
+  <rect class="zero" x="181" y="172" width="11" height="26"/>
+  <rect class="zero" x="194" y="172" width="11" height="26"/>
+  <rect class="zero" x="207" y="172" width="11" height="26"/>
+  <rect class="zero" x="220" y="172" width="11" height="26"/>
+  <rect class="zero" x="233" y="172" width="11" height="26"/>
+  <rect class="zero" x="246" y="172" width="11" height="26"/>
+  <rect class="zero" x="259" y="172" width="11" height="26"/>
+  <rect class="zero" x="272" y="172" width="11" height="26"/>
+  <rect class="zero" x="285" y="172" width="11" height="26"/>
+  <rect class="zero" x="298" y="172" width="11" height="26"/>
+  <rect class="zero" x="311" y="172" width="11" height="26"/>
+  <rect class="zero" x="324" y="172" width="11" height="26"/>
+  <rect class="zero" x="337" y="172" width="11" height="26"/>
+  <rect class="zero" x="350" y="172" width="11" height="26"/>
+  <rect class="zero" x="363" y="172" width="11" height="26"/>
+  <rect class="zero" x="376" y="172" width="11" height="26"/>
+  <rect class="one" x="389" y="172" width="11" height="26"/>
+  <rect class="one" x="402" y="172" width="11" height="26"/>
+  <rect class="one" x="415" y="172" width="11" height="26"/>
+  <rect class="one" x="428" y="172" width="11" height="26"/>
+  <rect class="one" x="441" y="172" width="11" height="26"/>
+  <rect class="one" x="454" y="172" width="11" height="26"/>
+  <rect class="one" x="467" y="172" width="11" height="26"/>
+  <rect class="one" x="480" y="172" width="11" height="26"/>
+  <rect class="one" x="493" y="172" width="11" height="26"/>
+  <rect class="one" x="506" y="172" width="11" height="26"/>
+  <rect class="one" x="519" y="172" width="11" height="26"/>
+  <rect class="one" x="532" y="172" width="11" height="26"/>
+  <rect class="one" x="545" y="172" width="11" height="26"/>
+  <rect class="one" x="558" y="172" width="11" height="26"/>
+  <rect class="one" x="571" y="172" width="11" height="26"/>
+  <rect class="one" x="584" y="172" width="11" height="26"/>
+  <rect class="one" x="597" y="172" width="11" height="26"/>
+  <rect class="one" x="610" y="172" width="11" height="26"/>
+  <rect class="one" x="623" y="172" width="11" height="26"/>
+  <rect class="one" x="636" y="172" width="11" height="26"/>
+  <rect class="one" x="649" y="172" width="11" height="26"/>
+  <rect class="zero" x="662" y="172" width="11" height="26"/>
+  <rect class="zero" x="675" y="172" width="11" height="26"/>
+  <rect class="zero" x="688" y="172" width="11" height="26"/>
+  <rect class="zero" x="701" y="172" width="11" height="26"/>
+  <rect class="zero" x="714" y="172" width="11" height="26"/>
+  <rect class="zero" x="727" y="172" width="11" height="26"/>
+  <rect class="zero" x="740" y="172" width="11" height="26"/>
+  <rect class="zero" x="753" y="172" width="11" height="26"/>
+  <rect class="zero" x="766" y="172" width="11" height="26"/>
+  <rect class="zero" x="779" y="172" width="11" height="26"/>
+  <rect class="zero" x="792" y="172" width="11" height="26"/>
+  <!-- What blanks each stretch of A -->
+  <polyline class="brace" points="181,206 181,212 244,212 244,206"/>
+  <text class="muted small" x="212" y="227" text-anchor="middle">shift 5:</text>
+  <text class="muted small" x="212" y="241" text-anchor="middle">zeros</text>
+  <polyline class="brace" points="246,206 246,212 387,212 387,206"/>
+  <text class="muted small" x="316" y="227" text-anchor="middle">first word mask</text>
+  <text class="muted small" x="316" y="241" text-anchor="middle">0x001F</text>
+  <polyline class="brace" points="389,206 389,212 660,212 660,206"/>
+  <text class="light small" x="524" y="227" text-anchor="middle">the mask: set</text>
+  <text class="light small" x="524" y="241" text-anchor="middle">across the box</text>
+  <polyline class="brace" points="662,206 662,212 803,212 803,206"/>
+  <text class="muted small" x="732" y="227" text-anchor="middle">last word mask</text>
+  <text class="muted small" x="732" y="241" text-anchor="middle">0x0000</text>
+  <!-- D, the screen's row: written where A is 1, kept where it is 0 -->
+  <text class="light" x="10" y="282">the screen's row</text>
+  <rect class="kept" x="181" y="268" width="11" height="26"/>
+  <rect class="kept" x="194" y="268" width="11" height="26"/>
+  <rect class="kept" x="207" y="268" width="11" height="26"/>
+  <rect class="kept" x="220" y="268" width="11" height="26"/>
+  <rect class="kept" x="233" y="268" width="11" height="26"/>
+  <rect class="kept" x="246" y="268" width="11" height="26"/>
+  <rect class="kept" x="259" y="268" width="11" height="26"/>
+  <rect class="kept" x="272" y="268" width="11" height="26"/>
+  <rect class="kept" x="285" y="268" width="11" height="26"/>
+  <rect class="kept" x="298" y="268" width="11" height="26"/>
+  <rect class="kept" x="311" y="268" width="11" height="26"/>
+  <rect class="kept" x="324" y="268" width="11" height="26"/>
+  <rect class="kept" x="337" y="268" width="11" height="26"/>
+  <rect class="kept" x="350" y="268" width="11" height="26"/>
+  <rect class="kept" x="363" y="268" width="11" height="26"/>
+  <rect class="kept" x="376" y="268" width="11" height="26"/>
+  <rect class="written" x="389" y="268" width="11" height="26"/>
+  <rect class="written" x="402" y="268" width="11" height="26"/>
+  <rect class="written" x="415" y="268" width="11" height="26"/>
+  <rect class="written" x="428" y="268" width="11" height="26"/>
+  <rect class="written" x="441" y="268" width="11" height="26"/>
+  <rect class="written" x="454" y="268" width="11" height="26"/>
+  <rect class="written" x="467" y="268" width="11" height="26"/>
+  <rect class="written" x="480" y="268" width="11" height="26"/>
+  <rect class="written" x="493" y="268" width="11" height="26"/>
+  <rect class="written" x="506" y="268" width="11" height="26"/>
+  <rect class="written" x="519" y="268" width="11" height="26"/>
+  <rect class="written" x="532" y="268" width="11" height="26"/>
+  <rect class="written" x="545" y="268" width="11" height="26"/>
+  <rect class="written" x="558" y="268" width="11" height="26"/>
+  <rect class="written" x="571" y="268" width="11" height="26"/>
+  <rect class="written" x="584" y="268" width="11" height="26"/>
+  <rect class="written" x="597" y="268" width="11" height="26"/>
+  <rect class="written" x="610" y="268" width="11" height="26"/>
+  <rect class="written" x="623" y="268" width="11" height="26"/>
+  <rect class="written" x="636" y="268" width="11" height="26"/>
+  <rect class="written" x="649" y="268" width="11" height="26"/>
+  <rect class="kept" x="662" y="268" width="11" height="26"/>
+  <rect class="kept" x="675" y="268" width="11" height="26"/>
+  <rect class="kept" x="688" y="268" width="11" height="26"/>
+  <rect class="kept" x="701" y="268" width="11" height="26"/>
+  <rect class="kept" x="714" y="268" width="11" height="26"/>
+  <rect class="kept" x="727" y="268" width="11" height="26"/>
+  <rect class="kept" x="740" y="268" width="11" height="26"/>
+  <rect class="kept" x="753" y="268" width="11" height="26"/>
+  <rect class="kept" x="766" y="268" width="11" height="26"/>
+  <rect class="kept" x="779" y="268" width="11" height="26"/>
+  <rect class="kept" x="792" y="268" width="11" height="26"/>
+  <text class="gold small" x="524" y="316" text-anchor="middle">written: 48 to 68</text>
+  <text class="muted small" x="284" y="316" text-anchor="middle">kept</text>
+  <text class="muted small" x="732" y="316" text-anchor="middle">kept</text>
+  <!-- The clip's edge through the rows -->
+  <line class="edge" x1="388" y1="92" x2="388" y2="300"/>
+  <!-- The rule -->
+  <text class="light" x="10" y="350">With the minterm <tspan class="mono">0xCA</tspan>, D = A and B, or not A and C: where A is 0, the screen keeps its own bit.</text>
+  <text class="light" x="10" y="372">So the pixels written are the shape's box inside the clip, and no other, wherever the shape lies.</text>
+</svg>

@@ -24,9 +24,10 @@
 #           outside the kind's directory (not for asm; always for json)
 #   from    asm: the part of the routine from this address ...
 #   to      ... to the instruction at this address, both inclusive
-#           py: the part of the function from the first of its lines that holds the text
-#           `from` to the first line at or after it that holds the text `to`, both inclusive,
-#           dedented (give the part a name with `as`)
+#           py and c: the part of the function from the first of its lines that holds the
+#           text `from` to the first line at or after it that holds the text `to`, both
+#           inclusive, dedented (give the part a name with `as`); a c part without `to` runs
+#           to the function's end
 #   head    asm only: true keeps the header the listing gives the routine above its label
 #           (its kind, frame, far-call slot, comment and callers); for a part, only from the start
 #   as      the name of the extract, where it is not the routine's (a part, say)
@@ -352,3 +353,53 @@ name = "play_colours"
 kind = "py"
 name = "test_the_fades_agree_with_the_original"
 file = "tests/test_oracle_m3.py"
+
+# Shapes, chapter 12: the lookup by name, an early exit over ascending names, beside its port.
+[[listing]]
+kind = "asm"
+name = "shape_find"
+
+[[listing]]
+kind = "c"
+name = "wof_shape_find"
+
+# A shape drawn from a pointer table: the slot times four loads the record's address, and the
+# hotspot is taken off the position before shape_draw (re/notes/drawing.md, "The scene routines").
+[[listing]]
+kind = "asm"
+name = "draw_world_shape"
+
+# The mask chosen by size and by the number of stored planes: none, the one plane, or the OR
+# of the planes in MaskBuffer (re/notes/drawing.md, "What shape_draw does, exactly").
+[[listing]]
+kind = "asm"
+name = "shape_draw"
+to = 0x020D26
+as = "shape_draw_mask"
+
+# The mirror in place: the bytes of each row swapped from both ends through bit_reverse_table,
+# the hotspot turned round; beside the port, one reversal of each row of pixels.
+[[listing]]
+kind = "asm"
+name = "shape_mirror_x"
+head = true
+lines = 48
+
+[[listing]]
+kind = "c"
+name = "wof_shape_mirror_x"
+
+# The port's blit per pixel: the clear and set bytes and the planes' union folded into two
+# bytes, the mask as a pixel that is not 0, one line that writes the pixel.
+[[listing]]
+kind = "c"
+name = "shape_blit"
+file = "src/draw.c"
+from = "uint8_t M"
+as = "shape_blit_pixels"
+
+# The test that leaves the port out: a blit touches nothing outside the shape's box and the clip.
+[[listing]]
+kind = "py"
+name = "test_the_blit_writes_exactly_the_shape_box"
+file = "tests/test_oracle_m1.py"

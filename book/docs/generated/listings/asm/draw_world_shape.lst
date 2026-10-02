@@ -1,0 +1,27 @@
+; re/Wings.lst 0x015174-0x0151C0: draw_world_shape [asm]
+draw_world_shape:
+015174  48e7f0c0             movem.l    d0-d3/a0-a1, -(a7)
+015178  4441                 neg.w      d1
+01517a  d27c000b             add.w      #$b, d1
+01517e  d26c9f34             add.w      -$60cc(a4), d1                         ; view_y
+015182  906c9f32             sub.w      -$60ce(a4), d0                         ; view_x
+015186  4a6c9f36             tst.w      -$60ca(a4)                             ; view_shift
+01518a  67000006             beq.w      $15192
+01518e  e640                 asr.w      #$3, d0
+015190  e641                 asr.w      #$3, d1
+loc_015192:
+015192  b07cff80             cmp.w      #$ff80, d0
+015196  6d000024             blt.w      $151bc
+01519a  b07c01c0             cmp.w      #$1c0, d0
+01519e  6e00001c             bgt.w      $151bc
+0151a2  d442                 add.w      d2, d2
+0151a4  d442                 add.w      d2, d2
+0151a6  20702000             movea.l    (a0, d2.w), a0
+0151aa  93c9                 suba.l     a1, a1
+0151ac  90680004             sub.w      $4(a0), d0
+0151b0  92680006             sub.w      $6(a0), d1
+0151b4  2c6cb93a             movea.l    -$46c6(a4), a6                         ; custom_base
+0151b8  4eac832c             jsr        -$7cd4(a4)                             ; -> shape_draw
+loc_0151bc:
+0151bc  4cdf030f             movem.l    (a7)+, d0-d3/a0-a1
+0151c0  4e75                 rts

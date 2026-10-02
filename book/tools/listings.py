@@ -15,7 +15,9 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
     skel the control-flow skeleton of a routine of re/Wings.lst, by its name: what
          tools/skel.py prints for it, run at build time
     c    src/*.c, a C function, or a variable at file scope, by its name, with the comment
-         directly above it
+         directly above it; or a part of a function, from the first of its lines that holds
+         the text `from` to the first line at or after it that holds the text `to`, or to the
+         function's end without `to`, dedented
     js   web/*.js, a function or a method by its name, with the comment directly above it
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
          its name (a method as Class.method, a function inside a function as outer.inner), or a
@@ -428,18 +430,22 @@ def source_extract(entry):
 
 
 def py_part(entry, lines):
-    """The part of a Python definition an entry names by two texts: from the first line that
-    holds `from` to the first line at or after it that holds `to`, both inclusive, as indices
-    into the definition's lines."""
-    name, start, stop = entry['name'], entry.get('from'), entry.get('to')
+    """The part of a Python or C definition an entry names by two texts: from the first line
+    that holds `from` to the first line at or after it that holds `to`, both inclusive, as
+    indices into the definition's lines; without `to`, a C part runs to the function's end."""
+    kind, name, start, stop = entry['kind'], entry['name'], entry.get('from'), entry.get('to')
+    if stop is None and kind == 'c':
+        stop = lines[-1]
     if not isinstance(start, str) or not isinstance(stop, str):
-        raise Failure('py %s: a part takes from and to, both texts of its lines' % name)
+        raise Failure('%s %s: a part takes from and to, both texts of its lines' % (kind, name))
     lo = next((i for i, line in enumerate(lines) if start in line), None)
     if lo is None:
-        raise Failure('py %s: no line holds %r' % (name, start))
+        raise Failure('%s %s: no line holds %r' % (kind, name, start))
+    if stop == lines[-1] and 'to' not in entry:
+        return lo, len(lines) - 1
     hi = next((i for i in range(lo, len(lines)) if stop in lines[i]), None)
     if hi is None:
-        raise Failure('py %s: no line at or after %r holds %r' % (name, start, stop))
+        raise Failure('%s %s: no line at or after %r holds %r' % (kind, name, start, stop))
     return lo, hi
 
 
@@ -493,8 +499,8 @@ def extract(entry, table, listing):
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
     if 'head' in entry and entry['kind'] != 'asm':
         raise Failure('%s %s: head is for asm only' % (entry['kind'], entry['name']))
-    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'py'):
-        raise Failure('%s %s: from and to are for asm and py only' % (entry['kind'], entry['name']))
+    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'py', 'c'):
+        raise Failure('%s %s: from and to are for asm, py and c only' % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
     elif entry['kind'] == 'json':

@@ -1,0 +1,40 @@
+; re/Wings.lst 0x020560-0x0205B2: shape_find [asm]
+shape_find:
+020560  48e74040             movem.l    d1/a1, -(a7)
+020564  32280004             move.w     $4(a0), d1
+020568  4a41                 tst.w      d1
+02056a  6f3e                 ble.b      $205aa
+02056c  43e80006             lea.l      $6(a0), a1
+loc_020570:
+020570  b099                 cmp.l      (a1)+, d0
+020572  5fc9fffc             dble       d1, $20570
+020576  5989                 subq.l     #$4, a1
+020578  2209                 move.l     a1, d1
+02057a  9288                 sub.l      a0, d1
+02057c  5d81                 subq.l     #$6, d1
+02057e  e489                 lsr.l      #$2, d1
+020580  b091                 cmp.l      (a1), d0
+020582  6626                 bne.b      $205aa
+020584  30280004             move.w     $4(a0), d0
+020588  48c0                 ext.l      d0
+02058a  e588                 lsl.l      #$2, d0
+02058c  2248                 movea.l    a0, a1
+02058e  d3c0                 adda.l     d0, a1
+020590  48c1                 ext.l      d1
+020592  e589                 lsl.l      #$2, d1
+020594  d3c1                 adda.l     d1, a1
+020596  5c89                 addq.l     #$6, a1
+020598  2011                 move.l     (a1), d0
+02059a  d088                 add.l      a0, d0
+02059c  32280004             move.w     $4(a0), d1
+0205a0  48c1                 ext.l      d1
+0205a2  e789                 lsl.l      #$3, d1
+0205a4  d081                 add.l      d1, d0
+0205a6  5c80                 addq.l     #$6, d0
+0205a8  6002                 bra.b      $205ac
+loc_0205aa:
+0205aa  7000                 moveq      #$0, d0
+loc_0205ac:
+0205ac  2040                 movea.l    d0, a0
+0205ae  4cdf0202             movem.l    (a7)+, d1/a1
+0205b2  4e75                 rts

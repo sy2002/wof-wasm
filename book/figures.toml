@@ -9,7 +9,8 @@
 #   maker    screen     the port's 640 x 214 picture through its per-row palettes
 #                       (tests/m4_renders.py, picture()), at a VBlank of a run
 #            palettes   the per-row palettes of that picture, one band per run of rows
-#            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet())
+#            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet()), or of
+#                       shapes picked from several (`pick`), packed with `layout = "packed"`
 #            map        a map's drawn records (tools/map_decode.py, draw_list())
 #            font       a specimen of the game's font, drawn by the port's text_render
 #            planes     one shape taken apart into its stored planes and put together again
@@ -24,6 +25,12 @@
 #                       side, the entries that differ from another table marked and counted
 #            fade       the sixteen steps of fades through the port's colour_lerp, framed where
 #                       a step differs from each component computed alone
+#            record     one record of a shape container byte by byte: its header field by field,
+#                       its stored planes beside their bits, its colours with the hotspot framed
+#            clearset   shapes over plain grounds by the blit's rule and without their clear and
+#                       set bytes, the rule checked against the port's blit (the native library)
+#            mirror     one shape as stored and as shape_mirror_x leaves it, the hotspot framed,
+#                       checked against the pixels reversed and the port's mirror
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -380,3 +387,64 @@ rows = [
     {from = ["wingspalette", 1], to = 0x000, note = "down: the day's sky"},
     {from = 0x005, to = 0x000, note = "down: a dark blue"},
 ]
+
+[[figure]]
+name = "record-smk3"
+file = "record-smk3.png"
+maker = "record"
+container = "world.shp"
+shape = "smk3"
+palette = "wingspalette"
+mark = ["wingstitle", 25]
+zoom = 11
+columns = 2
+scale = 2
+shows = "The whole record of smk3 of world.shp, one of the smoke's shapes: its header of twenty bytes field by field, each with its name and value, then its three stored planes, a row of the shape to a line, each row's two bytes beside its sixteen bits, and its colours through wingspalette with the hotspot framed."
+how = "The container unpacked by tools/rpck.py's load(); the record from its entry's offset to the next, checked against tools/ppkc.py's parse(); the fields as re/notes/shapes.md, \"Record header, complete\", names them, the planes counted from 1; the planes put together through their masks checked against to_indexed(); each pixel eleven wide and high, the whole twice enlarged, the hotspot framed in entry 25 of the title picture's palette."
+command = ".venv/bin/python book/tools/figures.py record-smk3"
+
+[[figure]]
+name = "clearset"
+file = "clearset.png"
+maker = "clearset"
+palette = "wingspalette"
+grounds = [1, 17]
+# The container's number in the port (src/wof.h; tests/test_oracle_m1.py, CONTAINERS): 4 is
+# 8thscale.shp, 9 japcarrier.shp.
+shapes = [{container = "8thscale.shp", shape = "tre1", slot = 4, zoom = 6},
+          {container = "japcarrier.shp", shape = "jcrm", slot = 9, zoom = 1}]
+scale = 2
+shows = "The clear and set bytes at work: tre1 of 8thscale.shp, a palm at the eighth scale, clear byte 10, and jcrm of japcarrier.shp, set byte 18, each drawn over the sky's colour 1 and over colour 17, by the game's rule and without the two bytes, with the colours that come out."
+how = "The shapes' pixels from tools/ppkc.py's to_indexed(); each pixel by the blit's rule (re/notes/porting-m1.md, \"The blit is per-pixel, and why\") on a five-plane target, the mask the pixel not 0, once with the record's clear and set bytes and once with both 0; the rule's result checked against the port's wof_shape_draw through the native library (tests/shim.c, wt_blit) over a background of the same colour; two pixels of ground around each shape, tre1 six times enlarged and jcrm once, the whole twice."
+command = ".venv/bin/python book/tools/figures.py clearset"
+
+[[figure]]
+name = "mirror-hc05"
+file = "mirror-hc05.png"
+maker = "mirror"
+container = "hellcat.shp"
+shape = "hc05"
+# The container's number in the port: 1 is hellcat.shp.
+slot = 1
+palette = "wingspalette"
+mark = ["wingstitle", 25]
+zoom = 4
+scale = 2
+shows = "The Hellcat hc05 as hellcat.shp stores it and mirrored, its hotspot framed in both: (25, 8) and (22, 8)."
+how = "tools/ppkc.py's parse(); the mirror computed on the stored planes by shape_mirror_x's rule (orig 0x015B58: in each row the bytes swapped from both ends and each byte's bits reversed, the hotspot's x made 8 times the width less 1 less itself), checked against to_indexed()'s rows reversed and against the port's wof_shape_mirror_x through the native library, mirrored back after; each pixel four wide and high, the whole twice enlarged, the hotspot framed in entry 25 of the title picture's palette."
+command = ".venv/bin/python book/tools/figures.py mirror-hc05"
+
+[[figure]]
+name = "opaque-hulls"
+file = "opaque-hulls.png"
+maker = "shapes"
+pick = [["world.shp", "fcar"], ["world.shp", "mcar"], ["world.shp", "rcar"],
+        ["battleship.shp", "batb"], ["battleship.shp", "batm"], ["battleship.shp", "batf"],
+        ["cruiseship.shp", "crus"], ["destroyer.shp", "dstb"], ["destroyer.shp", "dstm"],
+        ["japcarrier.shp", "jrmt"]]
+layout = "packed"
+palette = "wingspalette"
+shows = "The ten hull pieces too large for a mask, from world.shp and the four ship containers, in the day palette: none holds colour 0, and nine carry the sky's colour 1 around the hull."
+how = "tools/ppkc.py's parse() and packed_sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, colour 0 left as the sheet's ground, the tallest first, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py opaque-hulls"
+

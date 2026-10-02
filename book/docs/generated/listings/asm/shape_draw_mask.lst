@@ -1,0 +1,31 @@
+; re/Wings.lst 0x020CE2-0x020D26: shape_draw [asm], a part of 0x020CE2-0x020DE9
+shape_draw:
+020ce2  b2fc0000             cmpa.w     #$0, a1
+020ce6  6600fe24             bne.w      $20b0c
+020cea  3f00                 move.w     d0, -(a7)
+020cec  3010                 move.w     (a0), d0
+020cee  c0e80002             mulu.w     $2(a0), d0
+020cf2  b0acc43c             cmp.l      -$3bc4(a4), d0                         ; MaskBuffer_size
+020cf6  6306                 bls.b      $20cfe
+020cf8  301f                 move.w     (a7)+, d0
+020cfa  6000fe10             bra.w      $20b0c
+loc_020cfe:
+020cfe  48e740b6             movem.l    d1/a0/a2-a3/a5-a6, -(a7)
+020d02  43e8000e             lea.l      $e(a0), a1
+020d06  72ff                 moveq      #$ff, d1
+loc_020d08:
+020d08  5241                 addq.w     #$1, d1
+020d0a  4a19                 tst.b      (a1)+
+020d0c  66fa                 bne.b      $20d08
+020d0e  5341                 subq.w     #$1, d1
+020d10  6214                 bhi.b      $20d26
+020d12  6604                 bne.b      $20d18
+020d14  4e71                 nop
+020d16  4e71                 nop
+loc_020d18:
+020d18  43e80014             lea.l      $14(a0), a1
+020d1c  670000a8             beq.w      $20dc6
+020d20  93c9                 suba.l     a1, a1
+020d22  600000a2             bra.w      $20dc6
+loc_020d26:
+020d26  226cc438             movea.l    -$3bc8(a4), a1                         ; MaskBuffer

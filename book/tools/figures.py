@@ -15,7 +15,8 @@ made and the command that remakes it, and writes PNG files:
                into dist/wof.html), through its per-row palettes with tests/m4_renders.py's
                picture(), scaled into the PAL box
     palettes   the per-row palettes of that picture, one labelled band per run of rows
-    shapes     a contact sheet of a shape container with tools/ppkc.py
+    shapes     a contact sheet of a shape container with tools/ppkc.py, or of shapes picked
+               from several, as a grid or packed
     map        a map's drawn records with tools/map_decode.py and the shapes of tools/ppkc.py
     font       a specimen of the game's font, drawn by the core's text_render
     planes     one shape of a container taken apart into its stored planes with tools/ppkc.py,
@@ -32,6 +33,12 @@ made and the command that remakes it, and writes PNG files:
                through the native library, the entries that differ from another table marked
     fade       the sixteen steps of fades through the port's colour_lerp, each step's colour
                and its twelve bits, framed where the carry between components shows
+    record     one record of a shape container byte by byte: its header field by field, its
+               stored planes beside their bits, its colours with the hotspot framed
+    clearset   shapes drawn over plain grounds by the blit's rule and without their clear and
+               set bytes, the rule checked against the port's blit through the native library
+    mirror     one shape as stored and as shape_mirror_x leaves it, the hotspot framed in
+               both, checked against the pixels reversed and against the port's mirror
 
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
@@ -212,10 +219,21 @@ def make_palettes(figure, shot, path):
 
 
 def make_shapes(figure, path):
+    """A contact sheet of tools/ppkc.py: every shape of `container`, or the shapes `pick`
+    names as [container, name] pairs from several containers, in their order; laid out as a
+    grid by sheet(), or with `layout = "packed"` by packed_sheet()."""
     tool = ppkc()
-    shapes = tool.parse(str(SHAPES / figure['container']))
+    if 'pick' in figure:
+        shapes = []
+        for container, name in figure['pick']:
+            found = [s for s in tool.parse(str(SHAPES / container)) if s['name'].strip() == name]
+            if not found:
+                raise Failure('%s has no shape %s' % (container, name))
+            shapes.append(found[0])
+    else:
+        shapes = tool.parse(str(SHAPES / figure['container']))
     flat = tool.load_cmap(str(SHAPES / figure['palette']))
-    tool.sheet(shapes, flat, str(path))
+    (tool.packed_sheet if figure.get('layout') == 'packed' else tool.sheet)(shapes, flat, str(path))
 
 
 def executable_names(table):
@@ -880,6 +898,299 @@ def make_fade(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+# ------------------------------------------------------------------ one record, its rule, its mirror
+
+def planes_named(byte):
+    """The screen's planes a byte of a record names, counted from 1 as chapter 2 counts them."""
+    named = [str(i + 1) for i in range(8) if byte >> i & 1]
+    if not named:
+        return 'none'
+    if len(named) == 1:
+        return 'plane %s' % named[0]
+    return 'planes %s and %s' % (', '.join(named[:-1]), named[-1])
+
+
+def record_of(container, name):
+    """The record of shape `name` as the unpacked container holds it: its offset in the
+    unpacked file and its bytes, from its entry's offset to the next entry's, checked against
+    tools/ppkc.py's parse() of the same container."""
+    import rpck
+    image, _ = rpck.load(str(SHAPES / container))
+    count = int.from_bytes(image[4:6], 'big')
+    names = [image[6 + 4 * i:10 + 4 * i].decode('latin1').strip() for i in range(count)]
+    if name not in names:
+        raise Failure('%s has no shape %s' % (container, name))
+    index = names.index(name)
+    table = 6 + 4 * count
+    offsets = [int.from_bytes(image[table + 4 * i:table + 4 * i + 4], 'big') for i in range(count)]
+    base = 6 + 8 * count
+    start = base + offsets[index]
+    end = base + offsets[index + 1] if index + 1 < count else len(image)
+    record = image[start:end]
+    shape = ppkc().parse(str(SHAPES / container))[index]
+    if record[20:] != shape['data'] or len(record) != 20 + shape['wbytes'] * shape['h'] * len(shape['masks']):
+        raise Failure('%s %s: the record is not what tools/ppkc.py parses' % (container, name))
+    return index, start, record, shape
+
+
+def make_record(figure, path):
+    """One record of a shape container, byte by byte: its header field by field with each
+    field's name and value (re/notes/shapes.md, "Record header, complete"), then each stored
+    plane, a row of the shape to a line, its bytes beside its bits, with the planes its mask
+    names; last the shape's colours through a palette, the hotspot framed.  The planes put
+    together through their masks are checked against tools/ppkc.py's to_indexed()."""
+    from PIL import Image, ImageDraw
+    index, start, record, shape = record_of(figure['container'], figure['shape'])
+    wb, height = shape['wbytes'], shape['h']
+    width = 8 * wb
+    word = lambda at: int.from_bytes(record[at:at + 2], 'big')
+    signed = lambda at: word(at) - 0x10000 if word(at) & 0x8000 else word(at)
+    masks = shape['masks']
+    clear, setb = record[12], record[13]
+    fields = [(0, 2, 'width in bytes', '%d: %d pixels' % (wb, width)),
+              (2, 2, 'height', '%d rows' % height),
+              (4, 2, 'hotspot x', '%d' % signed(4)),
+              (6, 2, 'hotspot y', '%d' % signed(6)),
+              (8, 2, 'cut position x', '%d' % word(8)),
+              (10, 2, 'cut position y', '%d' % word(10)),
+              (12, 1, 'clear byte', planes_named(clear)),
+              (13, 1, 'set byte', planes_named(setb)),
+              (14, 6, 'plane masks', '; '.join(planes_named(m) for m in masks) + ', then 0')]
+    planes = []
+    for i, mask in enumerate(masks):
+        data = record[20 + i * wb * height:20 + (i + 1) * wb * height]
+        planes.append((mask, data, [[data[y * wb + (x >> 3)] >> (7 - (x & 7)) & 1
+                                      for x in range(width)] for y in range(height)]))
+    numbers = [[0] * width for _ in range(height)]
+    for mask, _, bits in planes:
+        for y in range(height):
+            for x in range(width):
+                if bits[y][x]:
+                    numbers[y][x] |= mask
+    if numbers != ppkc().to_indexed(shape):
+        raise Failure('%s: the planes do not make the pixels of tools/ppkc.py' % figure['shape'])
+    colours = palette(figure['palette'])
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    hx, hy = signed(4), signed(6)
+
+    margin, line, cell, zoom = 6, 13, 18, figure['zoom']
+    off_x, bytes_x, name_x, value_x = margin, margin + 34, margin + 34 + 6 * cell + 4, 0
+    value_x = name_x + 96
+    hex_w = wb * cell
+    block_w = hex_w + 6 + width * zoom
+    block_h = line + height * zoom
+    gap = 18
+    top = margin + line + 4
+    header_h = len(fields) * line
+    blocks_y = top + header_h + 10
+    columns = figure.get('columns', 2)
+    blocks = [('+%d, stored plane %d, mask %02X: %s' % (20 + i * wb * height, i + 1, mask,
+                                                       planes_named(mask)), data, bits)
+              for i, (mask, data, bits) in enumerate(planes)]
+    blocks.append(('its colours through %s' % figure['palette'], None, None))
+    rows = (len(blocks) + columns - 1) // columns
+    widest = max(len(b[0]) for b in blocks) * 6
+    column_w = max(block_w, widest) + gap
+    image = Image.new('RGB', (max(margin + columns * column_w, value_x + 200),
+                              blocks_y + rows * (block_h + gap) + margin), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s, %s: its record, %d bytes at 0x%04X of the unpacked file'
+         % (figure['container'], figure['shape'], len(record), start))
+    for r, (at, size, name, value) in enumerate(fields):
+        y = top + r * line
+        draw.text((off_x, y), '+%d' % at, fill=MUTED, font=ppkc().FONT)
+        for k in range(size):
+            draw.text((bytes_x + k * cell, y), '%02X' % record[at + k], fill=LABEL, font=ppkc().FONT)
+        text(draw, (name_x, y), name)
+        text(draw, (value_x, y), value)
+    for b, (title, data, bits) in enumerate(blocks):
+        x0 = margin + (b % columns) * column_w
+        y0 = blocks_y + (b // columns) * (block_h + gap)
+        text(draw, (x0, y0), title)
+        px0, py0 = x0 + hex_w + 6, y0 + line
+        draw.rectangle((px0, py0, px0 + width * zoom - 1, py0 + height * zoom - 1), fill=PANEL)
+        for y in range(height):
+            if data is not None:
+                for k in range(wb):
+                    draw.text((x0 + k * cell, py0 + y * zoom + (zoom - 11) // 2),
+                              '%02X' % data[y * wb + k], fill=LABEL, font=ppkc().FONT)
+            for x in range(width):
+                if bits is not None:
+                    ink = LABEL if bits[y][x] else None
+                else:
+                    ink = colours[numbers[y][x]] if numbers[y][x] else None
+                if ink:
+                    draw.rectangle((px0 + x * zoom, py0 + y * zoom, px0 + (x + 1) * zoom - 1,
+                                    py0 + (y + 1) * zoom - 1), fill=ink)
+        if data is None:
+            draw.rectangle((px0 + hx * zoom - 1, py0 + hy * zoom - 1, px0 + (hx + 1) * zoom,
+                            py0 + (hy + 1) * zoom), outline=mark)
+            text(draw, (x0, py0 + height * zoom + 2), 'the hotspot (%d, %d) framed' % (hx, hy))
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def blit_rule(v, p, clear, setb, union, masked, depth=5):
+    """One pixel as shape_blit leaves it (re/notes/porting-m1.md, "The blit is per-pixel, and
+    why"): unchanged where a masked shape's pixel is 0, else the clear planes, the set planes
+    and the stored planes in that order."""
+    m = (1 << depth) - 1
+    if masked and not p:
+        return v
+    return (((v & ~(clear & m)) | (setb & m)) & ~(union & m) | (p & m)) & 0xFF
+
+
+def make_clearset(figure, path):
+    """Shapes drawn over grounds of one colour each, twice: by the blit's rule with the
+    record's clear and set bytes, and with the two bytes taken as 0.  The rule's result is
+    checked against the port's own blit through the native library (tests/shim.c, wt_blit)
+    on a five-plane target."""
+    from PIL import Image, ImageDraw
+    ported = core()
+    ported.reset_core()
+    colours = palette(figure['palette'])
+    margin, line, pad, gap, label_w = 6, 13, 2, 10, 128
+    sections = []
+    for entry in figure['shapes']:
+        shape = [s for s in ppkc().parse(str(SHAPES / entry['container']))
+                 if s['name'].strip() == entry['shape']]
+        if not shape:
+            raise Failure('%s has no shape %s' % (entry['container'], entry['shape']))
+        shape = shape[0]
+        pixels = ppkc().to_indexed(shape)
+        wb, height, masks = shape['wbytes'], shape['h'], shape['masks']
+        width = 8 * wb
+        clear, setb = shape['u'][2] >> 8, shape['u'][2] & 0xFF
+        union = 0
+        for mask in masks:
+            union |= mask
+        masked = wb * height <= 1040 and len(masks) > 0
+        slot = entry['slot']
+        names = [ported.container_name(slot, i) for i in range(ported.container_shapes(slot))]
+        index = names.index(int.from_bytes(shape['name'].encode('latin1'), 'big'))
+        rows = []
+        for ground in figure['grounds']:
+            game = [[blit_rule(ground, pixels[y][x], clear, setb, union, masked)
+                     for x in range(width)] for y in range(height)]
+            bare = [[blit_rule(ground, pixels[y][x], 0, 0, union, masked)
+                     for x in range(width)] for y in range(height)]
+            at_x, at_y = 16, 8
+            out = ported.blit(slot, index, 40, 162, 5, (0, 162, 0, 320), at_x, at_y,
+                              bytes([ground]) * (320 * 162))
+            drawn = [[out[(at_y + y) * 320 + at_x + x] for x in range(width)] for y in range(height)]
+            if drawn != game:
+                raise Failure('%s: the rule is not what the port\'s blit draws over colour %d'
+                              % (entry['shape'], ground))
+            written = [[bool(pixels[y][x]) or not masked for x in range(width)]
+                       for y in range(height)]
+            rows.append((ground, game, bare, written))
+        sections.append((entry, shape, width, height, clear, setb, rows))
+    panel_w = max((s[2] + 2 * pad) * s[0]['zoom'] for s in sections)
+    image_w = margin + label_w + 2 * (panel_w + gap) + margin
+    image_h = margin + line + sum(line + 2 + len(s[6]) * ((s[3] + 2 * pad) * s[0]['zoom'] + line + gap)
+                                  for s in sections) + margin
+    image = Image.new('RGB', (image_w, image_h), GROUND)
+    draw = ImageDraw.Draw(image)
+    x_game, x_bare = margin + label_w, margin + label_w + panel_w + gap
+    text(draw, (x_game, margin), 'by the game\'s rule')
+    text(draw, (x_bare, margin), 'without the clear and set bytes')
+    y = margin + line + 4
+    for entry, shape, width, height, clear, setb, rows in sections:
+        zoom = entry['zoom']
+        text(draw, (margin, y), '%s of %s: clear byte 0x%02X, set byte 0x%02X, %s'
+             % (entry['shape'], entry['container'], clear, setb,
+                '%d times enlarged' % zoom if zoom > 1 else 'at its own size'))
+        y += line + 2
+        for ground, game, bare, written in rows:
+            text(draw, (margin, y + 2), 'over colour %d' % ground)
+            for x0, picture in ((x_game, game), (x_bare, bare)):
+                box_w, box_h = (width + 2 * pad) * zoom, (height + 2 * pad) * zoom
+                draw.rectangle((x0, y, x0 + box_w - 1, y + box_h - 1), fill=colours[ground])
+                for py in range(height):
+                    for px in range(width):
+                        c = picture[py][px]
+                        if written[py][px]:
+                            draw.rectangle((x0 + (px + pad) * zoom, y + (py + pad) * zoom,
+                                            x0 + (px + pad + 1) * zoom - 1,
+                                            y + (py + pad + 1) * zoom - 1), fill=colours[c])
+                used = sorted({picture[py][px] for py in range(height) for px in range(width)
+                               if written[py][px]})
+                text(draw, (x0, y + box_h + 1), 'colours ' + ' '.join(str(c) for c in used))
+            y += (height + 2 * pad) * zoom + line + gap
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def mirrored_planes(shape):
+    """shape_mirror_x's rule (orig 0x015B58) on the stored planes: in every row of every
+    plane the bytes swapped from both ends, each byte's bits reversed; the hotspot's x
+    becomes 8 times the width less 1 less the old x."""
+    wb, height = shape['wbytes'], shape['h']
+    reverse = [int('{:08b}'.format(b)[::-1], 2) for b in range(256)]
+    data = bytearray(shape['data'])
+    for p in range(len(shape['masks'])):
+        for y in range(height):
+            at = p * wb * height + y * wb
+            data[at:at + wb] = bytes(reverse[b] for b in reversed(data[at:at + wb]))
+    turned = dict(shape, data=bytes(data), ox=8 * wb - 1 - shape['ox'])
+    return turned
+
+
+def make_mirror(figure, path):
+    """One shape as its container stores it and as shape_mirror_x leaves it, the hotspot
+    framed in both.  The mirror is computed on the stored planes by the original's rule and
+    checked against tools/ppkc.py's pixels with each row reversed, and against the port's own
+    mirror through the native library, which is mirrored back after."""
+    from PIL import Image, ImageDraw
+    tool = ppkc()
+    shape = [s for s in tool.parse(str(SHAPES / figure['container']))
+             if s['name'].strip() == figure['shape']]
+    if not shape:
+        raise Failure('%s has no shape %s' % (figure['container'], figure['shape']))
+    shape = shape[0]
+    turned = mirrored_planes(shape)
+    before, after = tool.to_indexed(shape), tool.to_indexed(turned)
+    if after != [row[::-1] for row in before]:
+        raise Failure('%s: the mirrored planes are not the pixels reversed' % figure['shape'])
+    ported = core()
+    ported.reset_core()
+    slot = figure['slot']
+    names = [ported.container_name(slot, i) for i in range(ported.container_shapes(slot))]
+    index = names.index(int.from_bytes(shape['name'].encode('latin1'), 'big'))
+    width, height = 8 * shape['wbytes'], shape['h']
+    stored = ported.shape_pixels(slot, index)
+    ported.shape_mirror(slot, index)
+    port = ported.shape_pixels(slot, index), ported.shape_field(slot, index, 'hot_x')
+    ported.shape_mirror(slot, index)
+    if ported.shape_pixels(slot, index) != stored:
+        raise Failure('%s: the port\'s mirror is not its own inverse' % figure['shape'])
+    if port != (bytes(c for row in after for c in row), turned['ox']):
+        raise Failure('%s: the port\'s mirror differs from the rule' % figure['shape'])
+    colours = palette(figure['palette'])
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    zoom, margin, line, gap = figure['zoom'], 6, 13, 24
+    box_w, box_h = width * zoom, height * zoom
+    image = Image.new('RGB', (2 * margin + 2 * box_w + gap, 2 * margin + 2 * line + box_h + 4),
+                      GROUND)
+    draw = ImageDraw.Draw(image)
+    for k, (title, pixels, s) in enumerate((('as %s stores it' % figure['container'], before, shape),
+                                            ('mirrored', after, turned))):
+        x0, y0 = margin + k * (box_w + gap), margin + line
+        text(draw, (x0, margin - 2), title)
+        draw.rectangle((x0, y0, x0 + box_w - 1, y0 + box_h - 1), fill=PANEL)
+        for y in range(height):
+            for x in range(width):
+                if pixels[y][x]:
+                    draw.rectangle((x0 + x * zoom, y0 + y * zoom, x0 + (x + 1) * zoom - 1,
+                                    y0 + (y + 1) * zoom - 1), fill=colours[pixels[y][x]])
+        hx, hy = s['ox'], s['oy']
+        draw.rectangle((x0 + hx * zoom - 1, y0 + hy * zoom - 1, x0 + (hx + 1) * zoom,
+                        y0 + (hy + 1) * zoom), outline=mark)
+        text(draw, (x0, y0 + box_h + 3), 'the hotspot (%d, %d)' % (hx, hy))
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -941,6 +1252,12 @@ def generate(out, names=None, log=print):
             make_pairs(figure, path)
         elif maker == 'fade':
             make_fade(figure, path)
+        elif maker == 'record':
+            make_record(figure, path)
+        elif maker == 'clearset':
+            make_clearset(figure, path)
+        elif maker == 'mirror':
+            make_mirror(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

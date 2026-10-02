@@ -1,0 +1,49 @@
+; re/Wings.lst 0x015B58-0x015BC4: shape_mirror_x [asm]
+; shape_mirror_x   [asm]
+;   asm. (record) mirrors a shape in place through bit_reverse_table, hotspot x becomes 8*w-1-x
+;   callers: aircraft_frame
+shape_mirror_x:
+015b58  206f0004             movea.l    $4(a7), a0
+015b5c  2008                 move.l     a0, d0
+015b5e  67000064             beq.w      $15bc4
+015b62  48e70f30             movem.l    d4-d7/a2-a3, -(a7)
+015b66  3010                 move.w     (a0), d0
+015b68  3400                 move.w     d0, d2
+015b6a  e748                 lsl.w      #$3, d0
+015b6c  5340                 subq.w     #$1, d0
+015b6e  90680004             sub.w      $4(a0), d0
+015b72  31400004             move.w     d0, $4(a0)
+015b76  47eca6b8             lea.l      -$5948(a4), a3                         ; bit_reverse_table
+015b7a  43e80014             lea.l      $14(a0), a1
+015b7e  45f02014             lea.l      $14(a0, d2.w), a2
+015b82  3e02                 move.w     d2, d7
+015b84  e24a                 lsr.w      #$1, d2
+015b86  3c02                 move.w     d2, d6
+015b88  de46                 add.w      d6, d7
+015b8a  5342                 subq.w     #$1, d2
+015b8c  36280002             move.w     $2(a0), d3
+015b90  5343                 subq.w     #$1, d3
+015b92  7000                 moveq      #$0, d0
+015b94  7200                 moveq      #$0, d1
+015b96  d0fc000e             adda.w     #$e, a0
+015b9a  4a18                 tst.b      (a0)+
+015b9c  67000022             beq.w      $15bc0
+loc_015ba0:
+015ba0  3803                 move.w     d3, d4
+loc_015ba2:
+015ba2  3a02                 move.w     d2, d5
+loc_015ba4:
+015ba4  1011                 move.b     (a1), d0
+015ba6  1222                 move.b     -(a2), d1
+015ba8  14b30000             move.b     (a3, d0.w), (a2)
+015bac  12f31000             move.b     (a3, d1.w), (a1)+
+015bb0  51cdfff2             dbra       d5, $15ba4
+015bb4  d4c7                 adda.w     d7, a2
+015bb6  d2c6                 adda.w     d6, a1
+015bb8  51ccffe8             dbra       d4, $15ba2
+015bbc  4a18                 tst.b      (a0)+
+015bbe  66e0                 bne.b      $15ba0
+loc_015bc0:
+015bc0  4cdf0cf0             movem.l    (a7)+, d4-d7/a2-a3
+loc_015bc4:
+015bc4  4e75                 rts
