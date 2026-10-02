@@ -158,6 +158,20 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/mu
 
 Elsewhere: [MOS Technology CIA](https://en.wikipedia.org/wiki/MOS%5FTechnology%5FCIA), Wikipedia.
 
+### Clear and set bytes
+
+Two bytes of a shape's header naming the screen's planes that every draw sets to 0 and to 1 under the shape's mask, so that a shape storing fewer planes than the screen has lands in its own colours whatever lies beneath.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete"; [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly".
+
+### Clip rectangle
+
+The rectangle of the screen a draw may change, its left and right edges rounded down to multiples of 16; the blit writes the pixels of a shape's box that lie inside it, and no others.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library"; [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#the-blit-is-per-pixel-and-why), "The blit is per-pixel, and why".
+
+Elsewhere: [Clipping (computer graphics)](https://en.wikipedia.org/wiki/Clipping%5F(computer%5Fgraphics)), Wikipedia.
+
 ### Closed loop
 
 The comparison in which the port runs on its own from the program's start, given nothing but the entropy seed and the map list's addresses, which the open loop gets too, and is compared with the original after every pass and every tick, so that every error it carries over shows.
@@ -209,6 +223,14 @@ They sit in the low byte of the status register. The emulator the tests run on w
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/oracle.py`](repo:tools/oracle.py); [`re/notes/ffp.md`](repo:re/notes/ffp.md#how-the-game-reaches-it), "How the game reaches it".
 
 Elsewhere: [Status register](https://en.wikipedia.org/wiki/Status%5Fregister), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
+### Contact sheet
+
+A picture of every shape of a container with its name above it, in the day palette, made by [`tools/ppkc.py`](repo:tools/ppkc.py); seven are kept in the repository as the containers' reference pictures.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tools/ppkc.py`](repo:tools/ppkc.py); [`ref/sheets/`](repo:ref/sheets/).
+
+Elsewhere: [Contact print](https://en.wikipedia.org/wiki/Contact%5Fprint), Wikipedia, the photographer's sheet the name comes from.
 
 ### Control
 
@@ -452,6 +474,12 @@ First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k
 
 Elsewhere: [Hooking](https://en.wikipedia.org/wiki/Hooking), Wikipedia.
 
+### Hotspot
+
+The point of a shape, counted from its top left corner, that lands on the position the shape is drawn at; every routine that draws subtracts it from the position first.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
+
 ### Hunk
 
 A part of an Amiga program that is loaded into memory as a whole: code, data with its starting values, or BSS.
@@ -648,11 +676,31 @@ One of the numbered stages the port was built in, M0 to M9, each ending with a w
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#9-milestones), section 9.
 
+### Minterm
+
+The number that chooses the blitter's logic function: eight bits, one for each way its three sources A, B and C can be set, each giving the result there; the game's blit uses `0xCA`, B where A is set and C where it is not.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly"; [`tests/blitter.py`](repo:tests/blitter.py).
+
+Elsewhere: [Bit blit](https://en.wikipedia.org/wiki/Bit%5Fblit), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Mirror marker
+
+The word at `+8` of each shape record of the player's aircraft and its weapons, set at load, that records which way the stored pixels face; when it differs from the facing wanted, the game mirrors the shape in place.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
+
 ### Mission script
 
 A recorded sequence of stick and key inputs that flies a mission the same way every time, for the original and the port alike.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original".
+
+### Name list
+
+A list of four-character shape names in the program's data, ended by a zero, which the game resolves in its container at load into a pointer table.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#name-lists-and-containers), "Name lists and containers".
 
 ### Native library
 
@@ -665,6 +713,12 @@ First met and defined in [chapter 5](part-1/oracle.md). The detail: [`SPEC.md`](
 A hook of the headless original on a routine's first instruction that records every entry with the registers and the arguments, and only reads, so that watching changes nothing.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#observers), "Observers".
+
+### Opaque shape
+
+A shape drawn without a mask, its whole box written, colour 0 included: one whose plane is larger than the 1,040 bytes of the mask's buffer, or one that stores no plane.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly".
 
 ### Opcode
 
@@ -726,11 +780,23 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+### Plane mask
+
+A byte of a shape's header naming the screen's planes that one stored plane is written to; a mask of two bits writes one stored plane into two planes.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5; [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
+
 ### Playfield
 
 The play screen's upper area, where the game is played: 320 by 162 in low resolution with five bitplanes, under the sky's palette above the split line and the sea's below.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
+
+### Pointer table
+
+The array of shape-record pointers a name list becomes when its container is loaded, in the list's order, null where a name is absent; the port keeps an array of shape numbers instead.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#container-and-lookup), "Container and lookup".
 
 ### Poke
 
@@ -771,6 +837,12 @@ A small named store inside a processor or a chip: the 68000's sixteen hold the v
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library".
 
 Elsewhere: [Processor register](https://en.wikipedia.org/wiki/Processor%5Fregister), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
+
+### Register programme
+
+The blitter's registers as they stand when a blit starts, its pointers, modulos, word masks, shifts, minterm and size; the blit tests capture it from the original and replay it on a model of the blitter.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/blitter.py`](repo:tests/blitter.py); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#how-the-tests-establish-it), "How the tests establish it".
 
 ### Relocation
 
@@ -840,6 +912,12 @@ A file of many shapes, the format that begins with `PPkc`: the number of shapes,
 
 First met in [chapter 2](part-1/amiga.md), defined in [chapter 3](part-1/disk.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md).
 
+### Shape record
+
+One shape inside a container: a header of 20 bytes, then the planes it stores; to the game, a shape is a pointer to its record.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
+
 ### Shell
 
 The thin layer of JavaScript around the core: the clock that paces it, the screen, a loudspeaker for the sound the core mixes, the keys, a place for saved games, and the help screen, the pause sign and fullscreen.
@@ -873,6 +951,12 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes
 A stretch of emulation that ends after a fixed number of instructions, after which the headless original's harness looks at the wall clock and goes on; where it ends changes nothing in the run. Slices once ended after a time, which made two runs of one script differ (chapter 9).
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
+
+### Slot
+
+A fixed position in a pointer table, by which the game's code and the map's records name a shape.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
 
 ### Small-data base
 
@@ -1015,6 +1099,14 @@ WebAssembly is a compact binary form of program with an instruction set of its o
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#5-build), section 5.
 
 Elsewhere: [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly), Wikipedia; [webassembly.org](https://webassembly.org/).
+
+### Word masks
+
+The blitter's two masks for the first and the last word of every row of its source A; with the shift they blank the columns outside a shape's box and outside the clip.
+
+First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#the-blit-is-per-pixel-and-why), "The blit is per-pixel, and why".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
 ### Workbench
 
