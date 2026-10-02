@@ -257,12 +257,15 @@ The suite's layers, phases and isolation (24); the tools and the build (21, 25);
 
 ## Draft
 
-`book/docs/part-1/making.md`, 3,984 words by `wc -w`, markup, the three tables, the two lists, the caption, the alt text and the listing's include line counted, under the task's cap of 4,000. Every claim of the draft is above, with these settled while drafting:
+`book/docs/part-1/making.md`, 3,995 words by `wc -w`, markup, the three tables, the two lists, the caption, the alt text and the listing's include line counted, under the task's cap of 4,000. Every claim of the draft is above, with these settled while drafting:
 
 - 103. The owner's findings from playing that no test had made, named in the honest account: the page in Firefox standing still and silent after it went to full screen, and the diagnostics key that would not open in Chrome and Safari. Source: `re/notes/porting-m8.md`, "The page and the fullscreen finding" ("The user's finding ... Firefox put into fullscreen during a mission: the picture stood still and the sound was gone from then on"); `SPEC.md` 6.2, Input ("the owner's finding"; "That key arrives as `Backquote`, or as `IntlBackslash` in Chrome and Safari"); `book/docs/part-1/wrong.md`, the table's last rows.
 - 104. "No session can decide what the port is for, or hear whether a song sounds right": the chapter's voice, from `re/notes/amiga-to-web.md`, "What "start" can mean" (the decisions, "the look and the listen" as points "that no session replaces").
 - 105. Anyone with the ROM can run the original beside the port and compare: `README.md`, "Build and verify"; `CLAUDE.md`, "Rules" (without the ROM "the build stops and the suite skips").
 - 106. The idle workers of the figure stand for the sessions opened in advance, however many: the caption; claim 15, claim 27.
+- 108. The milestones' table is in the order the milestones were begun: M7's first part was merged before M9 began and its second part after M9 was merged (`CONTROLLER.md`, "The plan ahead": "Part 2 ... stood idle ... while two page tasks went first", "M9 is done and merged", then "M7 part 2 is done and merged").
+- 109. The workers ran on the cheaper model unless a task could not be checked by observation (`CONTROLLER.md`, "Models and effort": "Workers therefore run on Opus 5 unless a task truly cannot be checked by observation").
+- 110. The review examples worded to their sources: the closed loop on another seed "led to" the cache and the upper word, which the follow-up then traced (`CONTROLLER.md`, "The plan ahead", M7 part 1); the reviewer's reading of the music player was "an independent reading of `songplay` from the disk file" ("The plan ahead", M8 part 2), not of the listing.
 - 107. The review's seven steps are set as a numbered list, as the task's ten parts are, so that the two lists of the handbook read alike (claims 34, 36).
 - Left out of the prose to keep under the cap, kept here: the owner's ROM (claim 8), the two hardware facts sent early (claim 39), the five small changes tested by the owner (claim 61), the unquoted session name (claim 92), the commit trailers' counts (claims 62, 71).
 - The figure `arrangement.svg` was looked at through QuickLook (`qlmanage -t`) on a black ground; its arrows are filled paths and its lines plain paths, checked in the source.

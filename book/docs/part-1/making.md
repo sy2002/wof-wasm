@@ -64,7 +64,7 @@ A report is a claim. Before anything is merged, a [**review**](../glossary.md#re
 6. a follow-up on the same branch if anything is wrong, and the review again;
 7. the merge, the findings folded into the specification, the page rebuilt.
 
-The fifth step is the one chapter 8 ended with. The worker chose its scripts, maps and seed, and its tests pass on what it thought of; a check on inputs it never chose meets what it did not. The reviews' own runs and checks found real defects. The full suite, run again at a review on a busy machine, failed one script once, and led to the harness's timeout. A [closed loop](../glossary.md#closed-loop) on another seed and at other pass rates found a cache of the comparison's own and a register's upper word handed on. Reading the routine the game calls, rather than the stub that answered for the call, corrected a claim about a map's last records. All three are chapter 9's. A reviewer's own reading of the music player against the listing found a branch the port had to mark as a [stand-in](../glossary.md#stand-in).
+The fifth step is the one chapter 8 ended with. The worker chose its scripts, maps and seed, and its tests pass on what it thought of; a check on inputs it never chose meets what it did not. The reviews' own runs and checks found real defects. The full suite, run again at a review on a busy machine, failed one script once, and led to the harness's timeout. A [closed loop](../glossary.md#closed-loop) on another seed and at other pass rates led to a cache of the comparison's own and a register's upper word handed on. Reading the routine the game calls, rather than the stub that answered for the call, corrected a claim about a map's last records. All three are chapter 9's. A reviewer's own reading of the music player found a branch the port had to mark as a [stand-in](../glossary.md#stand-in).
 
 A full run of the suite takes over an hour, so by the owner's rule a follow-up confined to the port's own key policy, such as the keyboard assist, or to the page, on which no ported routine and no differential test depends, gets a targeted run of the tests that hold that layer. Anything that touches ported code, and every milestone, gets the whole suite.
 
@@ -82,7 +82,7 @@ Before a milestone began, the questions it needed answered were settled: the spe
 
 ## The milestones
 
-The port was built in milestones, each ending with a working page and green tests. Here they are in the order they were done.
+The port was built in milestones, each ending with a working page and green tests. Here they are in the order they were begun.
 
 | Milestone | What it delivered | What held it |
 |---|---|---|
@@ -99,13 +99,13 @@ The port was built in milestones, each ending with a working page and green test
 | M9 | the picture drawn by the graphics card | the frame time at the screen's size in both browsers, the owner's look in full screen |
 | the release groundwork | the page and the game data in the repository, one check of the ROM, the generated files held | a fresh clone, with and without the ROM; one run of the suite |
 
-M4 to M8 were each done in two parts, with a review and a merge between them, and the stand-ins each milestone left named what the next had to reach (chapter 8). The order was the owner's. The front end came first because it showed progress in the browser early, depended little on the game's objects, and the owner's look at the running page found what tests could not. The sound came before the campaign, to be in the page sooner for the owner's test flights. M9 was to be the shell's polish until the frame rate halved at a large full-screen size; the owner made it the page's drawing on the graphics card instead.
+M4 to M8 were each done in two parts, with a review and a merge between them, and the stand-ins each milestone left named what the next had to reach (chapter 8). The order was the owner's. The front end came before the missions because it showed progress in the browser early, depended little on the game's objects, and the owner's look at the running page found what tests could not. The sound came before the campaign, to be in the page sooner for the owner's test flights. M9 was to be the shell's polish until the frame rate halved at a large full-screen size; the owner made it the page's drawing on the graphics card instead.
 
 Three things were left undone, each by the owner's decision. M10, the shell's options (keys of the player's choosing, a gamepad, the scaling, the video standard, a mute for the title's music, an export of saved games), was dropped when the owner judged the game done for now; only bug fixes may come. The game's hidden cheat sequence was not needed, and chapter 1 told why it can no longer be typed. And beyond the one film, the real machine was not measured again: a busy scene's rhythm, the speed of the fades and the order of a directory stay as the port has them, because the port felt right to the owner as it was.
 
 ## Two models, and no swarm
 
-The controller ran on the stronger and scarcer of two models, Fable, the workers on the cheaper one, Opus. The owner's budget for the stronger model was limited and the controller needed it on every turn; beyond that it is kept for reading no observation can check and for design decisions no test can catch.
+The controller ran on the stronger and scarcer of two models, Fable, and the workers on the cheaper one, Opus, unless a task could not be checked by observation. The owner's budget for the stronger model was limited and the controller needed it on every turn; beyond the controller, it is kept for reading no observation can check and for design decisions no test can catch.
 
 The handbook gives the reason the cheaper model was enough: what makes a worker reliable at reading is its task, not its model. A task demands that every finding be backed by an observation, from the oracle, the headless original or a test, and says which instrument answers which question. A reading mistake of the early days, the stick's bits of chapter 9, was found by an observation, not by a better reader.
 
