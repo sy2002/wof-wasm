@@ -1,0 +1,41 @@
+; re/Wings.lst 0x01BEC4-0x01BF50: player_motion [C], a part of 0x01BDFA-0x01BFF3
+loc_01bec4:
+01bec4  302ca410             move.w     -$5bf0(a4), d0                         ; attitude_index
+01bec8  48c0                 ext.l      d0
+01beca  e580                 asl.l      #$2, d0
+01becc  41ecab0e             lea.l      -$54f2(a4), a0                         ; attitude_factor
+01bed0  2200                 move.l     d0, d1
+01bed2  20301800             move.l     (a0, d1.l), d0
+01bed6  322ca416             move.w     -$5bea(a4), d1                         ; airspeed
+01beda  48c1                 ext.l      d1
+01bedc  2f00                 move.l     d0, -(a7)
+01bede  2001                 move.l     d1, d0
+01bee0  4eba5e00             jsr        $21ce2(pc)                             ; ffp_flt
+01bee4  2200                 move.l     d0, d1
+01bee6  201f                 move.l     (a7)+, d0
+01bee8  4eba5e02             jsr        $21cec(pc)                             ; ffp_mul
+01beec  222dfff8             move.l     -$8(a5), d1
+01bef0  4eba5dfa             jsr        $21cec(pc)                             ; ffp_mul
+01bef4  223cc8000046         move.l     #$c8000046, d1
+01befa  4eba5da0             jsr        $21c9c(pc)                             ; ffp_add
+01befe  223cc8000047         move.l     #$c8000047, d1
+01bf04  4eba5dd2             jsr        $21cd8(pc)                             ; ffp_div
+01bf08  4eba5dba             jsr        $21cc4(pc)                             ; ffp_fix
+01bf0c  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bf10  31400016             move.w     d0, $16(a0)
+01bf14  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bf18  226ccdee             movea.l    -$3212(a4), a1                         ; player_record
+01bf1c  2c6ccdee             movea.l    -$3212(a4), a6                         ; player_record
+01bf20  30290016             move.w     $16(a1), d0
+01bf24  c1ee0014             muls.w     $14(a6), d0
+01bf28  d1680002             add.w      d0, $2(a0)
+01bf2c  302ca416             move.w     -$5bea(a4), d0                         ; airspeed
+01bf30  48c0                 ext.l      d0
+01bf32  4eba5dae             jsr        $21ce2(pc)                             ; ffp_flt
+01bf36  222dfffc             move.l     -$4(a5), d1
+01bf3a  4eba5db0             jsr        $21cec(pc)                             ; ffp_mul
+01bf3e  223cc8000047         move.l     #$c8000047, d1
+01bf44  4eba5d92             jsr        $21cd8(pc)                             ; ffp_div
+01bf48  4eba5d7a             jsr        $21cc4(pc)                             ; ffp_fix
+01bf4c  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bf50  31400018             move.w     d0, $18(a0)

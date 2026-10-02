@@ -1,0 +1,52 @@
+; re/Wings.lst 0x01B92E-0x01B9BA: cable_hook [C]
+; cable_hook   [C]  frame=2
+;   C. the hook catches one of four cables: state 7
+;   callers: player_update
+cable_hook:
+01b92e  4e55fffe             link.w     a5, #$fffe
+01b932  48e70c00             movem.l    d4-d5, -(a7)
+01b936  0c6c0258a416         cmpi.w     #$258, -$5bea(a4)                      ; airspeed
+01b93c  6d76                 blt.b      $1b9b4
+01b93e  4a6caa9e             tst.w      -$5562(a4)                             ; g_025a9c
+01b942  6670                 bne.b      $1b9b4
+01b944  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b948  3a280002             move.w     $2(a0), d5
+01b94c  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b950  0c68ffff0014         cmpi.w     #$ffff, $14(a0)
+01b956  6606                 bne.b      $1b95e
+01b958  da7c0018             add.w      #$18, d5
+01b95c  6004                 bra.b      $1b962
+loc_01b95e:
+01b95e  9a7c0018             sub.w      #$18, d5
+loc_01b962:
+01b962  7800                 moveq      #$0, d4
+01b964  206ccdf6             movea.l    -$320a(a4), a0                         ; g_027df4
+01b968  3010                 move.w     (a0), d0
+01b96a  d07c0046             add.w      #$46, d0
+01b96e  3940a40e             move.w     d0, -$5bf2(a4)                         ; g_02540c
+01b972  603a                 bra.b      $1b9ae
+loc_01b974:
+01b974  302ca40e             move.w     -$5bf2(a4), d0                         ; g_02540c
+01b978  5140                 subq.w     #$8, d0
+01b97a  ba40                 cmp.w      d0, d5
+01b97c  6d28                 blt.b      $1b9a6
+01b97e  302ca40e             move.w     -$5bf2(a4), d0                         ; g_02540c
+01b982  5040                 addq.w     #$8, d0
+01b984  ba40                 cmp.w      d0, d5
+01b986  6e1e                 bgt.b      $1b9a6
+01b988  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b98c  317c0007000c         move.w     #$7, $c(a0)
+01b992  397cffffaaa0         move.w     #$ffff, -$5560(a4)                     ; g_025a9e
+01b998  197c0004a361         move.b     #$4, -$5c9f(a4)                        ; g_02535f
+01b99e  396ca40ebd3c         move.w     -$5bf2(a4), -$42c4(a4)                 ; g_02540c | g_026d3a
+01b9a4  600e                 bra.b      $1b9b4
+loc_01b9a6:
+01b9a6  5244                 addq.w     #$1, d4
+01b9a8  066c0038a40e         addi.w     #$38, -$5bf2(a4)                       ; g_02540c
+loc_01b9ae:
+01b9ae  b87c0004             cmp.w      #$4, d4
+01b9b2  6dc0                 blt.b      $1b974
+loc_01b9b4:
+01b9b4  4cdf0030             movem.l    (a7)+, d4-d5
+01b9b8  4e5d                 unlk       a5
+01b9ba  4e75                 rts

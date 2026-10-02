@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 460" width="940" height="460" role="img" aria-labelledby="title desc">
+  <title id="title">One tick of the flight model</title>
+  <desc id="desc">Left: the aircraft pitched up by the angle theta. The airspeed, along its nose, splits into a speed along, the airspeed times the cosine of theta times the attitude's factor, divided by 100, which is the horizontal speed, and a speed across, the airspeed times the sine of theta divided by 100, which is the vertical speed. The pitch moves a quarter of the way to its target each tick. Right: the height, from the water line at 0 up to the ceiling at 1,100; an aircraft that climbs past the ceiling is held there, its climb halved and turned round and its pitch's target turned round, so it bounces; below, the floor at minus 4. Bottom: the airspeed from 0 to 1,400; left alone in the air it falls to 1,000, pushed the way the aircraft faces it rises to 1,400, and below 1,000 the aircraft sinks a little more each tick and its nose drops unless the stick is held forward.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .sky    { fill: #00AAFF; /* wingspalette 1 */ }
+    .sea    { fill: #0033DD; /* wingspalette 5 */ }
+    .gold   { fill: #FFBB00; /* wingstitle 25 */ }
+    .slow   { fill: #444455; /* wingspalette 26 */ }
+    .fast   { fill: #666677; /* wingspalette 27 */ }
+    .rule   { fill: #AAAABB; /* wingspalette 29 */ }
+    .plane  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="10" y="22">One tick of the flight model</text>
+
+  <!-- Left: the pitch and the two speeds -->
+  <path class="fast" d="M90 300 L150 300 A60 60 0 0 0 145.63 277.52 Z"/>
+  <text class="light small" x="156" y="294">θ, the pitch</text>
+  <g transform="rotate(-22 90 300)">
+    <path class="plane" d="M58 296 L92 296 L98 300 L92 304 L58 304 Z"/>
+    <path class="plane" d="M72 291 L80 291 L78 309 L70 309 Z"/>
+    <path class="plane" d="M58 292 L63 292 L63 300 L58 300 Z"/>
+  </g>
+  <!-- the airspeed, along the nose -->
+  <path class="light" d="M90.56 301.39 L368.56 189.39 L367.44 186.61 L89.44 298.61 Z"/>
+  <text class="light small" x="100" y="196">the airspeed, along the nose</text>
+  <!-- the speed along: the horizontal speed -->
+  <rect class="sky" x="90" y="299" width="266" height="3"/>
+  <path class="sky" d="M368 300.5 L356 295 L356 306 Z"/>
+  <text class="light small" x="94" y="328">along: airspeed × cos θ × the attitude's factor ÷ 100</text>
+  <text class="muted small" x="94" y="344">the horizontal speed, which the facing turns east or west</text>
+  <!-- the speed across: the vertical speed -->
+  <rect class="gold" x="366.5" y="200" width="3" height="100"/>
+  <path class="gold" d="M368 188 L362.5 200 L373.5 200 Z"/>
+  <text class="light small" x="380" y="236">across: airspeed × sin θ ÷ 100</text>
+  <text class="muted small" x="380" y="252">the vertical speed</text>
+  <text class="muted small" x="40" y="86">Each tick the pitch moves a quarter of the way</text>
+  <text class="muted small" x="40" y="102">to its target; its sine and cosine come from a</text>
+  <text class="muted small" x="40" y="118">table of whole degrees, and the arithmetic is the</text>
+  <text class="muted small" x="40" y="134">ROM's fast floating point.</text>
+
+  <!-- Right: the height, from the water line to the ceiling -->
+  <rect class="rule" x="659" y="70" width="2" height="230"/>
+  <text class="muted small" x="652" y="74" text-anchor="end">1,100</text>
+  <text class="muted small" x="652" y="304" text-anchor="end">0</text>
+  <text class="light small" x="652" y="190" text-anchor="end">height</text>
+  <rect class="gold" x="661" y="69" width="259" height="3"/>
+  <text class="light small" x="668" y="60">the ceiling, 1,100</text>
+  <!-- a climb into the ceiling and the bounce, a dot a tick -->
+  <circle class="sky" cx="684" cy="230" r="2.5"/>
+  <circle class="sky" cx="694" cy="206" r="2.5"/>
+  <circle class="sky" cx="704" cy="182" r="2.5"/>
+  <circle class="sky" cx="714" cy="158" r="2.5"/>
+  <circle class="sky" cx="724" cy="134" r="2.5"/>
+  <circle class="sky" cx="734" cy="110" r="2.5"/>
+  <circle class="sky" cx="744" cy="86" r="2.5"/>
+  <circle class="gold" cx="754" cy="72" r="3"/>
+  <circle class="sky" cx="764" cy="84" r="2.5"/>
+  <circle class="sky" cx="774" cy="96" r="2.5"/>
+  <circle class="sky" cx="784" cy="108" r="2.5"/>
+  <circle class="sky" cx="794" cy="120" r="2.5"/>
+  <circle class="sky" cx="804" cy="132" r="2.5"/>
+  <text class="light small" x="770" y="160">held at the ceiling:</text>
+  <text class="muted small" x="770" y="176">the climb halved and</text>
+  <text class="muted small" x="770" y="192">turned round, the</text>
+  <text class="muted small" x="770" y="208">pitch's target too</text>
+  <!-- the water line and the floor -->
+  <rect class="sea" x="661" y="300" width="259" height="18"/>
+  <text class="light small" x="668" y="296">the water line, 0</text>
+  <rect class="rule" x="661" y="304" width="259" height="1"/>
+  <text class="light small" x="668" y="334">the floor, −4: the height held</text>
+
+  <!-- Bottom: the airspeed -->
+  <text class="light small" x="60" y="382">the airspeed</text>
+  <rect class="slow" x="60" y="390" width="600" height="16"/>
+  <rect class="fast" x="660" y="390" width="240" height="16"/>
+  <rect class="gold" x="659" y="384" width="2" height="28"/>
+  <text class="muted small" x="60" y="424">0</text>
+  <text class="muted small" x="660" y="424" text-anchor="middle">1,000</text>
+  <text class="muted small" x="900" y="424" text-anchor="end">1,400</text>
+  <text class="light small" x="70" y="403">below 1,000 the aircraft sinks a little more each tick</text>
+  <text class="muted small" x="60" y="442">and its nose drops, unless the stick is held forward</text>
+  <text class="light small" x="668" y="380">left alone: down to 1,000</text>
+  <text class="light small" x="668" y="442">towards the facing: up to 1,400</text>
+</svg>

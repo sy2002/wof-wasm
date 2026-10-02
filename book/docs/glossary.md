@@ -30,6 +30,14 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia; [Laurent Clévy's *ADF format FAQ*](https://web.archive.org/web/20241206200729/http://lclevy.free.fr/adflib/adf%5Finfo.html), the Wayback Machine's copy.
 
+### Airspeed
+
+The number, from 0 to 1,400, that scales the player's aircraft's two speeds, in effect hundredths of a pixel a tick: the stick pushed the way the aircraft faces raises it, left alone in the air it falls to 1,000, and below 1,000 the aircraft sinks.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record".
+
+Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the real quantity the game's number stands in for.
+
 ### Arithmetic shift
 
 A shift of a number's bits that keeps its sign: shifted right, the sign bit is copied into the top, so that a negative number stays negative and is halved, rounded down; shifted left, it differs from a logical shift only in setting the overflow flag when the sign changes. The 68000's `asr` and `asl`.
@@ -38,6 +46,14 @@ First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k
 
 Elsewhere: [Arithmetic shift](https://en.wikipedia.org/wiki/Arithmetic%5Fshift), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Arresting cable
+
+One of the four cables across the carrier's deck that stop the player's aircraft when its tailhook, 24 pixels behind it, passes within 8 pixels of one at an airspeed of 600 or more.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
+
+Elsewhere: [Arresting gear](https://en.wikipedia.org/wiki/Arresting%5Fgear), Wikipedia.
+
 ### Assembly language
 
 The written form of machine code, one instruction a line, a short name for the operation followed by its operands: the form in which the listing shows the whole program, and in which much of the game was written by hand.
@@ -45,6 +61,12 @@ The written form of machine code, one instruction a line, a short name for the o
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
 Elsewhere: [Assembly language](https://en.wikipedia.org/wiki/Assembly%5Flanguage), Wikipedia.
+
+### Attitude
+
+The stage of a turn of the player's aircraft, 0 in straight flight and 1 to 25 while it turns, one stage every second tick: it picks the turn's frame and a factor for the horizontal speed, and at 14 the aircraft's facing changes.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`src/player.c`](repo:src/player.c), the routine at `0x01AB80`; [`re/notes/ffp.md`](repo:re/notes/ffp.md#the-two-tables-of-constants), "The two tables of constants".
 
 ### Attract demo
 
@@ -582,6 +604,12 @@ First met and defined in [chapter 4](part-1/reading.md). The detail: [`re/Wings.
 
 Elsewhere: [Label (computer science)](https://en.wikipedia.org/wiki/Label%5F(computer%5Fscience)), Wikipedia.
 
+### Landing stall
+
+The flag the stick forward alone sets while the player's aircraft flies west: the aircraft is drawn with its nose up while its pitch is eased downwards, and only with the flag set does it land on the carrier's deck.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record", the globals; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
+
 ### Latch
 
 A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a tap shorter than the interval between them still reaches the game.
@@ -603,6 +631,12 @@ The address of a library in memory, which a program keeps in a variable and load
 First met and defined in [chapter 4](part-1/reading.md). The detail: [`tools/disasm.py`](repo:tools/disasm.py); [`tools/fd/`](repo:tools/fd/).
 
 Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-rom-kernel-reference-manual-libraries-3rd-edition), 3rd edition, Internet Archive.
+
+### Lift
+
+The carrier's lift, which carries the player's aircraft between the deck and the hold below it, where the aircraft is refuelled, repaired and rearmed.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
 
 ### Listing
 
@@ -806,11 +840,25 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+### Pitch
+
+The angle of the player's aircraft in hundredths of a degree, positive with the nose up, which moves each tick a quarter of the way towards a target the stick sets.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/ffp.md`](repo:re/notes/ffp.md#player%5Fmotion-0x01bdfa-once-per-tick-from-0x01c70e), "`player_motion` `0x01BDFA`, once per tick from `0x01C70E`".
+
+Elsewhere: [Aircraft principal axes](https://en.wikipedia.org/wiki/Aircraft%5Fprincipal%5Faxes), Wikipedia.
+
 ### Plane mask
 
 A byte of a shape's header naming the screen's planes that one stored plane is written to; a mask of two bits writes one stored plane into two planes.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5; [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
+
+### Player's record
+
+The thirty bytes the game keeps of the player's aircraft: its height and its x, its frame, the state word that selects what the tick does with it, its fuel and oil, its facing, its two speeds and the enemy's countdown.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record".
 
 ### Playfield
 

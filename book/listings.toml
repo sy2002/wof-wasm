@@ -443,3 +443,85 @@ as = "wof_ground_height_switch"
 kind = "py"
 name = "test_a_changed_map_changes_exactly_the_draws_the_decoder_says"
 file = "tests/test_map.py"
+
+# The player, chapter 14: the two speeds from the airspeed, the attitude's factor and the sine
+# table on the ROM's fast floating point (re/notes/ffp.md, "player_motion"), beside the port's
+# value forms of src/ffp.h.
+[[listing]]
+kind = "asm"
+name = "player_motion"
+from = 0x01BEC4
+to = 0x01BF50
+as = "player_motion_speeds"
+lines = 44
+
+[[listing]]
+kind = "c"
+name = "wof_player_motion"
+file = "src/player.c"
+from = "v = wof_ffp_mul(wof_image32(0x025B0Cu"
+to = "P.speed_y = (int16_t)wof_ffp_fix(v);"
+as = "wof_player_motion_speeds"
+
+# The vertical speed and the sinking below an airspeed of 1,000 in the model of the motion,
+# which takes the floating point as an argument, the ROM's or the port's.
+[[listing]]
+kind = "py"
+name = "model_01bdfa"
+file = "tests/ffp_model.py"
+from = "# 0x01BF2C"
+to = "player_18 = s16(player_18 - divs_w(s16(0x3E8"
+as = "model_01bdfa_slow"
+
+# The touch-down: over the deck, facing west with the stall set, the aircraft lands; anything
+# else bounces.
+[[listing]]
+kind = "asm"
+name = "ground_contact"
+from = 0x01BB18
+to = 0x01BB7E
+as = "ground_contact_landing"
+
+[[listing]]
+kind = "c"
+name = "ground"
+file = "src/player.c"
+from = "if (deck) {"
+to = "return;"
+as = "ground_landing"
+
+# The hook and the four cables.
+[[listing]]
+kind = "asm"
+name = "cable_hook"
+head = true
+lines = 56
+
+[[listing]]
+kind = "c"
+name = "hook"
+file = "src/player.c"
+
+# The restart's waits inside the tick: the playfield cleared, the buffers flipped, two loops of
+# WaitTOF, beside the port's two loops of CO_WAIT.
+[[listing]]
+kind = "asm"
+name = "player_lost_restart"
+from = 0x013630
+to = 0x01367A
+as = "player_lost_restart_waits"
+
+[[listing]]
+kind = "c"
+name = "wof_player_lost_restart"
+file = "src/mission.c"
+from = "if (wof_g.g_027452 != 0) {"
+to = "} while (wof_g.g_027452 != 0);"
+as = "wof_player_lost_restart_waits"
+
+# The fifteen routines of the player's update the oracle holds over random states, each with
+# the state it wants.
+[[listing]]
+kind = "py"
+name = "PLAYER_ROUTINES"
+file = "tests/test_oracle_m4.py"

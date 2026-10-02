@@ -1,0 +1,26 @@
+; re/Wings.lst 0x013630-0x01367A: player_lost_restart [asm], a part of 0x0135D8-0x013683
+013630  4a6cc454             tst.w      -$3bac(a4)                             ; g_027452
+013634  67000044             beq.w      $1367a
+013638  4eac8128             jsr        -$7ed8(a4)                             ; -> clip_playfield
+01363c  206cbe1e             movea.l    -$41e2(a4), a0                         ; back_rastport
+013640  4eac835c             jsr        -$7ca4(a4)                             ; -> draw_set_target
+013644  4eac836e             jsr        -$7c92(a4)                             ; -> blit_begin
+013648  2c6cb93a             movea.l    -$46c6(a4), a6                         ; custom_base
+01364c  7000                 moveq      #$0, d0
+01364e  7200                 moveq      #$0, d1
+013650  343c013f             move.w     #$13f, d2
+013654  363c00a1             move.w     #$a1, d3
+013658  7800                 moveq      #$0, d4
+01365a  4eac8344             jsr        -$7cbc(a4)                             ; -> rect_fill
+01365e  4eac8374             jsr        -$7c8c(a4)                             ; -> blit_end
+013662  4ebacca8             jsr        $1030c(pc)                             ; flip_buffers
+loc_013666:
+013666  4eac8452             jsr        -$7bae(a4)                             ; -> gfx_WaitTOF
+01366a  536cc454             subq.w     #$1, -$3bac(a4)                        ; g_027452
+01366e  66f6                 bne.b      $13666
+loc_013670:
+013670  4eac8452             jsr        -$7bae(a4)                             ; -> gfx_WaitTOF
+013674  4a6cc454             tst.w      -$3bac(a4)                             ; g_027452
+013678  66f6                 bne.b      $13670
+loc_01367a:
+01367a  426cc454             clr.w      -$3bac(a4)                             ; g_027452

@@ -106,6 +106,8 @@ def text(draw, at, words):
 
 def raw_input(spec, vblank, lib):
     """The raw controller byte of one VBlank of a run."""
+    if 'schedule' in spec:
+        return schedule_input(spec['schedule'], vblank)
     if 'fire_from' in spec:
         return FIRE if spec['fire_from'] <= vblank < spec['fire_from'] + spec['fire_held'] else 0
     if 'fire_every' in spec:
@@ -129,6 +131,38 @@ def after_input(spec, vblank):
     return 0
 
 
+def schedule_input(schedule, vblank):
+    """The raw byte of a VBlank of a recorded schedule: runs of [VBlanks, raw byte] from the
+    program's start, as the headless original recorded the VBlanks of a script, which the
+    port replays one wof_vblank and one wof_pass each, as the loops of tests/m4compare.py do;
+    nothing after the schedule's end."""
+    k = vblank - 1
+    for count, raw in schedule:
+        if k < count:
+            return raw
+        k -= count
+    return 0
+
+
+def player_reader(ported):
+    """A function that reads the player's record (src/records.def, the original's offsets)
+    from the port's mission state: its height, x, state and facing, through tests/m4state.py's
+    layout of the registered tables."""
+    import struct
+    import m4state
+    layout = m4state.Layout(ported)
+    table = next(t for t in layout.tables if t['name'] == 'player')
+    fields = {f[0]: f[3] for f in layout.records['player']['fields']}
+    base = table['port_offset']
+
+    def read():
+        state = layout.port_mission()
+        return {name: struct.unpack_from('<h', state, base + fields[field])[0]
+                for name, field in (('y', 'y'), ('x', 'x'), ('state', 'on_deck'),
+                                    ('facing', 'facing'))}
+    return read
+
+
 def capture(lib, width, height):
     """The core's present picture: the indexed framebuffer, each row's palette and the
     palettes, read the way tests/m4_renders.py's picture() reads them."""
@@ -145,19 +179,50 @@ def capture(lib, width, height):
     return fb, rows, palettes
 
 
-def run_core(name, spec, wanted):
+PAGE_FADE = None                # the core's VBlanks a fade step as the page has them (src/fade.c)
+
+
+def run_core(name, spec, wanted, until=0, ticks=False):
     """One run of the core from its start; at each wanted VBlank the picture (an RGB image of
-    640 x 214) and its raw parts.  Returns {vblank: (image, framebuffer, rows, palettes)}."""
+    640 x 214) and its raw parts, and with `ticks` the player's record after every tick of the
+    mission through the core's tick hook, up to VBlank `until` at least.  Returns
+    {vblank: (image, framebuffer, rows, palettes)}, with 'ticks' a list of
+    {tick, vblank, y, x, state, facing, airspeed}, the deck's globals and how far the
+    wheels lie below the aircraft's reference point (wheel_height, 0x01AAEA)."""
     from m4_renders import picture
+    global PAGE_FADE
     ported = core()
-    ported.reset_core()
     lib = ported.lib
+    if PAGE_FADE is None:
+        PAGE_FADE = lib.wof_fade_vblanks()      # the page's step, before any run changes it
+    ported.reset_core(fade_vblanks=spec.get('fade_vblanks', PAGE_FADE))
     lib.wof_set_video_hz(50)
     lib.wt_poke_address.argtypes = [ctypes.c_uint] * 4
     lib.wt_pokes_clear()
     for address, size, value in spec.get('pokes', []):
         lib.wt_poke_address(address, size, value, 0)    # point 0: the rank selection's end
-    out, last = {}, max(wanted)
+    out, last = {}, max(set(wanted) | {until})
+    vblank, samples, failed = 0, [], []
+    hook = None
+    if ticks:
+        read = player_reader(ported)
+        lib.wof_test_player_call.argtypes = [ctypes.c_uint32, ctypes.c_int32]
+        lib.wof_test_player_call.restype = ctypes.c_int32
+
+        def tick_end(tick):
+            try:
+                if lib.wt_mission_count():
+                    samples.append(dict(read(), tick=tick, vblank=vblank,
+                                        airspeed=ported.g('airspeed'),
+                                        deck_west=ported.g('g_0253fc'),
+                                        deck_east=ported.g('g_0253fe'),
+                                        start=ported.g('player_start_x'),
+                                        cable=ported.g('g_026d3a'),
+                                        wheels=lib.wof_test_player_call(0x01AAEA, 0)))
+            except Exception as error:          # an exception must not cross into C
+                failed.append(error)
+        hook = ctypes.CFUNCTYPE(None, ctypes.c_uint32)(tick_end)
+        lib.wt_set_tick_hook(ctypes.cast(hook, ctypes.c_void_p))
     try:
         for vblank in range(1, last + 1):
             lib.wof_vblank(raw_input(spec, vblank, lib))
@@ -177,8 +242,14 @@ def run_core(name, spec, wanted):
                 image = picture(ported)
                 width, height = image.size
                 out[vblank] = (image,) + capture(lib, width, height)
+            if failed:
+                raise failed[0]
     finally:
         lib.wt_pokes_clear()
+        if hook is not None:
+            lib.wt_set_tick_hook(None)
+    if ticks:
+        out['ticks'] = samples
     if 'dash_night' in spec and lib.wt_dash_night() != spec['dash_night']:
         raise Failure('run %s: the dashboard of the %s was loaded, the manifest says the %s'
                       % (name, *(('night', 'day')[1 - v] for v in (lib.wt_dash_night(),
@@ -244,7 +315,8 @@ def make_palettes(figure, shot, path):
 def make_shapes(figure, path):
     """A contact sheet of tools/ppkc.py: every shape of `container`, or the shapes `pick`
     names as [container, name] pairs from several containers, in their order; laid out as a
-    grid by sheet(), or with `layout = "packed"` by packed_sheet()."""
+    grid by sheet(), `columns` to a row when given, or with `layout = "packed"` by
+    packed_sheet()."""
     tool = ppkc()
     if 'pick' in figure:
         shapes = []
@@ -256,7 +328,10 @@ def make_shapes(figure, path):
     else:
         shapes = tool.parse(str(SHAPES / figure['container']))
     flat = tool.load_cmap(str(SHAPES / figure['palette']))
-    (tool.packed_sheet if figure.get('layout') == 'packed' else tool.sheet)(shapes, flat, str(path))
+    if figure.get('layout') == 'packed':
+        tool.packed_sheet(shapes, flat, str(path))
+    else:
+        tool.sheet(shapes, flat, str(path), cols=figure.get('columns'))
 
 
 def executable_names(table):
@@ -1335,6 +1410,102 @@ def make_mirror(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def make_path(figure, spec, ticks, path):
+    """The player's flight over a stretch of a run, tick by tick: the height over the world x,
+    a dot a tick in the colour of the record's state, with the carrier's deck from its two ends
+    (deck_west and deck_east, 0x0253FC and 0x0253FE) up to its surface where the aircraft stood
+    on it, the aircraft's height less its wheels, the lift's column at player_start_x, the four
+    cables at player_start_x + 0x46 and 0x38 apart (cable_hook's rule, 0x01B92E), the one the
+    hook caught (0x026D3A) marked, and the moments the state changes numbered.  Checked: every tick of the stretch inside the
+    figure's box, every state named in the manifest, the cable caught one of the four."""
+    from PIL import Image, ImageDraw
+    first, last = figure['vblanks']
+    run = [t for t in ticks if first <= t['vblank'] <= last]
+    if not run:
+        raise Failure('%s: no tick between VBlanks %d and %d' % (figure['name'], first, last))
+    (x0, x1), (y0, y1) = figure['x'], figure['y']
+    xs, ys = figure['x_scale'], figure['y_scale']
+    states = {state: (words, palette(ink[0])[ink[1]]) for state, words, ink in figure['states']}
+    for t in run:
+        if not (x0 <= t['x'] <= x1 and y0 <= t['y'] <= y1):
+            raise Failure('%s: tick %d at (%d, %d) lies outside the figure'
+                          % (figure['name'], t['tick'], t['x'], t['y']))
+        if t['state'] not in states:
+            raise Failure('%s: tick %d is in state %d, which the manifest does not name'
+                          % (figure['name'], t['tick'], t['state']))
+    end = run[-1]
+    cables = [end['start'] + 0x46 + 0x38 * k for k in range(4)]
+    caught = end['cable']
+    if caught and caught not in cables:
+        raise Failure('%s: the cable caught, %d, is none of %s' % (figure['name'], caught, cables))
+    # The deck's surface where the aircraft stood on it: its height less its wheels.
+    standing = sorted(t['y'] - t['wheels'] for t in run
+                      if t['state'] == 1 and end['deck_west'] <= t['x'] <= end['deck_east'])
+    if not standing:
+        raise Failure('%s: the aircraft never stands on the deck' % figure['name'])
+    deck_y = standing[len(standing) // 2]
+    left, top, bottom = 34, 40, 22
+    width, height = round((x1 - x0) * xs), round((y1 - y0) * ys)
+    image = Image.new('RGB', (left + width + 8, top + height + bottom), GROUND)
+    draw = ImageDraw.Draw(image)
+
+    def px(x):
+        return left + round((x - x0) * xs)
+
+    def py(y):
+        return top + round((y1 - y) * ys)
+
+    draw.rectangle((left, top, left + width, top + height), fill=PANEL)
+    sea = palette(figure['sea'][0])[figure['sea'][1]]
+    draw.rectangle((left, py(0), left + width, top + height), fill=sea)
+    hull = palette(figure['deck'][0])[figure['deck'][1]]
+    draw.rectangle((px(end['deck_west']), py(deck_y), px(end['deck_east']), py(0)), fill=hull)
+    draw.rectangle((px(end['start']) - 3, py(deck_y), px(end['start']) + 3, py(0)), fill=PANEL)
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    wire = palette(figure['cable'][0])[figure['cable'][1]]
+    for x in cables:
+        draw.line((px(x), py(deck_y) - (6 if x == caught else 3), px(x), py(deck_y)),
+                  fill=mark if x == caught else wire)
+    for x in range(x0 - x0 % 200 + 200, x1 + 1, 200):
+        draw.line((px(x), top + height, px(x), top + height + 3), fill=AXIS)
+        text(draw, (px(x) - 12, top + height + 5), str(x))
+    for y in range(0, y1 + 1, 50):
+        draw.line((left - 3, py(y), left, py(y)), fill=AXIS)
+        text(draw, (left - 6 - 6 * len(str(y)), py(y) - 6), str(y))
+    previous = None
+    for t in run:
+        colour = states[t['state']][1]
+        at = (px(t['x']), py(t['y']))
+        if previous is not None:
+            draw.line(previous + at, fill=colour)
+        draw.rectangle((at[0] - 1, at[1] - 1, at[0] + 1, at[1] + 1), fill=colour)
+        previous = at
+    # The moments the state changes, numbered over their tick, alternately higher where two
+    # lie close.
+    moments, last_x, lift = [], None, 0
+    for before, t in zip(run, run[1:]):
+        if t['state'] != before['state']:
+            moments.append(t)
+    for n, t in enumerate(moments, 1):
+        x, y = px(t['x']), py(t['y'])
+        lift = 12 if last_x is not None and abs(x - last_x) < 24 and lift == 0 else 0
+        draw.line((x, y - 3, x, y - 8 - lift), fill=MUTED)
+        text(draw, (x - 2, y - 20 - lift), str(n))
+        last_x = x
+    x = left
+    for state, (words, colour) in sorted(states.items()):
+        draw.rectangle((x, 6, x + 7, 13), fill=colour)
+        text(draw, (x + 11, 4), words)
+        x += 11 + 6 * len(words) + 14
+    text(draw, (left, 20), '  '.join('%d %s' % (n, figure['moments'][n - 1])
+                                     for n in range(1, len(moments) + 1)))
+    if len(moments) != len(figure['moments']):
+        raise Failure('%s: the state changes %d times, the manifest names %d moments'
+                      % (figure['name'], len(moments), len(figure['moments'])))
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -1365,8 +1536,10 @@ def generate(out, names=None, log=print):
     out.mkdir(parents=True, exist_ok=True)
     shots = {}
     for run in sorted({f['run'] for f in figures if 'run' in f}):
-        wanted = {f['vblank'] for f in figures if f.get('run') == run}
-        shots[run] = run_core(run, runs[run], wanted)
+        wanted = {f['vblank'] for f in figures if f.get('run') == run and 'vblank' in f}
+        paths = [f for f in figures if f.get('run') == run and f['maker'] == 'path']
+        until = max([f['vblanks'][1] for f in paths], default=0)
+        shots[run] = run_core(run, runs[run], wanted, until=until, ticks=bool(paths))
     for figure in figures:
         path = out / figure['file']
         maker = figure['maker']
@@ -1404,6 +1577,8 @@ def generate(out, names=None, log=print):
             make_clearset(figure, path)
         elif maker == 'mirror':
             make_mirror(figure, path)
+        elif maker == 'path':
+            make_path(figure, runs[figure['run']], shots[figure['run']]['ticks'], path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

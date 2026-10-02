@@ -33,6 +33,9 @@
 #                       set bytes, the rule checked against the port's blit (the native library)
 #            mirror     one shape as stored and as shape_mirror_x leaves it, the hotspot framed,
 #                       checked against the pixels reversed and the port's mirror
+#            path       the player's flight over a stretch of a run, tick by tick: the height over
+#                       the world x in the colour of the record's state, the carrier's deck, its
+#                       lift and its cables, the moments the state changes numbered
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -79,6 +82,27 @@ fire_held = 3
 mission_at = 659
 after = [[200, ""], [3, "F"], [60, ""], [460, "R"], [190, "RU"], [120, "L"], [100, "U"]]
 expect = [{vblank = 3500, draw_player_x = 3381, draw_player_y = 109, view_step = 8}]
+
+[run.landing]
+what = """The landing script of tools/m4_scripts.py, LANDING, which the autopilot of tools/m4_autopilot.py
+found, replayed as the loops of tests/m4compare.py replay it: `schedule` is the raw byte of every
+VBlank the headless original recorded when it flew the script (tools/headless.py, its schedule's
+V entries, 3197 VBlanks from the program's start as runs of [VBlanks, byte]), and the fades take no
+time (`fade_vblanks` 0), as in the headless original. The script's own letters cannot stand in for
+it: the headless original takes letters in VBlanks of the front end that its schedule does not
+record, and the port given the letters alone never reaches the mission. The port meets the
+original's states at the same VBlanks (re/notes/porting-m4.md, "How the port is held to the
+original": the landing in both loops); `expect` checks the moment the cable holds the aircraft."""
+fade_vblanks = 0
+mission_at = 444
+schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1, 16], [104, 0],
+            [2, 16], [30, 0], [3, 16], [30, 0], [3, 16], [40, 0], [3, 16], [60, 0], [460, 4], [198, 5],
+            [164, 4], [112, 8], [31, 9], [56, 8], [4, 9], [4, 8], [4, 9], [4, 8], [4, 9], [24, 8],
+            [12, 10], [12, 8], [12, 9], [16, 8], [8, 10], [20, 8], [8, 9], [8, 8], [8, 10], [16, 8],
+            [8, 9], [8, 8], [8, 10], [20, 8], [8, 9], [12, 8], [8, 10], [20, 8], [1, 9], [32, 1],
+            [164, 0], [179, 8], [100, 0], [4, 8], [69, 0], [3, 16], [212, 0], [8, 2], [72, 0], [4, 16],
+            [129, 0], [363, 4]]
+expect = [{vblank = 1900, g_026d3a = 7270, player_start_x = 7032, airspeed = 1148}]
 
 [[figure]]
 name = "title-logo"
@@ -504,3 +528,54 @@ palette = "wingspalette"
 shows = "Every shape of japcarrier.shp with its name, packed: the Japanese carrier's pieces and its flags, jcrm in the colour numbers its planes store, red and blue, not the greys its set byte gives it on the screen."
 how = "tools/ppkc.py's parse() and packed_sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, colour 0 left as the sheet's ground, the tallest first, twice enlarged, the names in Pillow's bitmap font."
 command = ".venv/bin/python book/tools/figures.py shapes-japcarrier"
+
+[[figure]]
+name = "turn-hellcat"
+file = "turn-hellcat.png"
+maker = "shapes"
+pick = [["hellcat.shp", "hc28"], ["hellcat.shp", "hc29"], ["hellcat.shp", "hc2a"],
+        ["hellcat.shp", "hc2b"], ["hellcat.shp", "hc2c"], ["hellcat.shp", "hc2d"],
+        ["hellcat.shp", "hc2e"], ["hellcat.shp", "hc2f"], ["hellcat.shp", "hc30"],
+        ["hellcat.shp", "hc31"], ["hellcat.shp", "hc32"],
+        ["hellcat.shp", "hc33"], ["hellcat.shp", "hc34"], ["hellcat.shp", "hc35"],
+        ["hellcat.shp", "hc36"], ["hellcat.shp", "hc27"], ["hellcat.shp", "hc26"],
+        ["hellcat.shp", "hc25"], ["hellcat.shp", "hc24"], ["hellcat.shp", "hc23"],
+        ["hellcat.shp", "hc22"]]
+columns = 11
+palette = "wingspalette"
+shows = "The frames of a turn from facing west to facing east, in the order the attitude shows them: hc28 to hc32 from frames_left, then hc33 to hc36 and hc27 back to hc22 from frames_right; each drawn as hellcat.shp stores it, since the turn's frames are never mirrored."
+how = "The names of frames_left (0x025D10) at attitudes 1 to 13 and of frames_right (0x025D78) at 14 to 25 (re/tables.toml, read from the executable), each name once; tools/ppkc.py's parse() and sheet(), eleven to a row, the shapes' planes to indexed pixels in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py turn-hellcat"
+
+[[figure]]
+name = "landing-cable"
+file = "landing-cable.png"
+maker = "screen"
+run = "landing"
+vblank = 1900
+size = [1024, 642]
+shows = "The landing run at VBlank 1900: the arresting cable at world x 7270 holds the aircraft on the carrier's deck, its airspeed down to 1148, the cable drawn as a line."
+how = "VBlank 1900 of the landing run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the cable's x the hook caught (0x026D3A, 7270), the start's x (7032) and the airspeed (1148), which the cable takes 110 off a tick from 1368."
+command = ".venv/bin/python book/tools/figures.py landing-cable"
+
+[[figure]]
+name = "landing-path"
+file = "landing-path.png"
+maker = "path"
+run = "landing"
+vblanks = [645, 2540]
+x = [6560, 8480]
+y = [-8, 160]
+x_scale = 0.5
+y_scale = 2
+states = [[0, "in the air", ["wingspalette", 1]], [1, "on the deck", ["wingspalette", 30]],
+          [7, "held by a cable", ["wingstitle", 25]], [11, "on the lift", ["iff-dash", 6]]]
+moments = ["take-off", "touch-down", "the cable", "stopped", "the lift down"]
+sea = ["wingspalette", 5]
+deck = ["wingspalette", 27]
+cable = ["wingspalette", 31]
+mark = ["wingstitle", 25]
+scale = 2
+shows = "The landing run's flight from the deck to the hold, the aircraft's height over its world x after every tick: the take-off, the dip after it, the climb, the turn, the approach from the east, the touch-down, the cable, the stop, the taxi and the lift down; the carrier's deck, its lift and its four cables marked."
+how = "The player's record read after every tick of the landing run between VBlanks 645 and 2540 through the core's tick hook and tests/m4state.py's layout; a dot a tick in the colour of the record's state; the deck from deck_west to deck_east up to the height the aircraft stood at on it, the lift's column at player_start_x, the cables at player_start_x + 0x46 and 0x38 apart (cable_hook, 0x01B92E), the one caught (0x026D3A) marked in entry 25 of the title picture's palette; the height drawn four times as tall as the x; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py landing-path"

@@ -1,0 +1,34 @@
+; re/Wings.lst 0x01BB18-0x01BB7E: ground_contact [C], a part of 0x01BA80-0x01BC01
+01bb18  4a6dfff6             tst.w      -$a(a5)
+01bb1c  6766                 beq.b      $1bb84
+01bb1e  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bb22  0c68ffff0014         cmpi.w     #$ffff, $14(a0)
+01bb28  663e                 bne.b      $1bb68
+01bb2a  4a6caaac             tst.w      -$5554(a4)                             ; landing_stall
+01bb2e  6738                 beq.b      $1bb68
+01bb30  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bb34  317c0001000c         move.w     #$1, $c(a0)
+01bb3a  397cffffaaa0         move.w     #$ffff, -$5560(a4)                     ; g_025a9e
+01bb40  4eac8086             jsr        -$7f7a(a4)                             ; -> sound_screech
+01bb44  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bb48  2f08                 move.l     a0, -(a7)
+01bb4a  4ebaef9e             jsr        $1aaea(pc)                             ; wheel_height
+01bb4e  205f                 movea.l    (a7)+, a0
+01bb50  3f00                 move.w     d0, -(a7)
+01bb52  2f08                 move.l     a0, -(a7)
+01bb54  2f2dfffc             move.l     -$4(a5), -(a7)
+01bb58  4eba9bb6             jsr        $15710(pc)                             ; sub_015710
+01bb5c  584f                 addq.w     #$4, a7
+01bb5e  205f                 movea.l    (a7)+, a0
+01bb60  321f                 move.w     (a7)+, d1
+01bb62  d240                 add.w      d0, d1
+01bb64  3081                 move.w     d1, (a0)
+01bb66  601a                 bra.b      $1bb82
+loc_01bb68:
+01bb68  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bb6c  226ccdee             movea.l    -$3212(a4), a1                         ; player_record
+01bb70  44680018             neg.w      $18(a0)
+01bb74  446ca404             neg.w      -$5bfc(a4)                             ; pitch_target
+01bb78  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01bb7c  5c50                 addq.w     #$6, (a0)
+01bb7e  4eac8086             jsr        -$7f7a(a4)                             ; -> sound_screech
