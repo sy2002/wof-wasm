@@ -991,7 +991,7 @@ class Headless(AmigaOS):
             self.o.write(OPT_INVERT_VERTICAL, b'\0')              # off for the probe
             bits = self.nested(READ_JOY_BITS, {'a4': A4})[0] & 0x0F
             self.o.write(OPT_INVERT_VERTICAL, saved)
-            words.setdefault(bits, word)                          # b0 down, b1 up, b2 left, b3 right
+            words.setdefault(bits, word)                          # b0 forward (climb), b1 back, b2 left, b3 right
         return words
 
     def _next_raw(self):

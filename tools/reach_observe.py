@@ -1,7 +1,8 @@
-"""The reach map of milestone M4: which routines the original enters, where, and how often.
+"""The reach map: which routines the original enters, where, and how often.
 
-M4 ports what the five mission scripts of tools/pass_observe.py reach and marks everything
-else as a stand-in.  This tool runs each script under the headless original with a code
+Each milestone from M4 to M7 ported what its mission scripts reach (the options below add
+M5's, M6's and M7's to M4's five of tools/pass_observe.py) and marked everything else as a
+stand-in.  This tool runs each script under the headless original with a code
 hook on the first instruction of every routine of re/functions.csv and counts, per routine,
 its entries by the part of the run it happened in and by the phase of the harness
 (re/notes/headless.md, "Write summary, read hook"):

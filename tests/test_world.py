@@ -1,9 +1,9 @@
 """The world as a pass, against the headless original (M4 part 1, re/notes/porting-m4.md).
 
-Every pass of the five mission scripts of M4 is compared with the original's in both loops
-of tests/m4compare.py: the open loop, which starts every pass from the original's state
-before it (V1), and the closed loop, which runs the port on its own and hands it only what
-each tick of the original wrote (V2).  After every pass: every registered global and table,
+Every pass of the eight mission scripts of M4, and of the long fuel script with --slow, is
+compared with the original's in both loops of tests/m4compare.py: the open loop, which
+starts every pass from the original's state before it (V1), and the closed loop, which runs
+the port on its own from the seed and the map list's addresses alone (V2).  After every pass: every registered global and table,
 the drawing calls, the entropy draws, the palette of every output row, and the map draws
 against tools/map_decode.py; and no marked stand-in may have been reached.
 

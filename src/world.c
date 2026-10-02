@@ -7,9 +7,9 @@
  * and says which register it was.  The blitter library's shape_draw keeps d0 to d6, a0 to a3
  * and a5 (re/notes/porting-m4.md), which is what the callers rely on.
  *
- * What the five mission scripts of M4 never executed is not here: each such region of a
- * routine is one WOF_STANDIN with the milestone that owes it (re/notes/porting-m4.md,
- * "Stand-ins").  Reaching one skips it.
+ * What no mission script of M4 to M7 executed is not here: each such region of a routine
+ * is one WOF_STANDIN naming the milestone that marked it (re/notes/porting-m4.md, "What
+ * stands in, and where").  Reaching one skips it.
  */
 #include "wof.h"
 #include "coro.h"

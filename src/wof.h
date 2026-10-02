@@ -43,7 +43,7 @@
 /* One palette per distinct set of colours that is on screen at once, plus the blank one at
  * index 0.  wof_palette_rows() says which applies to each output row.  The front end needs
  * the most of them: the story scroller changes COLOR01 on every row of two sixteen-row
- * ramps, which is seventeen (re/notes/display.md).  The sky-to-ocean split and the ticker's
+ * ramps, sixteen greys, seventeen palettes with the blank one.  The split and the ticker's
  * ten-line ramp of the play screen fit in the same budget. */
 #define WOF_PAL_COUNT   24
 #define WOF_PAL_BLANK   0
@@ -548,11 +548,11 @@ uint32_t wof_pool_capacity(uint32_t pointer);                       /* its bytes
 
 /* ------------------------------------------------------------- the marked stand-ins (M4)
  *
- * Code the five mission scripts never executed is not ported yet; each such region is one
- * stand-in with a marker naming the milestone that owes it.  Reaching one counts in the
- * state (wof_standin_hits, which the diagnostics overlay shows), and in test builds it is
- * also logged by name, so that every differential test can assert that none was reached.
- * In the release build a stand-in skips and does nothing else. */
+ * Code that no mission script of M4 to M7 executed is not ported: each such region is one
+ * stand-in with a marker naming the milestone that marked it; the reach map is cold-clean
+ * since M7 part 2 (tools/reach_observe.py --cold).  Reaching one counts in the state
+ * (wof_standin_hits, shown by the diagnostics overlay) and in test builds is logged by name,
+ * so every differential test can assert none was reached; a release stand-in only skips. */
 void wof_standin(const char *marker);
 #define WOF_STANDIN(marker) wof_standin(marker)
 WOF_API(wof_standin_hits)      uint32_t        wof_standin_hits(void);

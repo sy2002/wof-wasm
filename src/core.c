@@ -466,10 +466,10 @@ void wof_standin(const char *marker)
 
 /* ------------------------------------------------------------- VBlanks per pass (6.2) */
 
-/* PROVISIONAL (SPEC 10, point 2): how many VBlanks a pass takes.  The owner measures it on
- * the machine; until then it is a setting, like the fade's.  A pass begins only when this
- * many VBlanks have happened since the previous one began and vblank_flag is set, which is
- * the headless original's scheduling rule (re/notes/headless.md). */
+/* How many VBlanks a pass takes (SPEC 10, point 2): 2, measured on the owner's PAL Amiga by
+ * a film at 240 frames a second in a quiet scene (re/notes/passes.md), kept a setting like the
+ * fade's so that the tests can run other rates.  A pass begins only when this many VBlanks
+ * have happened since the previous one began and vblank_flag is set (re/notes/headless.md). */
 static uint16_t vblanks_per_pass = 2;
 
 void wof_set_vblanks_per_pass(int n)

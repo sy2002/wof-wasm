@@ -395,7 +395,7 @@ def test_no_logic_reads_what_was_drawn(first, other_input):
             assert block != '%d bytes' % planes, '%s reads a bitplane' % routine
 
 
-def test_the_music_player_is_recorded_not_run(first):
+def test_the_music_players_calls_are_recorded(first):
     names = {call[0] for call in first.player_calls}
     assert names == {'wofsongs', 'songplay'}
     assert [call[1] for call in first.player_calls if call[0] == 'songplay'][:3] == [0, 1, 2]

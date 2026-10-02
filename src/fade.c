@@ -5,12 +5,12 @@
  * round is one VBlank, and one CO_WAIT is one pass, which the shell issues once per VBlank,
  * so the port counts the same rounds against the same clock.
  *
- * The fades are the exception, and the one provisional setting in this milestone.  A fade
- * is sixteen steps of arithmetic and a copper rebuild with no wait in it at all, so on the
- * machine its duration is CPU time and nothing in the executable says how much
- * (re/notes/display.md).  The port gives a step a fixed number of VBlanks,
- * WOF_FADE_VBLANKS, provisionally 2; the differential tests set it to 0, where the harness'
- * fades take no time either, and the two then agree VBlank for VBlank.
+ * The fades are the exception, the one setting of the port that rests on no measurement.  A
+ * fade is sixteen steps of arithmetic and a copper rebuild with no wait in it at all, so on
+ * the machine its duration is CPU time and nothing in the executable says how much
+ * (re/notes/display.md).  The port gives a step a fixed number of VBlanks, fade_vblanks
+ * (wof_set_fade_vblanks), 2 by the owner's eye and kept so; the differential tests set it to
+ * 0, where the harness' fades take no time either, and the two then agree VBlank for VBlank.
  */
 #include "wof.h"
 #include "coro.h"

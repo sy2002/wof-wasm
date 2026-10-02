@@ -160,7 +160,7 @@ void wof_screen_band(const wof_vport_t *vp, uint16_t out_y, uint16_t rows, int32
 }
 
 /* Two bands that want the same colours share a palette.  That is what keeps the number of
- * palettes down to what the screen really has: the story scroller's 33 bands carry 17
+ * palettes down to what the screen really has: the story scroller's 33 bands carry 16
  * distinct tables, and a screen of one viewport carries one. */
 static uint16_t palette_for(const uint16_t *colours, uint16_t *used)
 {
