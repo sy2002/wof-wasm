@@ -160,7 +160,7 @@ Elsewhere: [MOS Technology CIA](https://en.wikipedia.org/wiki/MOS%5FTechnology%5
 
 ### Clear and set bytes
 
-Two bytes of a shape's header naming the screen's planes that every draw sets to 0 and to 1 under the shape's mask, so that a shape storing fewer planes than the screen has lands in its own colours whatever lies beneath.
+Two bytes of a shape's header naming the screen's planes that every draw sets to 0 and to 1 under the shape's mask; with them a shape storing fewer planes than the screen has lands in colours that do not depend on what lies beneath, which holds for every shape on the disk.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete"; [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly".
 
@@ -226,7 +226,7 @@ Elsewhere: [Status register](https://en.wikipedia.org/wiki/Status%5Fregister), W
 
 ### Contact sheet
 
-A picture of every shape of a container with its name above it, in the day palette, made by [`tools/ppkc.py`](repo:tools/ppkc.py); seven are kept in the repository as the containers' reference pictures.
+A picture of every shape of a container with its name above it, in the day palette, made by [`tools/ppkc.py`](repo:tools/ppkc.py); seven are the pictures of the containers kept in the repository.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tools/ppkc.py`](repo:tools/ppkc.py); [`ref/sheets/`](repo:ref/sheets/).
 
@@ -476,7 +476,7 @@ Elsewhere: [Hooking](https://en.wikipedia.org/wiki/Hooking), Wikipedia.
 
 ### Hotspot
 
-The point of a shape, counted from its top left corner, that lands on the position the shape is drawn at; every routine that draws subtracts it from the position first.
+The point of a shape, counted from its top left corner, that lands on the position the shape is drawn at; the routines that draw a shape from a table or a lookup subtract it from the position first.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
 
@@ -658,6 +658,8 @@ Elsewhere: [Aztec C](https://en.wikipedia.org/wiki/Aztec%5FC), Wikipedia.
 
 A one-bit picture of where a shape has any colour at all: the OR of its planes, or, for a shape of one plane, that plane; the blitter draws the shape's bits where the mask is set and keeps the background elsewhere.
 
+Not the same as a [plane mask](#plane-mask), a byte of a shape's header naming the screen's planes a stored plane is written to, nor the blitter's [word masks](#word-masks), which blank the edges of a row.
+
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly".
 
 Elsewhere: [Mask (computing)](https://en.wikipedia.org/wiki/Mask%5F(computing)), Wikipedia.
@@ -678,7 +680,7 @@ First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`]
 
 ### Minterm
 
-The number that chooses the blitter's logic function: eight bits, one for each way its three sources A, B and C can be set, each giving the result there; the game's blit uses `0xCA`, B where A is set and C where it is not.
+One of the eight ways the blitter's three sources, A, B and C, can be set at a pixel; the blitter's logic function is a byte with a bit for each minterm, saying whether the result is 1 there, and the game's blit uses `0xCA`, B where A is set and C where it is not.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#what-shape%5Fdraw-does-exactly), "What `shape_draw` does, exactly"; [`tests/blitter.py`](repo:tests/blitter.py).
 
@@ -840,7 +842,7 @@ Elsewhere: [Processor register](https://en.wikipedia.org/wiki/Processor%5Fregist
 
 ### Register programme
 
-The blitter's registers as they stand when a blit starts, its pointers, modulos, word masks, shifts, minterm and size; the blit tests capture it from the original and replay it on a model of the blitter.
+The blitter's registers as they stand when a blit starts, its pointers, modulos, word masks, shifts, logic function and size; the blit tests capture it from the original and replay it on a model of the blitter.
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/blitter.py`](repo:tests/blitter.py); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#how-the-tests-establish-it), "How the tests establish it".
 
