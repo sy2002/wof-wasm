@@ -14,8 +14,8 @@ static void channel_play(uint32_t sample, uint32_t length, uint16_t c, uint16_t 
     if (c == 6) {
         /* Dead (read): the one caller the game reaches, sound_channels, asks for its pair
          * index, 0 to 3 (0x0120F8, D6), and the other, sound_play_rate (0x01E992), has no
-         * caller.  0x01E9F4 would hand channel 2 over from the music, with a Delay of ten
-         * VBlanks; channel2_from_music (0x01EA18) would give it back and has no caller. */
+         * caller.  0x01E9F4 would hand channel 2 over to the music, with a Delay of ten
+         * VBlanks; channel2_from_music (0x01EA18) would take it back and has no caller. */
         WOF_STANDIN("M8 STAND-IN: 0x01EA3A, a sample asked for on channel 6, which no caller does");
         c = 2;
     }
