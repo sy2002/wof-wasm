@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-labelledby="title desc">
   <title id="title">Where the world meets the screen</title>
-  <desc id="desc">The playfield, 320 pixels wide and 162 rows high, drawn over a strip of map records eight pixels wide. The screen's left edge is view_x, screen x 0. The aircraft is always at screen x 160. The records a pass draws run from screen x minus 128, the first record lying 288 pixels behind the aircraft, to screen x 448, beyond both edges of the screen; the helper that draws every other shape keeps to the same window. The horizon's row, view_y, is row 151 while the aircraft flies low; the water line, world y 0, lies 11 rows below it, and world y counts upward from it.</desc>
+  <desc id="desc">The playfield, 320 pixels wide and 162 rows high, drawn over a strip of map records eight pixels wide. The screen's left edge is view_x, screen x 0. The aircraft is always at screen x 160. The records a pass draws run from about screen x minus 128, the first record lying 288 pixels west of the aircraft, to screen x 448, beyond both edges of the screen; every shape the objects draw keeps to the window from minus 128 to 448. The horizon's row, view_y, is row 151 while the aircraft flies low; the water line, world y 0, lies 11 rows below it, and world y counts upward from it.</desc>
   <style>
     /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
     .sky    { fill: #00AAFF; /* wingspalette 1 */ }
@@ -134,12 +134,12 @@
   <rect class="gold" x="647" y="266" width="2" height="12"/>
   <text class="light small" x="72" y="294">screen x &#8722;128</text>
   <text class="light small" x="648" y="294" text-anchor="middle">448</text>
-  <text class="light small" x="360" y="294" text-anchor="middle">the records a pass draws, and every shape</text>
+  <text class="light small" x="360" y="294" text-anchor="middle">every shape the objects draw; the map&#8217;s records nearly so</text>
 
   <!-- 288 pixels from the first record to the aircraft -->
   <rect class="rule" x="80" y="322" width="272" height="1"/>
   <path class="rule" d="M72 322.5 L81 318 L81 327 Z"/>
   <path class="rule" d="M360 322.5 L351 318 L351 327 Z"/>
-  <text class="muted small" x="216" y="314" text-anchor="middle">288 pixels: the first record is (x &#8722; 288) / 8</text>
+  <text class="muted small" x="216" y="314" text-anchor="middle">288 pixels west: the first record is (x &#8722; 288) / 8</text>
   <text class="muted small" x="216" y="344" text-anchor="middle">x the aircraft's world x</text>
 </svg>

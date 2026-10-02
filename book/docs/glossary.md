@@ -440,7 +440,7 @@ First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-e
 
 ### Ground height
 
-How high what stands at a map record reaches, which a tick asks for under an object: a class's height less the record's height bits, a ship's deck from the ship's record, or zero; the one thing the game's logic takes from the map.
+How high what stands at a map record reaches, which a tick asks for under an object: a class's height less the record's height field, a ship's deck from the ship's record, or zero; in flight without weapons, the one thing the tick reads from the map.
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-ground-height), "The ground height".
 
@@ -674,7 +674,7 @@ First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/m
 
 ### Map record
 
-One word of a map file, two bytes for eight pixels of the world from west to east: the draw flag, the height, the slot of its shape and whether it stands on the world or rides on a ship.
+One word of a map file, two bytes for eight pixels of the world from west to east: the draw flag, the height field, the slot of its shape and what lies under it, land, a ship's deck or open sea.
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
 
@@ -1116,6 +1116,12 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 
 Elsewhere: [Busy waiting](https://en.wikipedia.org/wiki/Busy%5Fwaiting), Wikipedia.
 
+### Water line
+
+The sea's surface in a mission's world, where world y is zero; at full scale it lies 11 rows below the horizon's row.
+
+First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates".
+
 ### WebAssembly
 
 A compact binary form of program that every current browser runs: the form the port's core is compiled to.
@@ -1150,6 +1156,6 @@ First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md
 
 ### World coordinates
 
-Positions in a mission's world: x in pixels from the map's west end, eight to a map record, and y in pixels upward from the water line.
+Positions in a mission's world: x in pixels from the map's west end, eight to a map record, and y in pixels upward from the [water line](#water-line).
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates".

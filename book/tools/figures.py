@@ -333,8 +333,8 @@ def make_maprecord(figure, path):
     index, world x and word, its sixteen bits in boxes grouped by field and named
     (re/notes/map.md, "The record"), and its fields decoded by tools/map_decode.py's fields(),
     the slot named by the name list read from the executable.  Checked: one record of the run
-    draws, all carry its slot, the shape's columns lie within the run, and draw_list() draws
-    that record at that world x on the row of its height."""
+    draws, all carry its slot and its height field, the shape's columns lie within the run, and
+    draw_list() draws that record at that world x on the row of its height."""
     from PIL import Image, ImageDraw
     import map_decode
     tool = ppkc()
@@ -343,9 +343,9 @@ def make_maprecord(figure, path):
     words = chart.words[first:last + 1]
     fields = [map_decode.fields(w) for w in words]
     drawn = [first + i for i, f in enumerate(fields) if f['draw']]
-    if len(drawn) != 1 or len({f['slot'] for f in fields}) != 1:
-        raise Failure('map %s, records %d to %d: not one shape with one drawn record'
-                      % (figure['map'], first, last))
+    if len(drawn) != 1 or len({(f['slot'], f['height']) for f in fields}) != 1:
+        raise Failure('map %s, records %d to %d: not one shape with one drawn record, one slot '
+                      'and one height field' % (figure['map'], first, last))
     drawn = drawn[0]
     slot = fields[0]['slot']
     names = executable_names(figure['names'])

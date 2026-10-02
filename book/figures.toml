@@ -191,7 +191,7 @@ split_row = 151
 zoom = 4
 scale = 2
 shows = "Records 15 to 18 of map a, the four columns of one palm, tre1 of world.shp: the palm over its columns with its hotspot framed on the third record's x, and each record's word, its sixteen bits grouped by field, and its fields: slot 6, height 2, low bits 2, the draw flag on the third."
-how = "tools/map_decode.py's load() and fields() for the records; the slot named by world_names (re/tables.toml, read from the executable); the shape from tools/ppkc.py's parse() and to_indexed() in the colours of wingspalette on its sky colour (entry 1), each pixel four wide and high, the whole twice enlarged; the drawn record, its bits and its hotspot marked in entry 25 of the title picture's palette. Checked: one record of the run draws and all carry its slot, the shape's columns lie within the run, and draw_list() with the player at that record draws it at its world x on the split row of the deck (151) plus four rows a step of its height."
+how = "tools/map_decode.py's load() and fields() for the records; the slot named by world_names (re/tables.toml, read from the executable); the shape from tools/ppkc.py's parse() and to_indexed() in the colours of wingspalette on its sky colour (entry 1), each pixel four wide and high, the whole twice enlarged; the drawn record, its bits and its hotspot marked in entry 25 of the title picture's palette. Checked: one record of the run draws and all carry its slot and its height field, the shape's columns lie within the run, and draw_list() with the player at that record draws it at its world x on the split row of the deck (151) plus four rows a step of its height."
 command = ".venv/bin/python book/tools/figures.py maprecord-palm"
 
 [[figure]]

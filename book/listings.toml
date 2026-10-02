@@ -421,14 +421,6 @@ kind = "py"
 name = "draw_list"
 file = "tools/map_decode.py"
 
-# The game's allocator: every request asks AllocMem for cleared memory, bit 16 of the flags,
-# MEMF_CLEAR, which leaves the four records the map loader reads past its file at zero.
-[[listing]]
-kind = "asm"
-name = "sub_020874"
-to = 0x020888
-as = "alloc_clear"
-
 # The ground under a map record, the one thing a tick takes from the map: zero, a ship's deck,
 # or a class's height less the record's height bits; beside the port's switch over the slot.
 [[listing]]
