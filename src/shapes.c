@@ -31,7 +31,7 @@ uint16_t wof_namelist_count(const uint32_t *list)
 
 /* orig 0x020560 - A0 = container, D0 = the name as a big-endian long.  A linear scan that
  * stops at the first stored name greater than or equal to the wanted one, so it needs the
- * ascending order that all thirteen containers on the disk have.  The port keeps the early
+ * ascending order that all twelve containers on the disk have.  The port keeps the early
  * exit: the result is the same as an exact-match lookup, and the oracle test compares it
  * against the original for every name of every list. */
 int16_t wof_shape_find(const wof_container_t *c, uint32_t name)
