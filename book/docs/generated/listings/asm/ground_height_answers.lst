@@ -1,0 +1,31 @@
+; re/Wings.lst 0x01584A-0x015896: ground_height [asm], a part of 0x015714-0x015897
+loc_01584a:
+01584a  7000                 moveq      #$0, d0
+01584c  60000044             bra.w      $15892
+loc_015850:
+015850  7000                 moveq      #$0, d0
+015852  302a000e             move.w     $e(a2), d0
+015856  906a0014             sub.w      $14(a2), d0
+01585a  906ca3b0             sub.w      -$5c50(a4), d0                         ; g_0253ae
+01585e  906ca398             sub.w      -$5c68(a4), d0                         ; g_025396
+015862  6000002e             bra.w      $15892
+loc_015866:
+015866  7000                 moveq      #$0, d0
+015868  302a000e             move.w     $e(a2), d0
+01586c  906a0014             sub.w      $14(a2), d0
+015870  906ca3b0             sub.w      -$5c50(a4), d0                         ; g_0253ae
+015874  6000001c             bra.w      $15892
+loc_015878:
+015878  7000                 moveq      #$0, d0
+01587a  43eca7c4             lea.l      -$583c(a4), a1                         ; ground_class_heights
+01587e  d442                 add.w      d2, d2
+015880  34312000             move.w     (a1, d2.w), d2
+015884  3010                 move.w     (a0), d0
+015886  720b                 moveq      #$b, d1
+015888  e268                 lsr.w      d1, d0
+01588a  c07c0007             and.w      #$7, d0
+01588e  9440                 sub.w      d0, d2
+015890  c540                 exg.l      d2, d0
+loc_015892:
+015892  4cdf0404             movem.l    (a7)+, d2/a2
+015896  4e75                 rts

@@ -18,6 +18,8 @@ made and the command that remakes it, and writes PNG files:
     shapes     a contact sheet of a shape container with tools/ppkc.py, or of shapes picked
                from several, as a grid or packed
     map        a map's drawn records with tools/map_decode.py and the shapes of tools/ppkc.py
+    maprecord  a run of a map's records, the columns of one shape: the shape over them, and
+               each record's sixteen bits grouped by field and decoded by tools/map_decode.py
     font       a specimen of the game's font, drawn by the core's text_render
     planes     one shape of a container taken apart into its stored planes with tools/ppkc.py,
                and put together again as colour numbers and through a palette
@@ -42,7 +44,9 @@ made and the command that remakes it, and writes PNG files:
 
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
-library's test hook; the pokes are cleared when the run ends.
+library's test hook; the pokes are cleared when the run ends.  After the mission begins a run
+may move the stick by a schedule of letters, as the mission scripts are written, and may name
+registered globals with the values they must have at a VBlank, which the run checks.
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -106,10 +110,23 @@ def raw_input(spec, vblank, lib):
         return FIRE if spec['fire_from'] <= vblank < spec['fire_from'] + spec['fire_held'] else 0
     if 'fire_every' in spec:
         if lib.wt_mission_count():
-            return 0
+            return after_input(spec, vblank)
         held = (vblank - 1) % spec['fire_every'] >= spec['fire_every'] - spec['fire_held']
         return FIRE if held else 0
     raise Failure('a run needs fire_from or fire_every: %s' % spec)
+
+
+def after_input(spec, vblank):
+    """The raw byte of a VBlank after the mission began: nothing, or the run's `after` schedule,
+    runs of [VBlanks, letters] counted from the VBlank after mission_at, each letter a bit as
+    tools/headless.py's RAW_BITS gives it to wof_vblank, as the mission scripts are written."""
+    from headless import RAW_BITS
+    k = vblank - spec['mission_at'] - 1
+    for count, letters in spec.get('after', []):
+        if k < count:
+            return sum(RAW_BITS[letter] for letter in letters)
+        k -= count
+    return 0
 
 
 def capture(lib, width, height):
@@ -150,6 +167,12 @@ def run_core(name, spec, wanted):
                 if vblank != spec['mission_at']:
                     raise Failure('run %s: the mission began at VBlank %d, the manifest says %d'
                                   % (name, vblank, spec['mission_at']))
+            for expect in spec.get('expect', []):
+                if expect['vblank'] == vblank:
+                    for field, value in expect.items():
+                        if field != 'vblank' and ported.g(field) != value:
+                            raise Failure('run %s: %s is %d at VBlank %d, the manifest says %d'
+                                          % (name, field, ported.g(field), vblank, value))
             if vblank in wanted:
                 image = picture(ported)
                 width, height = image.size
@@ -301,6 +324,127 @@ def make_map(figure, path):
                 image.putpixel((x - b * band, b * (strip_h + label_h) + label_h + y0 + dy - top),
                                colours[c])
     image.save(path)
+
+
+def make_maprecord(figure, path):
+    """A run of consecutive records of one map, the columns of one shape: on the left the
+    shape of the run's drawn record from its container, over its columns at eight pixels a
+    record, its hotspot framed on the drawn record's world x; on the right each record's
+    index, world x and word, its sixteen bits in boxes grouped by field and named
+    (re/notes/map.md, "The record"), and its fields decoded by tools/map_decode.py's fields(),
+    the slot named by the name list read from the executable.  Checked: one record of the run
+    draws, all carry its slot, the shape's columns lie within the run, and draw_list() draws
+    that record at that world x on the row of its height."""
+    from PIL import Image, ImageDraw
+    import map_decode
+    tool = ppkc()
+    chart = map_decode.load(figure['map'])
+    first, last = figure['first'], figure['last']
+    words = chart.words[first:last + 1]
+    fields = [map_decode.fields(w) for w in words]
+    drawn = [first + i for i, f in enumerate(fields) if f['draw']]
+    if len(drawn) != 1 or len({f['slot'] for f in fields}) != 1:
+        raise Failure('map %s, records %d to %d: not one shape with one drawn record'
+                      % (figure['map'], first, last))
+    drawn = drawn[0]
+    slot = fields[0]['slot']
+    names = executable_names(figure['names'])
+    name = names[slot]
+    shapes = {s['name'].strip(): s for s in tool.parse(str(SHAPES / figure['container']))}
+    if name not in shapes:
+        raise Failure('%s has no shape %s for slot %d' % (figure['container'], name, slot))
+    shape = shapes[name]
+    width, height, hx, hy = 8 * shape['wbytes'], shape['h'], shape['ox'], shape['oy']
+    left = map_decode.WORLD_PER_RECORD * drawn - hx
+    if left < 8 * first or left + width > 8 * (last + 1):
+        raise Failure('%s at record %d reaches past records %d to %d' % (name, drawn, first, last))
+    split = figure['split_row']
+    view = map_decode.WORLD_PER_RECORD * drawn
+    found = [d for d in map_decode.draw_list(chart, view, split_row=split) if d[0] == drawn]
+    height_bits = fields[drawn - first]['height']
+    if not found or found[0][2] + view - 160 != 8 * drawn \
+            or found[0][3] != split + map_decode.HEIGHT_STEP * height_bits:
+        raise Failure('draw_list does not draw record %d at world x %d' % (drawn, 8 * drawn))
+    colours = palette(figure['palette'])
+    mark = palette(figure['mark'][0])[figure['mark'][1]]
+    font = tool.FONT
+
+    margin, line, zoom = 6, 13, figure['zoom']
+    count = last - first + 1
+    panel_x, panel_y = margin, margin + 2 * line
+    panel_w, panel_h = 8 * count * zoom, (height + 2) * zoom
+    ruler_y = panel_y + panel_h + 4
+    cell, gap = 15, 12
+    groups = [('draw', [15]), ('14', [14]), ('height', [13, 12, 11]),
+              ('slot', list(range(10, 1, -1))), ('low', [1, 0])]
+    rows_x = panel_x + panel_w + 24
+    bits_x = rows_x + 3 * 54
+    positions, x = {}, bits_x
+    for _, bits in groups:
+        for b in bits:
+            positions[b] = x
+            x += cell
+        x += gap
+    decoded_x = x + 4
+    row_h, rows_y = line + 6, panel_y + 2 * line + 4
+    lows = {0: 'nothing', 1: 'rides on a ship', 2: 'stands on the world', 3: '3'}
+    decoded = ['draw %d, height %d, slot %d %s, low %d: %s'
+               % (f['draw'], f['height'], f['slot'], names[f['slot']], f['low'], lows[f['low']])
+               for f in fields]
+    image_w = decoded_x + 6 * max(len(d) for d in decoded) + margin
+    image_h = max(ruler_y + 3 * line, rows_y + count * row_h + 2 * line) + margin
+    image = Image.new('RGB', (image_w, image_h), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), 'map %s, records %d to %d: the %d columns of one %s, %s of %s'
+         % (figure['map'], first, last, count, figure['what'], name, figure['container']))
+
+    # The shape over its columns, its hotspot framed on the drawn record's x.
+    draw.rectangle((panel_x, panel_y, panel_x + panel_w - 1, panel_y + panel_h - 1), fill=colours[1])
+    sx = left - 8 * first
+    for dy, row in enumerate(tool.to_indexed(shape)):
+        for dx, c in enumerate(row):
+            if c:
+                px, py = panel_x + (sx + dx) * zoom, panel_y + (1 + dy) * zoom
+                draw.rectangle((px, py, px + zoom - 1, py + zoom - 1), fill=colours[c])
+    fx, fy = panel_x + (sx + hx) * zoom, panel_y + (1 + hy) * zoom
+    draw.rectangle((fx - 1, fy - 1, fx + zoom, fy + zoom), outline=mark)
+    for k in range(count):
+        x0 = panel_x + 8 * k * zoom
+        ink = mark if first + k == drawn else LABEL
+        draw.rectangle((x0, ruler_y, x0 + 8 * zoom - 2, ruler_y + line), outline=ink)
+        label = str(first + k)
+        draw.text((x0 + (8 * zoom - 6 * len(label)) // 2, ruler_y + 1), label, fill=ink, font=font)
+    text(draw, (panel_x, ruler_y + line + 4), 'records, 8 pixels each; the hotspot (%d, %d) framed'
+         % (hx, hy))
+
+    # The records, a row each.
+    head_y = panel_y
+    for title, x0 in (('record', rows_x), ('world x', rows_x + 54), ('word', rows_x + 108)):
+        draw.text((x0, head_y + line), title, fill=MUTED, font=font)
+    for title, bits in groups:
+        x0, x1 = positions[bits[0]], positions[bits[-1]] + cell - 1
+        draw.text(((x0 + x1 - 6 * len(title)) // 2, head_y), title, fill=LABEL, font=font)
+        for b in bits:
+            label = str(b)
+            draw.text((positions[b] + (cell - 6 * len(label)) // 2, head_y + line), label,
+                      fill=MUTED, font=font)
+    for i, (w, f) in enumerate(zip(words, fields)):
+        y0 = rows_y + i * row_h
+        ink = mark if first + i == drawn else LABEL
+        draw.text((rows_x, y0 + 2), str(first + i), fill=ink, font=font)
+        draw.text((rows_x + 54, y0 + 2), str(8 * (first + i)), fill=ink, font=font)
+        draw.text((rows_x + 108, y0 + 2), '0x%04X' % w, fill=ink, font=font)
+        for b, x0 in positions.items():
+            bit = w >> b & 1
+            fill = (mark if b == 15 else LABEL) if bit else PANEL
+            draw.rectangle((x0, y0, x0 + cell - 2, y0 + line + 2), fill=fill)
+            draw.text((x0 + (cell - 7) // 2, y0 + 2), str(bit), fill=GROUND if bit else MUTED,
+                      font=font)
+        draw.text((decoded_x, y0 + 2), decoded[i], fill=ink, font=font)
+    y0 = rows_y + (drawn - first) * row_h
+    draw.rectangle((rows_x - 4, y0 - 3, image_w - margin + 2, y0 + line + 5), outline=mark)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
 def make_font(figure, path):
@@ -1234,6 +1378,8 @@ def generate(out, names=None, log=print):
             make_shapes(figure, path)
         elif maker == 'map':
             make_map(figure, path)
+        elif maker == 'maprecord':
+            make_maprecord(figure, path)
         elif maker == 'font':
             make_font(figure, path)
         elif maker == 'planes':

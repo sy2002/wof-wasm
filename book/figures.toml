@@ -12,6 +12,8 @@
 #            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet()), or of
 #                       shapes picked from several (`pick`), packed with `layout = "packed"`
 #            map        a map's drawn records (tools/map_decode.py, draw_list())
+#            maprecord  a run of a map's records, the columns of one shape: the shape over them
+#                       and each record's bits by field (tools/map_decode.py, fields())
 #            font       a specimen of the game's font, drawn by the port's text_render
 #            planes     one shape taken apart into its stored planes and put together again
 #                       (tools/ppkc.py, parse()), as colour numbers and through a palette
@@ -63,6 +65,20 @@ fire_held = 3
 mission_at = 659
 pokes = [[0x025390, 2, 1]]
 dash_night = 1
+
+[run.island]
+what = """The mission run, and from the VBlank after the mission began the stick by the letters of
+`after`, each a bit of the raw byte as tools/headless.py's RAW_BITS gives it: the take-off and the
+turn west of tools/pass_observe.py's TAKE_OFF and TURN_LEFT, with a longer wait before the
+weapon is chosen (200 VBlanks for 40) and a shorter climb (190 for 400), so that the aircraft
+levels out low and flies west over map a's island at full scale. `expect` names the drawing's
+copy of the player's position and the scale's step as the core holds them at a VBlank, which
+the run checks."""
+fire_every = 33
+fire_held = 3
+mission_at = 659
+after = [[200, ""], [3, "F"], [60, ""], [460, "R"], [190, "RU"], [120, "L"], [100, "U"]]
+expect = [{vblank = 3500, draw_player_x = 3381, draw_player_y = 109, view_step = 8}]
 
 [[figure]]
 name = "title-logo"
@@ -135,6 +151,17 @@ how = "tools/ppkc.py's parse() and sheet(), the shapes' planes to indexed pixels
 command = ".venv/bin/python book/tools/figures.py shapes-torpedo"
 
 [[figure]]
+name = "world-island"
+file = "world-island.png"
+maker = "screen"
+run = "island"
+vblank = 3500
+size = [1024, 642]
+shows = "The first mission at VBlank 3500 of the island run: the aircraft at world x 3381, 109 pixels above the water line, over map a's island, flying west at full scale."
+how = "VBlank 3500 of the island run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks the drawing's copy of the player's x and y and the scale's step (8) at that VBlank. The island's records run from world x 32 to 3944 (tools/map_decode.py)."
+command = ".venv/bin/python book/tools/figures.py world-island"
+
+[[figure]]
 name = "map-a"
 file = "map-a.png"
 maker = "map"
@@ -147,6 +174,25 @@ split_row = 151
 shows = "Map a, the first mission's world, as the strip of its drawn records: the islands with their palms, barracks and dug-outs on the left, the carrier on the right, in bands of 960 pixels of world x."
 how = "tools/map_decode.py's draw_list() over the whole map at full scale with the split row of the deck (151), each record's slot named by world_names (re/tables.toml, read from the executable) and drawn with that shape of world.shp at the position draw_world gives it, hotspot taken off, in the colours of wingspalette on its sky colour (entry 1). What islands_draw adds, the ground between an island's two beaches, is not part of the records and not drawn."
 command = ".venv/bin/python book/tools/figures.py map-a"
+
+[[figure]]
+name = "maprecord-palm"
+file = "maprecord-palm.png"
+maker = "maprecord"
+map = "a"
+first = 15
+last = 18
+what = "palm"
+container = "world.shp"
+names = "world_names"
+palette = "wingspalette"
+mark = ["wingstitle", 25]
+split_row = 151
+zoom = 4
+scale = 2
+shows = "Records 15 to 18 of map a, the four columns of one palm, tre1 of world.shp: the palm over its columns with its hotspot framed on the third record's x, and each record's word, its sixteen bits grouped by field, and its fields: slot 6, height 2, low bits 2, the draw flag on the third."
+how = "tools/map_decode.py's load() and fields() for the records; the slot named by world_names (re/tables.toml, read from the executable); the shape from tools/ppkc.py's parse() and to_indexed() in the colours of wingspalette on its sky colour (entry 1), each pixel four wide and high, the whole twice enlarged; the drawn record, its bits and its hotspot marked in entry 25 of the title picture's palette. Checked: one record of the run draws and all carry its slot, the shape's columns lie within the run, and draw_list() with the player at that record draws it at its world x on the split row of the deck (151) plus four rows a step of its height."
+command = ".venv/bin/python book/tools/figures.py maprecord-palm"
 
 [[figure]]
 name = "font-specimen"

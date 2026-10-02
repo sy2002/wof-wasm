@@ -403,3 +403,51 @@ as = "shape_blit_pixels"
 kind = "py"
 name = "test_the_blit_writes_exactly_the_shape_box"
 file = "tests/test_oracle_m1.py"
+
+# The world, chapter 13: draw_world's loop over the map, one record a step, the draw flag, the
+# slot through MasterList or AthList, the row from the height or 151 at the eighth scale, the
+# ride with a ship, the hotspot, the extras, the step and the end at screen x 0x1D0 ...
+[[listing]]
+kind = "asm"
+name = "draw_world"
+from = 0x013842
+to = 0x0138B8
+as = "draw_world_loop"
+lines = 44
+
+# ... and the same loop written out in the decoder, held to the original's draws in every pass.
+[[listing]]
+kind = "py"
+name = "draw_list"
+file = "tools/map_decode.py"
+
+# The game's allocator: every request asks AllocMem for cleared memory, bit 16 of the flags,
+# MEMF_CLEAR, which leaves the four records the map loader reads past its file at zero.
+[[listing]]
+kind = "asm"
+name = "sub_020874"
+to = 0x020888
+as = "alloc_clear"
+
+# The ground under a map record, the one thing a tick takes from the map: zero, a ship's deck,
+# or a class's height less the record's height bits; beside the port's switch over the slot.
+[[listing]]
+kind = "asm"
+name = "ground_height"
+from = 0x01584A
+to = 0x015896
+as = "ground_height_answers"
+
+[[listing]]
+kind = "c"
+name = "wof_ground_height"
+file = "src/tick.c"
+from = "switch (cls)"
+as = "wof_ground_height_switch"
+
+# The control of the decoder: one record of map a changed and laid over the disk; the draws that
+# differ are exactly those the decoder predicts to differ, and the flight is the same.
+[[listing]]
+kind = "py"
+name = "test_a_changed_map_changes_exactly_the_draws_the_decoder_says"
+file = "tests/test_map.py"

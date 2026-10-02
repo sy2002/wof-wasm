@@ -1,0 +1,7 @@
+; re/Wings.lst 0x020874-0x020888: sub_020874 [C], a part of 0x020874-0x020909
+sub_020874:
+020874  4e55fffc             link.w     a5, #$fffc
+020878  06ad0000000c0008     addi.l     #$c, $8(a5)
+020880  202d000c             move.l     $c(a5), d0
+020884  08c00010             bset.b     #$10, d0
+020888  2f00                 move.l     d0, -(a7)

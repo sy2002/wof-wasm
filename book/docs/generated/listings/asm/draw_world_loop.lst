@@ -1,0 +1,45 @@
+; re/Wings.lst 0x013842-0x0138B8: draw_world [asm], a part of 0x013772-0x01391D
+loc_013842:
+013842  301d                 move.w     (a5)+, d0
+013844  222c962e             move.l     -$69d2(a4), d1                         ; map_records_end
+013848  b28d                 cmp.l      a5, d1
+01384a  6500006e             bcs.w      $138ba
+01384e  3200                 move.w     d0, d1
+013850  3400                 move.w     d0, d2
+013852  e449                 lsr.w      #$2, d1
+013854  c47c0003             and.w      #$3, d2
+013858  3601                 move.w     d1, d3
+01385a  0881000d             bclr.b     #$d, d1
+01385e  6700004c             beq.w      $138ac
+013862  e549                 lsl.w      #$2, d1
+013864  c27c07fc             and.w      #$7fc, d1
+013868  2047                 movea.l    d7, a0
+01386a  20701000             movea.l    (a0, d1.w), a0
+01386e  2008                 move.l     a0, d0
+013870  6700003a             beq.w      $138ac
+013874  3004                 move.w     d4, d0
+013876  4a6c9f36             tst.w      -$60ca(a4)                             ; view_shift
+01387a  6700000a             beq.w      $13886
+01387e  323c0097             move.w     #$97, d1
+013882  6000000c             bra.w      $13890
+loc_013886:
+013886  3203                 move.w     d3, d1
+013888  ee49                 lsr.w      #$7, d1
+01388a  c27c001c             and.w      #$1c, d1
+01388e  d245                 add.w      d5, d1
+loc_013890:
+013890  2c6cb93a             movea.l    -$46c6(a4), a6                         ; custom_base
+013894  93c9                 suba.l     a1, a1
+013896  5342                 subq.w     #$1, d2
+013898  6604                 bne.b      $1389e
+01389a  4eba1610             jsr        $14eac(pc)                             ; ride_on_ship
+loc_01389e:
+01389e  5140                 subq.w     #$8, d0
+0138a0  90680004             sub.w      $4(a0), d0
+0138a4  92680006             sub.w      $6(a0), d1
+0138a8  4eac832c             jsr        -$7cd4(a4)                             ; -> shape_draw
+loc_0138ac:
+0138ac  4eba026e             jsr        $13b1c(pc)                             ; record_extras
+0138b0  d86c9f38             add.w      -$60c8(a4), d4                         ; view_step
+0138b4  b87c01d0             cmp.w      #$1d0, d4
+0138b8  6d88                 blt.b      $13842

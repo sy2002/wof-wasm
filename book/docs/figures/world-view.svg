@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" width="900" height="360" role="img" aria-labelledby="title desc">
+  <title id="title">Where the world meets the screen</title>
+  <desc id="desc">The playfield, 320 pixels wide and 162 rows high, drawn over a strip of map records eight pixels wide. The screen's left edge is view_x, screen x 0. The aircraft is always at screen x 160. The records a pass draws run from screen x minus 128, the first record lying 288 pixels behind the aircraft, to screen x 448, beyond both edges of the screen; the helper that draws every other shape keeps to the same window. The horizon's row, view_y, is row 151 while the aircraft flies low; the water line, world y 0, lies 11 rows below it, and world y counts upward from it.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .sky    { fill: #00AAFF; /* wingspalette 1 */ }
+    .sea    { fill: #0066AA; /* ocean.palette 10 */ }
+    .cellA  { fill: #666677; /* wingspalette 27 */ }
+    .cellB  { fill: #444455; /* wingspalette 26 */ }
+    .gold   { fill: #FFBB00; /* wingstitle 25 */ }
+    .rule   { fill: #AAAABB; /* wingspalette 29 */ }
+    .plane  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .mono  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="10" y="22">Where the world meets the screen, at full scale</text>
+
+  <!-- The screen's edges as screen x -->
+  <rect class="gold" x="199" y="44" width="2" height="26"/>
+  <text class="light small" x="200" y="40" text-anchor="middle">view_x: screen x 0</text>
+  <rect class="rule" x="519" y="52" width="2" height="18"/>
+  <text class="muted small" x="520" y="48" text-anchor="middle">320</text>
+
+  <!-- The playfield: the sky down to the horizon's row, the sea below it -->
+  <rect class="sky" x="200" y="70" width="320" height="151"/>
+  <rect class="sea" x="200" y="221" width="320" height="11"/>
+  <text class="ink small" x="206" y="86">the playfield, 320 x 162</text>
+
+  <!-- The aircraft at screen x 160, and the line down to its record -->
+  <rect class="rule" x="360" y="156" width="1" height="94"/>
+  <path class="plane" d="M342 122 L374 122 L380 126 L374 130 L342 130 Z"/>
+  <path class="plane" d="M356 120 L364 120 L362 132 L354 132 Z"/>
+  <text class="ink small" x="360" y="148" text-anchor="middle">the aircraft, always at screen x 160</text>
+
+  <!-- The horizon's row and the water line -->
+  <rect class="gold" x="200" y="220" width="320" height="2"/>
+  <rect class="rule" x="520" y="220.5" width="138" height="1"/>
+  <text class="light small" x="664" y="216">view_y, the horizon's row:</text>
+  <text class="light small" x="664" y="230">row 151 while flying low</text>
+  <rect class="rule" x="520" y="231.5" width="138" height="1"/>
+  <text class="light small" x="664" y="246">the water line, 11 rows lower:</text>
+  <text class="light small" x="664" y="260">world y 0</text>
+
+  <!-- World y, upward from the water line -->
+  <rect class="rule" x="186" y="162" width="2" height="70"/>
+  <path class="rule" d="M187 154 L182 164 L192 164 Z"/>
+  <text class="light small" x="178" y="170" text-anchor="end">world y,</text>
+  <text class="light small" x="178" y="184" text-anchor="end">upward</text>
+
+  <!-- The map's records, eight pixels each -->
+  <rect class="cellB" x="72" y="250" width="8" height="14"/>
+  <rect class="cellA" x="80" y="250" width="8" height="14"/>
+  <rect class="cellB" x="88" y="250" width="8" height="14"/>
+  <rect class="cellA" x="96" y="250" width="8" height="14"/>
+  <rect class="cellB" x="104" y="250" width="8" height="14"/>
+  <rect class="cellA" x="112" y="250" width="8" height="14"/>
+  <rect class="cellB" x="120" y="250" width="8" height="14"/>
+  <rect class="cellA" x="128" y="250" width="8" height="14"/>
+  <rect class="cellB" x="136" y="250" width="8" height="14"/>
+  <rect class="cellA" x="144" y="250" width="8" height="14"/>
+  <rect class="cellB" x="152" y="250" width="8" height="14"/>
+  <rect class="cellA" x="160" y="250" width="8" height="14"/>
+  <rect class="cellB" x="168" y="250" width="8" height="14"/>
+  <rect class="cellA" x="176" y="250" width="8" height="14"/>
+  <rect class="cellB" x="184" y="250" width="8" height="14"/>
+  <rect class="cellA" x="192" y="250" width="8" height="14"/>
+  <rect class="cellB" x="200" y="250" width="8" height="14"/>
+  <rect class="cellA" x="208" y="250" width="8" height="14"/>
+  <rect class="cellB" x="216" y="250" width="8" height="14"/>
+  <rect class="cellA" x="224" y="250" width="8" height="14"/>
+  <rect class="cellB" x="232" y="250" width="8" height="14"/>
+  <rect class="cellA" x="240" y="250" width="8" height="14"/>
+  <rect class="cellB" x="248" y="250" width="8" height="14"/>
+  <rect class="cellA" x="256" y="250" width="8" height="14"/>
+  <rect class="cellB" x="264" y="250" width="8" height="14"/>
+  <rect class="cellA" x="272" y="250" width="8" height="14"/>
+  <rect class="cellB" x="280" y="250" width="8" height="14"/>
+  <rect class="cellA" x="288" y="250" width="8" height="14"/>
+  <rect class="cellB" x="296" y="250" width="8" height="14"/>
+  <rect class="cellA" x="304" y="250" width="8" height="14"/>
+  <rect class="cellB" x="312" y="250" width="8" height="14"/>
+  <rect class="cellA" x="320" y="250" width="8" height="14"/>
+  <rect class="cellB" x="328" y="250" width="8" height="14"/>
+  <rect class="cellA" x="336" y="250" width="8" height="14"/>
+  <rect class="cellB" x="344" y="250" width="8" height="14"/>
+  <rect class="cellA" x="352" y="250" width="8" height="14"/>
+  <rect class="cellB" x="360" y="250" width="8" height="14"/>
+  <rect class="cellA" x="368" y="250" width="8" height="14"/>
+  <rect class="cellB" x="376" y="250" width="8" height="14"/>
+  <rect class="cellA" x="384" y="250" width="8" height="14"/>
+  <rect class="cellB" x="392" y="250" width="8" height="14"/>
+  <rect class="cellA" x="400" y="250" width="8" height="14"/>
+  <rect class="cellB" x="408" y="250" width="8" height="14"/>
+  <rect class="cellA" x="416" y="250" width="8" height="14"/>
+  <rect class="cellB" x="424" y="250" width="8" height="14"/>
+  <rect class="cellA" x="432" y="250" width="8" height="14"/>
+  <rect class="cellB" x="440" y="250" width="8" height="14"/>
+  <rect class="cellA" x="448" y="250" width="8" height="14"/>
+  <rect class="cellB" x="456" y="250" width="8" height="14"/>
+  <rect class="cellA" x="464" y="250" width="8" height="14"/>
+  <rect class="cellB" x="472" y="250" width="8" height="14"/>
+  <rect class="cellA" x="480" y="250" width="8" height="14"/>
+  <rect class="cellB" x="488" y="250" width="8" height="14"/>
+  <rect class="cellA" x="496" y="250" width="8" height="14"/>
+  <rect class="cellB" x="504" y="250" width="8" height="14"/>
+  <rect class="cellA" x="512" y="250" width="8" height="14"/>
+  <rect class="cellB" x="520" y="250" width="8" height="14"/>
+  <rect class="cellA" x="528" y="250" width="8" height="14"/>
+  <rect class="cellB" x="536" y="250" width="8" height="14"/>
+  <rect class="cellA" x="544" y="250" width="8" height="14"/>
+  <rect class="cellB" x="552" y="250" width="8" height="14"/>
+  <rect class="cellA" x="560" y="250" width="8" height="14"/>
+  <rect class="cellB" x="568" y="250" width="8" height="14"/>
+  <rect class="cellA" x="576" y="250" width="8" height="14"/>
+  <rect class="cellB" x="584" y="250" width="8" height="14"/>
+  <rect class="cellA" x="592" y="250" width="8" height="14"/>
+  <rect class="cellB" x="600" y="250" width="8" height="14"/>
+  <rect class="cellA" x="608" y="250" width="8" height="14"/>
+  <rect class="cellB" x="616" y="250" width="8" height="14"/>
+  <rect class="cellA" x="624" y="250" width="8" height="14"/>
+  <rect class="cellB" x="632" y="250" width="8" height="14"/>
+  <rect class="cellA" x="640" y="250" width="8" height="14"/>
+  <rect class="cellB" x="648" y="250" width="8" height="14"/>
+  <text class="light small" x="72" y="244">the map's records, 8 pixels each</text>
+
+  <!-- The window: what a pass draws -->
+  <rect class="gold" x="72" y="272" width="576" height="2"/>
+  <rect class="gold" x="72" y="266" width="2" height="12"/>
+  <rect class="gold" x="647" y="266" width="2" height="12"/>
+  <text class="light small" x="72" y="294">screen x &#8722;128</text>
+  <text class="light small" x="648" y="294" text-anchor="middle">448</text>
+  <text class="light small" x="360" y="294" text-anchor="middle">the records a pass draws, and every shape</text>
+
+  <!-- 288 pixels from the first record to the aircraft -->
+  <rect class="rule" x="80" y="322" width="272" height="1"/>
+  <path class="rule" d="M72 322.5 L81 318 L81 327 Z"/>
+  <path class="rule" d="M360 322.5 L351 318 L351 327 Z"/>
+  <text class="muted small" x="216" y="314" text-anchor="middle">288 pixels: the first record is (x &#8722; 288) / 8</text>
+  <text class="muted small" x="216" y="344" text-anchor="middle">x the aircraft's world x</text>
+</svg>
