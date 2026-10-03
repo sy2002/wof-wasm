@@ -67,6 +67,8 @@ requirements.txt        the pinned Python packages; tools/setup.sh installs them
 .venv/bin/python -m ziglang cc -target wasm32-freestanding -O2 -nostdlib -Wl,--no-entry -o core.wasm src/*.c
 ```
 
+That is the minimal line; `tools/build.py` adds `-std=c11 -Wall -Wextra`, the include path, the prefix map and `-g0` (section 5).
+
 Node 26 is available for running the core headlessly. Apple clang is available for native test builds of the same C sources. Nothing else needs to be installed. The book's packages are pinned separately in `book/requirements.txt` and are installed into the same `.venv` only by whoever builds the book (`book/BOOK.md`, section 5).
 
 ## 3. The original program

@@ -10,7 +10,7 @@ WOF_FIREFOX_VISIBLE=1 .venv/bin/python -m pytest tests/test_firefox.py -k visibl
 .venv/bin/python tools/junit_compare.py REF.xml PHASE1.xml PHASE2.xml             two runs' outcome sets compared (--junitxml)
 ```
 
-The two phases together are the serial run's tests, each exactly once: `-m 'not page'` and `-m page` split the collection, 807 and 123 tests with `--slow` at `698d0f8` (738 and 89 when the runs below were measured). `--dist loadgroup` is part of phase 1, not an option: without it the loop tests of one script go to different workers, which each record the script (below). pytest-xdist is 3.8.0, with execnet 2.1.2 under pytest 9.1.1, pinned in `requirements.txt` with the rest and installed by the setup; a serial run does not need it.
+The two phases together are the serial run's tests, each exactly once: `-m 'not page'` and `-m page` split the collection, 807 and 123 tests with `--slow` at `698d0f8` (738 and 89 when the runs below were measured). `--dist loadgroup` is part of phase 1, not an option: without it the loop tests of one script go to different workers, which each record the script (below). pytest-xdist is 3.8.0, pinned in `requirements.txt` with the rest and installed by the setup, and brings execnet 2.1.2 under pytest 9.1.1, which no file pins (the port's seven packages are pinned, their dependencies are not; the book's file pins its whole closure); a serial run does not need it.
 
 ## Why the page tests run alone
 

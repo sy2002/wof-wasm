@@ -313,6 +313,8 @@ JSON; every key is optional.
   "files":            {"wofdemo": "<hex>"}   files laid over the disk
   "argc":             2            main's argument count; above 1 every rank chosen records wofdemo
   "stop":             {"ticks": 100}  or  {"passes": n}  or  {"vblanks": n}
+  "format":           "wof-headless-run"   the file's kind, and
+  "version":          1                    its version, as DEFAULT_RUN holds them
 }
 ```
 

@@ -46,6 +46,7 @@ Work one milestone, or one clearly bounded part of one, per session. The reposit
 - Port from the disassembly, not from assumptions. `int` in the original is 16 bits; follow `SPEC.md` section 7.1 exactly.
 - Addresses always use the fixed load layout: CODE `0x010000`, DATA `0x023000`, A4 `0x02AFFE`.
 - `re/Wings.lst`, `re/functions.csv`, `re/songplay.lst` and `ref/sheets/` are versioned and held to their regeneration byte for byte by `tests/test_generated.py`. After changing `re/names.txt`, `re/libbases.txt` or `re/songplay_names.txt`, run `tools/disasm.py` and `tools/disasm_player.py` and commit what they write; after changing the recipe in `tools/ppkc.py`, run `tools/ppkc.py --sheets` and commit the sheets.
+- The book under `book/` shows listings, figures and tables made from `src/`, `web/`, `tools/`, `tests/` and `re/` and committed. After a change there run `.venv/bin/python book/tools/build.py --check`; if it differs, run `book/tools/build.py` and commit what it regenerates (`book/BOOK.md`, section 5).
 - Never edit `re/Wings.lst` by hand. Put names in `re/names.txt`, library bases in `re/libbases.txt`, then regenerate. The `status` column of `re/functions.csv` is the only hand-edited generated column and survives regeneration.
 - Every ported routine carries an `orig 0x......` comment. Pure routines get an oracle test before they count as `verified`.
 - When a subsystem is understood, write it down in `re/notes/` so that later sessions do not re-derive it.

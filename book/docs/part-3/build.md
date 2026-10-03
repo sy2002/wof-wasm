@@ -177,7 +177,7 @@ From Python, `headless.Headless(description)` makes a run, `run(until='tick')` r
 .venv/bin/python tools/skel.py 015e1a
 ```
 
-Each prints the [control-flow skeleton](../glossary.md#control-flow-skeleton) of the routine that reads a saved game, by name or by address as the tool takes it; `--all` prints it whole. Look at the four calls through the [far-call table](../glossary.md#far-call-table), each resolved to its routine, and from the label at line 12 at the path taken when the file does not open:
+Each prints the [control-flow skeleton](../glossary.md#control-flow-skeleton) of the routine that reads a saved game, by name or by address as the tool takes it; `--all` prints it whole. Look at the four calls through the [far-call table](../glossary.md#far-call-table), each resolved to its routine, and, from the label at line 12, the path taken when the file does not open:
 
 ```wingslst linenums="1"
 --8<-- "generated/listings/skel/save_game_read.lst"

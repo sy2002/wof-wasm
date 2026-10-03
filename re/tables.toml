@@ -674,7 +674,7 @@ addr = 0x0266C8
 #
 # The periods, volumes, repeat counts and lengths the engine hands its slots are immediate
 # operands of `move.w #imm,d16(a4)`, six bytes to an instruction (re/notes/sound.md).
-# sub_011f76 (0x011F76) builds slots 0 to 6 with seven runs of 0x22 bytes, one per slot:
+# sound_slots_init (0x011F76) builds slots 0 to 6 with seven runs of 0x22 bytes, one per slot:
 # the period, the volume and the repeat count are the words at +0, +6 and +12 of each run.
 
 [[table]]
