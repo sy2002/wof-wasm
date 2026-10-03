@@ -204,6 +204,12 @@ A list a run of the headless original can write: for every record of its dump, e
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#change-report-entropy-log-schedule), "Change report, entropy log, schedule".
 
+### Channel record
+
+One of the sound effects engine's four records of `0x1E` bytes, one for each of Paula's channels, holding what the channel was last asked to play, when it last stopped and how many cycles it has left to play.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-channel-layer), "The channel layer".
+
 ### Chip memory
 
 The memory the Amiga's custom chips can read and write by themselves, without the processor; the game keeps its screens, copper lists, shapes, sound effects and songs there.
@@ -428,6 +434,14 @@ The file a run of the headless original writes: the game's whole state when a mi
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/headless_dump.py`](repo:tools/headless%5Fdump.py); [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump".
 
+### E clock
+
+The clock the Amiga's CIAs count at, the colour clock divided by five: 709,379 cycles a second on a PAL machine; the music's timer counts down at it.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Eighth-scale view
 
 The zoomed-out picture the game switches to while the aircraft is high, "view" in the everyday sense and not the record: eight pixels of the world to one of the screen, the shapes taken from a container of their own.
@@ -467,6 +481,12 @@ The reproducible stream of values that stands in for the beam's position, one va
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/random.md`](repo:re/notes/random.md#consequences), "Consequences"; [`re/notes/headless.md`](repo:re/notes/headless.md#entropy), "Entropy".
 
 Elsewhere: [Linear congruential generator](https://en.wikipedia.org/wiki/Linear%5Fcongruential%5Fgenerator), Wikipedia.
+
+### Event log
+
+The log of every sound sample started and of every restart at a cycle's end, with its channel, period, volume and instant, which the headless original and the port keep alike and the tests compare; chapter 1 calls it the sound event log.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#the-audio-channels), "The audio channels".
 
 ### Fade
 
@@ -682,6 +702,14 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amig
 
 Elsewhere: [Interrupt](https://en.wikipedia.org/wiki/Interrupt), Wikipedia.
 
+### Interrupt request
+
+The bit by which a chip asks the processor for an interrupt; Paula raises one for a channel at the start and at the end of each cycle, and it reaches the processor only while it is enabled.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#the-audio-channels), "The audio channels".
+
+Elsewhere: [Interrupt request](https://en.wikipedia.org/wiki/Interrupt%5Frequest), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
 ### Keyboard assist
 
 The port's switch that makes one key press one step in the weapon menu and lets a short tap reach the game exactly once everywhere else; off in every comparison with the original.
@@ -715,6 +743,14 @@ First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/
 A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a tap shorter than the interval between them still reaches the game.
 
 First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md#fire-button-and-the-taphold-discrimination), "Fire button and the tap/hold discrimination".
+
+### Level-4 vector
+
+The long at `0x70` holding the address of the routine the 68000 runs for an interrupt of level 4, Paula's channels among them; the sound effects engine puts its handler there, and the music player its own while it is loaded.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
+
+Elsewhere: [Interrupt vector table](https://en.wikipedia.org/wiki/Interrupt%5Fvector%5Ftable), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
 ### Library
 
@@ -868,6 +904,12 @@ The word of an enemy aircraft record that says what it does while it flies: 1 a 
 
 First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-record), "The record", and ["What each state and mode does"](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop).
 
+### Music player
+
+The game's second sound engine, `songplay`, a small program of its own that the game loads beside its songs and calls with a command number, and that plays the songs on a timer of a CIA.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-games-calls), "The game's calls".
+
 ### Name list
 
 A list of four-character shape names in the program's data, ended by a zero, which the game resolves in its container at load into a pointer table.
@@ -949,6 +991,12 @@ Elsewhere: [Palette (computing)](https://en.wikipedia.org/wiki/Palette%5F(comput
 One round of the inner loop, the loop that plays a mission: it draws one picture and runs the part of the logic that goes by pictures. Two VBlanks long on a real PAL Amiga in a quiet scene, so two passes go to a tick.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md).
+
+### Pattern
+
+A run of a track's events, notes and commands of two bytes each, which the track's sequence plays in turn.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-song-format-wofsongss-data-hunk), "The song format".
 
 ### Paula
 
@@ -1242,6 +1290,20 @@ One of the five men of a dug-out or a barracks, a record of eight bytes whose st
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-soldiers), "The soldiers".
 
+### Song's fade
+
+The music player's fade of a song: every track's volume one lower every few timer's ticks until none is left, which stops the song; not the display's [fade](#fade) of colours.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-games-calls), "The game's calls".
+
+Elsewhere: [Fade (audio engineering)](https://en.wikipedia.org/wiki/Fade%5F(audio%5Fengineering)), Wikipedia.
+
+### Sound effects engine
+
+The game's code that plays its eight sound effects: the sound slots the logic tick fills and, under them, the channel records, started by a VBlank server and stopped by the audio interrupt's handler.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#two-layers), "Two layers".
+
 ### Sound sample
 
 A recorded waveform that Paula plays back on one of its four channels, at its own pitch and volume.
@@ -1249,6 +1311,12 @@ A recorded waveform that Paula plays back on one of its four channels, at its ow
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
 Elsewhere: [Pulse-code modulation](https://en.wikipedia.org/wiki/Pulse-code%5Fmodulation), Wikipedia.
+
+### Sound slot
+
+One of eight records of `0x18` bytes, two for each of Paula's channels, in which the logic tick sets what should sound: a sample, its length, period, volume and repeat count; not a shape's [slot](#slot).
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
 ### Split line
 
@@ -1300,6 +1368,20 @@ The message line at the bottom of the play screen: one bitplane, 640 of its 672 
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
 
+### Timer's latch
+
+The 16-bit value a CIA's timer loads again each time it runs out, written a byte at a time; the songs write the music timer's high byte, and its low byte keeps its value from power-up; not the fire button's [latch](#latch).
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
+
+Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### Timer's tick
+
+One run-out of the CIA timer the music player takes, at which the player runs its song routine once, every 14,592 E cycles for four of the five songs; not the [logic tick](#logic-tick).
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-tick-songint), "The tick: SongInt".
+
 ### Topaz 8
 
 The Amiga's standard font, eight pixels high, in the Kickstart ROM; the game's dialogs for names and files show it, and the port reads it from the ROM when it is built.
@@ -1313,6 +1395,12 @@ An enemy aircraft that the enemy's countdown sends against the carrier: it comes
 First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop), "What each state and mode does".
 
 Elsewhere: [Torpedo bomber](https://en.wikipedia.org/wiki/Torpedo%5Fbomber), Wikipedia, the real kind.
+
+### Track
+
+One of a song's four lines of music, each on its own channel of Paula: a sequence of patterns played one after another.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-song-format-wofsongss-data-hunk), "The song format".
 
 ### Upper word
 
@@ -1367,6 +1455,14 @@ One area of a view, a band of the screen with its own size, mode, bitplanes and 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#records), "Records".
 
 Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries and Devices*](https://archive.org/details/amiga-rom-kernel-reference-manual-libraries-and-devices), Internet Archive, for the operating system's own ViewPort.
+
+### Voice
+
+An instrument of the song data: an IFF 8SVX sample, its one-shot and repeat parts, with settings for vibrato and arpeggio that every voice of the game leaves off.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-song-format-wofsongss-data-hunk), "The song format".
+
+Elsewhere: [8SVX](https://en.wikipedia.org/wiki/8SVX), Wikipedia.
 
 ### Wait point
 
