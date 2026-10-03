@@ -656,6 +656,14 @@ First met and defined in [chapter 22](part-3/core.md). The detail: [`SPEC.md`](r
 
 Elsewhere: [Conformance](https://en.cppreference.com/w/c/language/conformance), cppreference, on hosted and freestanding implementations.
 
+### Fresh core
+
+The core reset to its start, and the state beside it put back, before every test that takes it, so that no test meets what an earlier one left in the same process.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#a-fresh-core-for-every-test), "A fresh core for every test"; [`tests/conftest.py`](repo:tests/conftest.py).
+
+Elsewhere: ["Eradicating Non-Determinism in Tests"](https://martinfowler.com/articles/nonDeterminism.html), Martin Fowler.
+
 ### Front end
 
 The game's screens before and between missions, from the story scroller and the title sequence to the rank selection, the briefing, the dialogs and the high-score screen, and the outer loop that joins them.
@@ -894,6 +902,12 @@ A flag that keeps a brief event until it is read; the game latches a tap and a h
 
 First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md#fire-button-and-the-taphold-discrimination), "Fire button and the tap/hold discrimination".
 
+### Layer (of the suite)
+
+A group of the suite's tests that holds the port at one scale against one reference, from one routine under the oracle to the page in a browser.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`SPEC.md`](repo:SPEC.md#8-verification), section 8; [`book/suite.toml`](repo:book/suite.toml).
+
 ### Leave rule
 
 The shell's rule that leaving fullscreen asks the core for the pause, a request and not a toggle, so that Escape, which a browser takes for leaving fullscreen, always pauses.
@@ -1025,6 +1039,14 @@ One word of a map file, two bytes for eight pixels of the world from west to eas
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
 
+### Marker (of a test)
+
+A label pytest attaches to a test, by which a run selects, skips or groups it; the suite's are `page`, `slow` and `without_rom`, and the groups that send one script's loop tests to one test process.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`tests/conftest.py`](repo:tests/conftest.py); [`re/notes/testing.md`](repo:re/notes/testing.md#duplicate-recordings), "Duplicate recordings".
+
+Elsewhere: ["How to mark test functions with attributes"](https://docs.pytest.org/en/stable/how-to/mark.html), pytest's documentation.
+
 ### Mask
 
 A one-bit picture of where a shape has any colour at all: the OR of its planes, or, for a shape of one plane, that plane; the blitter draws the shape's bits where the mask is set and keeps the background elsewhere.
@@ -1153,6 +1175,14 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`
 
 Elsewhere: [Test oracle](https://en.wikipedia.org/wiki/Test%5Foracle), Wikipedia.
 
+### Outcome set
+
+The outcome of every test of a run of the suite, by the test's id: passed, failed, an error, or skipped with its reason; two runs are held to each other by theirs.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#comparing-runs), "Comparing runs"; [`tools/junit_compare.py`](repo:tools/junit%5Fcompare.py).
+
+Elsewhere: ["Managing pytest's output"](https://docs.pytest.org/en/stable/how-to/output.html), pytest's documentation, on its JUnitXML files.
+
 ### Outer loop
 
 The loop of the game's `main` that runs the rank selection, the briefing, a mission and the high-score screen again and again, after the title sequence has run once.
@@ -1208,6 +1238,12 @@ Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FS
 Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second on a PAL Amiga, each byte of a sound sample is held; a smaller period plays higher.
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
+
+### Phase (of the suite)
+
+One of the two parts the suite is run in, one after the other: the emulator tests spread over the processor cores, then the page tests alone, which load from outside would disturb.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#why-the-page-tests-run-alone), "Why the page tests run alone".
 
 ### Pillbox
 
@@ -1364,6 +1400,18 @@ Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikip
 One of the five routines that look at the key buffer: the menus' reader, the line editor, the briefing and the commands in flight take keys from it, and the wait for a release only asks whether one waits.
 
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-five-readers), "The five readers".
+
+### Recording (of a script)
+
+A mission script run once under the headless original with a dump after every pass and tick, the drawing calls, the entropy reads and the addresses each tick wrote, which the port's loops replay; made once in a test process and shared by every test of its script.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`re/notes/testing.md`](repo:re/notes/testing.md#duplicate-recordings), "Duplicate recordings".
+
+### Reference run
+
+The run of the suite that another run is held to, test by test: first the serial run, every test in one process, and since the release the run in two phases.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#comparing-runs), "Comparing runs".
 
 ### Register
 
@@ -1668,6 +1716,14 @@ A name a program file keeps for a routine or a variable, with its address; the g
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`re/notes/music.md`](repo:re/notes/music.md#the-two-files), "The two files".
 
 Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikipedia.
+
+### Test process
+
+One of the processes pytest-xdist starts to spread the suite over the processor cores, each running a share of the tests with its own copy of the core; pytest-xdist calls it a worker, a word this book keeps for a session.
+
+First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#what-happens-once-per-run), "What happens once per run"; [`tests/conftest.py`](repo:tests/conftest.py).
+
+Elsewhere: ["Running tests across multiple CPUs"](https://pytest-xdist.readthedocs.io/en/stable/distribution.html), pytest-xdist's documentation.
 
 ### Ticker
 

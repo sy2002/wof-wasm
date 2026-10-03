@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 562" width="1000" height="562" role="img" aria-labelledby="title desc">
+  <title id="title">The layers of the suite</title>
+  <desc id="desc">Seven rows, one a layer of the suite, from one routine at the top to the page at the bottom, each with what it compares, against what, and the chapter that told its instrument. One routine: results, flags and touched memory on random inputs, against the original under the emulator, the ROM's floating point and the blitter model; chapters 5 and 12. The original observed: the instrument's claims, the notes' findings and each key with and without, against the headless original itself; chapters 6 and 19. The front end: files, music and drawing calls VBlank by VBlank, against the headless original's run; chapter 19. The missions: state, drawing, chance, palettes and sound after every pass and tick, against the original's recording in two loops; chapters 8 and 18. The whole game replayed: the state's hash after every input sample in both builds, against the hashes stored with the demo; chapter 17. The core itself: both builds, save states, the page file and the generated files, against the other build and the repository; chapter 22. The page: pixels, box, clock, sound, saves, pause and fullscreen, against the framebuffer and the clock the core gave the shell; chapter 23. A dashed frame round the first six rows is phase 1, over the processor cores; a second round the page is phase 2, the page tests alone after phase 1. The first four layers are held against the original, the next two against the port's own record, the page against what the core gave the browser.</desc>
+  <style>
+    /* The design's colours, each an entry of one of the game's palettes. */
+    .orig  { fill: #77AACC; /* wingspalette 22 */ }
+    .own   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .page  { fill: #FFBB00; /* wingstitle 25 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .phase { fill: #AAAABB; /* wingspalette 29 */ }
+    .ground { fill: #000000; /* wingspalette 0 */ }
+    .rule  { stroke: #444455; /* wingspalette 26 */ stroke-width: 1; }
+    .frame { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 14px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="muted small" x="60" y="40">layer</text>
+  <text class="muted small" x="268" y="40">what it compares</text>
+  <text class="muted small" x="528" y="40">against</text>
+  <text class="muted small" x="792" y="40">chapter</text>
+  <rect class="orig" x="60" y="74" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="103">one routine</text>
+  <text class="light small" x="268" y="94">results, flags and touched memory,</text>
+  <text class="light small" x="268" y="111">on random inputs</text>
+  <text class="light small" x="528" y="94">the original under the emulator; the</text>
+  <text class="light small" x="528" y="111">ROM's floating point; the blitter model</text>
+  <text class="light small" x="792" y="103">5, 12</text>
+  <line class="rule" x1="268" y1="126.0" x2="840" y2="126.0"/>
+  <rect class="orig" x="60" y="130" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="159">the original observed</text>
+  <text class="light small" x="268" y="150">the instrument's claims; the notes'</text>
+  <text class="light small" x="268" y="167">findings; each key with and without</text>
+  <text class="light small" x="528" y="159">the headless original itself</text>
+  <text class="light small" x="792" y="159">6, 19</text>
+  <line class="rule" x1="268" y1="182.0" x2="840" y2="182.0"/>
+  <rect class="orig" x="60" y="186" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="215">the front end</text>
+  <text class="light small" x="268" y="206">files, music and drawing calls,</text>
+  <text class="light small" x="268" y="223">VBlank by VBlank</text>
+  <text class="light small" x="528" y="215">the headless original's run</text>
+  <text class="light small" x="792" y="215">19</text>
+  <line class="rule" x1="268" y1="238.0" x2="840" y2="238.0"/>
+  <rect class="orig" x="60" y="242" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="271">the missions</text>
+  <text class="light small" x="268" y="262">state, drawing, chance, palettes and</text>
+  <text class="light small" x="268" y="279">sound, after every pass and tick</text>
+  <text class="light small" x="528" y="271">the original's recording, in two loops</text>
+  <text class="light small" x="792" y="271">8, 18</text>
+  <line class="rule" x1="268" y1="294.0" x2="840" y2="294.0"/>
+  <rect class="own" x="60" y="298" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="327">the whole game replayed</text>
+  <text class="light small" x="268" y="318">the state's hash after every input</text>
+  <text class="light small" x="268" y="335">sample, in both builds</text>
+  <text class="light small" x="528" y="327">the hashes stored with the demo</text>
+  <text class="light small" x="792" y="327">17</text>
+  <line class="rule" x1="268" y1="350.0" x2="840" y2="350.0"/>
+  <rect class="own" x="60" y="354" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="383">the core itself</text>
+  <text class="light small" x="268" y="374">both builds, save states, the page</text>
+  <text class="light small" x="268" y="391">file, the generated files</text>
+  <text class="light small" x="528" y="383">the other build; the repository</text>
+  <text class="light small" x="792" y="383">22</text>
+  <rect class="page" x="60" y="450" width="192" height="48" rx="3"/>
+  <text class="ink label" x="70" y="479">the page</text>
+  <text class="light small" x="268" y="470">pixels, box, clock, sound, saves,</text>
+  <text class="light small" x="268" y="487">pause and fullscreen</text>
+  <text class="light small" x="528" y="470">the framebuffer and the clock</text>
+  <text class="light small" x="528" y="487">the core gave the shell</text>
+  <text class="light small" x="792" y="479">23</text>
+  <rect class="frame" x="44" y="58" width="816" height="354" rx="4"/>
+  <rect class="ground" x="56" y="50" width="295.4" height="16"/>
+  <text class="muted small" x="62" y="62">phase 1: the emulator tests, over the processor cores</text>
+  <rect class="frame" x="44" y="434" width="816" height="74" rx="4"/>
+  <rect class="ground" x="56" y="426" width="249.4" height="16"/>
+  <text class="muted small" x="62" y="438">phase 2: the page tests, alone, after phase 1</text>
+  <rect class="orig" x="44" y="530" width="16" height="16" rx="2"/>
+  <text class="light small" x="68" y="543">held against the original</text>
+  <rect class="own" x="226.734375" y="530" width="16" height="16" rx="2"/>
+  <text class="light small" x="250.7" y="543">held against the port's own record</text>
+  <rect class="page" x="462.421875" y="530" width="16" height="16" rx="2"/>
+  <text class="light small" x="486.4" y="543">held against what the core gave the browser</text>
+</svg>

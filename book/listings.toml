@@ -1039,3 +1039,45 @@ name = "help-keys"
 file = "web/index.html"
 from = '<div class="keys">'
 to = '<div class="any later">'
+
+# Chapter 24, the tests.  Something made once per run of the suite, however many test
+# processes run it: a lock in the directory they share.
+[[listing]]
+kind = "py"
+name = "once_per_run"
+file = "tests/conftest.py"
+
+# The collection hook: the loop tests of one recorded script grouped to one test process, and
+# every test skipped with the ROM check's message when the ROM is missing.
+[[listing]]
+kind = "py"
+name = "pytest_collection_modifyitems"
+file = "tests/conftest.py"
+
+# What lives beside the core's state, put back before every test that takes the core.
+[[listing]]
+kind = "py"
+name = "fresh_settings"
+file = "tests/conftest.py"
+
+# The instrumentation set, the fixture's reset, and nothing left: each assertion names what
+# would have outlived its test.
+[[listing]]
+kind = "py"
+name = "test_the_fresh_core_leaves_no_test_state_behind"
+file = "tests/test_isolation.py"
+from = "conftest.fresh_settings()"
+to = "ported.g_at_mission('mission_number')"
+as = "isolation_after_reset"
+
+# Every framebuffer pixel against the screenshot, at the centre of the block it is shown as.
+[[listing]]
+kind = "py"
+name = "whole_picture_differences"
+file = "tests/picture.py"
+
+# Two runs of the suite as outcome sets: a test's id and its outcome, read from junit files.
+[[listing]]
+kind = "py"
+name = "outcomes"
+file = "tools/junit_compare.py"

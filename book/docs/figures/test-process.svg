@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 344" width="1000" height="344" role="img" aria-labelledby="title desc">
+  <title id="title">A test process's life</title>
+  <desc id="desc">On the left, the collection: the hook gives the loop tests of one script's recording one group, and a group goes whole to one test process. From it, two lanes, one a test process, each with three steps in order. First the build, once: test process 1, the first to take the lock, builds and leaves a file to say so; test process 2 takes the lock after it, finds the file and does not build. Between them the directory all test processes share, holding the lock and the file, joined to both builds. Then before each test that takes the core: the settings back and a fresh core. Then a loop test: its script's recording, kept in the test process, made once there under the headless original. Below, and so on, one test process for each processor core.</desc>
+  <style>
+    /* The design's colours, each an entry of one of the game's palettes. */
+    .once   { fill: #FFBB00; /* wingstitle 25 */ }
+    .fresh  { fill: #77AACC; /* wingspalette 22 */ }
+    .made   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .own    { fill: #AAAABB; /* wingspalette 29 */ }
+    .shared { fill: #888899; /* wingspalette 28 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .link   { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    .tip    { fill: #EEEEEE; /* wingstitle 31 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label  { font-size: 14px; font-weight: 700; }
+    .small  { font-size: 12px; }
+  </style>
+  <rect class="own" x="16" y="116" width="196" height="112" rx="3"/>
+  <text class="ink label" x="26" y="136">the collection</text>
+  <text class="ink small" x="26" y="154">the hook gives the loop</text>
+  <text class="ink small" x="26" y="170">tests of one script's</text>
+  <text class="ink small" x="26" y="186">recording one group;</text>
+  <text class="ink small" x="26" y="202">a group goes whole to</text>
+  <text class="ink small" x="26" y="218">one test process</text>
+  <text class="light label" x="252" y="34">test process 1</text>
+  <rect class="once" x="252" y="44" width="196" height="80" rx="3"/>
+  <text class="ink label" x="262" y="64">the build, once</text>
+  <text class="ink small" x="262" y="82">the first to take the lock:</text>
+  <text class="ink small" x="262" y="98">builds, leaves a file to say so</text>
+  <rect class="fresh" x="468" y="44" width="206" height="80" rx="3"/>
+  <text class="ink label" x="478" y="64">before each test</text>
+  <text class="ink small" x="478" y="82">that takes the core: the</text>
+  <text class="ink small" x="478" y="98">settings back, a fresh core</text>
+  <rect class="made" x="694" y="44" width="216" height="80" rx="3"/>
+  <text class="ink label" x="704" y="64">a loop test</text>
+  <text class="ink small" x="704" y="82">its script's recording, kept in</text>
+  <text class="ink small" x="704" y="98">the process, made once there</text>
+  <path class="wire" d="M448 84.0 L458 84.0"/>
+  <path class="tip" d="M458 79.0 L458 89.0 L468 84.0 Z"/>
+  <path class="wire" d="M674 84.0 L684 84.0"/>
+  <path class="tip" d="M684 79.0 L684 89.0 L694 84.0 Z"/>
+  <text class="light label" x="252" y="210">test process 2</text>
+  <rect class="once" x="252" y="220" width="196" height="80" rx="3"/>
+  <text class="ink label" x="262" y="240">the build, once</text>
+  <text class="ink small" x="262" y="258">takes the lock after it:</text>
+  <text class="ink small" x="262" y="274">finds the file, does not build</text>
+  <rect class="fresh" x="468" y="220" width="206" height="80" rx="3"/>
+  <text class="ink label" x="478" y="240">before each test</text>
+  <text class="ink small" x="478" y="258">that takes the core: the</text>
+  <text class="ink small" x="478" y="274">settings back, a fresh core</text>
+  <rect class="made" x="694" y="220" width="216" height="80" rx="3"/>
+  <text class="ink label" x="704" y="240">a loop test</text>
+  <text class="ink small" x="704" y="258">its script's recording, kept in</text>
+  <text class="ink small" x="704" y="274">the process, made once there</text>
+  <path class="wire" d="M448 260.0 L458 260.0"/>
+  <path class="tip" d="M458 255.0 L458 265.0 L468 260.0 Z"/>
+  <path class="wire" d="M674 260.0 L684 260.0"/>
+  <path class="tip" d="M684 255.0 L684 265.0 L694 260.0 Z"/>
+  <path class="wire" d="M212 172.0 L228 172.0 L228 84"/>
+  <path class="wire" d="M228 84 L242 84"/>
+  <path class="tip" d="M242 79 L242 89 L252 84 Z"/>
+  <path class="wire" d="M212 172.0 L228 172.0 L228 260"/>
+  <path class="wire" d="M228 260 L242 260"/>
+  <path class="tip" d="M242 255 L242 265 L252 260 Z"/>
+  <rect class="shared" x="252" y="140" width="196" height="52" rx="3"/>
+  <text class="ink label" x="262" y="162">the directory all share</text>
+  <text class="ink small" x="262" y="181">the lock; the file</text>
+  <path class="link" d="M418 124 L418 140"/>
+  <path class="link" d="M418 192 L418 220"/>
+  <text class="muted small" x="252" y="328">and so on, one test process for each processor core</text>
+</svg>
