@@ -133,8 +133,8 @@ The program's routines, by the inventory's status (chapter 4):
 | ported | 155 |
 | partial | 1 |
 | replace | 47 |
-| drop | 31 |
-| todo | 215 |
+| drop | 36 |
+| todo | 210 |
 
 One routine is partial, the scripts running only part of it; the two stretches they never reach, a debugging line to the console, are ported from reading. A routine starts as `todo`, while `replace` and `drop` mark a decision; most of the 215 are the C library and the system's glue at the end of the code, or code with no caller in the listing, on which nothing had to be decided.
 
