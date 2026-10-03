@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 622" width="1000" height="622" role="img" aria-labelledby="title desc">
   <title id="title">The core's state, and what lies outside it</title>
-  <desc id="desc">Two columns on black. Left, inside the struct wof_state_t and saved: the magic and the version a load checks; the seed and the entropy stream's state; the counts of VBlanks, ticks and passes; the video rate and the controller's last state; the flip's preference and whether it was given; the stand-ins reached and the VBlanks since a pass; the keyboard assist's presses and pushes; Paula's four channels and their interrupts (paula); the music's timer and the level-4 vector (cia); the registered variables of src/globals.def (g); the registered tables of src/mission.def with the records of src/records.def (m); the front end: the coroutines' resume points and the locals they keep, the viewports, the display memory and the mirror markers (f). Right, outside the state and not saved: the arena with the packed files and the assets loaded from them, read-only once loaded; the framebuffer and its palettes, made again from the state by every pass and load; the queue of mixed audio frames; the overlay of written files, which loading a state must not un-write; the settings wof_init leaves alone, the fade step, the VBlanks a pass and the audio output rate; the native library's recording and the tests' entries, never compiled into the page.</desc>
+  <desc id="desc">Two columns on black. Left, inside the struct wof_state_t and saved: the magic and the version a load checks; the seed and the entropy stream's state; the counts of VBlanks, ticks and calls of the pass entry; the video rate and the joystick's last state; the flip's preference and whether it was given; the stand-ins reached and the VBlanks since a pass; the keyboard assist's presses and pushes; Paula's channels and their interrupts (paula); the music's timer and the level-4 vector (cia); the registered variables of src/globals.def (g); the registered tables of src/mission.def with the records of src/records.def (m); the front end: the coroutines' resume points and the locals they keep, the viewports, the display memory and the mirror markers (f). Right, outside the state and not saved: the arena with the packed files, never changed once loaded, and the assets loaded from them, changed only as the state's mirror markers say; the framebuffer and its palettes, made again from the state at every call of the pass entry and at every load; the queue of mixed audio frames; the overlay of written files, which loading a state must not un-write; the settings wof_init leaves alone, the fade step, the VBlanks a pass and the audio output rate; the native library's recording and the tests' entries, never compiled into the page.</desc>
   <style>
     /* The design's colours, each an entry of one of the game's palettes. */
     .saved   { fill: #FFBB00; /* wingstitle 25 */ }
@@ -23,9 +23,9 @@
   <rect class="saved" x="16" y="128" width="470" height="30" rx="3"/>
   <text class="ink" x="28" y="149">the seed and the entropy stream's state</text>
   <rect class="saved" x="16" y="164" width="470" height="30" rx="3"/>
-  <text class="ink" x="28" y="185">the counts of VBlanks, ticks and passes</text>
+  <text class="ink" x="28" y="185">the counts of VBlanks, ticks and calls of the pass entry</text>
   <rect class="saved" x="16" y="200" width="470" height="30" rx="3"/>
-  <text class="ink" x="28" y="221">the video rate, the controller's last state</text>
+  <text class="ink" x="28" y="221">the video rate, the joystick's last state</text>
   <rect class="saved" x="16" y="236" width="470" height="30" rx="3"/>
   <text class="ink" x="28" y="257">the flip's preference, and whether it was given</text>
   <rect class="saved" x="16" y="272" width="470" height="30" rx="3"/>
@@ -33,7 +33,7 @@
   <rect class="saved" x="16" y="308" width="470" height="30" rx="3"/>
   <text class="ink" x="28" y="329">the keyboard assist's presses and pushes</text>
   <rect class="saved" x="16" y="344" width="470" height="30" rx="3"/>
-  <text class="ink" x="28" y="365">Paula: four channels, their interrupts</text>
+  <text class="ink" x="28" y="365">Paula: the channels, their interrupts</text>
   <text class="ink code" x="474" y="365" text-anchor="end">paula</text>
   <rect class="saved" x="16" y="380" width="470" height="30" rx="3"/>
   <text class="ink" x="28" y="401">the music's timer and the level-4 vector</text>
@@ -54,12 +54,12 @@
   <text class="light label" x="526" y="80">Outside the state, not saved</text>
   <rect class="outside" x="526" y="92" width="380" height="66" rx="3"/>
   <text class="ink strong" x="538" y="113">the arena</text>
-  <text class="ink" x="538" y="131">the packed files, the assets loaded from them;</text>
-  <text class="ink" x="538" y="149">read-only once loaded</text>
+  <text class="ink" x="538" y="131">the packed files, never changed once loaded;</text>
+  <text class="ink" x="538" y="149">the assets, changed only as the markers say</text>
   <rect class="outside" x="526" y="166" width="380" height="66" rx="3"/>
   <text class="ink strong" x="538" y="187">the framebuffer and its palettes</text>
-  <text class="ink" x="538" y="205">made again from the state by every pass</text>
-  <text class="ink" x="538" y="223">and by every load</text>
+  <text class="ink" x="538" y="205">made again from the state at every call</text>
+  <text class="ink" x="538" y="223">of the pass entry and at every load</text>
   <rect class="outside" x="526" y="240" width="380" height="48" rx="3"/>
   <text class="ink strong" x="538" y="261">the queue of mixed audio frames</text>
   <text class="ink" x="538" y="279">what the shell has not taken yet</text>

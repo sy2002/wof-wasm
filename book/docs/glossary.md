@@ -52,7 +52,7 @@ Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the re
 
 ### Arena
 
-The one block of memory, 3 MB, that the core reserves once and hands out zeroed in place of the system's allocator: what lasts from the bottom, a file's scratch from the top, nothing ever freed.
+The one block of memory, 3 MB, that the core reserves once and hands out zeroed in place of the system's allocator while the game loads: what lasts from the bottom, a file's scratch from the top, given back as one piece; nothing below is ever freed. What the original allocates for a mission the core keeps in its state instead.
 
 First met and defined in [chapter 22](part-3/core.md). The detail: [`src/mem.c`](repo:src/mem.c); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#decisions-the-port-made), "Decisions the port made".
 
@@ -368,7 +368,7 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`
 
 A routine that can stop at a wait, give control back and go on from there at its next call: the port's form of every routine of the original that waits, since a page may not block.
 
-The port's are stackless, in the style of protothreads: the routine's body sits inside a `switch` on its resume point, the locals it keeps across a wait live in a context struct beside it, and one wait is one VBlank ([`SPEC.md`](repo:SPEC.md#63-blocking-code-becomes-coroutines), section 6.3).
+The port's are stackless, in the style of protothreads: the routine's body sits inside a `switch` on its resume point, the locals it keeps across a wait live in the front end's part of the core's state, beside the routine's context, and one wait is one VBlank ([`SPEC.md`](repo:SPEC.md#63-blocking-code-becomes-coroutines), section 6.3).
 
 First met and defined in [chapter 22](part-3/core.md). The detail: [`src/coro.h`](repo:src/coro.h); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
 
@@ -803,6 +803,8 @@ Elsewhere: [Kickstart (Amiga)](https://en.wikipedia.org/wiki/Kickstart%5F(Amiga)
 ### Kind (of a field)
 
 How a field of a registered record travels between the original's big-endian bytes and the port's structure: as the same integer, or as a pointer turned into a shape handle, a sound handle, an offset, a flag or the handler a vector names; seven in all.
+
+Not the same as an object record's kind byte (chapter 15), a manifest entry's kind (chapter 3) or a routine's kind in the routine inventory (chapter 4).
 
 First met and defined in [chapter 22](part-3/core.md). The detail: [`src/records.def`](repo:src/records.def), its opening comment; [`tests/m4state.py`](repo:tests/m4state.py).
 
@@ -1303,7 +1305,7 @@ First met and defined in [chapter 22](part-3/core.md). The detail: [`src/globals
 
 ### Registry
 
-One of the port's three lists, [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def) and [`src/records.def`](repo:src/records.def), in which every variable, table and record layout taken over from the original is a line of macro calls with its original address or offset; the files that include a list expand it into structures and code.
+One of the port's three lists, [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def) and [`src/records.def`](repo:src/records.def), in which every variable, table and record layout taken over from the original is an entry, a macro call with its original address or offset; the files that include a list expand it into structures and code.
 
 First met and defined in [chapter 22](part-3/core.md). The detail: the three files' opening comments; [`src/core.c`](repo:src/core.c).
 
