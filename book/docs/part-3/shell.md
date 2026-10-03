@@ -3,7 +3,7 @@ Chapter 23
 
 # The shell
 
-This chapter is the program on the other side of chapter 22's interface. By its end you will know what the [shell](../glossary.md#shell) is and why it knows nearly nothing of the game; how its clock makes VBlanks of a display's refreshes; how the picture reaches the screen in the machine's proportions; how the sound keeps flowing; which keys the shell keeps and what it stores; how [the help screen, the pause sign and fullscreen](../part-1/faithful.md#what-the-shell-adds) and a hidden page behave; and what the tests hold of it.
+This chapter is the program on the other side of chapter 22's interface. By its end you will know what the [shell](../glossary.md#shell) is and why it knows nearly nothing of the game; how its clock makes VBlanks of a display's refreshes; how the picture reaches the screen in the machine's proportions; how the sound keeps flowing; which keys the shell keeps and what it stores; how the [help screen](../glossary.md#help-screen), the [pause sign](../glossary.md#pause-sign) and [fullscreen](../glossary.md#fullscreen-of-the-page) ([chapter 1](../part-1/faithful.md#what-the-shell-adds)) and a hidden page behave; and what the tests hold of it.
 
 ## A small program that knows no game
 
