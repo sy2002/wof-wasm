@@ -19,7 +19,7 @@ The suite is about 930 tests under [`tests/`](repo:tests/), run by pytest, Pytho
 | the core itself | its two builds, save states, the page file, the generated files | itself and the repository | 22 |
 | the page | requests, pixels, box, clock, sound, saves, pause, fullscreen | what the core gave it | 23 |
 
-The layers follow the specification's [levels of verification](repo:SPEC.md#8-verification) where tests exist, the drawing within the routine's layer and the sound within the missions' and the front end's; the picture's level is not made as such, the replay's hashes covering the display memory (chapter 22), and the core itself is added. Chapter 21 grouped the same modules by what each is about; here they stand by what each compares.
+The layers follow the specification's [levels of verification](repo:SPEC.md#8-verification) where tests exist, the drawing within the routine's layer and the sound within the missions' and the front end's; the picture's level is not made as such, the [replay](../glossary.md#replay)'s hashes covering the display memory (chapter 22), and the core itself is added. Chapter 21 grouped the same modules by what each is about; here they stand by what each compares.
 
 ![Two dashed frames, the emulator phase round six layers and the page phase round the page, and a legend: held against the original, the port's own record, or what the core gave the browser.](../figures/suite-layers.svg)
 
