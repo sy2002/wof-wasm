@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 516" width="1000" height="516" role="img" aria-labelledby="title desc">
   <title id="title">The outer loop</title>
-  <desc id="desc">The front end as the code joins its screens. The title sequence, the story scroller and three pictures, runs once at the program&#39;s start and leads to the rank selection, which follows the outer loop&#39;s head. A rank chosen, or 1,800 rounds left alone, which asks for the demo, leads to the briefing after the map is loaded. The load item opens the load and save dialog: a cancel goes back to the rank selection, a game loaded goes to the briefing with no map loaded and no reset of the mission, as the rank selection returns with it. The briefing goes on to a mission after 240 rounds or on fire; its Control-R goes back to the rank selection. A mission, the inner loop, runs a pass a round until the game is over or a quit, Control-R in flight among them, ends it. At the mission&#39;s end the screen fades and a recording is written; then the high-score screen, which asks for a name only when the score beats the tenth row, unless a demo was played back, which goes straight back; and the rank selection comes again.</desc>
+  <desc id="desc">The front end as the code joins its screens. The title sequence, the story scroller and three pictures, runs once at the program&#39;s start and leads to the rank selection, which follows the outer loop&#39;s head. A rank chosen, or 1,800 rounds left alone, which asks for the demo, leads to the briefing after the map is loaded. The load item opens the load and save dialog: a cancel goes back to the rank selection, a game loaded goes to the briefing with no map loaded and no reset of the mission, as the rank selection returns with it. The briefing goes on to a mission after 240 rounds or on fire; its Control-R goes back to the rank selection. A mission, the inner loop, runs a pass a round until the game is over or a quit, Control-R in flight among them, ends it. At the mission&#39;s end the screen fades and a recording, if one ran, is written; then the high-score screen, which asks for a name only when the score beats the tenth row, unless a demo was played back, which goes straight back; and the rank selection comes again.</desc>
   <style>
     /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
     .menu   { fill: #CCCCDD; /* wingspalette 30 */ }
@@ -40,8 +40,9 @@
   <text class="ink name" x="500" y="413" text-anchor="middle">the high-score screen</text>
   <text class="ink small" x="500" y="429" text-anchor="middle">a name if above the tenth row</text>
   <rect class="end" x="740" y="384" width="200" height="64" rx="4"/>
-  <text class="ink name" x="840" y="413" text-anchor="middle">the mission&#39;s end</text>
-  <text class="ink small" x="840" y="429" text-anchor="middle">the fade out, a recording written</text>
+  <text class="ink name" x="840" y="405" text-anchor="middle">the mission&#39;s end</text>
+  <text class="ink small" x="840" y="421" text-anchor="middle">the fade out; a recording</text>
+  <text class="ink small" x="840" y="437" text-anchor="middle">written, if one ran</text>
 
   <!-- The title sequence once, into the loop's head -->
   <path class="wire" d="M140 124 L140.0 205.0"/>

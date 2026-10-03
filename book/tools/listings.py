@@ -321,7 +321,7 @@ def routines():
 
 
 ADDRESS = re.compile(r'^([0-9a-f]{6})  ')
-LABEL = re.compile(r'^[A-Za-z_]\w*:$')
+LABEL = re.compile(r'^[A-Za-z_]\w*:(\s*;.*)?$')   # a label, with the listing's comment if any
 
 
 def asm_extract(entry, table, listing):

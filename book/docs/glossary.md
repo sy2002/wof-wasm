@@ -730,7 +730,7 @@ Elsewhere: [Interrupt request](https://en.wikipedia.org/wiki/Interrupt%5Frequest
 
 ### Key buffer
 
-The game's ten raw key codes and ten qualifier words with a count, filled by its handler on input.device and emptied by the five readers.
+The game's ten raw key codes and ten qualifier words with a count, filled by its handler on input.device and emptied by four of its five readers.
 
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-chain-from-a-key-press-to-an-effect), "The chain from a key press to an effect"; [`src/keys.c`](repo:src/keys.c).
 Elsewhere: [Keyboard buffer](https://en.wikipedia.org/wiki/Keyboard%5Fbuffer), Wikipedia.
@@ -1167,7 +1167,7 @@ First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/not
 
 ### Qualifier
 
-The word of bits that comes with a raw key code and says which of Shift, Caps Lock, Control, Alt and the Amiga keys were held; the game reads only Control's.
+The word of bits that comes with a raw key code and says which of Shift, Caps Lock, Control, Alt and the Amiga keys were held; the game's command readers test only Control's, and its line editor also the two Shifts' and right Amiga's.
 
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#control-and-the-two-masks), "Control, and the two masks".
 Elsewhere: [Modifier key](https://en.wikipedia.org/wiki/Modifier%5Fkey), Wikipedia.
@@ -1207,7 +1207,7 @@ Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikip
 
 ### Reader (of the key buffer)
 
-One of the five routines that take keys out of the key buffer: the menus' reader, the wait for a release, the line editor, the briefing and the commands in flight.
+One of the five routines that look at the key buffer: the menus' reader, the line editor, the briefing and the commands in flight take keys from it, and the wait for a release only asks whether one waits.
 
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-five-readers), "The five readers".
 

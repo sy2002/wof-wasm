@@ -842,24 +842,6 @@ from = "for (;;) {"
 to = "CO_END(c);"
 as = "wof_menu_input_loop"
 
-# The line editor's first key tests: Return and Enter, the cursor left and right, which
-# with either Shift (qualifier bits 0 and 1) jump to the line's ends, and the cursor up.
-[[listing]]
-kind = "asm"
-name = "text_input"
-from = 0x0162A2
-to = 0x016322
-lines = 41
-as = "text_input_keys"
-
-[[listing]]
-kind = "c"
-name = "wof_text_input"
-file = "src/dialog.c"
-from = "if (code == 0x44 || code == 0x43)"
-to = "if (code == 0x4C)"
-as = "text_input_keys_c"
-
 # The dialog's file list: ExNext's next entry and the test of its name's first five bytes;
 # beside it the port's directory in ExNext's order, computed from the names.
 [[listing]]

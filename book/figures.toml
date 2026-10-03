@@ -245,6 +245,15 @@ the second. `expect` checks the cursor there."""
 schedule = [[29, 0], [3, 16], [267, 0], [3, 16], [198, 0], [3, 2], [200, 0]]
 expect = [{vblank = 540, rank_cursor = 1}]
 
+[run.idle]
+what = """The front end left alone from the program's start, a schedule written by hand of every
+VBlank's raw byte 0, with the fades at no time (`fade_vblanks` 0) as in the headless original, so
+that the screens come at the VBlanks of re/notes/frontend.md's timetable: the briefing from 6,992
+to 7,235. `expect` checks the briefing's three numbers there."""
+fade_vblanks = 0
+schedule = [[1, 0]]
+expect = [{vblank = 7100, mission_number = 1, briefing_islands = 1, briefing_ships = 0}]
+
 [run.load]
 what = """As the run rank, but the stick pushed forward (raw byte 1) for three VBlanks from 501, which
 wraps the highlight from the first item to the load item, the eighth, and fire for three VBlanks
@@ -921,10 +930,9 @@ file = "rank-select.png"
 maker = "screen"
 run = "rank"
 vblank = 540
-crop = [0, 68, 640, 108]
-size = [1024, 324]
-shows = "The rank selection with its highlight on the second item, moved there by the stick: the heading, the seven ranks and the load item below them, in the frame of the picture."
-how = "VBlank 540 of the rank run, where the run checks rank_cursor 1; the box of the 640 x 214 picture from row 68, 640 by 108, the heading and the eight items, shown at the page's PAL proportions, 1.6 times as wide and 3 times as tall."
+size = [1024, 642]
+shows = "The rank selection with its highlight on the second item, moved there by the stick: three lines of the crack group at the top of the picture, the heading, the seven ranks and the load item below them, in the frame of the picture."
+how = "VBlank 540 of the rank run, where the run checks rank_cursor 1; the 640 x 214 picture shown in the PAL box of 1024 x 642. shapes/selectrank, 320 x 256 x 5, holds the crack group's three lines above the heading in the file itself."
 command = ".venv/bin/python book/tools/figures.py rank-select"
 
 [[figure]]
@@ -938,3 +946,13 @@ shows = "The load and save dialog in load mode, drawn with graphics.library in t
 how = "VBlank 640 of the load run, where the run checks rank_cursor 7, the load item; the 640 x 214 picture shown in the PAL box of 1024 x 642."
 command = ".venv/bin/python book/tools/figures.py load-dialog"
 
+[[figure]]
+name = "briefing"
+file = "briefing.png"
+maker = "screen"
+run = "idle"
+vblank = 7100
+size = [1024, 642]
+shows = "The first mission's briefing: the panel of the shape rank from world.shp in the middle of the screen, with the rank's name, the mission number, the islands and the ships in the game's font."
+how = "VBlank 7100 of the idle run, the fades at no time, between the briefing's fade in at 6,995 and its fade out at 7,235; the run checks mission_number 1, briefing_islands 1 and briefing_ships 0 there; the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py briefing"

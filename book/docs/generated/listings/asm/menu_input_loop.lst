@@ -53,4 +53,3 @@ loc_018206:
 018220  6094                 bra.b      $181b6
 loc_018222:
 018222  6000ff78             bra.w      $1819c
-loc_018226:        ; (found by gap sweep)
