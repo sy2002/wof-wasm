@@ -1,0 +1,209 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 714" width="1000" height="714" role="img" aria-labelledby="title desc">
+  <title id="title">The directory&#39;s hash chains</title>
+  <desc id="desc">The game&#39;s directory on the disk as the file system keeps it: 72 hash chains, drawn as a grid of six columns read row by row, chain 0 at the top left and chain 71 at the bottom right. Each entry lies in the chain its name&#39;s hash gives, and ExNext hands the entries out chain by chain, upward, each chain from its head: Wings in chain 1, wingt 2, .info 7, shapes 22, wofsongs 26, wings.info 32, maps 33, sounds 42, UFXintro 43, highscore 49, songplay and then newarmyfont in chain 53, rank.iff.info 58 and the saved game wof.mission 3 in chain 64, numbered in that order. A game saved under the example name wof.flight 4 also falls in chain 64; the harness and the port put it at the head, before wof.mission 3, where a real file system is documented to put a new entry; that a real Kickstart 1.3 does so, and walks the chains in this order, nothing has confirmed. The load and save dialog lists only the names that begin with wof.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .disk   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .saved  { fill: #44AA44; /* iff-dash 6 */ }
+    .empty  { fill: #111122; /* wingspalette 6 */ stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1; }
+    .listed { fill: none; stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 3; }
+    .open   { fill: none; stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; stroke-dasharray: 6 4; }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+    .code  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+    .tiny  { font-size: 11px; }
+  </style>
+  <text class="light label" x="16" y="24" text-anchor="start">The game’s directory in its 72 hash chains</text>
+  <text class="muted small" x="16" y="44" text-anchor="start">chain 0 upward, row by row, each chain from its head: the order ExNext hands out</text>
+  <rect class="empty" x="20" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="87" text-anchor="start">0</text>
+  <rect class="empty" x="166" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="87" text-anchor="start">1</text>
+  <rect class="disk" x="190" y="76" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="194" y="97" text-anchor="start">1 Wings</text>
+  <rect class="empty" x="312" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="87" text-anchor="start">2</text>
+  <rect class="disk" x="336" y="76" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="340" y="97" text-anchor="start">2 wingt</text>
+  <rect class="empty" x="458" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="87" text-anchor="start">3</text>
+  <rect class="empty" x="604" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="87" text-anchor="start">4</text>
+  <rect class="empty" x="750" y="74" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="87" text-anchor="start">5</text>
+  <rect class="empty" x="20" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="131" text-anchor="start">6</text>
+  <rect class="empty" x="166" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="131" text-anchor="start">7</text>
+  <rect class="disk" x="190" y="120" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="194" y="141" text-anchor="start">3 .info</text>
+  <rect class="empty" x="312" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="131" text-anchor="start">8</text>
+  <rect class="empty" x="458" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="131" text-anchor="start">9</text>
+  <rect class="empty" x="604" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="131" text-anchor="start">10</text>
+  <rect class="empty" x="750" y="118" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="131" text-anchor="start">11</text>
+  <rect class="empty" x="20" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="175" text-anchor="start">12</text>
+  <rect class="empty" x="166" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="175" text-anchor="start">13</text>
+  <rect class="empty" x="312" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="175" text-anchor="start">14</text>
+  <rect class="empty" x="458" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="175" text-anchor="start">15</text>
+  <rect class="empty" x="604" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="175" text-anchor="start">16</text>
+  <rect class="empty" x="750" y="162" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="175" text-anchor="start">17</text>
+  <rect class="empty" x="20" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="219" text-anchor="start">18</text>
+  <rect class="empty" x="166" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="219" text-anchor="start">19</text>
+  <rect class="empty" x="312" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="219" text-anchor="start">20</text>
+  <rect class="empty" x="458" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="219" text-anchor="start">21</text>
+  <rect class="empty" x="604" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="219" text-anchor="start">22</text>
+  <rect class="disk" x="628" y="208" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="632" y="229" text-anchor="start">4 shapes</text>
+  <rect class="empty" x="750" y="206" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="219" text-anchor="start">23</text>
+  <rect class="empty" x="20" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="263" text-anchor="start">24</text>
+  <rect class="empty" x="166" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="263" text-anchor="start">25</text>
+  <rect class="empty" x="312" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="263" text-anchor="start">26</text>
+  <rect class="disk" x="336" y="252" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="340" y="273" text-anchor="start">5 wofsongs</text>
+  <rect class="empty" x="458" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="263" text-anchor="start">27</text>
+  <rect class="empty" x="604" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="263" text-anchor="start">28</text>
+  <rect class="empty" x="750" y="250" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="263" text-anchor="start">29</text>
+  <rect class="empty" x="20" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="307" text-anchor="start">30</text>
+  <rect class="empty" x="166" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="307" text-anchor="start">31</text>
+  <rect class="empty" x="312" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="307" text-anchor="start">32</text>
+  <rect class="disk" x="336" y="296" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="340" y="317" text-anchor="start">6 wings.info</text>
+  <rect class="empty" x="458" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="307" text-anchor="start">33</text>
+  <rect class="disk" x="482" y="296" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="486" y="317" text-anchor="start">7 maps</text>
+  <rect class="empty" x="604" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="307" text-anchor="start">34</text>
+  <rect class="empty" x="750" y="294" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="307" text-anchor="start">35</text>
+  <rect class="empty" x="20" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="351" text-anchor="start">36</text>
+  <rect class="empty" x="166" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="351" text-anchor="start">37</text>
+  <rect class="empty" x="312" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="351" text-anchor="start">38</text>
+  <rect class="empty" x="458" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="351" text-anchor="start">39</text>
+  <rect class="empty" x="604" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="351" text-anchor="start">40</text>
+  <rect class="empty" x="750" y="338" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="351" text-anchor="start">41</text>
+  <rect class="empty" x="20" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="395" text-anchor="start">42</text>
+  <rect class="disk" x="44" y="384" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="48" y="405" text-anchor="start">8 sounds</text>
+  <rect class="empty" x="166" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="395" text-anchor="start">43</text>
+  <rect class="disk" x="190" y="384" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="194" y="405" text-anchor="start">9 UFXintro</text>
+  <rect class="empty" x="312" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="395" text-anchor="start">44</text>
+  <rect class="empty" x="458" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="395" text-anchor="start">45</text>
+  <rect class="empty" x="604" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="395" text-anchor="start">46</text>
+  <rect class="empty" x="750" y="382" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="395" text-anchor="start">47</text>
+  <rect class="empty" x="20" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="439" text-anchor="start">48</text>
+  <rect class="empty" x="166" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="439" text-anchor="start">49</text>
+  <rect class="disk" x="190" y="428" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="194" y="449" text-anchor="start">10 highscore</text>
+  <rect class="empty" x="312" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="439" text-anchor="start">50</text>
+  <rect class="empty" x="458" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="439" text-anchor="start">51</text>
+  <rect class="empty" x="604" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="439" text-anchor="start">52</text>
+  <rect class="empty" x="750" y="426" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="439" text-anchor="start">53</text>
+  <rect class="disk" x="774" y="428" width="114" height="16" rx="2"/>
+  <text class="ink code tiny" x="778" y="440" text-anchor="start">11 songplay</text>
+  <rect class="disk" x="774" y="445" width="114" height="16" rx="2"/>
+  <text class="ink code tiny" x="778" y="458" text-anchor="start">12 newarmyfont</text>
+  <rect class="empty" x="20" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="483" text-anchor="start">54</text>
+  <rect class="empty" x="166" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="483" text-anchor="start">55</text>
+  <rect class="empty" x="312" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="483" text-anchor="start">56</text>
+  <rect class="empty" x="458" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="483" text-anchor="start">57</text>
+  <rect class="empty" x="604" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="483" text-anchor="start">58</text>
+  <rect class="disk" x="628" y="472" width="114" height="33" rx="2"/>
+  <text class="ink code tiny" x="632" y="493" text-anchor="start">13 rank.iff.info</text>
+  <rect class="empty" x="750" y="470" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="483" text-anchor="start">59</text>
+  <rect class="empty" x="20" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="527" text-anchor="start">60</text>
+  <rect class="empty" x="166" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="527" text-anchor="start">61</text>
+  <rect class="empty" x="312" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="527" text-anchor="start">62</text>
+  <rect class="empty" x="458" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="527" text-anchor="start">63</text>
+  <rect class="empty" x="604" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="527" text-anchor="start">64</text>
+  <rect class="saved" x="628" y="516" width="114" height="16" rx="2"/>
+  <text class="ink code tiny" x="632" y="528" text-anchor="start">14 wof.flight 4</text>
+  <rect class="listed" x="628" y="516" width="114" height="16" rx="2"/>
+  <rect class="disk" x="628" y="533" width="114" height="16" rx="2"/>
+  <text class="ink code tiny" x="632" y="546" text-anchor="start">15 wof.mission 3</text>
+  <rect class="listed" x="628" y="533" width="114" height="16" rx="2"/>
+  <rect class="open" x="601" y="511" width="146" height="44" rx="4"/>
+  <rect class="empty" x="750" y="514" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="527" text-anchor="start">65</text>
+  <rect class="empty" x="20" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="25" y="571" text-anchor="start">66</text>
+  <rect class="empty" x="166" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="171" y="571" text-anchor="start">67</text>
+  <rect class="empty" x="312" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="317" y="571" text-anchor="start">68</text>
+  <rect class="empty" x="458" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="463" y="571" text-anchor="start">69</text>
+  <rect class="empty" x="604" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="609" y="571" text-anchor="start">70</text>
+  <rect class="empty" x="750" y="558" width="140" height="38" rx="3"/>
+  <text class="muted tiny" x="755" y="571" text-anchor="start">71</text>
+  <rect class="disk" x="20" y="616" width="22" height="14" rx="2"/>
+  <text class="light small" x="50" y="627" text-anchor="start">an entry on the disk</text>
+  <rect class="saved" x="210" y="616" width="22" height="14" rx="2"/>
+  <text class="light small" x="240" y="627" text-anchor="start">a saved game, an example name</text>
+  <rect class="listed" x="430" y="616" width="22" height="14" rx="2"/>
+  <text class="light small" x="460" y="627" text-anchor="start">a name the load and save dialog lists</text>
+  <text class="light small" x="20" y="654" text-anchor="start">Chain 64: the harness and the port put a newly saved game at its chain’s</text>
+  <text class="light small" x="20" y="672" text-anchor="start">head, as 14, before the disk’s wof.mission 3; that a real Kickstart 1.3</text>
+  <text class="light small" x="20" y="690" text-anchor="start">does so is documented, not confirmed.</text>
+</svg>

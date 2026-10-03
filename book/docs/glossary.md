@@ -390,6 +390,12 @@ The play screen's middle area, 640 by 37 in high resolution with four bitplanes:
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-pass), "The pass"; [`src/dash.c`](repo:src/dash.c).
 
+### Deliberate divergence
+
+A change of the original's behaviour that the port makes on purpose, by a decision of the project's owner written in the specification, as against a quirk of the original, which the port keeps, and a mistake of the port, which is put right.
+
+First met and defined in [chapter 20](part-2/quirks.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [1, "Out of scope"](repo:SPEC.md#out-of-scope-for-this-specification) and [6.2](repo:SPEC.md#62-shell).
+
 ### Depth
 
 The number of a picture's bitplanes, which gives it 2 to that number colours: five for the playfield's 32, four for the dashboard's 16, one for the ticker's two.

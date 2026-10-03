@@ -1,0 +1,9 @@
+; re/Wings.lst 0x01B304-0x01B318: crash [C], a part of 0x01AFBA-0x01B459
+loc_01b304:
+01b304  42a7                 clr.l      -(a7)
+01b306  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b30a  3f10                 move.w     (a0), -(a7)
+01b30c  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b310  3f280002             move.w     $2(a0), -(a7)
+01b314  4eac8020             jsr        -$7fe0(a4)                             ; -> object_spawn
+01b318  504f                 addq.w     #$8, a7

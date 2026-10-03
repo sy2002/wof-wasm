@@ -870,3 +870,41 @@ lines = 50
 kind = "py"
 name = "test_control_f_flips_the_vertical_control"
 file = "tests/test_frontend.py"
+
+# Chapter 20, the quirks: the crash's call of object_spawn while the wreck slides, which pushes
+# the aircraft's x and height where every other call pushes a map record's address; beside it
+# the port's call, which subtracts the map list's address the machine gave.
+[[listing]]
+kind = "asm"
+name = "crash"
+from = 0x01B304
+to = 0x01B318
+as = "crash_explosion"
+
+[[listing]]
+kind = "c"
+name = "wof_crash"
+file = "src/player.c"
+from = "/* 0x01B304: the C call"
+to = "wof_g.map_list_address), 0, 0);"
+as = "wof_crash_explosion"
+
+# The file system's name hash, which picks a directory entry's chain, with the comment on
+# ExNext's order above it.
+[[listing]]
+kind = "c"
+name = "name_hash"
+file = "src/fs.c"
+
+# The test that holds the harness's order and hash against the disk image's directory blocks.
+[[listing]]
+kind = "py"
+name = "test_the_disk_image_gives_the_order_the_file_system_hands_out"
+file = "tests/test_frontend.py"
+
+# A table read past its end, read as the original reads it: the byte at an original address
+# from the registered global that covers it, else from the executable's constant image.
+[[listing]]
+kind = "c"
+name = "data_byte"
+file = "src/player.c"

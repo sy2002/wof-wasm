@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470" width="1000" height="470" role="img" aria-labelledby="title desc">
+  <title id="title">An address taken for an x</title>
+  <desc id="desc">How object_spawn turns what it is handed into an explosion&#39;s x: the address it is given, less the address of the map list, keeps its low word, which is shifted two places, times four. Above, the crash&#39;s other calls hand it the map record under the wreck, at 0x0024F72C; less the map list&#39;s address 0x0024F404 that is 0x328 bytes into the list, and times four the x 3,232, beside the wreck at 3,233. Below, the call at 0x01B304 hands it the aircraft&#39;s x and height side by side, 3,233 and 2, the long 0x0CA10002; less 0x0024F404 that is 0x0C7C0BFE, whose upper word is dropped; the low word 0x0BFE times four is 0x2FF8, the x 12,280. At the bottom, map a along its x: its records end at 7,640, the wreck lies on its island at 3,233, and 12,280 lies past the end.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .record { fill: #CCCCDD; /* wingspalette 30 */ }
+    .plane  { fill: #77AACC; /* wingspalette 22 */ }
+    .list   { fill: #FFBB00; /* wingstitle 25 */ }
+    .good   { fill: #44AA44; /* iff-dash 6 */ }
+    .far    { fill: #EE6622; /* wingspalette 2 */ }
+    .gone   { fill: none; stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 1; stroke-dasharray: 4 3; }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    .strike { stroke: #AAAABB; /* wingspalette 29 */ stroke-width: 2; fill: none; }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+    .code  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+  </style>
+  <text class="light label" x="16" y="24" text-anchor="start">An address taken for an x</text>
+  <text class="muted small" x="16" y="44" text-anchor="start">object_spawn: the address it is handed, less the map list’s, its low word times four</text>
+  <text class="light name" x="20" y="74" text-anchor="start">The crash’s other calls: the map record under the wreck</text>
+  <rect class="record" x="20" y="88" width="150" height="40" rx="4"/>
+  <text class="ink code" x="95.0" y="113.0" text-anchor="middle">0x0024F72C</text>
+  <text class="light small" x="95.0" y="146" text-anchor="middle">the record’s address</text>
+  <text class="light label" x="190" y="114" text-anchor="middle">−</text>
+  <rect class="list" x="210" y="88" width="150" height="40" rx="4"/>
+  <text class="ink code" x="285.0" y="113.0" text-anchor="middle">0x0024F404</text>
+  <text class="light small" x="285.0" y="146" text-anchor="middle">the map list’s address</text>
+  <text class="light label" x="380" y="114" text-anchor="middle">=</text>
+  <rect class="gone" x="400" y="88" width="80" height="40" rx="4"/>
+  <text class="muted code" x="440" y="113" text-anchor="middle">0x0000</text>
+  <rect class="record" x="482" y="88" width="80" height="40" rx="4"/>
+  <text class="ink code" x="522" y="113" text-anchor="middle">0x0328</text>
+  <text class="light small" x="481" y="146" text-anchor="middle">bytes into the list</text>
+  <path class="wire" d="M566 108 L620 108"/>
+  <path class="light" d="M630 108 L620 103 L620 113 Z"/>
+  <text class="light small" x="597" y="100" text-anchor="middle">x 4</text>
+  <rect class="good" x="636" y="88" width="180" height="40" rx="4"/>
+  <text class="ink code" x="726.0" y="113.0" text-anchor="middle">0x0CA0: 3,232</text>
+  <text class="light small" x="726.0" y="146" text-anchor="middle">the explosion’s x,</text>
+  <text class="light small" x="726.0" y="162" text-anchor="middle">beside the wreck at 3,233</text>
+  <text class="light name" x="20" y="210" text-anchor="start">The call at 0x01B304: the aircraft’s x and height, side by side</text>
+  <rect class="plane" x="20" y="224" width="74" height="40" rx="4"/>
+  <text class="ink code" x="57" y="249" text-anchor="middle">0x0CA1</text>
+  <rect class="plane" x="96" y="224" width="74" height="40" rx="4"/>
+  <text class="ink code" x="133" y="249" text-anchor="middle">0x0002</text>
+  <text class="light small" x="57" y="282" text-anchor="middle">x 3,233</text>
+  <text class="light small" x="133" y="282" text-anchor="middle">height 2</text>
+  <text class="light label" x="190" y="250" text-anchor="middle">−</text>
+  <rect class="list" x="210" y="224" width="150" height="40" rx="4"/>
+  <text class="ink code" x="285.0" y="249.0" text-anchor="middle">0x0024F404</text>
+  <text class="light small" x="285.0" y="282" text-anchor="middle">the map list’s address</text>
+  <text class="light label" x="380" y="250" text-anchor="middle">=</text>
+  <rect class="gone" x="400" y="224" width="80" height="40" rx="4"/>
+  <text class="muted code" x="440" y="249" text-anchor="middle">0x0C7C</text>
+  <path class="strike" d="M408 254 L472 234"/>
+  <rect class="far" x="482" y="224" width="80" height="40" rx="4"/>
+  <text class="ink code" x="522" y="249" text-anchor="middle">0x0BFE</text>
+  <text class="light small" x="440" y="282" text-anchor="middle">dropped</text>
+  <text class="light small" x="522" y="282" text-anchor="middle">kept</text>
+  <path class="wire" d="M566 244 L620 244"/>
+  <path class="light" d="M630 244 L620 239 L620 249 Z"/>
+  <text class="light small" x="597" y="236" text-anchor="middle">x 4</text>
+  <rect class="far" x="636" y="224" width="180" height="40" rx="4"/>
+  <text class="ink code" x="726.0" y="249.0" text-anchor="middle">0x2FF8: 12,280</text>
+  <text class="light small" x="726.0" y="282" text-anchor="middle">the explosion’s x,</text>
+  <text class="light small" x="726.0" y="298" text-anchor="middle">past map a’s east end</text>
+  <text class="light name" x="20" y="358" text-anchor="start">Map a along its x</text>
+  <rect class="record" x="30" y="380" width="458" height="14" rx="2"/>
+  <text class="light small" x="30" y="412" text-anchor="middle">0</text>
+  <text class="light small" x="488.4" y="412" text-anchor="middle">7,640, the end</text>
+  <path class="good" d="M224 378 L217 366 L231 366 Z"/>
+  <text class="light small" x="223.98" y="412" text-anchor="middle">the wreck, 3,233</text>
+  <path class="far" d="M767 378 L760 366 L774 366 Z"/>
+  <text class="light small" x="766.8" y="412" text-anchor="middle">12,280</text>
+</svg>

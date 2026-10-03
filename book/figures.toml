@@ -262,6 +262,26 @@ game. `expect` checks the cursor there."""
 schedule = [[29, 0], [3, 16], [267, 0], [3, 16], [198, 0], [3, 1], [40, 0], [3, 16], [200, 0]]
 expect = [{vblank = 640, rank_cursor = 7}]
 
+[run.crash]
+what = """The island run, and after it 1,700 VBlanks of nothing, in which the aircraft flies on west to
+map a's island, and 300 of the stick pulled back, which takes it down into the island: the crash at
+VBlank 3546, the wreck on the ground at a height of 2 from 3566, sliding to rest at 3594. `expect`
+checks a moment of the slide: the player's record, and the explosion records the crash makes, the
+ones beside the wreck and those at x 12280, the x the call at 0x01B304 makes of the aircraft's x and
+height less the map list's address, 0x24F404 in this core as in the release build
+(re/notes/porting-m5.md, "The wreck's explosion and the map list's address")."""
+fire_every = 33
+fire_held = 3
+mission_at = 659
+after = [[200, ""], [3, "F"], [60, ""], [460, "R"], [190, "RU"], [120, "L"], [100, "U"], [1700, ""],
+         [300, "D"]]
+# The wreck sliding at height 2 (state 4, coming down); four explosion records beside it and three
+# at x 12280, height 12, past map a's east end at 7640.
+expect = [{vblank = 3574, record_state = 4, record_x = 3233, record_y = 2},
+          {vblank = 3574, "object_records[2].x" = 12280, "object_records[4].x" = 12280},
+          {vblank = 3574, "object_records[6].x" = 12280, "object_records[6].y" = 12},
+          {vblank = 3574, "object_records[5].x" = 3232, "object_records[2].kind" = 8}]
+
 [[figure]]
 name = "title-logo"
 file = "title-logo.png"
@@ -956,3 +976,14 @@ size = [1024, 642]
 shows = "The first mission's briefing: the panel of the shape rank from world.shp in the middle of the screen, with the rank's name, the mission number, the islands and the ships in the game's font."
 how = "VBlank 7100 of the idle run, the fades at no time, between the briefing's fade in at 6,995 and its fade out at 7,235; the run checks mission_number 1, briefing_islands 1 and briefing_ships 0 there; the 640 x 214 picture shown in the PAL box of 1024 x 642."
 command = ".venv/bin/python book/tools/figures.py briefing"
+
+[[figure]]
+name = "wreck-explosions"
+file = "wreck-explosions.png"
+maker = "screen"
+run = "crash"
+vblank = 3574
+size = [1024, 642]
+shows = "The crash run at VBlank 3574: the wreck sliding on map a's island beside a dug-out, explosions at it and smoke above; the dashboard below. The explosions shown are those the crash makes at the map record under the wreck; three more explosion records lie at x 12280, past map a's east end."
+how = "VBlank 3574 of the crash run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the player's record (state 4, x 3233, height 2) and the object records: 2, 4 and 6 at x 12280, 6 at height 12, 5 at x 3232, 2 of kind 8. The x 12280 is (2 - 0xF404) x 4 in sixteen bits, the call at 0x01B304 handing object_spawn the aircraft's x and height where a map record's address belongs (re/Wings.lst 0x01B304-0x01B318, 0x010820-0x01084A)."
+command = ".venv/bin/python book/tools/figures.py wreck-explosions"
