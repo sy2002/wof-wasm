@@ -7,7 +7,8 @@
 # under the reservation of README.md, Licence.
 #
 #   maker    screen     the port's 640 x 214 picture through its per-row palettes
-#                       (tests/m4_renders.py, picture()), at a VBlank of a run
+#                       (tests/m4_renders.py, picture()), at a VBlank of a run, whole or a box
+#                       of it (`crop`: x, y, width, height), scaled to `size`
 #            palettes   the per-row palettes of that picture, one band per run of rows
 #            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet()), or of
 #                       shapes picked from several (`pick`, where [] leaves a cell empty),
@@ -179,6 +180,42 @@ expect = [{vblank = 3323, "aircraft_records[3].state" = 2, "aircraft_records[3].
           {vblank = 3323, "aircraft_records[3].relation" = 1, "aircraft_records[3].firing" = 1},
           {vblank = 3323, "aircraft_records[3].x" = 2755, "aircraft_records[3].y" = 156},
           {vblank = 3323, record_x = 2900, record_y = 156}]
+
+[run.countdown]
+what = """The script countdown_b of tools/m6_scripts.py, which the autopilot of tools/m6_autopilot.py flew
+with its plan countdown_b: the first rank, the mission number poked to 2 at the rank selection's end
+(tools/m6_scripts.py, POKES: 0x0253C0, a word), so that the mission is map b's; the aircraft out
+east and back while the enemy's countdown runs out and its torpedo plane comes and drops. It is
+replayed as the run oil is: `schedule` is the raw byte of every VBlank the headless original
+recorded when it flew the script with that poke (tools/headless.py, its schedule's V entries, 9181
+VBlanks from the program's start as runs of [VBlanks, byte]), the fades taking no time
+(`fade_vblanks` 0). `expect` checks a moment of the torpedo plane ahead of the player, coming the
+other way: its record's state, mode and relation, its x and height, and the player's x and facing."""
+fade_vblanks = 0
+mission_at = 444
+pokes = [[0x0253C0, 2, 2]]
+schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1, 16], [104, 0],
+            [2, 16], [30, 0], [3, 16], [30, 0], [3, 16], [60, 0], [3, 16], [126, 0], [415, 4],
+            [173, 5], [3, 6], [4, 4], [12, 6], [12, 4], [8, 5], [620, 4], [28, 8], [20, 9],
+            [4, 8], [32, 10], [28, 8], [16, 9], [52, 8], [8, 9], [548, 8], [12, 4], [4, 5],
+            [16, 4], [4, 5], [16, 4], [4, 5], [16, 4], [20, 5], [36, 6], [28, 4], [8, 5], [4, 4],
+            [8, 5], [560, 4], [20, 8], [8, 9], [32, 8], [4, 9], [8, 8], [4, 9], [24, 8], [8, 9],
+            [32, 8], [20, 9], [4, 8], [32, 10], [48, 8], [8, 9], [484, 8], [28, 4], [4, 5],
+            [8, 4], [4, 5], [24, 4], [8, 5], [32, 4], [4, 5], [8, 4], [4, 5], [24, 4], [20, 5],
+            [4, 4], [32, 6], [532, 4], [28, 8], [12, 9], [4, 8], [4, 9], [52, 8], [8, 9], [28, 8],
+            [20, 9], [4, 8], [32, 10], [44, 8], [8, 9], [488, 8], [28, 4], [4, 5], [8, 4], [4, 5],
+            [24, 4], [8, 5], [32, 4], [4, 5], [8, 4], [4, 5], [24, 4], [20, 5], [4, 4], [32, 6],
+            [528, 4], [28, 8], [12, 9], [4, 8], [4, 9], [52, 8], [8, 9], [28, 8], [20, 9], [4, 8],
+            [32, 10], [44, 8], [8, 9], [488, 8], [28, 4], [4, 5], [8, 4], [4, 5], [24, 4], [8, 5],
+            [32, 4], [4, 5], [8, 4], [4, 5], [24, 4], [20, 5], [4, 4], [32, 6], [528, 4], [28, 8],
+            [12, 9], [4, 8], [4, 9], [52, 8], [8, 9], [28, 8], [20, 9], [4, 8], [32, 10], [44, 8],
+            [8, 9], [488, 8], [28, 4], [4, 5], [8, 4], [4, 5], [24, 4], [8, 5], [32, 4], [4, 5],
+            [8, 4], [4, 5], [24, 4], [20, 5], [4, 4], [32, 6], [440, 4], [20, 0]]
+# The torpedo plane ahead of the player, coming the other way east of him (relation 2), before its
+# drop (mode 4), 505 pixels away; the player flying east.
+expect = [{vblank = 7720, "aircraft_records[3].state" = 2, "aircraft_records[3].mode" = 4},
+          {vblank = 7720, "aircraft_records[3].relation" = 2, "aircraft_records[3].x" = 9273},
+          {vblank = 7720, "aircraft_records[3].y" = 50, record_x = 8768, record_facing = 1}]
 
 [[figure]]
 name = "title-logo"
@@ -748,3 +785,15 @@ size = [1024, 642]
 shows = "The oil run at VBlank 3323, map d: the airfield's fighter at the left edge on the player's tail at the same height, its guns' flash at its nose, and the player's Hellcat ahead, flying east and trailing smoke from its engine; below, the dashboard with the 3-D view in its middle."
 how = "VBlank 3323 of the oil run, 2893 VBlanks after the mission began, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the fighter's record, aircraft_records[3]: state 2, mode 2 (on the tail), relation 1 (behind the player the same way), its firing word 1, x 2755 and height 156; and the player's record's x (2900) and height (156). The flash is drawn on the odd counts of the record's flash word (draw_enemy_aircraft, 0x010DA6), which is 43 here."
 command = ".venv/bin/python book/tools/figures.py enemy-tail"
+
+[[figure]]
+name = "enemy-window"
+file = "enemy-window.png"
+maker = "screen"
+run = "countdown"
+vblank = 7720
+crop = [250, 166, 140, 32]
+size = [560, 240]
+shows = "The dashboard's 3-D view in the countdown run at VBlank 7720, map b: the sky of the window, the cursor in its middle, the torpedo plane ahead of the player coming at him, a small white shape below the cursor, and the red arrow at the top pointing east to it."
+how = "VBlank 7720 of the countdown run, 7276 VBlanks after the mission began; the box of the 640 x 214 picture from x 250 and row 166, 140 by 32, the window's background spanning columns 258 to 380 and rows 170 to 194 (the clip's rows 7 to 31 of the dashboard), shown at the page's PAL proportions, 1.6 times as wide and 3 times as tall, enlarged two and a half times, 560 x 240. The run checks there the torpedo plane's record, aircraft_records[3]: state 2, mode 4 (before its drop), relation 2 (the other way, east of the player), x 9273 and height 50; and the player's record's x (8768) and facing (1, east). The aircraft is drawn by window_strip (0x014206) on the row of the window that holds its distance; the arrow by enemy_arrows (0x01F21A), dash shape 9 because the plane is east of the player."
+command = ".venv/bin/python book/tools/figures.py enemy-window"

@@ -36,6 +36,12 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile), Wikipedia; [Laurent Clévy's *ADF format FAQ*](https://web.archive.org/web/20241206200729/http://lclevy.free.fr/adflib/adf%5Finfo.html), the Wayback Machine's copy.
 
+### Airfield
+
+A runway on an island, marked by two records of the map, from which enemy fighters take off one at a time while the player is near; the map's table gives each its parked aircraft and the most fighters it lets up.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-launches-one), "What launches one", and ["The fifteen maps"](repo:re/notes/enemy.md#the-fifteen-maps).
+
 ### Airspeed
 
 The number, from 0 to 1,400, that scales the player's aircraft's two speeds, in level flight hundredths of a pixel a tick: there is no throttle lever, the stick pushed the way the aircraft faces raises it, left alone in the air it falls to 1,000, and below 1,000 the aircraft sinks.
@@ -70,7 +76,7 @@ Elsewhere: [Assembly language](https://en.wikipedia.org/wiki/Assembly%5Flanguage
 
 ### Attitude
 
-The stage of a turn of the player's aircraft, the notes' name for it, 0 in straight flight and 1 to 25 while it turns, one stage every second tick in a turn: it picks the turn's frame and a factor for the horizontal speed, and at 14 the aircraft's facing changes.
+The stage of a turn of the player's aircraft, the notes' name for it, 0 in straight flight and 1 to 25 while it turns, one stage every second tick in a turn: it picks the turn's frame and a factor for the horizontal speed, and at 14 the aircraft's facing changes. An enemy aircraft's turn steps it every third tick (chapter 16).
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`src/player.c`](repo:src/player.c), the routine at `0x01AB80`; [`re/notes/ffp.md`](repo:re/notes/ffp.md#the-two-tables-of-constants), "The two tables of constants".
 
@@ -552,6 +558,12 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Hit count
+
+The word of the player's record that the targets' fire and the enemy fighters count down: when it runs out, the oil falls and the fuel with it, and a new count is drawn.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-targets-fire), "The targets' fire"; [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop), "What each state and mode does".
+
 ### Hold
 
 The carrier's hold, below its deck, where the lift takes the player's aircraft to be refuelled, repaired and rearmed, and where the weapon menu is shown.
@@ -1012,7 +1024,7 @@ First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/bli
 
 ### Relation (to the player)
 
-The word of an enemy aircraft record, worked out every tick, that says where it is against the player: 1 behind him the same way, 3 ahead of him the same way, 2 and 4 the other way, east and west of him.
+The word of an enemy aircraft record, worked out every tick, that says where it is against the player: 1 behind him the same way, 3 ahead of him the same way, 2 flying the other way east of him, 4 flying the other way west of him.
 
 First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-record), "The record".
 
@@ -1098,7 +1110,7 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`
 
 ### Ship record
 
-One of five records of 30 bytes, the destroyer's, the battleship's, the cruise ship's, the Japanese carrier's and the carrier's: its span on the map, its guns with an entry of 14 bytes for each, its hits left, its deck's height, its score and its sinking.
+One of five records of 30 bytes, the destroyer's, the battleship's, the cruise ship's, the Japanese carrier's and the carrier's: its span on the map, a pointer to its list of guns, 14 bytes an entry, and their count, its hits left, its deck's height, its score and its sinking.
 
 First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-ships), "The ships" and ["Its guns"](repo:re/notes/enemy.md#its-guns).
 
@@ -1120,7 +1132,7 @@ Elsewhere: [Two's complement](https://en.wikipedia.org/wiki/Two%27s%5Fcomplement
 
 ### Sky flash
 
-The sky's colour, colour 1, changed for a few passes to white, or to red for a target, when a rocket hits land or the aircraft crashes, by a poke into the copper list.
+The sky's colour, colour 1, changed for a few passes to white, or to red for a target, when a rocket hits land, the aircraft crashes or a torpedo hits a ship, by a poke into the copper list.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-skys-flash-observed), "The sky's flash (observed)".
 

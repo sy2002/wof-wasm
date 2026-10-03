@@ -10,7 +10,8 @@
 Reads the manifest book/figures.toml, which names each figure with what it shows, how it is
 made and the command that remakes it, and writes PNG files:
 
-    screen     the port's picture at a VBlank of a run of the native core
+    screen     the port's picture at a VBlank of a run of the native core, whole or a box of it
+               (`crop`, x, y, width and height in the picture's pixels), scaled to `size`
                (tests/libwofcore.dylib through tests/conftest.py's Ported, on the files packed
                into dist/wof.html), through its per-row palettes with tests/m4_renders.py's
                picture(), scaled into the PAL box
@@ -301,7 +302,14 @@ def run_core(name, spec, wanted, until=0, ticks=False):
 
 def make_screen(figure, shot, path):
     from PIL import Image
-    image = shot[0].resize(tuple(figure['size']), Image.NEAREST)
+    image = shot[0]
+    if 'crop' in figure:
+        x, y, w, h = figure['crop']
+        if x < 0 or y < 0 or w <= 0 or h <= 0 or x + w > image.width or y + h > image.height:
+            raise Failure('%s: the crop %s leaves the picture of %d x %d'
+                          % (figure['name'], figure['crop'], image.width, image.height))
+        image = image.crop((x, y, x + w, y + h))
+    image = image.resize(tuple(figure['size']), Image.NEAREST)
     image.save(path)
 
 

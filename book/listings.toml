@@ -607,22 +607,6 @@ from = "if (on && a->order == 1"
 to = "a->firing = 0;"
 as = "fighter_attack_fire_c"
 
-# Chapter 16: a launch takes the last free record, a torpedo plane only while none flies.
-[[listing]]
-kind = "asm"
-name = "aircraft_launch"
-from = 0x01E4D0
-to = 0x01E534
-as = "aircraft_launch_search"
-
-[[listing]]
-kind = "c"
-name = "wof_aircraft_launch"
-file = "src/enemy.c"
-from = "int16_t free = -1"
-to = "return;"
-as = "wof_aircraft_launch_search"
-
 # Chapter 16: the guns at an enemy aircraft, by its relation alone, to the shooting down.
 [[listing]]
 kind = "asm"
