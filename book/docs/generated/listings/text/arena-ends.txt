@@ -1,0 +1,46 @@
+/* src/mem.c, lines 47-91 */
+/* The shell allocates the file blob here before it calls wof_init, so wof_init must not
+ * reset the arena.  Nothing is ever freed; out-of-memory returns 0 and the caller checks. */
+void *wof_alloc(uint32_t bytes)
+{
+    uint32_t aligned = (bytes + 7u) & ~7u;
+
+    if (aligned > arena_top - arena_used)
+        return 0;
+    void *p = &arena[arena_used];
+    arena_used += aligned;
+    wof_mem_set(p, 0, aligned);
+    return p;
+}
+
+void wof_arena_reset(void)
+{
+    arena_used = 0;
+    arena_top  = WOF_ARENA_SIZE;
+}
+
+uint32_t wof_arena_mark(void)
+{
+    return arena_top;
+}
+
+void wof_arena_release(uint32_t mark)
+{
+    if (mark >= arena_top && mark <= WOF_ARENA_SIZE)
+        arena_top = mark;
+}
+
+void *wof_scratch_alloc(uint32_t bytes)
+{
+    uint32_t aligned = (bytes + 7u) & ~7u;
+
+    if (aligned > arena_top - arena_used)
+        return 0;
+    arena_top -= aligned;
+    void *p = &arena[arena_top];
+    wof_mem_set(p, 0, aligned);
+    return p;
+}
+
+uint32_t wof_arena_size(void) { return WOF_ARENA_SIZE; }
+uint32_t wof_arena_used(void) { return arena_used + (WOF_ARENA_SIZE - arena_top); }

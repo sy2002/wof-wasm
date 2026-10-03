@@ -1,0 +1,19 @@
+/* src/records.def, lines 66-83 */
+/* ------------------------------------------------------------ the player, 0x1E at 0x025078
+ * The record player_record (0x027DEC) points at.  It ends at +0x1E: what follows at
+ * 0x025096 are the five ship blocks, which snapshot_for_draw copies as a whole. */
+WOF_RECORD(player, 0x1E)
+WOF_FIELD(player, y,          int16_t,  0x00, WOF_K_PLAIN)
+WOF_FIELD(player, x,          int16_t,  0x02, WOF_K_PLAIN)
+WOF_FIELD(player, shape,      uint16_t, 0x04, WOF_K_SHAPE)
+WOF_FIELD(player, frame_name, uint32_t, 0x08, WOF_K_PLAIN)
+WOF_FIELD(player, on_deck,    int16_t,  0x0C, WOF_K_PLAIN)
+WOF_FIELD(player, fuel,       int16_t,  0x0E, WOF_K_PLAIN)
+WOF_FIELD(player, w10,        int16_t,  0x10, WOF_K_PLAIN)
+WOF_FIELD(player, oil,        int16_t,  0x12, WOF_K_PLAIN)
+WOF_FIELD(player, facing,     int16_t,  0x14, WOF_K_PLAIN)
+WOF_FIELD(player, speed_x,    int16_t,  0x16, WOF_K_PLAIN)
+WOF_FIELD(player, speed_y,    int16_t,  0x18, WOF_K_PLAIN)
+WOF_FIELD(player, w1a,        int16_t,  0x1A, WOF_K_PLAIN)
+WOF_FIELD(player, enemy_countdown, int16_t, 0x1C, WOF_K_PLAIN)
+WOF_RECORD_END(player)

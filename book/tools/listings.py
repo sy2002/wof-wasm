@@ -37,7 +37,7 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
 
 The first line of every file names the source and the line range (or the address range), in
 the comment syntax of its language (`//` for JSON, which the highlighter's JSON lexer takes,
-`#` for a text file),
+`/* */` for a text file of C, a `.c`, `.h` or `.def` file, `#` for any other text file),
 so that a chapter shows where the extract comes from.  A
 name that does not exist, or exists more than once without a `file` to choose, fails the run
 with the name; so does an extract longer than its limit (40 lines, or the entry's `lines`).
@@ -549,6 +549,15 @@ def json_extract(entry):
 
 # ------------------------------------------------------------------ text
 
+C_TEXT = ('.c', '.h', '.def')
+
+
+def text_header(path, where):
+    """The extract's first line: C's comment for a file of C (a header or a registry, which
+    a chapter fences as C), `#` for any other."""
+    return ('/* %s */' if path.suffix in C_TEXT else '# %s') % where
+
+
 def text_extract(entry):
     """Lines of any text file of the repository as they stand: the whole file, or the part
     from the first line that holds `from` to the first line at or after it that holds `to`,
@@ -566,7 +575,7 @@ def text_extract(entry):
     if 'from' not in entry and 'to' not in entry:
         if entry.get('head'):
             raise Failure('text %s: head is for a part, with from and to' % name)
-        return '# %s, the whole file, lines 1-%d' % (rel(path), len(whole)), whole
+        return text_header(path, '%s, the whole file, lines 1-%d' % (rel(path), len(whole))), whole
     start, stop = entry.get('from'), entry.get('to')
     if not isinstance(start, str) or not isinstance(stop, str):
         raise Failure('text %s: a part takes from and to, both texts of its lines' % name)
@@ -581,9 +590,9 @@ def text_extract(entry):
     if entry.get('head'):
         if lo == 0:
             raise Failure('text %s: head asks for line 1 above a part that begins there' % name)
-        return ('# %s, line 1 and lines %d-%d' % (rel(path), lo + 1, hi + 1),
+        return (text_header(path, '%s, line 1 and lines %d-%d' % (rel(path), lo + 1, hi + 1)),
                 [whole[0]] + lines)
-    return '# %s, lines %d-%d' % (rel(path), lo + 1, hi + 1), lines
+    return text_header(path, '%s, lines %d-%d' % (rel(path), lo + 1, hi + 1)), lines
 
 
 def extract(entry, table, listing):

@@ -1,0 +1,23 @@
+/* src/coro.h, lines 25-46 */
+typedef enum { WOF_CO_WAIT = 0, WOF_CO_DONE = 1 } wof_co_t;
+
+/* A resume point.  0 is "not started", which is what a zeroed context gives. */
+#define CO_BEGIN(c)        switch ((c)->line) { case 0:
+#define CO_END(c)          } (c)->line = 0; return WOF_CO_DONE
+
+/* Give the pass back; the next one resumes here.  One CO_WAIT is one VBlank. */
+#define CO_WAIT(c)         do { (c)->line = __LINE__; return WOF_CO_WAIT;                 \
+                                case __LINE__:; } while (0)
+
+/* Resume here until the condition holds.  The condition is tested at once, so a child
+ * coroutine runs its first chunk in the same pass its parent reached it in. */
+#define CO_WAIT_UNTIL(c, cond)                                                            \
+    do { (c)->line = __LINE__; case __LINE__: if (!(cond)) return WOF_CO_WAIT; } while (0)
+
+/* Run a child coroutine to completion.  The child's context is reset first, so a routine
+ * can be called again later without carrying its old resume point. */
+#define CO_CALL(c, child, call)                                                           \
+    do { (child)->line = 0; CO_WAIT_UNTIL(c, (call) == WOF_CO_DONE); } while (0)
+
+/* Leave a coroutine early. */
+#define CO_RETURN(c)       do { (c)->line = 0; return WOF_CO_DONE; } while (0)

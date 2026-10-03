@@ -21,7 +21,8 @@
 #                 object a line and one element of a top-level list a line; `name` names the
 #                 extract
 #           text  any text file of the repository `file` names, the whole of it or a part, its
-#                 lines as they stand; `name` names the extract
+#                 lines as they stand, under a first line in C's comment for a `.c`, `.h` or
+#                 `.def` file and in `#` for any other; `name` names the extract
 #   name    the routine; a method is Class.method, and in Python a function defined inside a
 #           function outer.inner
 #   file    the source file, needed only where the name alone is not unique or the file lies
@@ -953,3 +954,50 @@ file = "tests/runs/rank-control-d.json"
 kind = "py"
 name = "test_the_listings_are_their_regeneration"
 file = "tests/test_generated.py"
+
+# Chapter 22, the core: the coroutines' macros, a resume point as a line number.
+[[listing]]
+kind = "text"
+name = "coro-macros"
+file = "src/coro.h"
+from = "typedef enum { WOF_CO_WAIT"
+to = "#define CO_RETURN"
+
+# The core's state as one struct, its last members the registered state and the front end,
+# and the magic and the version a load checks.
+[[listing]]
+kind = "text"
+name = "state-struct"
+file = "src/wof.h"
+from = "/* Everything the core may change while running"
+to = "#define WOF_STATE_VERSION"
+
+# One record of the registry, the player's, field by field with the original's offsets and
+# the kind each travels by.
+[[listing]]
+kind = "text"
+name = "player-record"
+file = "src/records.def"
+from = "the player, 0x1E at 0x025078"
+to = "WOF_RECORD_END(player)"
+
+# The registry expanded into code: a byte stored by the original's address.
+[[listing]]
+kind = "c"
+name = "wof_original_store8"
+
+# The arena's two ends: the lasting allocations from the bottom, a file's scratch from the
+# top, both zeroed.
+[[listing]]
+kind = "text"
+name = "arena-ends"
+file = "src/mem.c"
+from = "/* The shell allocates the file blob here"
+to = "uint32_t wof_arena_used"
+lines = 45
+
+# A save state's round trip, the plainest of the tests that hold it.
+[[listing]]
+kind = "py"
+name = "test_state_round_trips"
+file = "tests/test_core_native.py"
