@@ -71,7 +71,7 @@ table below this one lists the ones that are read but that no script reached.
 | `frame_drawn` `0x026E3C` | `frame_update` | `0x010AA6` | a frame was drawn since the last tick |
 | `0x026E60` | `snapshot_for_draw`, `0x0103A6` | `0x010820` | the drawing's copy of the player height |
 | `0x027164`–`0x027167` | `draw_world` | `0x012132` | a distance-derived value the sound engine uses |
-| the four pools of `alloc_pools` | `0x0152F8`, `0x010EE0`, `0x015460` | `0x0152B0` | ricochets, splashes, smoke, balloons: **the pass spawns them** |
+| the four pools of `alloc_pools` | `0x0152F8`, `0x010EE0`, `0x015460` | `0x0152B0` | splashes, smoke and balloons: the pass draws them, counts their records down and frees them, and claims smoke's (`smoke_claim`); the tick's `splash_spawn` takes a free splash record (from `gun_splashes`, `object_step`, the player's crash and the enemy's splash), `engine_smoke` claims smoke through `smoke_at_player`, and `balloons_step` steps the balloons the pass's `balloons_draw` drew, in `balloons_c` alone. Nothing writes the Ricochet pool in any script (`re/notes/porting-m5.md`, the pools) |
 | `soldier_records` | `0x013EEE` | `0x011E82`, `0x011A8C` | the soldiers, which live entirely in the pass |
 | `clip_top` … `clip_right_incl` | `clip_set` and the scene routines | `clip_set`, `rect_fill` | the blitter library's clip rectangle |
 | `draw_rastport`, `draw_bitmap`, `back_rastport`, `back_vport`, `front_vport`, `back_view`, `front_view` | `draw_set_target`, `view_show` | `rect_fill_aligned`, `flip_buffers`, `view_show`, `player_lost_restart` | the drawing target and the double buffer |

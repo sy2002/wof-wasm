@@ -190,7 +190,7 @@ record is `0x1E` bytes. Every field below is observed over the flights of
 | `+0x04` … `+0x0B` | | | the frame: at `+0x04` the pointer to its shape record, at `+0x08` its name, which `aircraft_frame` (`0x01ABDE`) gives; they move while the aircraft turns | `0x01C378`, `0x01B7EC` |
 | `+0x0C` | `player_on_deck` | | 1 on the carrier, 0 in the air, and 4, 6, 8 and 11 through the lift and the restart | `0x0112B0`, `0x01C5F4`, `0x01C660` |
 | `+0x0E` | `player_fuel` | | `0xC0` at a reset, one less every 28 ticks in the air, never while the aircraft stands in the hold, and never upward | `logic_tick` |
-| `+0x10` | | | `rand_beam` modulo 4 plus 6 at the reset, constant afterwards | `0x01B7EC` |
+| `+0x10` | | | the hit count: `rand_beam` modulo 4 plus 6 at the reset, counted down by each gun's hit on the aircraft, the oil or the fuel falling at 0 (`src/targets.c`, `src/enemy.c`; chapter 14 of the book) | `0x01B7EC` |
 | `+0x12` | `player_oil` | | `0x80` at a reset and constant while nothing shoots; the smoke spawn and the dashboard read it, which is the oil pressure of the manual's page 8 | `0x01B7EC` |
 | `+0x14` | `player_facing` | | `+1` or `-1`; the horizontal speed is multiplied by it | `player_lost_restart`, `0x01AB80`, `0x01C4E8` |
 | `+0x16` | `player_speed_x` | pixels per tick | what `player_motion` computes from the airspeed and the attitude | `player_motion`, `0x01BDBA` |
