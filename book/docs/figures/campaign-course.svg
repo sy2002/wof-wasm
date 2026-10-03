@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 530" width="1000" height="530" role="img" aria-labelledby="title desc">
   <title id="title">The course of a campaign</title>
-  <desc id="desc">The course of a campaign as the code runs it. From the rank selection a rank chosen, or a saved game loaded without the mission&#39;s reset, leads to a mission, whose map follows from the rank and the mission number. When the last island is neutralised, or the last enemy ship sunk with no island left, the mission is won and the mission number counts on: within the rank&#39;s count the next mission follows, with the next map and its briefing, then step S; after the rank&#39;s last mission a promotion raises the rank by one, at most to 6, sends the balloons up and gives the next mission a Hellcat more; at rank 6 the promotion after map o leads to map m again. Control-L in flight loads a saved game and the mission goes on. When the last Hellcat is lost, or the carrier has sunk, the game is over, the high scores follow, with a name asked for only when the score beats the tenth, and the rank selection comes again. Left alone for 1,800 rounds, the rank selection plays the attract demo, and at its end returns without the high scores.</desc>
+  <desc id="desc">The course of a campaign as the code runs it. From the rank selection a rank chosen, or a saved game loaded without the mission&#39;s reset, leads to a mission, whose map follows from the rank and the mission number. When the last island is neutralised with no enemy ship left, or the last enemy ship sinks with no island left, the mission is won and the mission number counts on: within the rank&#39;s count the next mission follows, with the next map and its briefing, then step S; after the rank&#39;s last mission a promotion raises the rank by one, at most to 6, sends the balloons up and gives the next mission a Hellcat more; at rank 6 the promotion after map o leads to map m again. Control-L in flight loads a saved game and the mission goes on. When the last Hellcat is lost, or the carrier has sunk, the game is over, the high scores follow, with a name asked for only when the score beats the tenth, and the rank selection comes again. Left alone for 1,800 rounds, the rank selection plays the attract demo, and at its end returns without the high scores.</desc>
   <style>
     /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
     .menu   { fill: #CCCCDD; /* wingspalette 30 */ }
@@ -57,8 +57,8 @@
   <!-- A mission won: the last island, or the last ship with no island left -->
   <path class="light" d="M730.0 302.0 L721.0 307.0 L721.0 297.0 Z"/>
   <path class="wire" d="M610 302 L721.0 302.0"/>
-  <text class="light small" x="670" y="280" text-anchor="middle">last island</text>
-  <text class="light small" x="670" y="294" text-anchor="middle">or last ship</text>
+  <text class="light small" x="670" y="280" text-anchor="middle">no island and</text>
+  <text class="light small" x="670" y="294" text-anchor="middle">no ship left</text>
   <!-- Within the rank, the next mission; past its count, the promotion -->
   <path class="light" d="M600.0 154.0 L610.2 155.6 L604.1 163.5 Z"/>
   <path class="wire" d="M750 270 L607.1 159.5"/>

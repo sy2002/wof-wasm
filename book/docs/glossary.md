@@ -176,6 +176,14 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`src/iff.
 
 Elsewhere: [PackBits](https://en.wikipedia.org/wiki/PackBits), Wikipedia; [ILBM](https://en.wikipedia.org/wiki/ILBM), Wikipedia.
 
+### Callback
+
+A routine handed to another routine, which calls it back; the saved game's walker calls the writer's or the reader's callback once for each piece of the file.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-layout), "The layout".
+
+Elsewhere: [Callback (computer programming)](https://en.wikipedia.org/wiki/Callback%5F(computer%5Fprogramming)), Wikipedia.
+
 ### Calling convention
 
 The rules by which a caller hands a routine its arguments and gets the result back: in the game's compiled C the arguments go onto the stack, 2 bytes for an int and 4 for a long or a pointer, and the result comes back in D0.
@@ -186,7 +194,7 @@ Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconventi
 
 ### Campaign
 
-The run of missions from the rank chosen at the rank selection to the game's end, through the fifteen maps in a fixed order by rank and mission number; it has no last mission.
+The run of missions from the rank chosen at the rank selection to the game's end, through the maps from that rank's first on, in a fixed order by rank and mission number; it has no last mission.
 
 First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-order-of-the-maps), "The order of the maps", and ["The rank's cap, and no end"](repo:re/notes/campaign.md#the-ranks-cap-and-no-end).
 
@@ -1130,6 +1138,12 @@ A small JSON file that says what one run of the headless original is: its script
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#run-description), "Run description"; [`tests/runs/`](repo:tests/runs/).
 
+### Saved game's walker
+
+The routine `save_walk`, which goes through a saved game's pieces in a fixed order and hands each, as a file, an address, a length and a kind, to the writer's or the reader's callback, so that writing and reading take the same path; not the walks of the pools.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-layout), "The layout"; [`tools/savegame.py`](repo:tools/savegame.py).
+
 ### Schedule
 
 The order of a run's VBlanks, passes and logic ticks as they happened; the VBlanks a pass takes are a setting of the run, so the schedule is an input of the simulation.
@@ -1155,6 +1169,14 @@ First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md
 A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each shape's entry begins, and the entries, each a header and the planes; the disk has twelve.
 
 First met in [chapter 2](part-1/amiga.md), defined in [chapter 3](part-1/disk.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md).
+
+### Shape handle
+
+The port's number for a shape, at most `0xFFFF`: its container and its place there, kept where the original keeps the address of the shape's record.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#what-the-port-writes-in-the-raw-part), "What the port writes in the raw part"; [`src/dialog.c`](repo:src/dialog.c), `saved_hellcat_shape`.
+
+Elsewhere: [Handle (computing)](https://en.wikipedia.org/wiki/Handle%5F(computing)), Wikipedia.
 
 ### Shape record
 
@@ -1353,14 +1375,6 @@ A place where the program waits, for the next picture, for a time or for the mus
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
 
 Elsewhere: [Busy waiting](https://en.wikipedia.org/wiki/Busy%5Fwaiting), Wikipedia.
-
-### Walker
-
-The routine that hands a callback a saved game's pieces in a fixed order, each as a file, an address, a length and a mode, so that the write and the read of a saved game take the same path.
-
-First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-layout), "The layout"; [`tools/savegame.py`](repo:tools/savegame.py).
-
-Elsewhere: [Saved game](https://en.wikipedia.org/wiki/Saved%5Fgame), Wikipedia.
 
 ### Water line
 
