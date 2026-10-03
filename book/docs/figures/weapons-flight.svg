@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 440" width="1000" height="440" role="img" aria-labelledby="title desc">
+  <title id="title">A bomb and a rocket, a dot a tick</title>
+  <desc id="desc">Left: a bomb dropped in level flight at 14 pixels a tick, a dot for each tick from the drop to the ground. Each tick it loses a tenth of its horizontal speed, none once that is below ten pixels a tick, and gravity takes three eighths of a pixel a tick off its vertical speed, so it falls in a curve and comes down behind the aircraft, which flies on. It comes down 12 pixels above the water line, 0x0C, over the sea, the land and the targets alike. Right: two rockets. Fired in level flight, a rocket keeps the aircraft&#39;s speed and falls a pixel back and a pixel down each tick until a count of 4, 8 or 12 ticks, drawn from the beam, runs out; then its thrust along the bearing adds to its speed every tick and it flies on level, faster and faster, until it is more than 0x500 pixels from the aircraft and its record is freed. Fired in a dive, the thrust along the dive brings it down onto the ground. As its fall ends, a rocket that points down is aimed at the first pillbox or ship&#39;s gun within its bearing&#39;s reach, if one stands there.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .sea    { fill: #0033DD; /* wingspalette 5 */ }
+    .land   { fill: #DD9966; /* wingspalette 17 */ }
+    .gold   { fill: #FFBB00; /* wingstitle 25 */ }
+    .fast   { fill: #666677; /* wingspalette 27 */ }
+    .rule   { fill: #AAAABB; /* wingspalette 29 */ }
+    .plane  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="10" y="22">A bomb and a rocket, a dot a tick</text>
+
+  <!-- The ground, 0x0C above the water line, and the sea, under both panels -->
+  <rect class="land" x="20" y="330.8" width="460" height="19.2"/>
+  <rect class="sea" x="20" y="350.0" width="460" height="16"/>
+  <rect class="land" x="520" y="330.8" width="440" height="19.2"/>
+  <rect class="sea" x="520" y="350.0" width="440" height="16"/>
+  <text class="light small" x="24" y="384.0">the water line, and 0x0C, 12 pixels above it: where a weapon</text>
+  <text class="muted small" x="24" y="400.0">comes down over the sea, the land and the targets alike</text>
+
+  <!-- Left: a bomb dropped in level flight at 14 pixels a tick, as object_step (0x010B58) moves it -->
+  <text class="light label" x="24" y="52">A bomb, dropped in level flight</text>
+  <g transform="translate(40 92.4) rotate(0)">
+    <path class="plane" d="M-20 -3 L10 -3 L16 0 L10 3 L-20 3 Z"/>
+    <path class="plane" d="M-6 -2 L2 -2 L-2 12 L-10 12 Z"/>
+    <path class="plane" d="M-20 -8 L-15 -8 L-15 0 L-20 0 Z"/>
+  </g>
+  <rect class="fast" x="62" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="74" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="86" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="98" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="110" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="122" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="134" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="146" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="158" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="170" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="182" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="194" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="206" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="218" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="230" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="242" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="254" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="266" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="278" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="290" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="302" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="314" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="326" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="338" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="350" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="362" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="374" y="91.4" width="6" height="2"/>
+  <rect class="fast" x="386" y="91.4" width="6" height="2"/>
+  <g transform="translate(418 92.4) rotate(0)">
+    <path class="plane" d="M-20 -3 L10 -3 L16 0 L10 3 L-20 3 Z"/>
+    <path class="plane" d="M-6 -2 L2 -2 L-2 12 L-10 12 Z"/>
+    <path class="plane" d="M-20 -8 L-15 -8 L-15 0 L-20 0 Z"/>
+  </g>
+  <text class="muted small" x="392" y="80.4" text-anchor="end">the aircraft flies on</text>
+  <circle class="plane" cx="53" cy="94.0" r="2.5"/>
+  <circle class="plane" cx="65" cy="95.6" r="2.5"/>
+  <circle class="plane" cx="76" cy="98.8" r="2.5"/>
+  <circle class="plane" cx="86" cy="102.0" r="2.5"/>
+  <circle class="plane" cx="95" cy="105.2" r="2.5"/>
+  <circle class="plane" cx="104" cy="110.0" r="2.5"/>
+  <circle class="plane" cx="113" cy="114.8" r="2.5"/>
+  <circle class="plane" cx="122" cy="119.6" r="2.5"/>
+  <circle class="plane" cx="131" cy="126.0" r="2.5"/>
+  <circle class="plane" cx="140" cy="132.4" r="2.5"/>
+  <circle class="plane" cx="149" cy="140.4" r="2.5"/>
+  <circle class="plane" cx="158" cy="148.4" r="2.5"/>
+  <circle class="plane" cx="167" cy="156.4" r="2.5"/>
+  <circle class="plane" cx="176" cy="166.0" r="2.5"/>
+  <circle class="plane" cx="185" cy="175.6" r="2.5"/>
+  <circle class="plane" cx="194" cy="185.2" r="2.5"/>
+  <circle class="plane" cx="203" cy="196.4" r="2.5"/>
+  <circle class="plane" cx="212" cy="207.6" r="2.5"/>
+  <circle class="plane" cx="221" cy="220.4" r="2.5"/>
+  <circle class="plane" cx="230" cy="233.2" r="2.5"/>
+  <circle class="plane" cx="239" cy="246.0" r="2.5"/>
+  <circle class="plane" cx="248" cy="260.4" r="2.5"/>
+  <circle class="plane" cx="257" cy="274.8" r="2.5"/>
+  <circle class="plane" cx="266" cy="289.2" r="2.5"/>
+  <circle class="plane" cx="275" cy="305.2" r="2.5"/>
+  <circle class="plane" cx="284" cy="321.2" r="2.5"/>
+  <circle class="gold" cx="293" cy="330.8" r="3.5"/>
+  <text class="light small" x="190" y="126.0">a tenth of its horizontal speed lost</text>
+  <text class="muted small" x="190" y="142.0">each tick, none below ten pixels a tick</text>
+  <text class="light small" x="250" y="190.0">gravity, 0x6000: three-eighths of</text>
+  <text class="muted small" x="250" y="206.0">a pixel a tick, off its vertical</text>
+  <text class="muted small" x="250" y="222.0">speed each tick</text>
+  <text class="light small" x="310" y="278.0">it comes down behind</text>
+  <text class="muted small" x="310" y="294.0">the aircraft</text>
+
+  <!-- Right: rockets fired level and in a dive, as object_step (0x010AA6) moves them; a fall of 8 ticks each -->
+  <text class="light label" x="524" y="52">A rocket</text>
+  <text class="light small" x="524" y="76">fired level: a pixel back and a pixel down a tick,</text>
+  <text class="muted small" x="524" y="92">till a count of 4, 8 or 12 ticks from the beam runs out</text>
+  <g transform="translate(540 126.0) rotate(0)">
+    <path class="plane" d="M-20 -3 L10 -3 L16 0 L10 3 L-20 3 Z"/>
+    <path class="plane" d="M-6 -2 L2 -2 L-2 12 L-10 12 Z"/>
+    <path class="plane" d="M-20 -8 L-15 -8 L-15 0 L-20 0 Z"/>
+  </g>
+  <circle class="rule" cx="553" cy="127.6" r="2.5"/>
+  <circle class="rule" cx="566" cy="129.2" r="2.5"/>
+  <circle class="rule" cx="579" cy="130.8" r="2.5"/>
+  <circle class="rule" cx="592" cy="132.4" r="2.5"/>
+  <circle class="rule" cx="605" cy="134.0" r="2.5"/>
+  <circle class="rule" cx="618" cy="135.6" r="2.5"/>
+  <circle class="rule" cx="631" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="645" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="661" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="678" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="696" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="715" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="735" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="756" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="778" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="801" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="825" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="850" cy="137.2" r="2.5"/>
+  <circle class="gold" cx="876" cy="137.2" r="2.5"/>
+  <path class="gold" d="M888 131.2 L900 137.2 L888 143.2 Z"/>
+  <text class="light small" x="560" y="163.2">then its thrust along the bearing, faster each tick,</text>
+  <text class="muted small" x="560" y="179.2">until it is freed beyond 0x500 pixels from the aircraft</text>
+  <g transform="translate(540 190.0) rotate(17)">
+    <path class="plane" d="M-20 -3 L10 -3 L16 0 L10 3 L-20 3 Z"/>
+    <path class="plane" d="M-6 -2 L2 -2 L-2 12 L-10 12 Z"/>
+    <path class="plane" d="M-20 -8 L-15 -8 L-15 0 L-20 0 Z"/>
+  </g>
+  <circle class="rule" cx="552" cy="199.6" r="2.5"/>
+  <circle class="rule" cx="564" cy="209.2" r="2.5"/>
+  <circle class="rule" cx="576" cy="218.8" r="2.5"/>
+  <circle class="rule" cx="588" cy="228.4" r="2.5"/>
+  <circle class="rule" cx="600" cy="238.0" r="2.5"/>
+  <circle class="rule" cx="612" cy="247.6" r="2.5"/>
+  <circle class="rule" cx="624" cy="257.2" r="2.5"/>
+  <circle class="gold" cx="637" cy="265.2" r="2.5"/>
+  <circle class="gold" cx="652" cy="274.8" r="2.5"/>
+  <circle class="gold" cx="668" cy="284.4" r="2.5"/>
+  <circle class="gold" cx="685" cy="294.0" r="2.5"/>
+  <circle class="gold" cx="703" cy="305.2" r="2.5"/>
+  <circle class="gold" cx="721" cy="316.4" r="2.5"/>
+  <circle class="gold" cx="741" cy="327.6" r="2.5"/>
+  <circle class="gold" cx="761" cy="330.8" r="3.5"/>
+  <text class="light small" x="680" y="198.0">fired in a dive: the thrust</text>
+  <text class="muted small" x="680" y="214.0">along the dive brings it down;</text>
+  <text class="muted small" x="680" y="230.0">as its fall ends it is aimed at</text>
+  <text class="muted small" x="680" y="246.0">the first pillbox or ship&#39;s gun</text>
+  <text class="muted small" x="680" y="262.0">in its bearing&#39;s reach</text>
+
+  <!-- The key -->
+  <circle class="plane" cx="528" cy="380.0" r="2.5"/>
+  <text class="muted small" x="536" y="384.0">a bomb</text>
+  <circle class="rule" cx="594" cy="380.0" r="2.5"/>
+  <text class="muted small" x="602" y="384.0">a rocket falling</text>
+  <circle class="gold" cx="708" cy="380.0" r="2.5"/>
+  <text class="muted small" x="716" y="384.0">a rocket on its thrust</text>
+  <text class="muted small" x="528" y="400.0">a larger dot: the tick it comes down</text>
+</svg>

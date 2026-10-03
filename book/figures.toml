@@ -10,7 +10,8 @@
 #                       (tests/m4_renders.py, picture()), at a VBlank of a run
 #            palettes   the per-row palettes of that picture, one band per run of rows
 #            shapes     a contact sheet of one shape container (tools/ppkc.py, sheet()), or of
-#                       shapes picked from several (`pick`), packed with `layout = "packed"`
+#                       shapes picked from several (`pick`, where [] leaves a cell empty),
+#                       packed with `layout = "packed"`
 #            map        a map's drawn records (tools/map_decode.py, draw_list())
 #            maprecord  a run of a map's records, the columns of one shape: the shape over them
 #                       and each record's bits by field (tools/map_decode.py, fields())
@@ -111,6 +112,44 @@ expect = [{vblank = 1061, record_state = 0, record_x = 7349, airspeed = 708},
           {vblank = 1300, record_y = 145},
           {vblank = 1900, g_026d3a = 7270, player_start_x = 7032, airspeed = 1148, record_state = 7},
           {vblank = 1900, g_0253fc = 6608, g_0253fe = 7344}]
+
+[run.rockets]
+what = """The script rockets_a of tools/m5_scripts.py, which the autopilot of tools/m5_autopilot.py
+flew with its plan rockets_a: the rockets chosen in the hold, a dive at the dug-out at world x 3224
+of map a and two rockets fired in it, then on to the barracks at 2712. It is replayed as the run
+landing is: `schedule` is the raw byte of every VBlank the headless original recorded when it flew
+the script (tools/headless.py, its schedule's V entries, 4789 VBlanks from the program's start as
+runs of [VBlanks, byte]), the fades taking no time (`fade_vblanks` 0), as in the headless original,
+which the port meets at the same VBlanks (re/notes/porting-m5.md, "How the port is held to the
+original": every M5 script in both loops). `expect` checks the moment both rockets have come down
+on the dug-out: the score of its hit, the sky's flash red, two of the fifteen rockets gone, and
+the aircraft's height and x."""
+fade_vblanks = 0
+mission_at = 444
+schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1, 16], [104, 0],
+            [2, 16], [30, 0], [3, 16], [30, 0], [3, 16], [44, 0], [8, 1], [48, 0], [3, 16],
+            [126, 0], [415, 4], [177, 5], [1, 8], [30, 10], [4, 26], [32, 24], [8, 25], [24, 24],
+            [4, 25], [16, 24], [4, 25], [12, 24], [4, 25], [16, 24], [4, 25], [8, 24], [8, 8],
+            [4, 9], [16, 8], [4, 9], [1220, 8], [32, 10], [4, 26], [8, 10], [1, 26], [3, 25],
+            [45, 9], [15, 8], [4, 9], [4, 8], [8, 9], [8, 8], [8, 9], [4, 8], [4, 4], [4, 5],
+            [12, 4], [4, 5], [8, 4], [8, 20], [4, 21], [16, 20], [4, 21], [16, 20], [4, 21],
+            [16, 20], [4, 21], [16, 20], [4, 21], [16, 20], [4, 21], [16, 20], [4, 21], [4, 20],
+            [12, 4], [4, 5], [16, 4], [4, 5], [4, 4], [8, 5], [8, 4], [4, 5], [4, 4], [8, 5],
+            [8, 4], [4, 5], [4, 4], [8, 5], [8, 4], [4, 5], [4, 4], [8, 5], [8, 4], [4, 5], [4, 4],
+            [8, 5], [8, 4], [4, 5], [4, 4], [4, 5], [4, 4], [4, 5], [4, 4], [4, 5], [4, 4], [4, 5],
+            [4, 4], [4, 5], [4, 4], [4, 5], [4, 4], [4, 5], [4, 4], [4, 5], [176, 4], [28, 8],
+            [4, 9], [12, 24], [20, 25], [36, 26], [28, 24], [8, 25], [4, 24], [8, 25], [20, 24],
+            [24, 8], [4, 9], [12, 8], [4, 9], [364, 8], [36, 10], [4, 26], [8, 10], [1, 26],
+            [3, 25], [45, 9], [15, 8], [4, 9], [4, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9],
+            [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8],
+            [8, 9], [8, 8], [8, 9], [8, 8], [1, 0], [7, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8],
+            [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [8, 9],
+            [8, 8], [8, 9], [8, 8], [8, 9], [8, 8], [4, 9], [4, 8], [4, 9], [4, 8], [4, 9], [4, 8],
+            [4, 9], [4, 8], [4, 9], [4, 8], [4, 9], [288, 8]]
+# Both rockets down on the dug-out at the same tick: 200 points for its hit, the flash red
+# (0x0F00) with two of its five passes to come, 13 rockets left, the aircraft low behind them.
+expect = [{vblank = 2803, player_score = 200, flash_colour = 3840, flash_count = 2},
+          {vblank = 2803, weapon_count = 13, record_y = 41, record_x = 3198}]
 
 [[figure]]
 name = "title-logo"
@@ -587,3 +626,65 @@ scale = 2
 shows = "The landing run's flight from the deck to the hold, the aircraft's height over its world x after every tick: the take-off at an airspeed of 708, the dip to a height of 18, the climb to 145, the turn at the east end, the way back up to about 100 and down to the deck, the touch-down, the cable, the stop, the taxi and the lift down; the carrier's deck, its lift and its four cables marked."
 how = "The player's record read after every tick of the landing run between VBlanks 645 and 2540 through the core's tick hook and tests/m4state.py's layout; a dot a tick in the colour of the record's state; the deck from deck_west to deck_east up to the height the aircraft stood at on it, the lift's column at player_start_x, the cables at player_start_x + 0x46 and 0x38 apart (cable_hook, 0x01B92E), the one caught (0x026D3A) marked in entry 25 of the title picture's palette; the height drawn four times as tall as the x; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py landing-path"
+
+[[figure]]
+name = "targets-world"
+file = "targets-world.png"
+maker = "shapes"
+pick = [["world.shp", "dugo"], ["world.shp", "huta"], ["world.shp", "hutb"], [], [], [], [], [],
+        ["world.shp", "pila"], ["world.shp", "pilb"], ["world.shp", "pilc"], ["world.shp", "pild"],
+        ["world.shp", "pile"], ["world.shp", "pilf"], ["world.shp", "pilg"], ["world.shp", "pilh"],
+        ["world.shp", "pili"], ["world.shp", "pilj"], ["world.shp", "pilk"], ["world.shp", "pill"],
+        ["world.shp", "pilm"], ["world.shp", "piln"], ["world.shp", "pilo"], ["world.shp", "pilp"]]
+columns = 8
+palette = "wingspalette"
+shows = "The ground targets of world.shp: the dug-out (dugo, slot 3), the barracks (huta, slot 4) and the burnt barracks a hit leaves (hutb, slot 5); below, the pillbox's sixteen pictures, pila to pilp, slots 0x0F to 0x1E: pila whole, and from there the slot plus the bits of the four records a rocket has hit, so that pilp is the pillbox with all four quarters hit."
+how = "The names of world_names (re/tables.toml, read from the executable) at slots 3, 4, 5 and 0x0F to 0x1E (re/notes/shapes.md, \"The slots of the islands and the weapons\"); tools/ppkc.py's parse() and sheet(), eight to a row, the first row ended after three by empty cells, the shapes' planes to indexed pixels in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font. The bits: weapon_hit (0x0146DC) sets in all four records' slot the bit of the record hit, the third, the record with the draw flag, giving bit 1 (src/targets.c)."
+command = ".venv/bin/python book/tools/figures.py targets-world"
+
+[[figure]]
+name = "soldier-guns"
+file = "soldier-guns.png"
+maker = "shapes"
+pick = [["world.shp", "guy0"], ["world.shp", "guy1"], ["world.shp", "guy2"], ["world.shp", "guy3"],
+        ["world.shp", "guy4"], ["world.shp", "guy5"], ["world.shp", "guy6"], ["world.shp", "guy7"],
+        ["world.shp", "guy8"],
+        ["world.shp", "gun0"], ["world.shp", "gun1"], ["world.shp", "gun2"], ["world.shp", "gun3"],
+        ["world.shp", "gun4"], ["world.shp", "gun5"], ["world.shp", "gun6"], [], [],
+        ["world.shp", "gnf0"], ["world.shp", "gnf1"], ["world.shp", "gnf2"], ["world.shp", "gnf3"],
+        ["world.shp", "gnf4"], ["world.shp", "gnf5"], ["world.shp", "gnf6"], [], []]
+columns = 9
+palette = "wingspalette"
+shows = "A soldier's nine frames facing east, guy0 to guy8: running, guy0 to guy4; dying, guy5 to guy7; dead, guy8; then the gun of a dug-out or a pillbox in its seven frames by the aircraft's distance and height, gun0 to gun6, and the same seven firing, gnf0 to gnf6."
+how = "The names of world_names at slots 0x6F to 0x77 and 0x81 to 0x8E (re/notes/shapes.md, \"The slots of the islands and the weapons\"); a soldier's frame is 0x6F plus his frame number, nine more facing west (soldiers_draw, 0x013EEE), a gun's 0x81 plus an entry of range_frames, seven more firing (target_frame, 0x014D50); tools/ppkc.py's parse() and sheet(), nine to a row, the rows of the guns ended by empty cells, in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py soldier-guns"
+
+[[figure]]
+name = "weapons-torpedo"
+file = "weapons-torpedo.png"
+maker = "shapes"
+pick = [["Torpedo.shp", "bom0"], ["Torpedo.shp", "bom1"], ["Torpedo.shp", "bom2"], ["Torpedo.shp", "bom3"],
+        ["Torpedo.shp", "bom4"], ["Torpedo.shp", "bom5"], ["Torpedo.shp", "bom6"], ["Torpedo.shp", "bom7"],
+        ["Torpedo.shp", "bom8"], ["Torpedo.shp", "bom9"], ["Torpedo.shp", "boma"], ["Torpedo.shp", "bomb"],
+        ["Torpedo.shp", "ro01"], ["Torpedo.shp", "ro02"], ["Torpedo.shp", "ro03"], ["Torpedo.shp", "ro04"],
+        ["Torpedo.shp", "ro05"], ["Torpedo.shp", "ro06"], ["Torpedo.shp", "ro07"], ["Torpedo.shp", "ro08"],
+        ["Torpedo.shp", "ro09"], ["Torpedo.shp", "ro0a"], ["Torpedo.shp", "tor2"], ["Torpedo.shp", "tor7"],
+        ["Torpedo.shp", "rc01"], ["Torpedo.shp", "rc02"], ["Torpedo.shp", "rc03"], ["Torpedo.shp", "rc04"],
+        ["Torpedo.shp", "rc05"], ["Torpedo.shp", "rc06"], ["Torpedo.shp", "rc07"], ["Torpedo.shp", "rc08"],
+        ["Torpedo.shp", "rc09"], ["Torpedo.shp", "rc0a"], [], []]
+columns = 12
+palette = "wingspalette"
+shows = "The weapons' frames of Torpedo.shp: a bomb's twelve, bom0 to bomb, which it steps through as it falls; a rocket's ten by its bearing while it falls, ro01 to ro0a, and the torpedo's two, tor2 and tor7, one for each facing; the rocket's ten once it fires, rc01 to rc0a."
+how = "The names of torpedo_names (re/tables.toml, read from the executable) at slots 0x40 to 0x4B, 0x74 to 0x7D, 0x88, 0x89 and 0x4C to 0x55, the frames object_draw (0x010702) takes: a bomb 0x40 plus its frame, a rocket 0x74 plus its frame while it falls and 0x4C plus its frame after, ten more for each facing west, the torpedo 0x88 or 0x89 by its facing; tools/ppkc.py's parse() and sheet(), twelve to a row, the last row ended by empty cells, in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py weapons-torpedo"
+
+[[figure]]
+name = "rocket-flash"
+file = "rocket-flash.png"
+maker = "screen"
+run = "rockets"
+vblank = 2803
+size = [1024, 642]
+shows = "The rockets run at VBlank 2803: the two rockets fired in a dive have come down on the dug-out at world x 3224 of map a and are going out in their explosions, the aircraft 41 pixels above the water behind them, the sky red with the flash of a rocket's hit on a target; the dashboard counts 13 rockets and 200 points."
+how = "VBlank 2803 of the rockets run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the score (200, the dug-out's hit), the flash's colour (0x0F00) and count (2), the rockets left (13) and the player's record's height (41) and x (3198). The flash's count of 5 counts down a pass at a time, and the passes that take it from 5, 3 and 1 show the colour (re/notes/porting-m5.md, \"The sky's flash (observed)\")."
+command = ".venv/bin/python book/tools/figures.py rocket-flash"

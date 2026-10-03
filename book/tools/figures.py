@@ -16,7 +16,7 @@ made and the command that remakes it, and writes PNG files:
                picture(), scaled into the PAL box
     palettes   the per-row palettes of that picture, one labelled band per run of rows
     shapes     a contact sheet of a shape container with tools/ppkc.py, or of shapes picked
-               from several, as a grid or packed
+               from several, as a grid, where an empty pick leaves its cell empty, or packed
     map        a map's drawn records with tools/map_decode.py and the shapes of tools/ppkc.py
     maprecord  a run of a map's records, the columns of one shape: the shape over them, and
                each record's sixteen bits grouped by field and decoded by tools/map_decode.py
@@ -325,13 +325,17 @@ def make_palettes(figure, shot, path):
 
 def make_shapes(figure, path):
     """A contact sheet of tools/ppkc.py: every shape of `container`, or the shapes `pick`
-    names as [container, name] pairs from several containers, in their order; laid out as a
-    grid by sheet(), `columns` to a row when given, or with `layout = "packed"` by
-    packed_sheet()."""
+    names as [container, name] pairs from several containers, in their order, an empty pair
+    [] leaving its cell of the grid empty, so that a row can end early; laid out as a grid by
+    sheet(), `columns` to a row when given, or with `layout = "packed"` by packed_sheet()."""
     tool = ppkc()
     if 'pick' in figure:
         shapes = []
-        for container, name in figure['pick']:
+        for entry in figure['pick']:
+            if not entry:                       # an empty cell: no pixels and no name
+                shapes.append(dict(name='', wbytes=0, h=0, ox=0, oy=0, masks=[], data=b''))
+                continue
+            container, name = entry
             found = [s for s in tool.parse(str(SHAPES / container)) if s['name'].strip() == name]
             if not found:
                 raise Failure('%s has no shape %s' % (container, name))
