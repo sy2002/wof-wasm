@@ -65,7 +65,7 @@ The third part is about sound. The Amiga plays its sounds as [**sound samples**]
 
 ### The rhythm of ticks and pictures
 
-Each of the three parts compares the port with the original in the same situation; none fixes the rhythm in which situations follow each other. The game draws its pictures in [**passes**](../glossary.md#pass): a pass is one round of the inner loop, the loop that plays a mission, which draws one picture and runs the part of the logic that goes by pictures.
+The three parts compare the port with the original in the same situation; the rhythm in which situations follow is no fourth part but an input to all three. The game draws its pictures in [**passes**](../glossary.md#pass): a pass is one round of the inner loop, the loop that plays a mission, which draws one picture and runs the part of the logic that goes by pictures.
 
 A tick comes every few [VBlanks](../glossary.md#vblank), the moments the display finishes a picture; a pass takes as many as the machine needs, on a real PAL Amiga a couple in a quiet scene. We filmed the machine, as no instrument of ours counts the processor's time; and the count matters beyond smoothness, for the soldiers, the game-over countdown and the objects' animation go by passes: a wrong count would change the game.
 
@@ -147,9 +147,9 @@ In the original the flip is part of the game's state. It starts off every time t
 
 Three things the original does not have at all come from the shell, around the game rather than in it.
 
-- **The help screen**, on H, lists the port's keys in the player's words. It is up when the page opens, because a browser starts sound only on a key or a click, and the first one starts the sound and takes the help screen away.
-- **The pause sign**, over the picture while a mission is paused, whatever asked for it. The shell also pauses a mission when fullscreen is left, so that Escape, which the browser takes for leaving fullscreen, still pauses, and after an absence of the page of a second or more, as a hidden page stops the clock in mid-flight.
-- **Fullscreen**, on F.
+- [**The help screen**](../glossary.md#help-screen), on H, lists the port's keys in the player's words. It is up when the page opens, because a browser starts sound only on a key or a click, and the first one starts the sound and takes the help screen away.
+- [**The pause sign**](../glossary.md#pause-sign), over the picture while a mission is paused, whatever asked for it. The shell also pauses a mission when fullscreen is left, so that Escape, which the browser takes for leaving fullscreen, still pauses, and after an absence of the page of a second or more, as a hidden page stops the clock in mid-flight.
+- [**Fullscreen**](../glossary.md#fullscreen-of-the-page), on F.
 
 /// dev
 The layer that turns the port's command letters into the original's codes is [`src/portkeys.c`](repo:src/portkeys.c). The shell's own keys are in [`web/main.js`](repo:web/main.js): H, F, and the key left of 1, which opens the shell's diagnostics overlay and never reaches the game. The assist is [`src/assist.c`](repo:src/assist.c). Every rule is in [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Input", and [`re/notes/keys.md`](repo:re/notes/keys.md), whose ["The five readers"](repo:re/notes/keys.md#the-five-readers) lists every place the program reads the keyboard.
@@ -157,14 +157,14 @@ The layer that turns the port's command letters into the original's codes is [`s
 
 ## How we know, in brief
 
-The emulator is not what you play, but it is how the port was measured, the original running beside it under emulation. These are the instruments, in outline.
+The emulator is not what you play, but under it the original ran beside the port. These are the [**instruments**](../glossary.md#instrument), the ways the port was measured:
 
 - [**The oracle.**](../glossary.md#oracle) An original routine runs on an emulated 68000 processor beside its port, on the same inputs, often thousands of random ones, and the results must be equal. Every [**pure routine**](../glossary.md#pure-routine), one that computes from its inputs alone, must pass it to count as [verified](../glossary.md#verified), held to the original by a test of its own; the suite holds hundreds of oracle tests.
-- [**The headless original.**](../glossary.md#headless-original) The original program, from its `main` routine on, runs under emulation without a screen: only the processor is emulated, the custom chips' addresses are plain memory and the blitter never draws, which is what headless means. Stubs answer the operating system's calls, and the beam's position comes from the port's random stream; the ROM's own floating point and key conversion and the game's music player run for real. None of the game's logic is rewritten for it.
+- [**The headless original.**](../glossary.md#headless-original) The original program, from its `main` routine on, runs under emulation without a screen: only the processor is emulated, the custom chips' addresses are plain memory and the blitter never draws, which is what headless means. [Stubs](../glossary.md#stub) answer the operating system's calls, and the beam's position comes from the port's random stream; the ROM's own floating point and key conversion and the game's music player run for real. None of the game's logic is rewritten for it.
 - **The comparisons.** The port and the headless original play the same mission from the same input bytes and the same keys, and are compared after every tick and every pass: every game variable and table the port keeps as the game's state, every drawing call with its arguments, every random number drawn and the routine that drew it, the palette of every row. One way of comparing sets the port to the original's state before each pass, so that a difference points at its pass; the other lets the port run alone from the program's start, as it runs in your browser. A completeness test demands that every place in memory the original writes during a mission is compared, or listed with the reason why not.
 - **The missions** are flown by [**mission scripts**](../glossary.md#mission-script), recorded sequences of stick and key inputs that fly a mission the same way every time: dozens of them on every map, with runs of loaded games, of the game's [**attract demo**](../glossary.md#attract-demo), a recorded game it plays by itself when left alone, and of the keyboard commands. The title sequence and the menus are compared VBlank by VBlank.
 - **The sound event log.** Every sound sample started, by the port and by the original, with its channel, pitch and volume, compared after every tick and every pass of every mission script.
-- **The replay.** A demo the port recorded is played back in the native build, the port compiled for the test machine outside the browser, and in WebAssembly, against a fingerprint of the whole game state after every input sample: the comparisons run on the native build, and the replay holds the page's WebAssembly build to the same fingerprints.
+- [**The replay.**](../glossary.md#replay) A demo the port recorded is played back in the native build, the port compiled for the test machine outside the browser, and in WebAssembly, against a fingerprint of the whole game state after every input sample: the comparisons run on the native build, and the replay holds the page's WebAssembly build to the same fingerprints.
 - **The page.** The finished file is opened in Chrome and Firefox and played through the browsers' own drivers, the remote control a browser offers to tests, with real key presses, and checked for its pixels, its display, its timing and its sound.
 
 Together they are about nine hundred tests.
