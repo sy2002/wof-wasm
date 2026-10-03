@@ -235,7 +235,7 @@ Chapter 1 told what the [keyboard assist](../glossary.md#keyboard-assist) does; 
 | 4, 8 or 12 VBlanks | 4, 8 or 12 | |
 | held for 240 VBlanks | 20 | 20 |
 
-In the original the steps grow with the taps, since longer taps cover more of the input samples a step costs. Only the input sample sees the assist; nothing of it is a registered value or writes one, the front end's polls and the button's [latches](../glossary.md#latch) see the controller as it is, and the rank menu, which polls every VBlank, is left alone. The core starts with the assist off, as every comparison runs; the page switches it on.
+In the original the steps grow with the taps, since longer taps cover more of the input samples a step costs. Only the input sample sees the assist; nothing of it is a registered value or writes one, the front end's polls and the button's [latches](../glossary.md#latch) see the stick and the button as they are, and the rank menu, which polls every VBlank, is left alone. The core starts with the assist off, as every comparison runs; the page switches it on.
 
 ### The waits, the drawing and the files
 
