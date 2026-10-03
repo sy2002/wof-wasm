@@ -52,23 +52,10 @@ kind = "asm"
 name = "colour_lerp"
 lines = 45
 
-# Hand-written assembly beside its C: the unpacker of the packed files, orig 0x01FEE0.
-[[listing]]
-kind = "asm"
-name = "rpck_unpack"
-
-[[listing]]
-kind = "c"
-name = "wof_rpck_unpack"
-
-# The width of a text in the game's font, orig 0x01591E.
+# Hand-written beside colour_lerp: the width of a text in the game's font, orig 0x01591E.
 [[listing]]
 kind = "asm"
 name = "text_width"
-
-[[listing]]
-kind = "c"
-name = "wof_text_width"
 
 # The clock's frame, a function inside createClock in web/clock.js.
 [[listing]]
@@ -76,24 +63,10 @@ kind = "js"
 name = "frame"
 file = "web/clock.js"
 
-# A method of the shell's core wrapper.
-[[listing]]
-kind = "js"
-name = "Core.vblank"
-
-# The tools: a map record's fields, a shape's planes into indexed pixels, a map file.
+# The tools: a map record's fields.
 [[listing]]
 kind = "py"
 name = "fields"
-file = "tools/map_decode.py"
-
-[[listing]]
-kind = "py"
-name = "to_indexed"
-
-[[listing]]
-kind = "py"
-name = "Map"
 file = "tools/map_decode.py"
 
 # The 68000's machine code as the listing shows it: the game's only random source in use,
