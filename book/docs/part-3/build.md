@@ -293,7 +293,7 @@ Chapter 9's fault shows what a failure looks like. The port assumed a register's
 
 The design left two places open, both outside the game's logic:
 
-- **The display list.** Every shape drawn in a pass is also listed, with its name, place and layer, for a renderer that could one day draw the game anew; the page ignores it (chapter 22).
+- [The display list.](../glossary.md#display-list) Every shape drawn in a pass is also listed, with its name, place and layer, for a renderer that could one day draw the game anew; the page ignores it (chapter 22).
 - **The shell's options.** They went with M10, which the owner dropped when the game was judged done: among them chosen keys, a gamepad's mapping, scaling, the video standard as a menu and a mute for the title's music ([chapter 10](../part-1/making.md#the-milestones)).
 
 The rule for both: nothing of the game's logic changes. A shell option goes in [`web/`](repo:web/), where no test compares it with the original. A rule of the port's own that touches what the game reads goes in a file of its own in the core, as [`src/portkeys.c`](repo:src/portkeys.c) and [`src/assist.c`](repo:src/assist.c) do, held by its tests, the page tests and the closed loop with it off.
