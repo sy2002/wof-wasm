@@ -518,10 +518,3 @@ file = "src/mission.c"
 from = "if (wof_g.g_027452 != 0) {"
 to = "} while (wof_g.g_027452 != 0);"
 as = "wof_player_lost_restart_waits"
-
-# The fifteen routines of the player's update the oracle holds over random states, each with
-# the state it wants.
-[[listing]]
-kind = "py"
-name = "PLAYER_ROUTINES"
-file = "tests/test_oracle_m4.py"

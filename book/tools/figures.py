@@ -45,8 +45,10 @@ made and the command that remakes it, and writes PNG files:
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
 library's test hook; the pokes are cleared when the run ends.  After the mission begins a run
-may move the stick by a schedule of letters, as the mission scripts are written, and may name
-registered globals with the values they must have at a VBlank, which the run checks.
+may move the stick by a schedule of letters, as the mission scripts are written, or replay from
+the start a schedule the headless original recorded; it may name registered globals, and the
+player's record's height, x, state and facing as record_y, record_x, record_state and
+record_facing, with the values they must have at a VBlank, which the run checks.
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -234,10 +236,16 @@ def run_core(name, spec, wanted, until=0, ticks=False):
                                   % (name, vblank, spec['mission_at']))
             for expect in spec.get('expect', []):
                 if expect['vblank'] == vblank:
+                    record = player_reader(ported)() if any(
+                        f.startswith('record_') for f in expect) else {}
                     for field, value in expect.items():
-                        if field != 'vblank' and ported.g(field) != value:
+                        if field == 'vblank':
+                            continue
+                        found = (record[field[len('record_'):]] if field.startswith('record_')
+                                 else ported.g(field))
+                        if found != value:
                             raise Failure('run %s: %s is %d at VBlank %d, the manifest says %d'
-                                          % (name, field, ported.g(field), vblank, value))
+                                          % (name, field, found, vblank, value))
             if vblank in wanted:
                 image = picture(ported)
                 width, height = image.size

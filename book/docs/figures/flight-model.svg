@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 460" width="940" height="460" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" width="1000" height="460" role="img" aria-labelledby="title desc">
   <title id="title">One tick of the flight model</title>
-  <desc id="desc">Left: the aircraft pitched up by the angle theta. The airspeed, along its nose, splits into a speed along, the airspeed times the cosine of theta times the attitude's factor, divided by 100, which is the horizontal speed, and a speed across, the airspeed times the sine of theta divided by 100, which is the vertical speed. The pitch moves a quarter of the way to its target each tick. Right: the height, from the water line at 0 up to the ceiling at 1,100; an aircraft that climbs past the ceiling is held there, its climb halved and turned round and its pitch's target turned round, so it bounces; below, the floor at minus 4. Bottom: the airspeed from 0 to 1,400; left alone in the air it falls to 1,000, pushed the way the aircraft faces it rises to 1,400, and below 1,000 the aircraft sinks a little more each tick and its nose drops unless the stick is held forward.</desc>
+  <desc id="desc">Left: the aircraft pitched up by the angle theta. The airspeed, along its nose, splits into a horizontal speed, the airspeed times the cosine of theta times the attitude's factor, plus 50, divided by 100, and a vertical speed, the airspeed times the sine of theta divided by 100. The pitch moves a quarter of the way to its target each tick, and the two speeds are worked out in the ROM's fast floating point. Right: the height, from the water line at 0 up to the ceiling at 1,100; an aircraft that climbs past the ceiling is held there, its climb halved and turned round and its pitch's target turned round, so it bounces; below, the floor at minus 4. Bottom: the airspeed from 0 to 1,400; left alone in the air it falls to 1,000, pushed the way the aircraft faces it rises to 1,400, and below 1,000 the aircraft sinks a little more each tick and its nose drops unless the stick is held forward.</desc>
   <style>
     /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
     .sky    { fill: #00AAFF; /* wingspalette 1 */ }
@@ -32,17 +32,17 @@
   <!-- the speed along: the horizontal speed -->
   <rect class="sky" x="90" y="299" width="266" height="3"/>
   <path class="sky" d="M368 300.5 L356 295 L356 306 Z"/>
-  <text class="light small" x="94" y="328">along: airspeed × cos θ × the attitude's factor ÷ 100</text>
-  <text class="muted small" x="94" y="344">the horizontal speed, which the facing turns east or west</text>
+  <text class="light small" x="94" y="328">horizontal: (airspeed × cos θ × the attitude's factor + 50) ÷ 100</text>
+  <text class="muted small" x="94" y="344">cut to whole pixels; the facing turns it east or west</text>
   <!-- the speed across: the vertical speed -->
   <rect class="gold" x="366.5" y="200" width="3" height="100"/>
   <path class="gold" d="M368 188 L362.5 200 L373.5 200 Z"/>
-  <text class="light small" x="380" y="236">across: airspeed × sin θ ÷ 100</text>
-  <text class="muted small" x="380" y="252">the vertical speed</text>
+  <text class="light small" x="380" y="236">vertical: airspeed × sin θ ÷ 100</text>
+  <text class="muted small" x="380" y="252">cut to whole pixels</text>
   <text class="muted small" x="40" y="86">Each tick the pitch moves a quarter of the way</text>
   <text class="muted small" x="40" y="102">to its target; its sine and cosine come from a</text>
-  <text class="muted small" x="40" y="118">table of whole degrees, and the arithmetic is the</text>
-  <text class="muted small" x="40" y="134">ROM's fast floating point.</text>
+  <text class="muted small" x="40" y="118">table of whole degrees, and the two speeds are</text>
+  <text class="muted small" x="40" y="134">worked out in the ROM's fast floating point.</text>
 
   <!-- Right: the height, from the water line to the ceiling -->
   <rect class="rule" x="659" y="70" width="2" height="230"/>
@@ -67,8 +67,8 @@
   <circle class="sky" cx="804" cy="132" r="2.5"/>
   <text class="light small" x="770" y="160">held at the ceiling:</text>
   <text class="muted small" x="770" y="176">the climb halved and</text>
-  <text class="muted small" x="770" y="192">turned round, the</text>
-  <text class="muted small" x="770" y="208">pitch's target too</text>
+  <text class="muted small" x="770" y="192">turned round; the pitch's</text>
+  <text class="muted small" x="770" y="208">target turned round</text>
   <!-- the water line and the floor -->
   <rect class="sea" x="661" y="300" width="259" height="18"/>
   <text class="light small" x="668" y="296">the water line, 0</text>

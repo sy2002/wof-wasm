@@ -32,11 +32,11 @@ Elsewhere: [Amiga Disk File](https://en.wikipedia.org/wiki/Amiga%5FDisk%5FFile),
 
 ### Airspeed
 
-The number, from 0 to 1,400, that scales the player's aircraft's two speeds, in effect hundredths of a pixel a tick: the stick pushed the way the aircraft faces raises it, left alone in the air it falls to 1,000, and below 1,000 the aircraft sinks.
+The number, from 0 to 1,400, that scales the player's aircraft's two speeds, in level flight hundredths of a pixel a tick: there is no throttle lever, the stick pushed the way the aircraft faces raises it, left alone in the air it falls to 1,000, and below 1,000 the aircraft sinks.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record".
 
-Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the real quantity the game's number stands in for.
+Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the real quantity.
 
 ### Arithmetic shift
 
@@ -48,7 +48,7 @@ Elsewhere: [Arithmetic shift](https://en.wikipedia.org/wiki/Arithmetic%5Fshift),
 
 ### Arresting cable
 
-One of the four cables across the carrier's deck that stop the player's aircraft when its tailhook, 24 pixels behind it, passes within 8 pixels of one at an airspeed of 600 or more.
+One of the four cables across the carrier's deck that stop the player's aircraft when its tailhook, 24 pixels behind it, passes within 8 pixels of one at an airspeed of 600 or more with the deck's flag clear, that is, with the stick held forward after the touch-down.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
 
@@ -64,7 +64,7 @@ Elsewhere: [Assembly language](https://en.wikipedia.org/wiki/Assembly%5Flanguage
 
 ### Attitude
 
-The stage of a turn of the player's aircraft, 0 in straight flight and 1 to 25 while it turns, one stage every second tick: it picks the turn's frame and a factor for the horizontal speed, and at 14 the aircraft's facing changes.
+The stage of a turn of the player's aircraft, the notes' name for it, 0 in straight flight and 1 to 25 while it turns, one stage every second tick in a turn: it picks the turn's frame and a factor for the horizontal speed, and at 14 the aircraft's facing changes.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`src/player.c`](repo:src/player.c), the routine at `0x01AB80`; [`re/notes/ffp.md`](repo:re/notes/ffp.md#the-two-tables-of-constants), "The two tables of constants".
 
@@ -500,6 +500,12 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Hold
+
+The carrier's hold, below its deck, where the lift takes the player's aircraft to be refuelled, repaired and rearmed, and where the weapon menu is shown.
+
+First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
+
 ### Hook
 
 A routine of the instrument's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
@@ -606,7 +612,7 @@ Elsewhere: [Label (computer science)](https://en.wikipedia.org/wiki/Label%5F(com
 
 ### Landing stall
 
-The flag the stick forward alone sets while the player's aircraft flies west: the aircraft is drawn with its nose up while its pitch is eased downwards, and only with the flag set does it land on the carrier's deck.
+The flag the stick forward alone sets while the player's aircraft flies west, and every other input clears: the aircraft is drawn with its nose up while its pitch is eased downwards, and only with the flag set does it land on the carrier's deck.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record", the globals; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
 
@@ -634,7 +640,7 @@ Elsewhere: [*Amiga ROM Kernel Reference Manual: Libraries*](https://archive.org/
 
 ### Lift
 
-The carrier's lift, which carries the player's aircraft between the deck and the hold below it, where the aircraft is refuelled, repaired and rearmed.
+The carrier's lift, which carries the player's aircraft between the deck and the hold below it.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
 
@@ -840,9 +846,9 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
-### Pitch
+### Pitch (of the aircraft)
 
-The angle of the player's aircraft in hundredths of a degree, positive with the nose up, which moves each tick a quarter of the way towards a target the stick sets.
+The angle of the player's aircraft, not a sound's pitch, in hundredths of a degree, positive with the nose up, which moves each tick a quarter of the way towards a target the stick sets.
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/ffp.md`](repo:re/notes/ffp.md#player%5Fmotion-0x01bdfa-once-per-tick-from-0x01c70e), "`player_motion` `0x01BDFA`, once per tick from `0x01C70E`".
 

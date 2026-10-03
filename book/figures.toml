@@ -92,7 +92,9 @@ time (`fade_vblanks` 0), as in the headless original. The script's own letters c
 it: the headless original takes letters in VBlanks of the front end that its schedule does not
 record, and the port given the letters alone never reaches the mission. The port meets the
 original's states at the same VBlanks (re/notes/porting-m4.md, "How the port is held to the
-original": the landing in both loops); `expect` checks the moment the cable holds the aircraft."""
+original": the landing in both loops); `expect` checks the take-off, the dip after it, the climb's
+top and the moment the cable holds the aircraft, the record's fields read through
+tests/m4state.py's layout."""
 fade_vblanks = 0
 mission_at = 444
 schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1, 16], [104, 0],
@@ -102,7 +104,13 @@ schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1,
             [8, 9], [8, 8], [8, 10], [20, 8], [8, 9], [12, 8], [8, 10], [20, 8], [1, 9], [32, 1],
             [164, 0], [179, 8], [100, 0], [4, 8], [69, 0], [3, 16], [212, 0], [8, 2], [72, 0], [4, 16],
             [129, 0], [363, 4]]
-expect = [{vblank = 1900, g_026d3a = 7270, player_start_x = 7032, airspeed = 1148}]
+# The take-off at 708 of airspeed, the lowest height after it, the climb's top, and the cable:
+# its x, the start's, the deck's two ends, the airspeed and the record's state 7.
+expect = [{vblank = 1061, record_state = 0, record_x = 7349, airspeed = 708},
+          {vblank = 1110, record_y = 18},
+          {vblank = 1300, record_y = 145},
+          {vblank = 1900, g_026d3a = 7270, player_start_x = 7032, airspeed = 1148, record_state = 7},
+          {vblank = 1900, g_0253fc = 6608, g_0253fe = 7344}]
 
 [[figure]]
 name = "title-logo"
@@ -543,7 +551,7 @@ pick = [["hellcat.shp", "hc28"], ["hellcat.shp", "hc29"], ["hellcat.shp", "hc2a"
         ["hellcat.shp", "hc22"]]
 columns = 11
 palette = "wingspalette"
-shows = "The frames of a turn from facing west to facing east, in the order the attitude shows them: hc28 to hc32 from frames_left, then hc33 to hc36 and hc27 back to hc22 from frames_right; each drawn as hellcat.shp stores it, since the turn's frames are never mirrored."
+shows = "The frames of a turn from facing west to facing east, in the order the attitude shows them, the names counted in hexadecimal: hc28 to hc32 from frames_left, then hc33 to hc36 and hc27 back to hc22 from frames_right; hc32 holds for five stages, 11 to 15, the facing changing at 14, so 25 stages show 21 frames; each drawn as hellcat.shp stores it, since the turn's frames are never mirrored."
 how = "The names of frames_left (0x025D10) at attitudes 1 to 13 and of frames_right (0x025D78) at 14 to 25 (re/tables.toml, read from the executable), each name once; tools/ppkc.py's parse() and sheet(), eleven to a row, the shapes' planes to indexed pixels in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
 command = ".venv/bin/python book/tools/figures.py turn-hellcat"
 
@@ -554,8 +562,8 @@ maker = "screen"
 run = "landing"
 vblank = 1900
 size = [1024, 642]
-shows = "The landing run at VBlank 1900: the arresting cable at world x 7270 holds the aircraft on the carrier's deck, its airspeed down to 1148, the cable drawn as a line."
-how = "VBlank 1900 of the landing run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the cable's x the hook caught (0x026D3A, 7270), the start's x (7032) and the airspeed (1148), which the cable takes 110 off a tick from 1368."
+shows = "The landing run at VBlank 1900, about 29 seconds into the mission: the arresting cable at world x 7270 holds the aircraft on the carrier's deck, its airspeed down to 1148, the cable drawn as a line."
+how = "VBlank 1900 of the landing run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the cable's x the tailhook caught (0x026D3A, 7270), the start's x (7032), the deck's ends (6608, 7344), the airspeed (1148), which the cable takes 110 off a tick from 1368, and the record's state, 7. The mission began at VBlank 444: 1456 VBlanks at 50 a second."
 command = ".venv/bin/python book/tools/figures.py landing-cable"
 
 [[figure]]
@@ -576,6 +584,6 @@ deck = ["wingspalette", 27]
 cable = ["wingspalette", 31]
 mark = ["wingstitle", 25]
 scale = 2
-shows = "The landing run's flight from the deck to the hold, the aircraft's height over its world x after every tick: the take-off, the dip after it, the climb, the turn, the approach from the east, the touch-down, the cable, the stop, the taxi and the lift down; the carrier's deck, its lift and its four cables marked."
+shows = "The landing run's flight from the deck to the hold, the aircraft's height over its world x after every tick: the take-off at an airspeed of 708, the dip to a height of 18, the climb to 145, the turn at the east end, the way back up to about 100 and down to the deck, the touch-down, the cable, the stop, the taxi and the lift down; the carrier's deck, its lift and its four cables marked."
 how = "The player's record read after every tick of the landing run between VBlanks 645 and 2540 through the core's tick hook and tests/m4state.py's layout; a dot a tick in the colour of the record's state; the deck from deck_west to deck_east up to the height the aircraft stood at on it, the lift's column at player_start_x, the cables at player_start_x + 0x46 and 0x38 apart (cable_hook, 0x01B92E), the one caught (0x026D3A) marked in entry 25 of the title picture's palette; the height drawn four times as tall as the x; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py landing-path"
