@@ -90,7 +90,7 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`src/vide
 
 ### Barracks
 
-A target of an island, slot 4, that holds five soldiers and burns when a weapon hits it, its four map records turned into the burnt barracks.
+A target of an island, slot 4, that holds soldiers, five at the start, and burns when a weapon hits it, its four map records turned into the burnt barracks.
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
 
@@ -106,7 +106,7 @@ Elsewhere: [Raster scan](https://en.wikipedia.org/wiki/Raster%5Fscan), Wikipedia
 
 ### Bearing
 
-The aircraft's pitch worked out each tick as an angle of the game's sine tables, which a rocket's thrust and frame and the guns' reach on the ground take.
+The aircraft's pitch converted each tick to an angle of `0x800` steps a turn, for whatever the aircraft shoots or drops next: a rocket's thrust and frame, and where the guns reach the ground.
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`src/tick.c`](repo:src/tick.c), `shot_origin`; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-tick-the-drop), "The tick: the drop".
 
@@ -392,7 +392,7 @@ First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/m
 
 ### Dug-out
 
-A target of an island, slot 3, that holds five soldiers and fires at the aircraft while it holds any; a hit lets its soldiers out but does not destroy it.
+A target of an island, slot 3, that holds soldiers, five at the start, and fires at the aircraft while it holds any; a hit lets its soldiers out but does not destroy it.
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
 
@@ -802,7 +802,7 @@ First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes
 
 ### Object record
 
-One of the fifteen records of 42 bytes in which a bomb, a rocket or the torpedo flies, with a sixteenth for the enemy's torpedo: its kind byte says whether it flies, goes out or is free, its type which weapon it is.
+One of the fifteen records of 42 bytes in which a bomb, a rocket or the torpedo flies, or the explosion of a crash goes out, with a sixteenth for the enemy's torpedo: its kind byte says whether it flies, goes out or is free, its type which weapon it is.
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#claiming-and-freeing-a-record), "Claiming and freeing a record" and ["Record layout, the fields that all of them share"](repo:re/notes/objects.md#record-layout-the-fields-that-all-of-them-share).
 
@@ -884,7 +884,7 @@ The notes' name for an island's large gun, slots `0x0F` to `0x1E`, which fires a
 
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
 
-Elsewhere: [Pillbox (military)](https://en.wikipedia.org/wiki/Pillbox%5F(military)), Wikipedia.
+Elsewhere: [Pillbox (military)](https://en.wikipedia.org/wiki/Pillbox%5F(military)), Wikipedia, the bunker the notes' name comes from, where the manual's target is a large anti-aircraft gun.
 
 ### Pitch (of the aircraft)
 

@@ -663,15 +663,15 @@ command = ".venv/bin/python book/tools/figures.py soldier-guns"
 name = "weapons-torpedo"
 file = "weapons-torpedo.png"
 maker = "shapes"
-pick = [["Torpedo.shp", "bom0"], ["Torpedo.shp", "bom1"], ["Torpedo.shp", "bom2"], ["Torpedo.shp", "bom3"],
-        ["Torpedo.shp", "bom4"], ["Torpedo.shp", "bom5"], ["Torpedo.shp", "bom6"], ["Torpedo.shp", "bom7"],
-        ["Torpedo.shp", "bom8"], ["Torpedo.shp", "bom9"], ["Torpedo.shp", "boma"], ["Torpedo.shp", "bomb"],
-        ["Torpedo.shp", "ro01"], ["Torpedo.shp", "ro02"], ["Torpedo.shp", "ro03"], ["Torpedo.shp", "ro04"],
-        ["Torpedo.shp", "ro05"], ["Torpedo.shp", "ro06"], ["Torpedo.shp", "ro07"], ["Torpedo.shp", "ro08"],
-        ["Torpedo.shp", "ro09"], ["Torpedo.shp", "ro0a"], ["Torpedo.shp", "tor2"], ["Torpedo.shp", "tor7"],
-        ["Torpedo.shp", "rc01"], ["Torpedo.shp", "rc02"], ["Torpedo.shp", "rc03"], ["Torpedo.shp", "rc04"],
-        ["Torpedo.shp", "rc05"], ["Torpedo.shp", "rc06"], ["Torpedo.shp", "rc07"], ["Torpedo.shp", "rc08"],
-        ["Torpedo.shp", "rc09"], ["Torpedo.shp", "rc0a"], [], []]
+pick = [["torpedo.shp", "bom0"], ["torpedo.shp", "bom1"], ["torpedo.shp", "bom2"], ["torpedo.shp", "bom3"],
+        ["torpedo.shp", "bom4"], ["torpedo.shp", "bom5"], ["torpedo.shp", "bom6"], ["torpedo.shp", "bom7"],
+        ["torpedo.shp", "bom8"], ["torpedo.shp", "bom9"], ["torpedo.shp", "boma"], ["torpedo.shp", "bomb"],
+        ["torpedo.shp", "ro01"], ["torpedo.shp", "ro02"], ["torpedo.shp", "ro03"], ["torpedo.shp", "ro04"],
+        ["torpedo.shp", "ro05"], ["torpedo.shp", "ro06"], ["torpedo.shp", "ro07"], ["torpedo.shp", "ro08"],
+        ["torpedo.shp", "ro09"], ["torpedo.shp", "ro0a"], ["torpedo.shp", "tor2"], ["torpedo.shp", "tor7"],
+        ["torpedo.shp", "rc01"], ["torpedo.shp", "rc02"], ["torpedo.shp", "rc03"], ["torpedo.shp", "rc04"],
+        ["torpedo.shp", "rc05"], ["torpedo.shp", "rc06"], ["torpedo.shp", "rc07"], ["torpedo.shp", "rc08"],
+        ["torpedo.shp", "rc09"], ["torpedo.shp", "rc0a"], [], []]
 columns = 12
 palette = "wingspalette"
 shows = "The weapons' frames of Torpedo.shp: a bomb's twelve, bom0 to bomb, which it steps through as it falls; a rocket's ten by its bearing while it falls, ro01 to ro0a, and the torpedo's two, tor2 and tor7, one for each facing; the rocket's ten once it fires, rc01 to rc0a."

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 440" width="1000" height="440" role="img" aria-labelledby="title desc">
   <title id="title">A bomb and a rocket, a dot a tick</title>
-  <desc id="desc">Left: a bomb dropped in level flight at 14 pixels a tick, a dot for each tick from the drop to the ground. Each tick it loses a tenth of its horizontal speed, none once that is below ten pixels a tick, and gravity takes three eighths of a pixel a tick off its vertical speed, so it falls in a curve and comes down behind the aircraft, which flies on. It comes down 12 pixels above the water line, 0x0C, over the sea, the land and the targets alike. Right: two rockets. Fired in level flight, a rocket keeps the aircraft&#39;s speed and falls a pixel back and a pixel down each tick until a count of 4, 8 or 12 ticks, drawn from the beam, runs out; then its thrust along the bearing adds to its speed every tick and it flies on level, faster and faster, until it is more than 0x500 pixels from the aircraft and its record is freed. Fired in a dive, the thrust along the dive brings it down onto the ground. As its fall ends, a rocket that points down is aimed at the first pillbox or ship&#39;s gun within its bearing&#39;s reach, if one stands there.</desc>
+  <desc id="desc">Left: a bomb dropped in level flight at 14 pixels a tick, starting where the aircraft is drawn, a dot for each tick from the drop to the ground. Each tick it loses a tenth of its horizontal speed, none once that is below ten pixels a tick, and gravity takes three eighths of a pixel a tick off its vertical speed, so it falls in a curve and comes down behind the aircraft, which flies on. It comes down 12 pixels above the water line, 0x0C, over the sea, the land and the targets alike. Right: two rockets. Fired in level flight, a rocket keeps the aircraft&#39;s speed and falls a pixel back and a pixel down each tick until a count of 4, 8 or 12 ticks, drawn from the beam, runs out; then its thrust along the bearing adds to its speed every tick and it flies on level, faster and faster, until it is more than 0x500 pixels from the aircraft and its record is freed. Fired in a dive of 20 degrees, the thrust along the dive brings it down onto the ground. As its fall ends, a rocket that points down is aimed at the first ship&#39;s gun or pillbox within its bearing&#39;s reach, if one stands there. The heights are drawn 1.6 times as tall as the x.</desc>
   <style>
     /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
     .sea    { fill: #0033DD; /* wingspalette 5 */ }
@@ -92,7 +92,7 @@
   <circle class="plane" cx="266" cy="289.2" r="2.5"/>
   <circle class="plane" cx="275" cy="305.2" r="2.5"/>
   <circle class="plane" cx="284" cy="321.2" r="2.5"/>
-  <circle class="gold" cx="293" cy="330.8" r="3.5"/>
+  <circle class="plane" cx="293" cy="330.8" r="3.5"/>
   <text class="light small" x="190" y="126.0">a tenth of its horizontal speed lost</text>
   <text class="muted small" x="190" y="142.0">each tick, none below ten pixels a tick</text>
   <text class="light small" x="250" y="190.0">gravity, 0x6000: three-eighths of</text>
@@ -132,7 +132,7 @@
   <path class="gold" d="M888 131.2 L900 137.2 L888 143.2 Z"/>
   <text class="light small" x="560" y="163.2">then its thrust along the bearing, faster each tick,</text>
   <text class="muted small" x="560" y="179.2">until it is freed beyond 0x500 pixels from the aircraft</text>
-  <g transform="translate(540 190.0) rotate(17)">
+  <g transform="translate(540 190.0) rotate(20)">
     <path class="plane" d="M-20 -3 L10 -3 L16 0 L10 3 L-20 3 Z"/>
     <path class="plane" d="M-6 -2 L2 -2 L-2 12 L-10 12 Z"/>
     <path class="plane" d="M-20 -8 L-15 -8 L-15 0 L-20 0 Z"/>
@@ -155,7 +155,7 @@
   <text class="light small" x="680" y="198.0">fired in a dive: the thrust</text>
   <text class="muted small" x="680" y="214.0">along the dive brings it down;</text>
   <text class="muted small" x="680" y="230.0">as its fall ends it is aimed at</text>
-  <text class="muted small" x="680" y="246.0">the first pillbox or ship&#39;s gun</text>
+  <text class="muted small" x="680" y="246.0">the first ship&#39;s gun or pillbox</text>
   <text class="muted small" x="680" y="262.0">in its bearing&#39;s reach</text>
 
   <!-- The key -->
@@ -165,5 +165,6 @@
   <text class="muted small" x="602" y="384.0">a rocket falling</text>
   <circle class="gold" cx="708" cy="380.0" r="2.5"/>
   <text class="muted small" x="716" y="384.0">a rocket on its thrust</text>
-  <text class="muted small" x="528" y="400.0">a larger dot: the tick it comes down</text>
+  <text class="muted small" x="528" y="400.0">a larger dot: the tick it comes down; the heights</text>
+  <text class="muted small" x="528" y="416.0">drawn 1.6 times as tall as the x</text>
 </svg>
