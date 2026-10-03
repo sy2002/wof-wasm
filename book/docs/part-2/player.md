@@ -17,11 +17,12 @@ Everything a tick does to the aircraft goes through one place, the [**player's r
 | state | what the tick does with the aircraft, the table below |
 | fuel | `0xC0` when full |
 | oil | `0x80` when full |
+| the hit count | the hits of a gun still to come before the oil and the fuel fall, 6 to 9 at a reset |
 | facing | +1 flying east, −1 west |
 | two speeds | horizontal and vertical, pixels a tick |
-| the enemy's countdown | ticks |
+| the [enemy's countdown](../glossary.md#enemys-countdown) | ticks |
 
-Two more words have no use that the notes name.
+One more word has no use that the notes name.
 
 The state word picks what the player's update, run once a tick, does with the aircraft.
 
@@ -200,7 +201,7 @@ In the air with the fuel below 0, or the oil below `0x60`, the update sets state
 | The oil's leak, from the first hit to the end | 32 × 80 | about 205 at most |
 | A turn | 26 stages × 2 | about 4 |
 | The wait after a loss | 150, or 31 with the button | 12, or about 2.5 |
-| The enemy's countdown, and after a press | 1,350; 750 | 108; 60 |
+| The [enemy's countdown](../glossary.md#enemys-countdown), and after a press | 1,350; 750 | 108; 60 |
 | Full speed, level | 14 pixels a tick | 175 pixels a second |
 ///
 
@@ -216,7 +217,7 @@ The crash's routine looks at what lies under the aircraft, and the attitude leve
 | a ship | on its deck the wreck rests; into its hull below the deck, it slides back with a red [sky flash](../glossary.md#sky-flash) and ends in the sea |
 | shot down | chapter 16 |
 
-At rest, a wait counts the ticks: after 150, or after 30 with the fire button, the next aircraft comes. It costs a life; it stands on the lift in the hold, facing west, with the weapon menu up. With no life left, or the carrier sunk, the game is over, chapter 17's subject. Before the next aircraft appears, the tick itself clears the playfield, shows it and waits for the [VBlank](../glossary.md#vblank) twenty-one times, twenty counting a number down from 20 and one more finding it at zero: twenty-one VBlanks inside one tick (chapter 7 told that the tick draws too). On the left the clearing, `flip_buffers` and the two loops on `gfx_WaitTOF`; on the right each wait is a `CO_WAIT` of a coroutine, a routine that can stop at a wait and go on at the next VBlank (chapter 22).
+At rest, a wait counts the ticks: after 150, or after 30 with the fire button, the next aircraft comes. It costs a life; it stands on the lift in the hold, facing west, with the weapon menu up. With no life left, or the carrier sunk, the game is over, chapter 17's subject. Before the next aircraft appears, the tick itself clears the playfield, shows it and waits for the [VBlank](../glossary.md#vblank) twenty-one times, twenty counting a number down from 20 and one more finding it at zero: twenty-one VBlanks inside one tick (chapter 7 told that the tick draws too). On the left the clearing, `flip_buffers` and the two loops on `gfx_WaitTOF`; on the right each wait is a `CO_WAIT` of a [coroutine](../glossary.md#coroutine), a routine that can stop at a wait and go on at the next VBlank (chapter 22).
 
 //// html | div.listing-pair
 
