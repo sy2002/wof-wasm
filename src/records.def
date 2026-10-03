@@ -85,7 +85,7 @@ WOF_RECORD_END(player)
 /* ---------------------------------------------------------- an enemy aircraft, 0x34
  * aircraft_records (0x02522A, four), re/notes/enemy.md: the fields by their writers.  +0x00
  * is the state (0 free, 1 unused, 2 flying, 4 shot down and falling, 8 unused, 0x10
- * burning on the water); +0x02 the kind and manoeuvre (1 a fighter cruising, 2 a fighter on
+ * burning on land); +0x02 the kind and manoeuvre (1 a fighter cruising, 2 a fighter on
  * the player's tail, 4 a torpedo plane, 0x10 a torpedo plane that has dropped, bit 3 in a
  * turn); +0x04 where it is against the player (1 behind him the same way, 3 ahead of him
  * the same way, 2 and 4 the other way, east and west of him). */

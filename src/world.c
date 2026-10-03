@@ -829,7 +829,7 @@ static uint16_t enemy_frame(int eighth, int16_t index)
 
 /* orig 0x010DA6 draw_enemy_aircraft - the wrecks of the enemy aircraft shot down, and the
  * four aircraft records.  A wreck is a word of 0x0251DA, as many as 0x0251D8 counts
- * (0x01E476 leaves one when a burning wreck on the water, state 0x10, has gone out): the
+ * (0x01E476 leaves one when a burning wreck on land, state 0x10, has gone out): the
  * world x, negative for an aircraft that faced west, drawn with frame 27 or 55 of the frame
  * table four rows above view_y.  A record in use is drawn at its x (+0x20) and height
  * (+0x26) with the frame +0x30; one that fires (+0x12) at full scale counts +0x2C up in the

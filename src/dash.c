@@ -233,7 +233,7 @@ static void window_strip(void)
             d4 = t;
         }
         /* 0x0142A0: an enemy aircraft whose drawing's map offset (+0x2E) lies in the row's
-         * span is drawn on the row at the window's right edge, dash_frames by its frame
+         * span is drawn on the row at x 0x13F, the window's middle, dash_frames by its frame
          * (+0x30) turned to the player's live facing (0x1C on facing east, round within
          * the 0x38 of one set), the row's set added as a byte (window_rows, 0x024692), and
          * a quarter of its height above the row. */

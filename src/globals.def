@@ -109,7 +109,7 @@ WOF_GLOBAL_ARRAY(island_span,  uint16_t, 8, 0x025440)  /* first and last target 
 WOF_GLOBAL_ARRAY(island_score, uint16_t, 8, 0x025450)  /* the soldiers alive, the pillboxes standing */
 WOF_GLOBAL(fighters_up,        int16_t,  0x0251D6)  /* the fighters in the air, which a ship or an
                                                      * airfield counts against its most (M6) */
-WOF_GLOBAL(wreck_count,        int16_t,  0x0251D8)  /* the wrecks of enemy aircraft on the water */
+WOF_GLOBAL(wreck_count,        int16_t,  0x0251D8)  /* the wrecks of enemy aircraft burnt out on land */
 WOF_GLOBAL_ARRAY(wrecks,       int16_t, 40, 0x0251DA) /* each its x, negative facing west */
 
 /* the mission (M4): the player's reset, sub_013684 and sub_01b7ec (re/notes/objects.md) */

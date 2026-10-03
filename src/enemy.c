@@ -379,7 +379,7 @@ static void fighter_attack(aircraft_t *a)
  * a hit starts its evasion and +0x10 at 0x113; it keeps about 0x96 ahead (+0x28 then 0xF0
  * farther, and less 0x96 nearer, where it jinks), wanting the player's airspeed less that.
  * Otherwise it turns once 500 past either end of the carrier's deck (0x0253FC, 0x0253FE).
- * Over the last 0x3E8 before the deck it goes down to 0x14; over the deck, level at 0x14,
+ * Over the last 0x3E8 before the deck it goes down to 0x14; short of the deck, level at 0x14,
  * it drops its torpedo into object_record_extra and flies on (mode 0x10) with the enemy's
  * countdown at 500; elsewhere it turns when +0x10 runs out. */
 static void torpedo_plane(aircraft_t *a)
