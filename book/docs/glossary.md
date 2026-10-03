@@ -578,6 +578,12 @@ First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/note
 
 Elsewhere: [Game over](https://en.wikipedia.org/wiki/Game%5Fover), Wikipedia.
 
+### Generated file
+
+A file of the repository that a tool makes from others, committed so that a reader sees it without running the tool, and held byte for byte to what the tool makes again: the listing, the routine inventory, the contact sheets and this book's listings and figures among them.
+
+First met and defined in [chapter 21](part-3/repository.md). The detail: [`tests/test_generated.py`](repo:tests/test%5Fgenerated.py); [`book/tools/build.py`](repo:book/tools/build.py); [`CLAUDE.md`](repo:CLAUDE.md#rules), "Rules".
+
 ### Ground height
 
 How high what stands at a map record reaches, which a tick asks for under an object: a class's height less the record's height field, a ship's deck from the ship's record, or zero; in flight without weapons, the one thing the tick reads from the map.
@@ -1142,6 +1148,12 @@ One of four tables of small records the game allocates once at its start, Smoke,
 First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-inventory), "The inventory"; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-pools), "The pools".
 
 Elsewhere: [Object pool pattern](https://en.wikipedia.org/wiki/Object%5Fpool%5Fpattern), Wikipedia.
+
+### Porting note
+
+A note of [`re/notes/`](repo:re/notes/) written for a milestone: what was ported, how it is held to the original and what stands in, each statement marked as observed, with the test or tool that shows it, or as read from the listing alone.
+
+First met and defined in [chapter 21](part-3/repository.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original", and the other milestones' notes in [`re/notes/`](repo:re/notes/).
 
 ### Program counter
 

@@ -4,11 +4,11 @@ Every claim the chapter makes, one line each, with its source, in the order of t
 
 Counts are of the branch's base, `eb4d3f4`, counted in the files named, with the command in the counts table at the end. No run of the port, no headless original, no test run (one `pytest --collect-only -q`), no browser, no rebuild.
 
-Words used in the sheet as the chapter will use them, each in one sense. The **repository** is the project's files with their history, as a clone holds them; a file is *in the repository* when `git ls-files` lists it. A **note** is a file of `re/notes/`, never a remark. **The listing** is `re/Wings.lst`; the extracts this book shows are **the book's listings**, never "listings" alone. **The page** is `dist/wof.html`; a page of the book or of the manual is named so. A **run** is a run description of `tests/runs/` or what the headless original does with it; a run of the suite is "a run of the suite". A **contact sheet** is a picture of `ref/sheets/`; a **fact sheet** is a file of `book/facts/`; "sheet" alone is not used in the chapter. A **chain** is one of the chapter's four ways the parts hang together (the names, the tables, the comparison, the generated files); the word needs no entry. A **generated file** is the chapter's term (claim 98); a **porting note** too (claim 56); **README** (claim 4).
+Words used in the sheet as the chapter will use them, each in one sense. The **repository** is the project's files with their history, as a clone holds them; a file is *in the repository* when `git ls-files` lists it. A **note** is a file of `re/notes/`, never a remark. **The listing** is `re/Wings.lst`; the extracts this book shows are **the book's listings**, never "listings" alone. **The page** is `dist/wof.html`; a page of the book or of the manual is named so. A **run** is a run description of `tests/runs/` or what the headless original does with it; a run of the suite is "a run of the suite". A **contact sheet** is a picture of `ref/sheets/`; a **fact sheet** is a file of `book/facts/`; "sheet" alone is not used in the chapter. A **chain** is one of the chapter's four ways the parts hang together (the names, the tables, the comparison, the generated files); the word needs no entry. A **generated file** is the chapter's term (claim 98); a **porting note** too (claim 48). `README.md` is a file, glossed in a clause, not a term (the controller's note 2).
 
 The reference works:
 
-- Wikipedia, "README", `https://en.wikipedia.org/wiki/README`, fetched once: a README file holds descriptive information about the contents of the directory it lies in, typically at the top level of a project, the entry point for a reader. For the glossary entry's Elsewhere line. **(reference)**
+- Wikipedia, "README", `https://en.wikipedia.org/wiki/README`, fetched once: a README file holds descriptive information about the contents of the directory it lies in, typically at the top level of a project, the entry point for a reader. Source of the clause "by convention the file a reader of a repository opens first" (claim 4). **(reference)**
 - Wikipedia, "GNU General Public License", `https://en.wikipedia.org/wiki/GNU%5FGeneral%5FPublic%5FLicense`, fetched once: a series of widely used free software licences; copyleft: whoever distributes a modified version must pass on the same terms; version 3 of 2007. **(reference)**
 - Creative Commons, "Attribution-ShareAlike 4.0 International", `https://creativecommons.org/licenses/by-sa/4.0/`, fetched once: the two conditions, attribution (credit, a link to the licence, changes indicated) and share-alike (contributions under the same licence). **(reference)**
 - Wikipedia, "Git", `https://en.wikipedia.org/wiki/Git`, fetched once: a distributed version control system; `git clone` duplicates a repository, and each copy holds the entire repository with its history. **(reference)**
@@ -24,7 +24,7 @@ The reference works:
 
 ## 1. The top level
 
-4. `README.md` is the door, written for a reader who has just cloned: what the port is, how to play, build and verify, the ROM, the book, where things are, the idea of a template, the licence. Source: `SPEC.md` 2 (`README.md  for a reader who has just cloned: play, build, verify, the ROM, where things are, the licence`); `README.md`'s headings: Play; Build and verify (Prerequisites, The Kickstart ROM, Build, Verify); The book; Where things are; Amiga to Web; Licence. The term README (claim 4) with the reference above.
+4. `README.md` is the door, written for a reader who has just cloned: what the port is, how to play, build and verify, the ROM, the book, where things are, the idea of a template, the licence. Source: `SPEC.md` 2 (`README.md  for a reader who has just cloned: play, build, verify, the ROM, where things are, the licence`); `README.md`'s headings: Play; Build and verify (Prerequisites, The Kickstart ROM, Build, Verify); The book; Where things are; Amiga to Web; Licence. "By convention the file a reader of a repository opens first": the reference above. Not a bold term (the controller's note 2).
 5. Its picture is the title screen rendered by the port's own library in the PAL aspect, `ref/title.png`. Source: `README.md` (`![](ref/title.png)`); commit `7a159ba`'s subject ("the title screen, rendered by the port's own library in the PAL aspect").
 6. `SPEC.md` is the source of truth for goals, architecture, porting rules and milestones, written for an engineer, human or AI agent, working in the repository with its tools. Source: `CLAUDE.md` ("Read `SPEC.md` first; it is the source of truth for goals, architecture, porting rules and milestones"); `SPEC.md`'s opening line ("Target reader: an engineer (human or AI agent) working in this repository with the tools it already contains").
 7. Its ten sections, one line each: 1 the goal, with the definition of faithful and what is out of scope; 2 the repository's layout and the pinned packages; 3 the original program (the disk, the executable, the runtime model, the system and hardware it uses, the file formats); 4 the tools, the listing's conventions, the naming workflow, the oracle's use; 5 the build; 6 the architecture (the core, the shell, the coroutines, the video and audio models, what is not ported); 7 the porting rules (arithmetic, data, determinism, the working method); 8 the verification, level by level; 9 the milestones, M0 to M10, each with its deliverable and acceptance; 10 the thirteen points to establish, each answered in a note. Source: `SPEC.md`'s headings (`grep -n "^#" SPEC.md`); section 10's table (13 rows).
@@ -67,7 +67,7 @@ Source: the counts table. In the chapter: files exact but `book/` ("about 380");
 24. `original/` is the ground truth and read-only: nothing in it is ever modified, moved or deleted. Source: `CLAUDE.md`, "Rules"; `SPEC.md` 2 ("the disk image (read-only ground truth)").
 25. It holds the disk image `original/wof.adf`, 901,120 bytes (880 KB); the disk's files extracted verbatim with xdftool under `original/disk/`, 76 files, 65 of them in the game's directory `Wings_of_Fury`; and the manual as text, `original/manual.txt`, 13 pages. Source: `SPEC.md` 2; `wc -c`; `git ls-files original/disk | wc -l`; `git ls-files original/disk/Wings_of_Fury | wc -l`; `grep -c "^PAGE" original/manual.txt`; chapter 3 (65 files).
 26. Why the files beside the image: the port and the tools read the extracted files; the image is read for the directory's order alone. Source: `book/docs/part-1/disk.md`, "An image of the floppy".
-27. The build packs 55 of the files into the page; it leaves out the program `Wings`, `UFXintro`, `wingt`, every `.info` file and every dotfile; the program's tables are read from it at build time. Source: `SPEC.md` 5, step 2; chapter 3.
+27. The build packs 55 of the files into the page and leaves out ten: the program `Wings`, whose tables are read from it at build time, and nine files not the game's, `UFXintro`, `wingt` and seven `.info` files (`SPEC.md` 5, step 2, adds every dotfile, none of which is in the game's directory). Source: `SPEC.md` 5, step 2; chapter 3 ("all but the program and those nine"; "Nine files are not the game's at all: `UFXintro`, `wingt` and seven `.info` files").
 28. The manual is read for the intended behaviour and the key commands, cited by page, never pasted into sources, notes or documents. Source: `CLAUDE.md`, "Rules"; `SPEC.md` 2 ("never quoted at length").
 29. The ROM, `original/kick.rom`, is placed by whoever clones: Kickstart 1.3, revision 34.5, the A500 and A2000 image, 262,144 bytes; `tools/rom.py` checks it by its SHA-1; without it the build stops and the suite skips, each with one message. Source: `CLAUDE.md`, "Rules"; `README.md`, "The Kickstart ROM".
 30. What the ROM gives: the system font topaz 8, the key conversion with the default keymap, and mathffp, the reference of the game's floating point. Source: `SPEC.md` 2 (`original/kick.rom` line); `README.md`, "The Kickstart ROM".
@@ -144,7 +144,7 @@ Source: each note's first line (`head -1`) and `wc -w`; the chapters' further re
     - the machine and its system, stood in for: `mem.c` (the static arena replacing exec's `AllocMem`), `fs.c` (the virtual file system and the dos.library calls the loaders make), `gfx.c` (graphics.library on indexed pixels, as far as the front end uses it), `screen.c` (views and viewports), `video.c` (the per-row palettes and the output picture), `audio.c` (Paula's audio side and the mixer), `ffp.c` (Motorola's fast floating point in integer code);
     - the game's own code, ported: `load.c`, `assets.c`, `iff.c`, `shapes.c`, `draw.c` (the blitter library onto indexed pixels), `font.c`, `fade.c`, `front.c`, `dialog.c`, `hiscore.c`, `keys.c`, `input.c`, `mission.c`, `world.c`, `dash.c`, `tick.c`, `player.c`, `objects.c`, `pools.c`, `targets.c`, `enemy.c`, `sound.c`, `music.c`: 23 files;
     - the port's own layers, decided with the owner: `portkeys.c` (the port's keys in front of the key buffer) and `assist.c` (the keyboard assist), each "not a port of anything: it is policy".
-    Source: each file's first comment (`head -3`); the grouping is the chapter's, from those comments; counts 3 + 7 + 23 + 2 = 35.
+    Source: each file's first comment (`head -3`); the grouping is the chapter's, from those comments; counts 3 + 7 + 23 + 2 = 35. `input.c` is in the ported group and named in the chapter as the sampling, a VBlank's raw controller state into a tick's input byte (its first comment: "Input sampling: the raw controller state of one VBlank becomes the input byte of one logic tick"), so that chapter 22's account of `wof_vblank` there does not surprise (the controller's note 8).
 57. `src/gen/` holds the tables extracted at every build; it is ignored by version control, so no number of the game is in a committed source. Source: `SPEC.md` 5, step 1 ("`src/gen/` is ignored by version control"); `.gitignore`; chapter 3.
 58. Hand-written sources hold code only; tables, texts and tuning values come from the executable at build time. Source: `CLAUDE.md`, "Rules"; `SPEC.md` 1; chapter 3.
 
@@ -271,11 +271,12 @@ The `text` kind is an extension of `book/tools/listings.py`: a line range of any
 
 ## The terms
 
-| Term | Defined here | Elsewhere |
-|---|---|---|
-| README | claim 4 | Wikipedia, "README" |
-| Porting note | claim 47/48: a note written for a milestone | none |
-| Generated file | claim 98 | none |
+| Term | Defined here | Elsewhere | The glossary's computed line |
+|---|---|---|---|
+| Porting note | claim 48: a note written for a milestone | none | "First met and defined in chapter 21." (chapter 10 says "porting notes" in plain text, unlinked) |
+| Generated file | claim 98 | none | "First met and defined in chapter 21." (chapter 10's milestone table says "the generated files" in plain text) |
+
+`README.md` is not a term (the controller's note 2).
 
 Linked, defined earlier: Listing, Routine inventory, Control-flow skeleton, Label (none needed), Disassembler, Oracle, Headless original, Run description, Dump, Observer, Harness, Reach map, Mission script, Autopilot, Stand-in, Verified, Core, Shell, WebAssembly, Native library, Fixture, ADF, Kickstart, Fixed load layout, Contact sheet, Session, Controller, Worker, Handover, Commit, Branch, Review, Milestone, Faithful port, Differential test, Open loop, Closed loop, Quirk. Not defined, glossed: repository (chapter 1 uses it unlinked; an entry would read "first met in chapter 21"), the manifest (chapter 3 explains it unbolded), clone.
 
@@ -311,6 +312,8 @@ The inside of `src/` (chapter 22); the shell's modules at work (chapter 23); the
 | 355 commits; 355 with a co-author line | `git log --oneline \| wc -l`; `git log --format=%B \| grep -c "Co-Authored-By"` |
 | 28 pitfalls | `awk '/^## Pitfalls that cost time/{p=1;next} p&&/^## /{p=0} p&&/^- /' CONTROLLER.md \| wc -l` |
 | 926 words | `wc -w CLAUDE.md` |
+| 42 of 43 tools with a docstring | `ast.get_docstring` over `git ls-files 'tools/*.py'`; `tools/rpck.py` has none |
+| 3,787 words, the chapter | `wc -w book/docs/part-3/repository.md` |
 | 13 points | `SPEC.md` 10, rows of its table |
 | 7 pinned packages; 36 lines of the book's pins | `requirements.txt`; `wc -l book/requirements.txt` |
 
@@ -327,3 +330,44 @@ The inside of `src/` (chapter 22); the shell's modules at work (chapter 23); the
 - **The scratchpads.** See "Unsourced".
 - **`page-video.md`** is linked by no chapter yet; its chapter by `book/BOOK.md` 3 is 23 (the shell's picture). **`testing.md`** is linked by chapters 6, 9 and 10, and the tests are chapter 24's. The table gives 23 and 24.
 - **The chapter's length.** The task asks 2,800 to 3,800 words; `book/BOOK.md` 4, point 2, says 3,000 to 4,500. The draft keeps both: 3,000 to 3,800.
+
+## The controller's notes on the sheet, folded in
+
+1. Chapter 10's status table is stale (drop 31, todo 215); the controller corrects it at the merge. The chapter points to chapter 4 for the meanings and to chapter 10 for the counts, and gives none.
+2. README is no bold term and no glossary entry: `README.md` is linked and glossed in one clause, "by convention the file a reader of a repository opens first", with no Elsewhere line. Two terms are defined, Porting note and Generated file; the check computed "First met and defined in chapter 21." for both.
+3. The `text` kind is kept small: the whole file, or a part from the first line holding `from` to the first at or after it holding `to`; `head` for the file's first line above a part; a `#` line naming the file and the lines. Fenced `bash` for `CLAUDE.md`'s commands, `text` for the names and the inventory.
+4. The directory table gives every cell of its size column a unit: the image 901,120 bytes; the listing 1,627,981 bytes and the notes about 197,000 words; 8 pictures; the lines rounded as chapter 10 rounds them; 1,158,496 bytes; "about 380" files for `book/`.
+5. The notes' words: "about 197,000"; chapter 10's "about 196,000" stays, a count of its base.
+6. The commit history is described, never quoted: "each message a line saying what changed and naming the session's model".
+7. The files left out: "leaves out ten: the program ... and nine files that are not the game's", as chapter 3 counts them (claim 27).
+8. `input.c` is named in the ported group as the sampling; `core.c`, `rand.c` and `trace.c` are the frame (claim 56).
+9. The requirements: the port's seven pinned exactly, the book's whole (claims 19, 80).
+10. The chronicle: "in the owner's archive beside the sessions' transcripts", no path (claim 109).
+11. Figure (a): solid arrows for making, dotted for naming, dashed for holding; every path as the repository spells it; no count; the rightmost box ends at x 966 in a viewBox 1000 wide, the longest label (`tools/extract_tables.py`, `tests/test_generated.py`, about 166 units at 12 px) needing 28 of slack; the text extents measured by a renderer of Pillow, none leaving its box.
+12. This section; the sheet brought to the draft below; the draft between 3,000 and 3,800 words.
+
+## Draft
+
+`book/docs/part-3/repository.md`, 3,787 words by `wc -w`. The order: the opening; the top level (`README.md`, `SPEC.md` with its ten sections as a table, `CLAUDE.md` with its commands as listing 1, `CONTROLLER.md`, the two licences, the pins and `.gitignore`); the directories as a table; `original/`; `re/` (the listing, the names as listing 2, the library bases, the inventory as listing 3, the manifest and the player's listing, the notes with their table); `ref/`; `src/` with its four groups as a table; `web/`; `tools/` with its eight groups as a table; `tests/` with its seven layers as a table; `dist/`; `book/`; the four chains, each under its own heading, figure (a), listing 4 in the comparison, listing 5 in the generated files; where to start; what the repository leaves out; the sidebar; what comes next; further reading.
+
+Claims made while drafting that the sheet above did not hold, each with its source:
+
+114. The specification is corrected wherever it turned out wrong, so that it says what is. Source: `CLAUDE.md`, "Session protocol" ("End: ... `SPEC.md` corrected wherever it stated something that turned out different").
+115. `CLAUDE.md` is short because every session pays to read it. Source: `book/docs/part-1/making.md`, "Two models, one worker at a time" ("every agent pays again to read the rules and the notes"); claim 10 (926 words).
+116. The commands block shows how many commands make something again or check it rather than build it: of the fifteen, nine (the ROM check, the disassembler making the listing again, the oracle's self-test, the Markdown check, the suite serially and in its two phases, the comparison of two runs, the visible Firefox run); three build (the setup, the two builds); three read or run the original (the skeleton, the headless original, the reach map). Source: listing 1 (`CLAUDE.md` lines 10 to 24).
+117. The project's Python is always `.venv`'s, so that every machine uses the same pinned packages. Source: `CLAUDE.md`, "Commands" ("Always use the project environment, never the system Python"); `SPEC.md` 2.
+118. The port's packages are pinned so that a later clone runs what the tests ran: the instruments rest on one version of the emulator, whose fault the project corrects for that version. Source: `book/docs/part-1/oracle.md` ("Unicorn is a package pinned at one version, so the correction lives not in a patched emulator but in the repository"); `SPEC.md` 2 and 8 ("Unicorn 2.1.4 executes a memory-form shift ...").
+119. `CONTROLLER.md`'s last section is "Pitfalls that cost time"; chapter 10 told the arrangement, what a task contains and how a report is reviewed. Source: `grep -n "^#" CONTROLLER.md`; `book/docs/part-1/making.md`, "The rules, and what each answers" and "A task and a review".
+120. The rules forbid changing `original/` so that every claim is checked against the same bytes. Source: `CLAUDE.md`, "Rules" ("`original/` is read-only ground truth"); `SPEC.md` 2 ("read-only ground truth"); the reason is the word "ground truth".
+121. The ROM is the Amiga's own system, sold under licence. Source: `README.md`, "The Kickstart ROM" ("Cloanto's Amiga Forever sells this image"); `book/docs/glossary.md`, Kickstart ("The heart of AmigaOS, in the ROM").
+122. Without the ROM the build stops and the suite skips, each saying where to get it. Source: `README.md`, "Build" ("Without the ROM it stops with a message that says what is needed and where to get it"); `CLAUDE.md`, "Rules" ("each with the same message").
+123. The inventory's row: `a5_args` holds the offsets of the arguments above A5 (8 for `record_at`'s one argument; `8 10` for `flash_set`'s two); `callers` and `globals` hold counts; `calls` and `os_calls` the names. Source: listing 3; chapter 3 (the first argument at `8(a5)`).
+124. The registries tie each variable, table and record to the original's addresses and offsets, by which the tests copy state between the original and the port and compare it. Source: `src/globals.def`'s first comment ("uses the original addresses to copy state between the oracle and the port"); `src/records.def`'s ("field by field, with the offset and the width the original uses"; "copy a record between the original's big-endian bytes and the port's struct"); `src/mission.def`'s; `SPEC.md` 8 ("every registered global and table").
+125. All but one of the 43 tools open with a sentence saying what they are for; `tools/rpck.py` opens with its imports. Source: `ast.get_docstring` over `tools/*.py` (counts table: 42 with a docstring).
+126. The decoders serve the tools, the tests and this book; the core uses the game's own loaders, ported. Source: `book/docs/part-1/disk.md`, "The little there was to decode" ("For the core the port wrote no decoders: it ported the original's loaders"; "Decoders in Python under `tools/` serve the tools, the tests and this book's figures").
+127. The tests' modules by layer, as the table counts them: the oracle's eight as "`test_oracle_m1.py`, six more by milestone, one for the floating point"; the headless original's five; the eleven whole runs; the core's builds four; the page three; the assist one; the repository two. Source: claim 66.
+128. A page opened from a file cannot load modules one by one, so the build joins them. Source: `SPEC.md` 5, step 4 (claim 60).
+129. A test's name says what it holds, so that a chapter can cite it by name. Source: `tests/test_frontend.py` (`test_control_d_does_nothing_anywhere`); `book/listings.toml` (the book's `py` listings name tests by their names, and a name that no longer exists fails the build: claim 90).
+130. `tools/headless.py run tests/runs/rank-control-d.json --out A.dump` runs the run under the headless original and writes the dump of every step. Source: `re/notes/headless.md`, "Using it"; `SPEC.md` 4; chapter 6 (the dump after every tick and pass).
+131. Figure (a)'s caption and alternative text: four lanes, one a chain, each step a file or a tool by its path; solid arrows make or feed, dotted ones name, dashed ones hold. Source: claims 88 to 102.
+

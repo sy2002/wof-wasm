@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="1000" height="620" role="img" aria-labelledby="title desc">
+  <title id="title">Four chains through the repository</title>
+  <desc id="desc">Four lanes, one for each chain, each from a file kept by hand to what is made from it and what holds it. 1, the names: re/names.txt, a name for an address kept by hand, goes into tools/disasm.py, which makes the listing and the inventory again, re/Wings.lst and re/functions.csv, made and committed; tools/skel.py and book/tools/listings.py pick the name up. 2, the tables: re/tables.toml, kept by hand, and the program Wings from original/disk/ go into tools/extract_tables.py, which reads the bytes at every build into src/gen/, the tables in C, never committed, from which the core is built into dist/wof.html with src/ and web/; book/tools/elements.py reads the same bytes. 3, the comparison: a claim in re/notes/ names the test that shows it, the test in tests/ names its runs, a run description in tests/runs/ holds the player's hands, and tools/headless.py replays a run with one command; a chapter of the book cites the test by its name. 4, the generated files: re/Wings.lst, re/functions.csv, re/songplay.lst and ref/sheets/ are held by tests/test_generated.py, which makes them again and compares; book/docs/generated/, the book's listings, figures and data, is held by book/tools/build.py --check in the same way.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .hand  { fill: #FFBB00; /* wingstitle 25 */ }
+    .orig  { fill: #77AACC; /* wingspalette 22 */ }
+    .tool  { fill: #AAAABB; /* wingspalette 29 */ }
+    .made  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .gen   { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 5 3; fill: none; }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .names { stroke: #77AACC; /* wingspalette 22 */ stroke-width: 2; stroke-dasharray: 2 4; fill: none; }
+    .namestip { fill: #77AACC; /* wingspalette 22 */ }
+    .hold  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+    .holdtip { fill: #FFBB00; /* wingstitle 25 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .code  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; font-weight: 700; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+
+  <text class="light label" x="16" y="24">Four chains through the repository</text>
+  <text class="muted small" x="16" y="44">each from a file kept by hand to what is made from it and what holds what is made</text>
+
+  <!-- 1. The names -->
+  <text class="light label" x="16" y="78">1   The names: one name, everywhere the program is shown</text>
+  <rect class="hand" x="16" y="88" width="200" height="70" rx="3"/>
+  <text class="ink code" x="28" y="110">re/names.txt</text>
+  <text class="ink small" x="28" y="128">a name for an address,</text>
+  <text class="ink small" x="28" y="146">kept by hand</text>
+  <path class="wire" d="M216 123 L257 123"/>
+  <path class="tip" d="M265 123 L256 118 L256 128 Z"/>
+  <rect class="tool" x="266" y="88" width="200" height="70" rx="3"/>
+  <text class="ink code" x="278" y="110">tools/disasm.py</text>
+  <text class="ink small" x="278" y="128">makes the listing and</text>
+  <text class="ink small" x="278" y="146">the inventory again</text>
+  <path class="wire" d="M466 123 L507 123"/>
+  <path class="tip" d="M515 123 L506 118 L506 128 Z"/>
+  <rect class="made" x="516" y="88" width="200" height="70" rx="3"/>
+  <text class="ink code" x="528" y="110">re/Wings.lst</text>
+  <text class="ink code" x="528" y="128">re/functions.csv</text>
+  <text class="ink small" x="528" y="146">made, and committed</text>
+  <path class="wire" d="M716 123 L757 123"/>
+  <path class="tip" d="M765 123 L756 118 L756 128 Z"/>
+  <rect class="tool" x="766" y="88" width="200" height="70" rx="3"/>
+  <text class="ink code" x="778" y="110">tools/skel.py</text>
+  <text class="ink code" x="778" y="128">book/tools/listings.py</text>
+  <text class="ink small" x="778" y="146">pick the name up</text>
+
+  <!-- 2. The tables -->
+  <text class="light label" x="16" y="190">2   The tables: no number of the game typed again</text>
+  <rect class="hand" x="16" y="202" width="200" height="38" rx="3"/>
+  <text class="ink code" x="28" y="226">re/tables.toml</text>
+  <rect class="orig" x="16" y="248" width="200" height="38" rx="3"/>
+  <text class="ink code" x="28" y="272">original/disk/…/Wings</text>
+  <path class="wire" d="M216 221 L258 238"/>
+  <path class="tip" d="M265 241 L255 241 L259 232 Z"/>
+  <path class="wire" d="M216 267 L258 252"/>
+  <path class="tip" d="M265 249 L259 257 L255 248 Z"/>
+  <rect class="tool" x="266" y="210" width="200" height="70" rx="3"/>
+  <text class="ink code" x="278" y="232">tools/extract_tables.py</text>
+  <text class="ink small" x="278" y="250">reads the program&#39;s bytes</text>
+  <text class="ink small" x="278" y="268">at every build</text>
+  <path class="wire" d="M466 245 L507 245"/>
+  <path class="tip" d="M515 245 L506 240 L506 250 Z"/>
+  <rect class="gen" x="516" y="210" width="200" height="70" rx="3"/>
+  <text class="light code" x="528" y="232">src/gen/</text>
+  <text class="light small" x="528" y="250">the tables in C,</text>
+  <text class="light small" x="528" y="268">never committed</text>
+  <path class="wire" d="M716 233 L757 225"/>
+  <path class="tip" d="M765 223 L757 230 L755 220 Z"/>
+  <rect class="made" x="766" y="202" width="200" height="42" rx="3"/>
+  <text class="ink code" x="778" y="220">dist/wof.html</text>
+  <text class="ink small" x="778" y="237">built with src/ and web/</text>
+  <path class="wire" d="M366 280 L366 296 L740 296 L740 271 L757 271"/>
+  <path class="tip" d="M765 271 L756 266 L756 276 Z"/>
+  <rect class="tool" x="766" y="250" width="200" height="42" rx="3"/>
+  <text class="ink code" x="778" y="268">book/tools/elements.py</text>
+  <text class="ink small" x="778" y="285">the same bytes, for the book</text>
+
+  <!-- 3. The comparison -->
+  <text class="light label" x="16" y="326">3   The comparison: from a claim to a run anyone can replay</text>
+  <rect class="hand" x="16" y="336" width="200" height="70" rx="3"/>
+  <text class="ink code" x="28" y="358">re/notes/</text>
+  <text class="ink small" x="28" y="376">a claim names the test</text>
+  <text class="ink small" x="28" y="394">that shows it</text>
+  <path class="names" d="M218 371 L257 371"/>
+  <path class="namestip" d="M265 371 L256 366 L256 376 Z"/>
+  <rect class="tool" x="266" y="336" width="200" height="70" rx="3"/>
+  <text class="ink code" x="278" y="358">tests/test_*.py</text>
+  <text class="ink small" x="278" y="376">a test, by its name,</text>
+  <text class="ink small" x="278" y="394">names its runs</text>
+  <path class="names" d="M468 371 L507 371"/>
+  <path class="namestip" d="M515 371 L506 366 L506 376 Z"/>
+  <rect class="hand" x="516" y="336" width="200" height="70" rx="3"/>
+  <text class="ink code" x="528" y="358">tests/runs/</text>
+  <text class="ink small" x="528" y="376">a run description:</text>
+  <text class="ink small" x="528" y="394">the player&#39;s hands</text>
+  <path class="wire" d="M716 371 L757 371"/>
+  <path class="tip" d="M765 371 L756 366 L756 376 Z"/>
+  <rect class="tool" x="766" y="336" width="200" height="70" rx="3"/>
+  <text class="ink code" x="778" y="358">tools/headless.py</text>
+  <text class="ink small" x="778" y="376">replays a run with</text>
+  <text class="ink small" x="778" y="394">one command</text>
+  <text class="muted small" x="266" y="424">a chapter of the book cites the test by its name</text>
+
+  <!-- 4. The generated files -->
+  <text class="light label" x="16" y="458">4   The generated files: committed, and held to what the tools make</text>
+  <rect class="made" x="16" y="468" width="200" height="84" rx="3"/>
+  <text class="ink code" x="28" y="489">re/Wings.lst</text>
+  <text class="ink code" x="28" y="505">re/functions.csv</text>
+  <text class="ink code" x="28" y="521">re/songplay.lst</text>
+  <text class="ink code" x="28" y="537">ref/sheets/</text>
+  <path class="hold" d="M264 510 L225 510"/>
+  <path class="holdtip" d="M217 510 L226 505 L226 515 Z"/>
+  <rect class="tool" x="266" y="475" width="200" height="70" rx="3"/>
+  <text class="ink code" x="278" y="497">tests/test_generated.py</text>
+  <text class="ink small" x="278" y="515">makes them again</text>
+  <text class="ink small" x="278" y="533">and compares, byte for byte</text>
+  <rect class="made" x="516" y="475" width="200" height="70" rx="3"/>
+  <text class="ink code" x="528" y="497">book/docs/generated/</text>
+  <text class="ink small" x="528" y="515">the book&#39;s listings,</text>
+  <text class="ink small" x="528" y="533">figures and data</text>
+  <path class="hold" d="M764 510 L725 510"/>
+  <path class="holdtip" d="M717 510 L726 505 L726 515 Z"/>
+  <rect class="tool" x="766" y="475" width="200" height="70" rx="3"/>
+  <text class="ink code" x="778" y="497">book/tools/build.py</text>
+  <text class="ink code" x="778" y="515">--check</text>
+  <text class="ink small" x="778" y="533">the same, for the book</text>
+
+  <!-- The key -->
+  <rect class="hand" x="16" y="572" width="16" height="12" rx="2"/>
+  <text class="light small" x="38" y="583">kept by hand</text>
+  <rect class="orig" x="132" y="572" width="16" height="12" rx="2"/>
+  <text class="light small" x="154" y="583">the original&#39;s</text>
+  <rect class="tool" x="262" y="572" width="16" height="12" rx="2"/>
+  <text class="light small" x="284" y="583">a tool or a test</text>
+  <rect class="made" x="396" y="572" width="16" height="12" rx="2"/>
+  <text class="light small" x="418" y="583">made, committed</text>
+  <rect class="gen" x="530" y="572" width="16" height="12" rx="2"/>
+  <text class="light small" x="552" y="583">made, never committed</text>
+  <path class="wire" d="M16 602 L40 602"/>
+  <path class="tip" d="M47 602 L39 598 L39 606 Z"/>
+  <text class="light small" x="54" y="606">makes or feeds</text>
+  <path class="names" d="M162 602 L186 602"/>
+  <path class="namestip" d="M193 602 L185 598 L185 606 Z"/>
+  <text class="light small" x="200" y="606">names</text>
+  <path class="hold" d="M262 602 L286 602"/>
+  <path class="holdtip" d="M293 602 L285 598 L285 606 Z"/>
+  <text class="light small" x="300" y="606">holds, byte for byte</text>
+</svg>
