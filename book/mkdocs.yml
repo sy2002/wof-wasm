@@ -64,6 +64,12 @@ extra:
 extra_css:
   - stylesheets/book.css
 
+# The shape browser and the map viewer, each drawn on its own page from the data of
+# book/tools/elements.py; each script does nothing on a page without its element.
+extra_javascript:
+  - javascripts/browser.js
+  - javascripts/maps.js
+
 hooks:
   - hooks/game.py
   - hooks/lexer.py
@@ -110,6 +116,8 @@ markdown_extensions:
 nav:
   - Bringing Back Wings of Fury: index.md
   - Play the game: play.md
+  - The shape browser: browser.md
+  - The map viewer: maps.md
   - "Part I: From the disk to a faithful game":
       - "1. What faithful means": part-1/faithful.md
       - "2. The Amiga in twenty minutes": part-1/amiga.md

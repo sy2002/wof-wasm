@@ -210,7 +210,7 @@ A [**contact sheet**](../glossary.md#contact-sheet) is a picture of every shape 
 A contact sheet of `japcarrier.shp`, packed, in the day palette: `jcrm` shows the colours its planes store.
 ///
 
-A sheet answers what a name shows and lays an animation's frames side by side. One caution: it shows the colour numbers the planes store, not what the clear and set bytes make of them, so `jcrm`, red and blue here, is grey on the screen. The shape browser of this book shows every shape of every container.
+A sheet answers what a name shows and lays an animation's frames side by side. One caution: it shows the colour numbers the planes store, not what the clear and set bytes make of them, so `jcrm`, red and blue here, is grey on the screen. [The shape browser](../browser.md) of this book shows every shape of every container.
 
 /// dev
 The clip rectangles, top, bottom, left and right, the bottom and the right exclusive:

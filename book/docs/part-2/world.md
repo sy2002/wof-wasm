@@ -77,7 +77,7 @@ The low bits let a ship sink row by row while the record list stays as it is; a 
 Map a as the strip of its drawn records, in bands of 960 pixels, three screens' width, the last one shorter: the island on the left, the carrier on the right; the island's ground between its beaches is not a record.
 ///
 
-The figure shows map a, the first mission's world, whose shapes all come from `world.shp`; the later maps' ships come from [shape containers](../glossary.md#shape-container) of their own. The map viewer of this book shows every map with its records drawn in place, and the decoder's reading of the fields is held by its prediction of every draw, told below.
+The figure shows map a, the first mission's world, whose shapes all come from `world.shp`; the later maps' ships come from [shape containers](../glossary.md#shape-container) of their own. [The map viewer](../maps.md) of this book shows every map with its records drawn in place, and the decoder's reading of the fields is held by its prediction of every draw, told below.
 
 ## From the world to the screen
 

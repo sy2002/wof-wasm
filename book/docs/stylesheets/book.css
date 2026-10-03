@@ -358,6 +358,432 @@
   color: var(--md-default-fg-color--light);
 }
 
+/* ------------------------------------------------------------------ the shape browser and the map viewer
+
+   browser.md and maps.md, drawn by javascripts/browser.js and javascripts/maps.js from the data
+   of book/tools/elements.py.  The game's art stands on dark grounds in both schemes, as the
+   figures do, enlarged without smoothing; the controls and the facts are in the page's colours.
+   The shapes' ground is the night sky's grey, next to the contact sheets' own ground. */
+
+.md-typeset .wof-browser,
+.md-typeset .wof-maps {
+  --wof-ground: #000000;                /* wingspalette 0 */
+  --wof-shape-ground: #222233;          /* night.p 25 */
+  --wof-mark: #FFBB00;                  /* wingstitle 25 */
+  --wof-on-mark: #111122;               /* wingspalette 6 */
+  --wof-label: #EEEEEE;                 /* wingstitle 31 */
+  --wof-tick: #666677;                  /* wingspalette 27 */
+  --wof-land: #DD9966;                  /* wingspalette 17 */
+  --wof-deck: #888899;                  /* wingspalette 28 */
+  --wof-sea: #0066AA;                   /* ocean.palette 10 */
+  --wof-low3: #DD3300;                  /* wingspalette 3 */
+  --wof-ship-line: #BBDDEE;             /* wingspalette 23 */
+  --wof-carrier-line: #FFEE66;          /* wingspalette 10 */
+  --wof-airfield-line: #339933;         /* wingspalette 7 */
+  --wof-flag-line: #EE6622;             /* wingspalette 2 */
+  margin: 1.2em 0;
+  font-family: var(--wof-sans);
+  font-size: .72rem;
+}
+
+.md-typeset .wof-crop,
+.md-typeset .wof-picture img {
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+
+.md-typeset .wof-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem .6rem;
+  margin: 0 0 .6rem;
+}
+
+.md-typeset .wof-controls select,
+.md-typeset .wof-controls input[type="search"],
+.md-typeset .wof-button {
+  padding: .3em .5em;
+  border: .05rem solid var(--md-default-fg-color--lighter);
+  border-radius: .2rem;
+  background: var(--wof-paper);
+  color: var(--wof-ink);
+  font: inherit;
+}
+
+.md-typeset .wof-controls input[type="search"] {
+  width: 11em;
+}
+
+.md-typeset .wof-button {
+  cursor: pointer;
+}
+
+.md-typeset .wof-button[aria-pressed="true"] {
+  border-color: var(--wof-link);
+  background: var(--wof-link);
+  color: var(--wof-paper);
+}
+
+.md-typeset .wof-toggle {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.md-typeset .wof-count,
+.md-typeset .wof-summary {
+  margin: 0;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .wof-failed {
+  padding: .6rem .8rem;
+  border-left: .3rem solid var(--wof-hover);
+  background: color-mix(in srgb, var(--wof-hover) 8%, transparent);
+}
+
+/* A shape's facts and a record's: the figures box's look, its table in the interface's font. */
+.md-typeset .wof-panel,
+.md-typeset .wof-inspector {
+  padding: .6rem .8rem;
+  border-left: .3rem solid var(--wof-figures);
+  background: color-mix(in srgb, var(--wof-figures) 6%, transparent);
+}
+
+.md-typeset .wof-panel-title {
+  margin: 0;
+  font-family: var(--md-code-font);
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--wof-heading);
+}
+
+.md-typeset .wof-panel-sub,
+.md-typeset .wof-panel-hint {
+  margin: 0 0 .5rem;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .wof-facts {
+  width: 100%;
+  margin: .4rem 0 0;
+  border-collapse: collapse;
+  font-size: .68rem;
+}
+
+.md-typeset .wof-facts th,
+.md-typeset .wof-facts td {
+  padding: .25em .6em .25em 0;
+  border-top: .05rem solid color-mix(in srgb, var(--wof-figures) 25%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+
+.md-typeset .wof-facts th {
+  width: 34%;
+  font-weight: 700;
+  color: var(--wof-heading);
+}
+
+/* The browser: the gallery, and beside it on a wide page the chosen shape's panel. */
+.md-typeset .wof-browser-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .8rem;
+}
+
+@media screen and (min-width: 60em) {
+  .md-typeset .wof-browser-body {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    grid-template-areas: "gallery panel";
+    align-items: start;
+  }
+
+  .md-typeset .wof-browser .wof-gallery {
+    grid-area: gallery;
+  }
+
+  .md-typeset .wof-browser .wof-panel {
+    grid-area: panel;
+    position: sticky;
+    top: 3.4rem;
+  }
+}
+
+.md-typeset .wof-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .4rem;
+}
+
+.md-typeset .wof-shape {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  max-width: 100%;
+  min-width: 3rem;
+  padding: .3rem;
+  border: .1rem solid transparent;
+  border-radius: .2rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.md-typeset .wof-shape:hover,
+.md-typeset .wof-shape:focus-visible {
+  border-color: var(--wof-link);
+}
+
+.md-typeset .wof-shape.wof-chosen {
+  border-color: var(--wof-hover);
+}
+
+.md-typeset .wof-crop {
+  display: block;
+  max-width: 100%;
+  background-color: var(--wof-shape-ground);
+  background-repeat: no-repeat;
+}
+
+.md-typeset .wof-shape-name,
+.md-typeset .wof-shape-from {
+  font-family: var(--md-code-font);
+  font-size: .62rem;
+  line-height: 1.2;
+}
+
+.md-typeset .wof-shape-from {
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .wof-stage {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  overflow: hidden;
+  background: var(--wof-shape-ground);
+}
+
+.md-typeset .wof-frame {
+  position: relative;
+  max-width: 100%;
+}
+
+.md-typeset .wof-crop.wof-mirrored {
+  transform: scaleX(-1);
+}
+
+.md-typeset .wof-spot {
+  position: absolute;
+  outline: .1rem solid var(--wof-mark);
+  pointer-events: none;
+}
+
+/* The map viewer: the strip scrolls sideways; on it every place is a world x times --z. */
+.md-typeset .wof-strip {
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--wof-ground);
+}
+
+.md-typeset .wof-strip:focus-visible {
+  outline: .1rem solid var(--wof-hover);
+}
+
+.md-typeset .wof-world {
+  position: relative;
+  width: calc(var(--extent) * var(--z) * 1px);
+  cursor: crosshair;
+}
+
+.md-typeset .wof-picture {
+  display: flex;
+  height: calc(var(--rows) * var(--z) * 1px);
+}
+
+.md-typeset .wof-picture img {
+  display: block;
+  flex: none;
+  width: calc(var(--w) * var(--z) * 1px);
+  max-width: none;
+  height: calc(var(--rows) * var(--z) * 1px);
+}
+
+.md-typeset .wof-at {
+  position: absolute;
+  top: 0;
+  left: calc(var(--x) * var(--z) * 1px);
+  width: calc(var(--w) * var(--z) * 1px);
+  height: 100%;
+}
+
+.md-typeset .wof-ruler {
+  position: relative;
+  height: 3.1rem;
+  color: var(--wof-label);
+  font-size: .6rem;
+  line-height: 1;
+}
+
+.md-typeset .wof-maps.wof-bare .wof-ruler,
+.md-typeset .wof-maps.wof-bare .wof-legend {
+  display: none;
+}
+
+.md-typeset .wof-under,
+.md-typeset .wof-ticks,
+.md-typeset .wof-spans,
+.md-typeset .wof-points {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.md-typeset .wof-under {
+  top: 0;
+  height: .3rem;
+}
+
+.md-typeset .wof-ticks {
+  top: .3rem;
+  height: .5rem;
+  background: linear-gradient(to right, var(--wof-tick) 1px, transparent 1px) 0 0 /
+    calc(var(--z) * 8px) 100% repeat-x;
+}
+
+.md-typeset .wof-spans {
+  top: 1rem;
+  height: .9rem;
+}
+
+.md-typeset .wof-points {
+  top: 2.05rem;
+  height: .9rem;
+}
+
+.md-typeset .wof-low0 { background: var(--wof-sea); }
+.md-typeset .wof-low1 { background: var(--wof-deck); }
+.md-typeset .wof-low2 { background: var(--wof-land); }
+.md-typeset .wof-low3 { background: var(--wof-low3); }
+.md-typeset .wof-mark { background: var(--wof-mark); }
+
+.md-typeset .wof-span {
+  box-sizing: border-box;
+  padding: .15rem .2rem 0;
+  overflow: hidden;
+  border: .1rem solid;
+  border-bottom: none;
+  white-space: nowrap;
+}
+
+.md-typeset .wof-span.wof-ship { border-color: var(--wof-ship-line); color: var(--wof-ship-line); }
+.md-typeset .wof-span.wof-carrier { border-color: var(--wof-carrier-line); color: var(--wof-carrier-line); }
+.md-typeset .wof-span.wof-airfield { border-color: var(--wof-airfield-line); color: var(--wof-airfield-line); }
+
+.md-typeset .wof-point {
+  width: auto;
+  padding: .15rem .2rem 0;
+  border-left: .1rem solid var(--wof-tick);
+  white-space: nowrap;
+}
+
+.md-typeset .wof-point.wof-flag { border-color: var(--wof-flag-line); color: var(--wof-flag-line); }
+.md-typeset .wof-point.wof-start { border-color: var(--wof-label); font-weight: 700; }
+.md-typeset .wof-point.wof-x { color: var(--wof-tick); }
+
+.md-typeset .wof-column {
+  height: auto;
+  bottom: 0;
+  background: color-mix(in srgb, var(--wof-label) 22%, transparent);
+  outline: 1px solid var(--wof-label);
+  pointer-events: none;
+}
+
+.md-typeset .wof-box {
+  top: calc(var(--top) * var(--z) * 1px);
+  height: calc(var(--h) * var(--z) * 1px);
+  outline: 2px solid var(--wof-mark);
+  pointer-events: none;
+}
+
+.md-typeset .wof-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem .9rem;
+  margin: .4rem 0 0;
+  color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .wof-swatch {
+  display: inline-block;
+  width: .8rem;
+  height: .55rem;
+  margin-right: .3rem;
+  vertical-align: baseline;
+}
+
+.md-typeset .wof-swatch.wof-ship { background: var(--wof-ship-line); }
+.md-typeset .wof-swatch.wof-airfield { background: var(--wof-airfield-line); }
+
+.md-typeset .wof-inspector {
+  margin-top: .6rem;
+}
+
+.md-typeset .wof-bits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem .8rem;
+  margin: .2rem 0 .4rem;
+}
+
+.md-typeset .wof-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .15rem;
+}
+
+.md-typeset .wof-group-name {
+  color: var(--md-default-fg-color--light);
+  font-size: .62rem;
+}
+
+.md-typeset .wof-group-bits {
+  display: flex;
+  gap: 2px;
+}
+
+.md-typeset .wof-bit,
+.md-typeset .wof-group-value {
+  font-family: var(--md-code-font);
+  font-size: .62rem;
+}
+
+.md-typeset .wof-bit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.25rem;
+  border: .05rem solid var(--md-default-fg-color--lighter);
+}
+
+.md-typeset .wof-bit.wof-on {
+  border-color: var(--wof-ink);
+  background: var(--wof-ink);
+  color: var(--wof-paper);
+}
+
+.md-typeset .wof-bit.wof-on.wof-flagbit {
+  border-color: var(--wof-mark);
+  background: var(--wof-mark);
+  color: var(--wof-on-mark);
+}
+
 /* ------------------------------------------------------------------ phone width */
 
 @media screen and (max-width: 44.984375em) {
