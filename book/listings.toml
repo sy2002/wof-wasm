@@ -13,7 +13,8 @@
 #                 lines from the label to its end, or a part between two offsets of its code
 #           c     a C function of src/*.c, or a variable at file scope, with the comment
 #                 directly above it
-#           js    a function or a method of web/*.js, with the comment directly above it
+#           js    a function or a method of web/*.js, with the comment directly above it; or,
+#                 with `file`, `from` and `to`, a range of that file that is no function
 #           py    a function or a class of tools/*.py, or of the file `file` names (a test of
 #                 tests/, say), or a variable at module level (an assignment), with the
 #                 comments directly above it
@@ -33,6 +34,8 @@
 #           text `from` to the first line at or after it that holds the text `to`, both
 #           inclusive, dedented (give the part a name with `as`); a c part without `to` runs
 #           to the function's end
+#           js: the lines of the file `file` names from the first that holds the text `from`
+#           to the first at or after it that holds the text `to`, both inclusive, dedented
 #           text: the lines from the first that holds the text `from` to the first at or after
 #           it that holds the text `to`, both inclusive, not dedented
 #   head    asm: true keeps the header the listing gives the routine above its label
@@ -1001,3 +1004,38 @@ lines = 45
 kind = "py"
 name = "test_state_round_trips"
 file = "tests/test_core_native.py"
+
+# Chapter 23, the shell.  The box laid out in whole device pixels.
+[[listing]]
+kind = "js"
+name = "fit"
+lines = 50
+
+# The one-pass shader: a texel through its own row's palette, then the two steps in one.
+[[listing]]
+kind = "js"
+name = "fragment-shader"
+file = "web/video.js"
+from = "vec4 colour(vec2 p) {"
+to = "}`;"
+
+# The sound's queue kept between its two bounds.
+[[listing]]
+kind = "js"
+name = "pumpWorklet"
+
+# The page hidden and shown again: the absence's rule.
+[[listing]]
+kind = "js"
+name = "visibility"
+file = "web/main.js"
+from = "/* A hidden page stops"
+to = "    });"
+
+# The help screen's list of keys, as the page carries it.
+[[listing]]
+kind = "text"
+name = "help-keys"
+file = "web/index.html"
+from = '<div class="keys">'
+to = '<div class="any later">'

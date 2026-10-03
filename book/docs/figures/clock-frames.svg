@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 616" width="1000" height="616" role="img" aria-labelledby="title desc">
+  <title id="title">The clock in six animation frames, and after a stall</title>
+  <desc id="desc">Above, six animation frames of a 60 Hz display on PAL, against emulated time below them, in which a VBlank falls every fiftieth of a second. Each VBlank is issued by the first animation frame that comes after it, so the first animation frame issues none and each of the other five issues one: the core runs that VBlank and then its pass entry, the picture is presented, the sound is pumped, and the pause sign, the written files and the exit request are checked; the first animation frame only pumps the sound and checks. Below, after a stall in which the browser ran no animation frame, the next animation frame issues at most 24 VBlanks, each with the pass entry, presents once, pumps and checks; the emulated time beyond those 24 VBlanks is dropped.</desc>
+  <style>
+    /* The design's colours, each an entry of one of the game's palettes. */
+    .core    { fill: #FFBB00; /* wingstitle 25 */ }
+    .present { fill: #77AACC; /* wingspalette 22 */ }
+    .pump    { fill: #AAAABB; /* wingspalette 29 */ }
+    .checks  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .stall   { fill: #444455; /* wingspalette 26 */ }
+    .ink     { fill: #111122; /* wingspalette 6 */ }
+    .light   { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted   { fill: #AAAABB; /* wingspalette 29 */ }
+    .ruler   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; }
+    .tick    { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; }
+    .vblank  { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 3; }
+    .issue   { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 1; stroke-dasharray: 4 3; }
+    .dropped { fill: #444455; /* wingspalette 26 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <!-- Six animation frames of a 60 Hz display, 1/60 s apart; display time 0 to 100 ms runs from x 182 to x 812 -->
+  <text class="light label" x="10" y="24">Six animation frames of a 60 Hz display, on PAL</text>
+  <text class="light" x="10" y="64">display time</text>
+  <text class="muted small" x="10" y="80">an animation frame each 1/60 s</text>
+  <line class="ruler" x1="182" y1="70" x2="812" y2="70"/>
+  <line class="tick" x1="182" y1="62" x2="182" y2="78"/>
+  <line class="tick" x1="287" y1="62" x2="287" y2="78"/>
+  <text class="light" x="287" y="54" text-anchor="middle">1</text>
+  <line class="tick" x1="392" y1="62" x2="392" y2="78"/>
+  <text class="light" x="392" y="54" text-anchor="middle">2</text>
+  <line class="tick" x1="497" y1="62" x2="497" y2="78"/>
+  <text class="light" x="497" y="54" text-anchor="middle">3</text>
+  <line class="tick" x1="602" y1="62" x2="602" y2="78"/>
+  <text class="light" x="602" y="54" text-anchor="middle">4</text>
+  <line class="tick" x1="707" y1="62" x2="707" y2="78"/>
+  <text class="light" x="707" y="54" text-anchor="middle">5</text>
+  <line class="tick" x1="812" y1="62" x2="812" y2="78"/>
+  <text class="light" x="812" y="54" text-anchor="middle">6</text>
+  <!-- Emulated time below: a VBlank every 1/50 s, each joined to the animation frame that issues it -->
+  <text class="light" x="10" y="138">emulated time</text>
+  <text class="muted small" x="10" y="154">a VBlank each 1/50 s</text>
+  <line class="ruler" x1="182" y1="144" x2="812" y2="144"/>
+  <line class="vblank" x1="308" y1="134" x2="308" y2="154"/>
+  <text class="light small" x="308" y="172" text-anchor="middle">VBlank 1</text>
+  <line class="issue" x1="308" y1="132" x2="287" y2="80"/>
+  <line class="vblank" x1="434" y1="134" x2="434" y2="154"/>
+  <text class="light small" x="434" y="172" text-anchor="middle">VBlank 2</text>
+  <line class="issue" x1="434" y1="132" x2="392" y2="80"/>
+  <line class="vblank" x1="560" y1="134" x2="560" y2="154"/>
+  <text class="light small" x="560" y="172" text-anchor="middle">VBlank 3</text>
+  <line class="issue" x1="560" y1="132" x2="497" y2="80"/>
+  <line class="vblank" x1="686" y1="134" x2="686" y2="154"/>
+  <text class="light small" x="686" y="172" text-anchor="middle">VBlank 4</text>
+  <line class="issue" x1="686" y1="132" x2="602" y2="80"/>
+  <line class="vblank" x1="812" y1="134" x2="812" y2="154"/>
+  <text class="light small" x="812" y="172" text-anchor="middle">VBlank 5</text>
+  <line class="issue" x1="812" y1="132" x2="707" y2="80"/>
+  <!-- What each animation frame does, in order, top to bottom -->
+  <text class="light" x="10" y="205">VBlank, then pass entry</text>
+  <text class="light" x="10" y="243">present the picture</text>
+  <text class="light" x="10" y="281">pump the sound</text>
+  <text class="light" x="10" y="319">sign, files, exit</text>
+  <rect class="pump" x="245" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="287" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="245" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="287" y="319" text-anchor="middle">checks</text>
+  <rect class="core" x="350" y="186" width="84" height="28" rx="3"/>
+  <text class="ink" x="392" y="205" text-anchor="middle">VBlank 1</text>
+  <rect class="present" x="350" y="224" width="84" height="28" rx="3"/>
+  <text class="ink" x="392" y="243" text-anchor="middle">present</text>
+  <rect class="pump" x="350" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="392" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="350" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="392" y="319" text-anchor="middle">checks</text>
+  <rect class="core" x="455" y="186" width="84" height="28" rx="3"/>
+  <text class="ink" x="497" y="205" text-anchor="middle">VBlank 2</text>
+  <rect class="present" x="455" y="224" width="84" height="28" rx="3"/>
+  <text class="ink" x="497" y="243" text-anchor="middle">present</text>
+  <rect class="pump" x="455" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="497" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="455" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="497" y="319" text-anchor="middle">checks</text>
+  <rect class="core" x="560" y="186" width="84" height="28" rx="3"/>
+  <text class="ink" x="602" y="205" text-anchor="middle">VBlank 3</text>
+  <rect class="present" x="560" y="224" width="84" height="28" rx="3"/>
+  <text class="ink" x="602" y="243" text-anchor="middle">present</text>
+  <rect class="pump" x="560" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="602" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="560" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="602" y="319" text-anchor="middle">checks</text>
+  <rect class="core" x="665" y="186" width="84" height="28" rx="3"/>
+  <text class="ink" x="707" y="205" text-anchor="middle">VBlank 4</text>
+  <rect class="present" x="665" y="224" width="84" height="28" rx="3"/>
+  <text class="ink" x="707" y="243" text-anchor="middle">present</text>
+  <rect class="pump" x="665" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="707" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="665" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="707" y="319" text-anchor="middle">checks</text>
+  <rect class="core" x="770" y="186" width="84" height="28" rx="3"/>
+  <text class="ink" x="812" y="205" text-anchor="middle">VBlank 5</text>
+  <rect class="present" x="770" y="224" width="84" height="28" rx="3"/>
+  <text class="ink" x="812" y="243" text-anchor="middle">present</text>
+  <rect class="pump" x="770" y="262" width="84" height="28" rx="3"/>
+  <text class="ink" x="812" y="281" text-anchor="middle">pump</text>
+  <rect class="checks" x="770" y="300" width="84" height="28" rx="3"/>
+  <text class="ink" x="812" y="319" text-anchor="middle">checks</text>
+  <text class="muted small" x="287" y="205" text-anchor="middle">none due</text>
+  <text class="light" x="10" y="362">Five VBlanks in six animation frames: one animation frame presents nothing,</text>
+  <text class="light" x="10" y="382">and the sound and the checks run in every one.</text>
+  <!-- After a stall: one animation frame issues at most 24 VBlanks and the rest is dropped (not to scale) -->
+  <text class="light label" x="10" y="424">After a stall, not to scale</text>
+  <text class="light" x="10" y="464">display time</text>
+  <line class="ruler" x1="182" y1="470" x2="812" y2="470"/>
+  <line class="tick" x1="295.4" y1="462" x2="295.4" y2="478"/>
+  <line class="tick" x1="623" y1="462" x2="623" y2="478"/>
+  <rect class="stall" x="299.4" y="458" width="319.6" height="24" rx="2"/>
+  <text class="light small" x="459.2" y="475" text-anchor="middle">the browser runs no animation frame</text>
+  <text class="light" x="10" y="512">emulated time</text>
+  <line class="ruler" x1="182" y1="518" x2="812" y2="518"/>
+  <rect class="dropped" x="299.4" y="506" width="168.4" height="24" rx="2"/>
+  <text class="light small" x="383.6" y="523" text-anchor="middle">dropped</text>
+  <rect class="core" x="471.8" y="506" width="147.2" height="24" rx="2"/>
+  <text class="ink small" x="545.4" y="523" text-anchor="middle">24 VBlanks at most</text>
+  <line class="issue" x1="619" y1="504" x2="623" y2="480"/>
+  <rect class="core" x="393" y="546" width="249.5" height="28" rx="3"/>
+  <text class="ink" x="517.8" y="565" text-anchor="middle">24 VBlanks, each with the pass entry</text>
+  <rect class="present" x="650.5" y="546" width="100.9" height="28" rx="3"/>
+  <text class="ink" x="701" y="565" text-anchor="middle">present once</text>
+  <rect class="pump" x="759.4" y="546" width="55" height="28" rx="3"/>
+  <text class="ink" x="786.9" y="565" text-anchor="middle">pump</text>
+  <rect class="checks" x="822.4" y="546" width="63.6" height="28" rx="3"/>
+  <text class="ink" x="854.2" y="565" text-anchor="middle">checks</text>
+  <text class="light" x="10" y="565">the next animation frame</text>
+  <text class="light" x="10" y="604">The queue of six input bytes holds 24 VBlanks: anything older the machine would have dropped too.</text>
+</svg>

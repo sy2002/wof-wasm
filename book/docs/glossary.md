@@ -28,6 +28,22 @@ The 68000's address register 5, which every compiled C routine of the game uses 
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
 
+### Absence (of the page)
+
+A stretch of a second or more in which the page is hidden, behind another tab or window, which brings a mission back paused; a page hidden for a few milliseconds is none.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Pause"; [`re/notes/porting-m8.md`](repo:re/notes/porting-m8.md#the-page-and-the-fullscreen-finding), "The page and the fullscreen finding".
+
+Elsewhere: [Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page%5FVisibility%5FAPI), MDN.
+
+### Accumulator
+
+The shell clock's store of real time not yet turned into VBlanks: every animation frame adds the time since the last, every VBlank issued takes its share off, and the rest waits for the next animation frame.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/clock.js`](repo:web/clock.js); [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Clock".
+
+Elsewhere: [Fix Your Timestep!](https://gafferongames.com/post/fix%5Fyour%5Ftimestep/), Glenn Fiedler.
+
 ### ADF
 
 An Amiga Disk File: a copy of an Amiga floppy, block by block, in one file, a double-density disk's 1,760 blocks of 512 bytes; the game's disk is [`original/wof.adf`](repo:original/wof.adf).
@@ -49,6 +65,14 @@ The number, from 0 to 1,400, that scales the player's aircraft's two speeds, in 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-players-record), "The player's record".
 
 Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the real quantity.
+
+### Animation frame
+
+One call the browser makes of a page's drawing routine just before it repaints, at the display's refresh rate, and none while the page is hidden; the shell's clock runs in them.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/clock.js`](repo:web/clock.js).
+
+Elsewhere: [Window: requestAnimationFrame() method](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), MDN.
 
 ### Arena
 
@@ -95,6 +119,20 @@ A recorded game that the program plays by itself when left alone at the rank sel
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/demo.md`](repo:re/notes/demo.md).
 
 Elsewhere: [Attract mode](https://en.wikipedia.org/wiki/Attract%5Fmode), Wikipedia.
+
+### Audio frame
+
+One instant of the mixed sound, a value for the left and one for the right; the core hands out as many as the emulated time lasts at the rate the shell asks for.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/audio.js`](repo:web/audio.js); [`SPEC.md`](repo:SPEC.md#61-core), section 6.1.
+
+### Audio worklet
+
+A small program the browser runs on its audio thread beside the page; the shell's plays the blocks of audio frames the page posts and reports how much it has played.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/worklet.js`](repo:web/worklet.js); [`web/audio.js`](repo:web/audio.js).
+
+Elsewhere: [AudioWorklet](https://developer.mozilla.org/en-US/docs/Web/API/AudioWorklet), MDN.
 
 ### Autopilot
 
@@ -422,6 +460,20 @@ First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes
 
 Elsewhere: [Color depth](https://en.wikipedia.org/wiki/Color%5Fdepth), Wikipedia.
 
+### Device pixel
+
+One of the screen's own pixels, as against a CSS pixel, the page's unit of layout, which a Retina screen draws two device pixels wide; the shell lays out the picture's box in whole device pixels.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/video.js`](repo:web/video.js); [`re/notes/page-video.md`](repo:re/notes/page-video.md#the-machine-and-the-displays-refresh), "The machine and the display's refresh".
+
+Elsewhere: [Window: devicePixelRatio property](https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio), MDN.
+
+### Diagnostics overlay
+
+The shell's panel of figures over the picture, opened by the key left of 1, which shows what the page is doing and offers the development keys; not the game's, and not the overlay of the file system.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/overlay.js`](repo:web/overlay.js); [`web/main.js`](repo:web/main.js).
+
 ### Differential test
 
 A test that hands two implementations of the same thing the same input and demands the same output; the oracle's tests run the original's routine and its port so.
@@ -483,6 +535,12 @@ Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commo
 The zoomed-out picture the game switches to while the aircraft is high, "view" in the everyday sense and not the record: eight pixels of the world to one of the screen, the shapes taken from a container of their own.
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates"; [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
+
+### Emulated time
+
+The game's own time, counted in the VBlanks the shell issues, as against the display's time, which the animation frames keep.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/clock.js`](repo:web/clock.js); [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Clock".
 
 ### Emulator
 
@@ -581,6 +639,14 @@ A computer rebuilt in programmable hardware, a chip whose circuits are configure
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
 
 Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-programmable%5Fgate%5Farray), Wikipedia.
+
+### Fragment shader
+
+The small program the graphics processor runs once for every pixel it draws, to give it its colour; the shell's works out both steps of its two-step scaling at once.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/video.js`](repo:web/video.js); [`re/notes/page-video.md`](repo:re/notes/page-video.md#the-webgl-path), "The WebGL path".
+
+Elsewhere: [Shader](https://en.wikipedia.org/wiki/Shader), Wikipedia.
 
 ### Freestanding
 
@@ -827,6 +893,14 @@ First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/
 A flag that keeps a brief event until it is read; the game latches a tap and a hold of the fire button between two input samples, so that a tap shorter than the interval between them still reaches the game.
 
 First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md#fire-button-and-the-taphold-discrimination), "Fire button and the tap/hold discrimination".
+
+### Leave rule
+
+The shell's rule that leaving fullscreen asks the core for the pause, a request and not a toggle, so that Escape, which a browser takes for leaving fullscreen, always pauses.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Input"; [`web/main.js`](repo:web/main.js).
+
+Elsewhere: [Fullscreen API](https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen%5FAPI), MDN.
 
 ### Level-4 vector
 
@@ -1151,6 +1225,14 @@ First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/
 
 Elsewhere: [Aircraft principal axes](https://en.wikipedia.org/wiki/Aircraft%5Fprincipal%5Faxes), Wikipedia.
 
+### Pixel aspect
+
+How wide a pixel is shown against its height: on PAL a low-resolution pixel is 16/15 as wide as tall and a framebuffer pixel half that, so the picture of 640 by 214 is shown in a box of 1024 : 642.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Video"; [`web/video.js`](repo:web/video.js).
+
+Elsewhere: [Pixel aspect ratio](https://en.wikipedia.org/wiki/Pixel%5Faspect%5Fratio), Wikipedia.
+
 ### Plane mask
 
 A byte of a shape's header naming the screen's planes that one stored plane is written to; a mask of two bits writes one stored plane into two planes.
@@ -1332,6 +1414,14 @@ A new program made to look and play like an old one, written from watching the o
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#1-goal), section 1.
 
 Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Fremake), Wikipedia.
+
+### Renderer
+
+The shell's code that puts the picture on the canvas: the WebGL renderer, the main one, or the 2D renderer, its fallback; the page and the notes call the one in use the path.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/video.js`](repo:web/video.js); [`re/notes/page-video.md`](repo:re/notes/page-video.md).
+
+Elsewhere: [WebGL: 2D and 3D graphics for the web](https://developer.mozilla.org/en-US/docs/Web/API/WebGL%5FAPI), MDN.
 
 ### Resume point
 
@@ -1624,6 +1714,14 @@ Elsewhere: [Torpedo bomber](https://en.wikipedia.org/wiki/Torpedo%5Fbomber), Wik
 One of a song's four lines of music, each on its own channel of Paula: a sequence of patterns played one after another.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-song-format-wofsongss-data-hunk), "The song format".
+
+### Two-step scaling
+
+The shell's scaling of the picture: an enlargement by whole numbers with nearest neighbour, which makes every framebuffer pixel a block of equal size, then a smooth reduction to the box, so that the pixels stay crisp and even in the machine's proportions.
+
+First met and defined in [chapter 23](part-3/shell.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Video"; [`re/notes/page-video.md`](repo:re/notes/page-video.md#the-webgl-path), "The WebGL path".
+
+Elsewhere: [Image scaling](https://en.wikipedia.org/wiki/Image%5Fscaling), Wikipedia.
 
 ### Upper word
 

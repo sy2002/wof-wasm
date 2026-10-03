@@ -21,7 +21,10 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
          directly above it; or a part of a function, from the first of its lines that holds
          the text `from` to the first line at or after it that holds the text `to`, or to the
          function's end without `to`, dedented
-    js   web/*.js, a function or a method by its name, with the comment directly above it
+    js   web/*.js, a function or a method by its name, with the comment directly above it;
+         or, with `file`, `from` and `to`, the lines of that file from the first that holds
+         the text `from` to the first at or after it that holds the text `to`, dedented, for
+         what is no function (a shader's source in a string, a handler inside a function)
     py   tools/*.py, or the file an entry's `file` names (tests/ too), a function or a class by
          its name (a method as Class.method, a function inside a function as outer.inner), or a
          variable at module level by its name, with the comments directly above it; or a part of
@@ -289,6 +292,29 @@ def js_functions(text, name):
             first = line_of(text, m.start())
             found.add((with_comment_above(lines, first), line_of(text, span[1] - 1)))
     return sorted(found)
+
+
+def js_range(entry):
+    """Lines of a web/ file that are no function, by two texts: from the first line of the
+    file `file` names that holds `from` to the first at or after it that holds `to`, both
+    inclusive, dedented."""
+    name, start, stop = entry['name'], entry.get('from'), entry.get('to')
+    if 'file' not in entry:
+        raise Failure('js %s: a range names its file' % name)
+    if not isinstance(start, str) or not isinstance(stop, str):
+        raise Failure('js %s: a range takes from and to, both texts of its lines' % name)
+    path = ROOT / entry['file']
+    if not path.is_file():
+        raise Failure('js %s: no file %s' % (name, entry['file']))
+    whole = [line.rstrip() for line in path.read_text(encoding='utf-8').split('\n')]
+    lo = next((i for i, line in enumerate(whole) if start in line), None)
+    if lo is None:
+        raise Failure('js %s: no line of %s holds %r' % (name, entry['file'], start))
+    hi = next((i for i in range(lo, len(whole)) if stop in whole[i]), None)
+    if hi is None:
+        raise Failure('js %s: no line of %s at or after %r holds %r'
+                      % (name, entry['file'], start, stop))
+    return '// %s, lines %d-%d' % (rel(path), lo + 1, hi + 1), dedented(whole[lo:hi + 1])
 
 
 # ------------------------------------------------------------------ Python
@@ -601,8 +627,8 @@ def extract(entry, table, listing):
     if 'head' in entry and entry['kind'] not in ('asm', 'text'):
         raise Failure('%s %s: head is for asm and text only' % (entry['kind'], entry['name']))
     if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'player', 'py', 'c',
-                                                                    'text'):
-        raise Failure('%s %s: from and to are for asm, player, py, c and text only'
+                                                                    'js', 'text'):
+        raise Failure('%s %s: from and to are for asm, player, py, c, js and text only'
                       % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
@@ -614,6 +640,8 @@ def extract(entry, table, listing):
         header, lines = text_extract(entry)
     elif entry['kind'] == 'skel':
         header, lines = skel_extract(entry, table)
+    elif entry['kind'] == 'js' and ('from' in entry or 'to' in entry):
+        header, lines = js_range(entry)
     else:
         header, lines = source_extract(entry)
     limit = entry.get('lines', DEFAULT_LINES)

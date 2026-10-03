@@ -1,0 +1,18 @@
+# web/index.html, lines 18-34
+<div class="keys">
+<span class="key">Arrow keys or W A S D</span><span>move the stick</span>
+<span class="key">Space</span><span>fire, and choose</span>
+<span class="key">Enter</span><span>choose in a menu</span>
+<span class="key">P</span><span>pause and continue</span>
+<span class="key">Escape</span><span>pause</span>
+<span class="key">F</span><span>fullscreen on and off</span>
+<span class="key">V</span><span>flip the vertical control</span>
+<span class="key">G</span><span>save, <i>on the carrier only</i></span>
+<span class="key">L</span><span>load a saved game</span>
+<span class="key">M</span><span>music on or off, <i>in flight</i></span>
+<span class="key">R</span><span>restart, <i>paused or in the briefing</i></span>
+<span class="key">C</span><span>clear the high scores, <i>paused</i></span>
+<span class="key">H</span><span>show this help</span>
+</div>
+<div class="any at-start">Press any key to start the sound and the game</div>
+<div class="any later">Press any key to go back to the game</div>
