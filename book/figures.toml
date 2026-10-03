@@ -19,7 +19,9 @@
 #            font       a specimen of the game's font, drawn by the port's text_render
 #            planes     one shape taken apart into its stored planes and put together again
 #                       (tools/ppkc.py, parse()), as colour numbers and through a palette
-#            sample     a sound effect's file as a waveform, the whole and a stretch enlarged
+#            sample     a sound effect's file as a waveform, the whole and a stretch enlarged; or,
+#                       with `song_sample`, a sample of the song data by its name, its one-shot
+#                       part in `ink`, its repeat part in `repeat_ink`, the boundary marked
 #            blit       the blitter's cookie cut of one plane of a shape over a plain background
 #            disk       the game's directory on the disk, its files in rows by kind, their bytes and
 #                       formats, and which of them tools/build.py packs into the page
@@ -43,6 +45,10 @@
 #                       registered fields), the bytes of no field and the pointer fields' values
 #            demo       a demo file as a hexadecimal dump by role, its first rows, the rows around
 #                       its 0xFF and its last row, with the input bytes' values and their bits
+#            song       a song's first bars from the song data (tools/song_decode.py): a lane for
+#                       each track, a bar for each sound from its start to its release, its height
+#                       its pitch and its ink its voice (`inks`: a voice's name, a palette entry),
+#                       the rest voice a gap; `ticks` of the timer, `per_tick` pixels each
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -840,3 +846,36 @@ scale = 2
 shows = "The demo the port recorded for its replay test, as a hexadecimal dump: entry 0 the rank, the first input bytes, the rows around the 0xFF that ends the recording, and the last row of the 5,000 bytes; under it the values the input bytes take, each with the stick's and the button's bits it carries."
 how = "The wofdemo of tests/replays/demo_a.json, which must be 0x1388 bytes with nothing but zeros after its first 0xFF past entry 0; the rows shown and every count from the file; the bits named after the input byte's table (re/notes/input.md): 0 forward, 1 back, 2 right, 3 left, 4 fire held, 5 fire tapped; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py demo-file"
+
+[[figure]]
+name = "sample-omlead"
+file = "sample-omlead.png"
+maker = "sample"
+song_sample = "omlead.iff"
+period = 427
+clock = 3546895
+zoom = [3384, 100]
+ink = ["wingstitle", 25]
+repeat_ink = ["wingspalette", 22]
+width = 500
+height = 90
+scale = 2
+shows = "The sample of the voice omlead from the song data, wofsongs, as Paula plays it for the first note of song 2: its one-shot part, played once, and its repeat part, looped while the note sounds, the boundary marked; below, the hundred bytes around the boundary enlarged."
+how = "The sample's BODY and the one-shot length of its VHDR as tools/song_decode.py reads the DATA hunk of wofsongs (Songs().form()), the repeat part the rest of the BODY for a sample of one octave; above, one column for every thirteen or so bytes with a tick every 100 ms at period 427, the first note of song 2 on this voice (re/notes/music.md, the period from note_clocks), and PAL's 3,546,895 colour clocks a second; below, bytes 3,384 to 3,483, one step of five pixels each; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py sample-omlead"
+
+[[figure]]
+name = "song-highscore"
+file = "song-highscore.png"
+maker = "song"
+song = 0
+ticks = 384
+per_tick = 1
+inks = [["RoomBrass2", "wingstitle", 25], ["SyntheBass", "wingspalette", 22],
+        ["BassDrum3", "wingspalette", 2], ["sdrum1", "wingspalette", 30],
+        ["omlead", "iff-dash", 6], ["Mechanic1", "wingspalette", 29]]
+scale = 2
+shows = "The first four bars of song 0, the high-score screen's, as the player plays them: its four tracks, each note a bar from its start to its release, its height its pitch, its ink its voice, the rest voice a gap."
+how = "The song's sequences and patterns decoded by tools/song_decode.py (Songs()), walked as track_read, note_start and note_release take them (src/music.c): a note's length and release tick from the player's durations, a tied note never released and a run of tied notes one bar, a note of the rest voice nothing; one pixel a tick of the timer, the quarters of 24 ticks and the bars of 96 ruled; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py song-highscore"
+

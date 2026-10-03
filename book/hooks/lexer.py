@@ -1,4 +1,5 @@
-"""MkDocs hook: a Pygments lexer for the lines of re/Wings.lst, the fence language `wingslst`.
+"""MkDocs hook: a Pygments lexer for the lines of re/Wings.lst, the fence language `wingslst`,
+and for those of the music player's re/songplay.lst, whose offsets have four digits.
 
 Pygments has no lexer for this listing's format (the address, the instruction's bytes, the
 68000 mnemonic and its operands, the generated comment), so the book brings its own and
@@ -25,6 +26,9 @@ class WingsListingLexer(RegexLexer):
             (r'^;.*\n?', Comment.Single),                         # a header or a note line
             (r'^([A-Za-z_]\w*)(:)([ \t]*\n?)', bygroups(Name.Label, Punctuation, Whitespace)),
             (r'^([0-9a-f]{6})(\s+)([0-9a-f]+)(\s+)',
+             bygroups(Name.Constant, Whitespace, Comment.Special, Whitespace), 'instruction'),
+            # a line of the music player's listing (re/songplay.lst): an offset of four digits
+            (r'^([0-9a-f]{4})(\s+)([0-9a-f]+)(\s+)',
              bygroups(Name.Constant, Whitespace, Comment.Special, Whitespace), 'instruction'),
             # a line of a control-flow skeleton (tools/skel.py): indented, without the bytes
             (r'^([ \t]+)([0-9a-f]{6})([ \t]+)',

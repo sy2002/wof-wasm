@@ -14,6 +14,9 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
          header the listing gives it (its kind, frame, far-call slot, comment and callers)
     skel the control-flow skeleton of a routine of re/Wings.lst, by its name: what
          tools/skel.py prints for it, run at build time
+    player re/songplay.lst, the music player's listing (tools/disasm_player.py), a routine by
+         its label: its lines from the label to the routine's end, or a part of it between two
+         offsets of the player's CODE hunk, `from` and `to`, as asm takes two addresses
     c    src/*.c, a C function, or a variable at file scope, by its name, with the comment
          directly above it; or a part of a function, from the first of its lines that holds
          the text `from` to the first line at or after it that holds the text `to`, or to the
@@ -50,10 +53,11 @@ import tempfile
 from common import LISTINGS, ROOT, Failure, compare, manifest, rel, replace_tree
 
 DEFAULT_LINES = 40
-EXT = {'asm': 'lst', 'skel': 'lst', 'c': 'c', 'js': 'js', 'py': 'py', 'json': 'json'}
+EXT = {'asm': 'lst', 'skel': 'lst', 'player': 'lst', 'c': 'c', 'js': 'js', 'py': 'py', 'json': 'json'}
 SKEL = ROOT / 'tools' / 'skel.py'
 SOURCES = {'c': ('src', '*.c'), 'js': ('web', '*.js'), 'py': ('tools', '*.py')}
 LISTING = ROOT / 're' / 'Wings.lst'
+PLAYER_LISTING = ROOT / 're' / 'songplay.lst'
 FUNCTIONS = ROOT / 're' / 'functions.csv'
 
 
@@ -368,6 +372,49 @@ def asm_extract(entry, table, listing):
     return header, out
 
 
+PLAYER_ADDRESS = re.compile(r'^([0-9a-f]{4})  ')
+
+
+def player_extract(entry):
+    """A routine of the music player's listing by its label, whole or the part between two
+    offsets, each of which must be an instruction of the routine."""
+    name = entry['name']
+    listing = PLAYER_LISTING.read_text(encoding='utf-8').split('\n')
+    label = next((i for i, line in enumerate(listing) if line == '%s:' % name), None)
+    if label is None:
+        raise Failure('player %s: no label of that name in re/songplay.lst' % name)
+    body = []
+    for line in listing[label + 1:]:
+        if line.startswith('; ====') or not line.strip():
+            break
+        body.append(line.rstrip())
+    addresses = [int(m.group(1), 16) for m in map(PLAYER_ADDRESS.match, body) if m]
+    if not addresses:
+        raise Failure('player %s: no instruction under its label' % name)
+    start, end = addresses[0], addresses[-1]
+    lo, hi = entry.get('from', start), entry.get('to', end)
+    for at in (lo, hi):
+        if at not in addresses:
+            raise Failure('player %s: no instruction of the routine at 0x%04X (0x%04X-0x%04X)'
+                          % (name, at, start, end))
+    if hi < lo:
+        raise Failure('player %s: from 0x%04X lies after to 0x%04X' % (name, lo, hi))
+    out, inside = ([listing[label]] if lo == start else []), lo == start
+    for line in body:
+        m = PLAYER_ADDRESS.match(line)
+        if m and int(m.group(1), 16) == lo:
+            inside = True
+        if inside:
+            out.append(line)
+        if m and int(m.group(1), 16) == hi:
+            break
+    while out and LABEL.match(out[-1]):
+        out.pop()
+    part = '' if (lo, hi) == (start, end) else ', a part of 0x%04X-0x%04X' % (start, end)
+    header = '; re/songplay.lst 0x%04X-0x%04X: %s, the music player%s' % (lo, hi, name, part)
+    return header, out
+
+
 def skel_extract(entry, table):
     """What tools/skel.py prints for a routine, with a first line that names the command, the
     routine's address range and how many of its lines in the listing the skeleton keeps."""
@@ -499,10 +546,13 @@ def extract(entry, table, listing):
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
     if 'head' in entry and entry['kind'] != 'asm':
         raise Failure('%s %s: head is for asm only' % (entry['kind'], entry['name']))
-    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'py', 'c'):
-        raise Failure('%s %s: from and to are for asm, py and c only' % (entry['kind'], entry['name']))
+    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'player', 'py', 'c'):
+        raise Failure('%s %s: from and to are for asm, player, py and c only'
+                      % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
+    elif entry['kind'] == 'player':
+        header, lines = player_extract(entry)
     elif entry['kind'] == 'json':
         header, lines = json_extract(entry)
     elif entry['kind'] == 'skel':

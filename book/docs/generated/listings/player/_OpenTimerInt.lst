@@ -1,0 +1,30 @@
+; re/songplay.lst 0x09BC-0x0A4E: _OpenTimerInt, the music player
+_OpenTimerInt:
+09bc  2f0e                 move.l     a6, -(a7)
+09be  42790000127c         clr.w      $127c.l                           ; PlayState
+09c4  42b90000127e         clr.l      $127e.l                           ; TrackState
+09ca  43f90000100c         lea.l      $100c.l, a1                       ; ciaa_name
+09d0  2c780004             movea.l    $4.w, a6
+09d4  4eaefe0e             jsr        -$1f2(a6)
+09d8  23c000001008         move.l     d0, $1008.l                       ; ciaa_base
+09de  41f90000101a         lea.l      $101a.l, a0                       ; timer_node
+09e4  117c00020008         move.b     #$2, $8(a0)
+09ea  117c00000009         move.b     #$0, $9(a0)
+09f0  43f900001030         lea.l      $1030.l, a1                       ; timer_name
+09f6  2149000a             move.l     a1, $a(a0)
+09fa  217c00000000000e     move.l     #$0, $e(a0)
+0a02  43faf8a2             lea.l      $2a6(pc), a1
+0a06  21490012             move.l     a1, $12(a0)
+0a0a  2c7900001008         movea.l    $1008.l, a6                       ; ciaa_base
+0a10  7000                 moveq      #$0, d0
+0a12  43f90000101a         lea.l      $101a.l, a1                       ; timer_node
+0a18  4eaefffa             jsr        -$6(a6)
+0a1c  13fc000100bfee01     move.b     #$1, $bfee01.l
+0a24  33fc078000dff09a     move.w     #$780, $dff09a.l
+0a2c  23f8007000001040     move.l     $70.w, $1040.l                    ; saved_level4_vector
+0a34  43fafe12             lea.l      $848(pc), a1
+0a38  21c90070             move.l     a1, $70.w
+0a3c  33fc078000dff01e     move.w     #$780, $dff01e.l
+0a44  33fc878000dff09a     move.w     #$8780, $dff09a.l
+0a4c  2c5f                 movea.l    (a7)+, a6
+0a4e  4e75                 rts

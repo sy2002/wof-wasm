@@ -1,0 +1,22 @@
+; re/Wings.lst 0x01EC9C-0x01ECEC: soundfx_vblank [asm], a part of 0x01EC64-0x01ED79
+loc_01ec9c:
+01ec9c  4a680008             tst.w      $8(a0)
+01eca0  6700004e             beq.w      $1ecf0
+01eca4  202cce6c             move.l     -$3194(a4), d0                         ; sound_vblanks
+01eca8  90a80004             sub.l      $4(a0), d0
+01ecac  b0bc00000002         cmp.l      #$2, d0
+01ecb2  6d00003c             blt.w      $1ecf0
+01ecb6  4a2ccf17             tst.b      -$30e9(a4)                             ; g_027f15
+01ecba  67000012             beq.w      $1ecce
+01ecbe  b47c0001             cmp.w      #$1, d2
+01ecc2  6600000a             bne.w      $1ecce
+01ecc6  50eccf16             st.b       -$30ea(a4)                             ; sound_flags
+01ecca  50eccf18             st.b       -$30e8(a4)                             ; g_027f16
+loc_01ecce:
+01ecce  2290                 move.l     (a0), (a1)
+01ecd0  3368000a0004         move.w     $a(a0), $4(a1)
+01ecd6  3368000c0006         move.w     $c(a0), $6(a1)
+01ecdc  3368000e0008         move.w     $e(a0), $8(a1)
+01ece2  316800120014         move.w     $12(a0), $14(a0)
+01ece8  836ccf22             or.w       d1, -$30de(a4)                         ; sound_dmacon
+01ecec  42680008             clr.w      $8(a0)

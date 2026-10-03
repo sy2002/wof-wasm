@@ -1,0 +1,19 @@
+; re/Wings.lst 0x0123DC-0x01240A: music_start [asm], a part of 0x0123DC-0x01246F
+music_start:
+0123dc  206f0004             movea.l    $4(a7), a0
+0123e0  202f0008             move.l     $8(a7), d0
+0123e4  2940a5f4             move.l     d0, -$5a0c(a4)                         ; song_number
+0123e8  4aacc42a             tst.l      -$3bd6(a4)                             ; songs_seglist
+0123ec  67000020             beq.w      $1240e
+0123f0  2c6ca5f0             movea.l    -$5a10(a4), a6                         ; player_entry
+0123f4  7006                 moveq      #$6, d0
+0123f6  7202                 moveq      #$2, d1
+0123f8  4e96                 jsr        (a6)
+0123fa  4a2ca4f9             tst.b      -$5b07(a4)                             ; opt_music_off
+0123fe  6600000e             bne.w      $1240e
+loc_012402:
+012402  7005                 moveq      #$5, d0
+012404  4e96                 jsr        (a6)
+012406  4a40                 tst.w      d0
+012408  66f8                 bne.b      $12402
+01240a  6000003c             bra.w      $12448

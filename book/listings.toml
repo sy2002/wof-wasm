@@ -9,6 +9,8 @@
 #                 its start address to its end
 #           skel  the control-flow skeleton of a routine of re/Wings.lst: what tools/skel.py
 #                 prints for it by name, run at build time
+#           player  a routine of re/songplay.lst, the music player's listing, by its label: its
+#                 lines from the label to its end, or a part between two offsets of its code
 #           c     a C function of src/*.c, or a variable at file scope, with the comment
 #                 directly above it
 #           js    a function or a method of web/*.js, with the comment directly above it
@@ -22,7 +24,7 @@
 #           function outer.inner
 #   file    the source file, needed only where the name alone is not unique or the file lies
 #           outside the kind's directory (not for asm; always for json)
-#   from    asm: the part of the routine from this address ...
+#   from    asm and player: the part of the routine from this address (player: offset) ...
 #   to      ... to the instruction at this address, both inclusive
 #           py and c: the part of the function from the first of its lines that holds the
 #           text `from` to the first line at or after it that holds the text `to`, both
@@ -722,3 +724,87 @@ as = "wof_vblank_playback"
 kind = "py"
 name = "test_the_saved_file_is_the_originals_but_for_its_pointers"
 file = "tests/test_campaign.py"
+
+# Chapter 18, the sound effects engine: sound_channels' paths for a channel with nothing on, a
+# sample it already plays, and a new one, with the triple stop and the triple call.
+[[listing]]
+kind = "asm"
+name = "sound_channels"
+from = 0x0120A4
+to = 0x01211E
+as = "sound_channels_play"
+
+[[listing]]
+kind = "c"
+name = "wof_sound_channels"
+file = "src/sound.c"
+from = "if (!a3) {"
+to = "(uint16_t)a3->repeat);"
+as = "sound_channels_play_c"
+
+# soundfx_vblank's test of a waiting channel record, two VBlanks after its stamp, its four
+# registers and its bit collected for the one DMACON write.
+[[listing]]
+kind = "asm"
+name = "soundfx_vblank"
+from = 0x01EC9C
+to = 0x01ECEC
+as = "soundfx_vblank_start"
+
+[[listing]]
+kind = "c"
+name = "wof_soundfx_vblank"
+file = "src/sound.c"
+from = "if (r->pending != 0"
+to = "r->pending = 0;"
+as = "soundfx_vblank_start_c"
+
+# audio_irq's count of a channel's cycles and its stop, with the INTENA write of the bits
+# handled so far, and the requests it saw cleared.
+[[listing]]
+kind = "asm"
+name = "audio_irq"
+from = 0x01EBF0
+to = 0x01EC52
+as = "audio_irq_count"
+
+[[listing]]
+kind = "c"
+name = "wof_audio_irq"
+file = "src/sound.c"
+from = "for (int c = 0; c < 4; c++) {"
+to = "wof_paula_write(WOF_INTREQ, d4);"
+as = "audio_irq_count_c"
+
+# music_start with the music loaded: the song's fade, the branch at 0x0123FE, the spin on
+# command 5; beside it the coroutine's same steps with its four VBlanks a round.
+[[listing]]
+kind = "asm"
+name = "music_start"
+to = 0x01240A
+as = "music_start_fade"
+
+[[listing]]
+kind = "c"
+name = "wof_music_start"
+file = "src/music.c"
+from = "CO_BEGIN(c);"
+to = "CO_WAIT(c);"
+as = "music_start_fade_c"
+
+# The music player's command 0 from its own listing: CIA-A's timer A through ciaa.resource,
+# the level-4 vector kept and replaced, and the write to INTREQR.
+[[listing]]
+kind = "player"
+name = "_OpenTimerInt"
+
+[[listing]]
+kind = "c"
+name = "open_timer_int"
+file = "src/music.c"
+
+# The music's tempo held: the timer's ticks over the front end, 0x38FF + 1 E cycles apart.
+[[listing]]
+kind = "py"
+name = "test_the_timer_ticks_at_the_songs_tempo"
+file = "tests/test_music.py"

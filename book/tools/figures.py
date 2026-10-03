@@ -25,7 +25,9 @@ made and the command that remakes it, and writes PNG files:
     planes     one shape of a container taken apart into its stored planes with tools/ppkc.py,
                and put together again as colour numbers and through a palette
     blit       the blitter's cookie cut of one plane of a shape over a plain background
-    sample     a sound effect's file as a waveform, the whole and a stretch enlarged
+    sample     a sound effect's file as a waveform, the whole and a stretch enlarged; or a
+               sample of the song data, wofsongs, by its name through tools/song_decode.py, its
+               one-shot and repeat parts in two inks and the boundary marked
     disk       the game's directory on the disk, its files in rows by kind, with their bytes,
                the formats their first bytes show and whether tools/build.py packs them
     packed     the first bytes of a packed file against the bytes they unpack to, with
@@ -50,6 +52,9 @@ made and the command that remakes it, and writes PNG files:
                registered fields, the bytes of no field and the pointer fields with their values
     demo       a demo file as a hexadecimal dump: its first rows, the rows around its 0xFF and
                its last row, by role, and the input bytes' values with the bits they carry
+    song       a song's first bars from the song data through tools/song_decode.py: a lane for
+               each of its four tracks, a bar for each sound from its start to its release, its
+               height its pitch and its ink its voice, the rest voice a gap
 
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
@@ -112,6 +117,14 @@ def palette(name):
 
 def text(draw, at, words):
     draw.text(at, words, fill=LABEL, font=ppkc().FONT)
+
+
+def backed(draw, at, words):
+    """A label over a drawing, on a patch of the panel's colour so that it reads."""
+    left, top, right, bottom = ppkc().FONT.getbbox(words)
+    draw.rectangle((at[0] + left - 2, at[1] + top - 1, at[0] + right + 1, at[1] + bottom + 1),
+                   fill=PANEL)
+    text(draw, at, words)
 
 
 # ------------------------------------------------------------------ the runs of the core
@@ -735,15 +748,40 @@ def make_blit(figure, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def song_sample(name):
+    """A sample of the song data, wofsongs's DATA hunk, by the name its 8SVX form carries, as
+    tools/song_decode.py reads it: its BODY's bytes and the length of its one-shot part, which
+    its VHDR gives; the rest of the BODY is the repeat part, for a sample of one octave."""
+    import song_decode
+    songs = song_decode.Songs()
+    forms = {songs.voice(v)['form'] for song in songs.songs() for v in songs.voices(song).values()}
+    for at in sorted(forms - {0}):
+        label, vhdr, body = songs.form(at)
+        if label == name:
+            one_shot, repeat, octaves = vhdr[0], vhdr[1], vhdr[4]
+            if octaves != 1 or one_shot + repeat != body[1]:
+                raise Failure('wofsongs %s: %d octaves, one-shot %d and repeat %d for a BODY of %d'
+                              % (name, octaves, one_shot, repeat, body[1]))
+            return songs.data[body[0]:body[0] + body[1]], one_shot
+    raise Failure('wofsongs has no sample %s' % name)
+
+
 def make_sample(figure, path):
     """A sound effect's file, signed 8-bit bytes, as a waveform: the whole of it, one column
     per few bytes from their smallest to their largest value, with a tick every 100 ms at the
     figure's period; then a stretch of it enlarged, each byte held as a step, as Paula holds
-    it for one period."""
+    it for one period.  With `song_sample` in place of `sound`, a sample of the song data
+    instead (song_sample()), its one-shot part in `ink` and its repeat part in `repeat_ink`,
+    the boundary between them marked in both views."""
     from PIL import Image, ImageDraw
     import rpck
-    name = 'sounds/%s' % figure['sound']
-    raw, _ = rpck.load(str(DISK / name))
+    boundary = None
+    if 'song_sample' in figure:
+        raw, boundary = song_sample(figure['song_sample'])
+        name = 'wofsongs, %s' % figure['song_sample'].replace('.iff', '')
+    else:
+        name = 'sounds/%s' % figure['sound']
+        raw, _ = rpck.load(str(DISK / name))
     values = [b - 256 if b > 127 else b for b in raw]
     count, period, clock = len(values), figure['period'], figure['clock']
     seconds = count * period / clock
@@ -752,6 +790,11 @@ def make_sample(figure, path):
         raise Failure('%s has %d bytes, the stretch %d + %d does not fit'
                       % (name, count, first, many))
     ink = palette(figure['ink'][0])[figure['ink'][1]]
+    repeat_ink = ink_of(figure['repeat_ink']) if boundary is not None else ink
+
+    def ink_at(i):
+        return ink if boundary is None or i < boundary else repeat_ink
+
     width, strip, margin, head, gap = figure['width'], figure['height'], 6, 14, 26
     image = Image.new('RGB', (width + 2 * margin, 2 * margin + 2 * (head + strip) + gap), GROUND)
     draw = ImageDraw.Draw(image)
@@ -773,23 +816,145 @@ def make_sample(figure, path):
         draw.line((x, y0 + strip, x, y0 + strip + 3), fill=AXIS)
         text(draw, (x + 2, y0 + strip + 1), '%d ms' % ms)
     for x in range(width):
-        part = values[x * count // width:max(x * count // width + 1, (x + 1) * count // width)]
-        draw.line((margin + x, level(y0, max(part)), margin + x, level(y0, min(part))), fill=ink)
+        at = x * count // width
+        part = values[at:max(at + 1, (x + 1) * count // width)]
+        draw.line((margin + x, level(y0, max(part)), margin + x, level(y0, min(part))),
+                  fill=ink_at(at))
+    if boundary is not None:
+        x = margin + boundary * width // count
+        draw.line((x, y0, x, y0 + strip - 1), fill=LABEL)
+        backed(draw, (margin + 3, y0 + 2), 'one-shot part, %s bytes, played once'
+               % format(boundary, ','))
+        backed(draw, (x + 3, y0 + 2), 'repeat part, %s bytes, looped'
+               % format(count - boundary, ','))
     a = margin + first * width // count
     b = margin + (first + many) * width // count
     draw.rectangle((a - 1, y0, b, y0 + strip - 1), outline=LABEL)
 
     y1 = y0 + strip + gap + head
-    frame(y1, 'bytes %d to %d, %.1f ms: each byte held for %d colour clocks'
-          % (first, first + many - 1, many * period / clock * 1000, period))
+    frame(y1, 'bytes %s to %s, %.1f ms: each byte held for %d colour clocks'
+          % (format(first, ','), format(first + many - 1, ','), many * period / clock * 1000,
+             period))
     step = width / many
     last = None
     for i, v in enumerate(values[first:first + many]):
         xa, xb, y = margin + round(i * step), margin + round((i + 1) * step) - 1, level(y1, v)
         if last is not None:
-            draw.line((xa, last, xa, y), fill=ink)
-        draw.line((xa, y, xb, y), fill=ink)
+            draw.line((xa, last, xa, y), fill=ink_at(first + i))
+        draw.line((xa, y, xb, y), fill=ink_at(first + i))
         last = y
+    if boundary is not None and first < boundary < first + many:
+        x = margin + round((boundary - first) * step)
+        draw.line((x, y1, x, y1 + strip - 1), fill=LABEL)
+        backed(draw, (x + 3, y1 + 2), 'byte %s, the repeat part begins' % format(boundary, ','))
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def song_notes(songs, song, ticks):
+    """A song's four tracks over its first `ticks` ticks of the timer, as the player plays them
+    (re/notes/music.md, "The tick: SongInt"; src/music.c): per track the bars of sound, each
+    (start, end, note, voice name), from a note's start to its release tick, or, for a tied or
+    held note, which is never released, to the end of its length; a run of tied notes is one
+    bar, started by its first note; a note of the rest voice, which has no sample, starts
+    nothing and leaves a gap."""
+    at = songs.songs()[song]
+    table = songs.voices(at)
+    tracks = []
+    for seq in songs.tracks(at):
+        entries, index, t, voice, tie, hold, bars = songs.sequence(seq), 0, 0, None, 0, 0, []
+        while t < ticks:
+            pattern, transpose = entries[index]
+            for event in songs.pattern(pattern):
+                kind = event[0]
+                if kind == 'voice':
+                    name, vhdr, _ = songs.form(songs.voice(table[event[1]])['form'])
+                    voice = None if vhdr is None else name.replace('.iff', '')
+                elif kind == 'hold':
+                    hold = event[1]
+                elif kind == 'note':
+                    raw, length_index = event[1], event[2]
+                    length, release = songs.durations[length_index]
+                    tie = (2 if tie == 0 else tie) if raw & 0x80 else 0      # track_read
+                    note = (raw & 0x7F) + transpose
+                    if voice is not None:                                    # note_start
+                        if tie == 1:
+                            start, _, _, name = bars[-1]
+                            bars[-1] = (start, t + length, bars[-1][2], name)
+                        else:
+                            tie = max(tie - 1, 0)
+                            sounding = length if tie or hold == 1 else release
+                            bars.append((t, t + sounding, note, voice))
+                    t += length
+                    if t >= ticks:
+                        break
+                elif kind in ('next', 'repeat', 'end'):
+                    break
+            if kind == 'end':
+                break
+            index = 0 if kind == 'repeat' else index + 1
+        tracks.append([(a, min(b, ticks), n, v) for a, b, n, v in bars if a < ticks])
+    return tracks
+
+
+def make_song(figure, path):
+    """A song's first bars from the song data, decoded by tools/song_decode.py: each track a
+    lane, each sound a bar from its start to its release, its height in the lane its pitch, its
+    ink its voice, the rest voice a gap; the bars of 96 ticks and the quarters of 24 ruled."""
+    from PIL import Image, ImageDraw
+    import song_decode
+    songs = song_decode.Songs()
+    song, ticks, scale_x = figure['song'], figure['ticks'], figure.get('per_tick', 1)
+    tracks = song_notes(songs, song, ticks)
+    inks = {name: ink_of(entry) for name, *entry in figure['inks']}
+    used = sorted({v for bars in tracks for _, _, _, v in bars}, key=lambda v: list(inks).index(v)
+                  if v in inks else 99)
+    missing = [v for v in used if v not in inks]
+    if missing:
+        raise Failure('%s: no ink for the voice %s' % (figure['name'], ', '.join(missing)))
+    margin, left, lane, gap, head = 6, 128, 46, 8, 30
+    width = left + ticks * scale_x + margin
+    height = head + 4 * lane + 3 * gap + 16 + 18 * ((len(used) + 2) // 3) + margin
+    image = Image.new('RGB', (width, height), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin), 'song %d, its first %d ticks of the timer, %d bars of 96'
+         % (song, ticks, ticks // 96))
+    x0 = left
+    for t in range(0, ticks + 1, 24):
+        x = x0 + t * scale_x
+        ink = MUTED if t % 96 == 0 else AXIS
+        draw.line((x, head - 4, x, head + 4 * lane + 3 * gap), fill=ink)
+        if t % 96 == 0 and t < ticks:
+            text(draw, (x + 2, head - 14), '%d' % t)
+    words = '%d ticks' % ticks
+    text(draw, (x0 + ticks * scale_x - round(ppkc().FONT.getlength(words)) - 2, head - 14), words)
+    for k, bars in enumerate(tracks):
+        top = head + k * (lane + gap)
+        notes = [n for _, _, n, _ in bars] or [0]
+        lo, hi = min(notes), max(notes)
+        span = max(hi - lo, 1)
+        voices = []
+        for _, _, _, v in bars:
+            if v not in voices:
+                voices.append(v)
+        text(draw, (margin, top + 2), 'track %d' % k)
+        text(draw, (margin, top + 14), ', '.join(voices) if voices else 'the rest voice')
+        if lo == hi:
+            text(draw, (margin, top + 26), songs.note_name(lo))
+        else:
+            text(draw, (margin, top + 26), '%s to %s' % (songs.note_name(lo), songs.note_name(hi)))
+        for start, end, note, voice in bars:
+            y = top + 4 + round((hi - note) * (lane - 12) / span) if hi != lo else top + lane // 2 - 2
+            draw.rectangle((x0 + start * scale_x + 1, y, x0 + end * scale_x - 1, y + 3),
+                           fill=inks[voice])                 # a pixel's gap at every start
+    y = head + 4 * lane + 3 * gap + 10
+    for i, voice in enumerate(used):
+        x = margin + (i % 3) * 170
+        yy = y + (i // 3) * 18
+        draw.rectangle((x, yy + 3, x + 16, yy + 6), fill=inks[voice])
+        text(draw, (x + 22, yy), voice)
+    i = len(used)
+    text(draw, (margin + (i % 3) * 170 + 22, y + (i // 3) * 18), 'the rest voice: a gap')
     scale = figure.get('scale', 1)
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
@@ -1890,6 +2055,8 @@ def generate(out, names=None, log=print):
             make_savegame(figure, path)
         elif maker == 'demo':
             make_demo(figure, path)
+        elif maker == 'song':
+            make_song(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

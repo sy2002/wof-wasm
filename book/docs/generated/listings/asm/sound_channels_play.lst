@@ -1,0 +1,37 @@
+; re/Wings.lst 0x0120A4-0x01211E: sound_channels [asm], a part of 0x012066-0x012131
+loc_0120a4:
+0120a4  4aaa0010             tst.l      $10(a2)
+0120a8  67000078             beq.w      $12122
+0120ac  3006                 move.w     d6, d0
+0120ae  4eac8260             jsr        -$7da0(a4)                             ; -> channel_stop
+0120b2  3006                 move.w     d6, d0
+0120b4  4eac8260             jsr        -$7da0(a4)                             ; -> channel_stop
+0120b8  3006                 move.w     d6, d0
+0120ba  4eac8260             jsr        -$7da0(a4)                             ; -> channel_stop
+0120be  42aa0010             clr.l      $10(a2)
+0120c2  6000005e             bra.w      $12122
+loc_0120c6:
+0120c6  206b0002             movea.l    $2(a3), a0
+0120ca  b1ea0010             cmpa.l     $10(a2), a0
+0120ce  66000020             bne.w      $120f0
+0120d2  242b000a             move.l     $a(a3), d2
+0120d6  b4aa0014             cmp.l      $14(a2), d2
+0120da  67000046             beq.w      $12122
+0120de  25420014             move.l     d2, $14(a2)
+0120e2  322b000a             move.w     $a(a3), d1
+0120e6  3006                 move.w     d6, d0
+0120e8  4eac826c             jsr        -$7d94(a4)                             ; -> channel_adjust
+0120ec  60000034             bra.w      $12122
+loc_0120f0:
+0120f0  206b0002             movea.l    $2(a3), a0
+0120f4  202b0006             move.l     $6(a3), d0
+0120f8  3206                 move.w     d6, d1
+0120fa  4cab001c000a         movem.w    $a(a3), d2-d4
+012100  25480010             move.l     a0, $10(a2)
+012104  256b000a0014         move.l     $a(a3), $14(a2)
+01210a  48e7f880             movem.l    d0-d4/a0, -(a7)
+01210e  4eac8254             jsr        -$7dac(a4)                             ; -> channel_play
+012112  4cd7011f             movem.l    (a7), d0-d4/a0
+012116  4eac8254             jsr        -$7dac(a4)                             ; -> channel_play
+01211a  4cdf011f             movem.l    (a7)+, d0-d4/a0
+01211e  4eac8254             jsr        -$7dac(a4)                             ; -> channel_play
