@@ -172,7 +172,7 @@ records into game objects (read, and observed as the writer of every table below
    `+8` and the island number at `+9` — and every slot-`0x0F` record a `target_records_f`
    entry. Slot 1 and slot 2 records append their map offsets to the lists at `0x025430` and
    `0x025438`, and each island gets the span of its targets in `island_span` (`0x025440`) and
-   five points per target in `island_score` (`0x025450`).
+   five soldiers per dug-out and barracks in the first word of its island's `island_score` (`0x025450`), and a pillbox standing in the second (`re/notes/porting-m5.md`, "Three kinds of target").
 
 **A hit rewrites the record list**, and nothing else does: in the tick `0x0146DC` turns a
 bombed barracks' four records from slot 4 into slot 5, the burnt barracks, and a pillbox's four

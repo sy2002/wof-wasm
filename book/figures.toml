@@ -674,7 +674,7 @@ pick = [["torpedo.shp", "bom0"], ["torpedo.shp", "bom1"], ["torpedo.shp", "bom2"
         ["torpedo.shp", "rc09"], ["torpedo.shp", "rc0a"], [], []]
 columns = 12
 palette = "wingspalette"
-shows = "The weapons' frames of Torpedo.shp: a bomb's twelve, bom0 to bomb, which it steps through as it falls; a rocket's ten by its bearing while it falls, ro01 to ro0a, and the torpedo's two, tor2 and tor7, one for each facing; the rocket's ten once it fires, rc01 to rc0a."
+shows = "The weapons' frames of torpedo.shp: a bomb's twelve, bom0 to bomb, which it steps through as it falls; a rocket's ten by its bearing while it falls, ro01 to ro0a, and the torpedo's two, tor2 and tor7, one for each facing; the rocket's ten once it fires, rc01 to rc0a."
 how = "The names of torpedo_names (re/tables.toml, read from the executable) at slots 0x40 to 0x4B, 0x74 to 0x7D, 0x88, 0x89 and 0x4C to 0x55, the frames object_draw (0x010702) takes: a bomb 0x40 plus its frame, a rocket 0x74 plus its frame while it falls and 0x4C plus its frame after, ten more for each facing west, the torpedo 0x88 or 0x89 by its facing; tools/ppkc.py's parse() and sheet(), twelve to a row, the last row ended by empty cells, in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
 command = ".venv/bin/python book/tools/figures.py weapons-torpedo"
 

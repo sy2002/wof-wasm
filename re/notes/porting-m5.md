@@ -185,7 +185,9 @@ which clears it (the harness's poke is not an instruction).
   target (a dug-out with soldiers, a barracks, a pillbox). A rocket is type 0; so is the
   record `0x0146C6` makes up for a crash on land (`0x027700`, +`0x22` 0), which is why a
   crash on an island flashes too. The crash on a ship (`flash_set`, `0x01CAB4`) and a hit on
-  a ship (`0x0149A6`, `0x0149DC`) are the others, M6's. A bomb or the torpedo never flashes.
+  a ship (`0x0149A6`, `0x0149DC`) are the others, M6's. A bomb never flashes; the torpedo
+  flashes only on a ship, red when it runs into one and white when it falls onto its deck
+  (`re/notes/enemy.md`, "Its guns" and "The torpedo run and the sinking").
 - **What the rows show:** `flip_buffers` takes the count at the pass's end, counts it down,
   and on an odd count pokes COLOR01 of the list it shows with `flash_colour`. The tick sets
   5, so the passes show the colour, the sky, the colour, the sky, the colour: in
@@ -339,8 +341,10 @@ what the state records:
 `0x010702` draws a record by its type: a bomb from `torpedo_shapes` by its frame (`0x40`
 on), the torpedo `0x88` or `0x89` by the side it faces and nothing while it runs in the
 water (frame `0x0A`), a rocket `0x4C` on or `0x74` on while it still falls; in the
-eighth-scale view every one is entry 9 of `eighth_shapes`. Going out (kind 8), eight frames
-of the explosion (`0x5A` on) or of the splash (`0x66` on) and then the pass frees the record.
+eighth-scale view every one is entry 9 of `eighth_shapes`. Going out (kind 8), six frames
+of the explosion (`0x5B` to `0x60`, `exp0` to `exp5`) or of the splash (`0x67` to `0x6C`): the
+counter at `+0x21` starts at 1, the pass adds one and draws `0x59` or `0x65` plus the count,
+and at a count of 8, the seventh pass, it frees the record (chapter 15's fact-check).
 A torpedo that goes out while it runs in the water is never drawn, so its record is never
 freed (read).
 
