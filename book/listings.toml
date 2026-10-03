@@ -938,8 +938,8 @@ kind = "text"
 name = "functions-rows"
 file = "re/functions.csv"
 head = true
-from = "01c982,record_at,"
-to = "01cb1c,sub_01cb1c,"
+from = "01c982,"
+to = "01cb1c,"
 
 # The comparison chain's run: Control-D at the rank selection, the run a test holds to the
 # run without the key.

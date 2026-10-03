@@ -263,7 +263,7 @@ Existing figures not shown again: chapter 4's `listing-made.svg` (the names chai
 |---|---|---|---|---|
 | 1 | text (new kind) | `claude-commands` | `CLAUDE.md`, from `sh tools/setup.sh` to `WOF_FIREFOX_VISIBLE=1` | no |
 | 2 | text | `names-start` | `re/names.txt`, from its first line to `close_libraries` | no |
-| 3 | text, `head` | `functions-rows` | `re/functions.csv`, its first line and the rows `record_at` to `sub_01cb1c` | no |
+| 3 | text, `head` | `functions-rows` | `re/functions.csv`, its first line and the rows from the address `01c982,` (`record_at`) to `01cb1c,` (`sub_01cb1c`), bounded by addresses so that a name given later changes nothing | no |
 | 4 | json | `rank-control-d` | `tests/runs/rank-control-d.json` | no (chapter 6 showed `flight-control-f`) |
 | 5 | py | `test_the_listings_are_their_regeneration` | `tests/test_generated.py` | no |
 
