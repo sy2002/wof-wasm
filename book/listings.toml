@@ -1110,13 +1110,14 @@ file = "book/runs/second-rank.json"
 kind = "skel"
 name = "save_game_read"
 
-# The oracle called from Python, as its docstring shows it, with the calling convention.
+# The oracle called from Python, as its docstring shows it: a routine run on bytes the test
+# copies in.
 [[listing]]
 kind = "text"
 name = "oracle-call"
 file = "tools/oracle.py"
 from = "from oracle import Oracle"
-to = "D0-D3/A0-A3 are scratch"
+to = "result = o.read(dst, unpacked_size)"
 
 # One entry of the manifest: the shape name lists' comment and the first list.
 [[listing]]

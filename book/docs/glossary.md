@@ -1077,7 +1077,7 @@ Elsewhere: [*M68000 Family Programmer's Reference Manual*](https://archive.org/d
 
 ### Milestone
 
-One of the numbered stages the port was built in, M0 to M9, each ending with a working page and green tests and accepted on a deliverable of the specification: M4 to M7 the missions, M8 the sound, M9 the page's drawing.
+One of the numbered stages the port was built in, M0 to M9, each ending with a working page and green tests and accepted on a deliverable of the specification: M4 to M7 the missions, M8 the sound, M9 the page's drawing; and an M10 planned and dropped.
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#9-milestones), section 9.
 

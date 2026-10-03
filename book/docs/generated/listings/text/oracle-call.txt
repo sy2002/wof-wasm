@@ -1,13 +1,7 @@
-# tools/oracle.py, lines 6-17
+# tools/oracle.py, lines 6-11
     from oracle import Oracle
     o = Oracle()
     src = o.alloc_bytes(packed)             # copy data into emulated RAM
     dst = o.alloc(unpacked_size)
     o.call(0x01FEE0, o.L(src), o.L(len(packed)), o.L(dst), o.L(unpacked_size))
     result = o.read(dst, unpacked_size)
-
-Calling convention of the game's C code (Manx Aztec C, 16-bit int):
-  * arguments are pushed right to left; `int`/`short` occupy 2 bytes, `long` and
-    pointers 4 bytes  -> build them with o.W(...) and o.L(...)
-  * result in D0 (only the low word is meaningful for `int` functions)
-  * D0-D3/A0-A3 are scratch (verify per function), A4 = small-data base, A5 = frame pointer

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 588" width="1000" height="588" role="img" aria-labelledby="title desc">
   <title id="title">The build</title>
-  <desc id="desc">The build of the page in rows. Above them, the ROM's check comes first: without the right image nothing is written. Row 1: the manifest, the program and the ROM go into step 1, the tables, which writes them as C into src/gen/ with the system font and the key table. Row 2: 55 of the disk's files go into step 2, which packs them into one blob with a directory. Row 3: the C, src/gen/ included, goes into step 3, which compiles the core with zig for wasm32-freestanding into dist/core.wasm. Row 4: web/, the template, the stylesheet and eight modules, goes into step 4, which also takes the blob and the core, joins seven modules into one script, carries the eighth, the worklet, as text, and makes dist/wof.html, the one result that is committed. Row 5: the same C with tests/shim.c goes, with --native, through Apple clang into tests/libwofcore.dylib, the library the tests load. A legend names the colours: kept by hand or the original's, a step, made and not committed, made and committed.</desc>
+  <desc id="desc">The build of the page in rows. Above them, the ROM's check comes first: without the right image nothing is written. Row 1: the manifest, the program and the ROM go into step 1, the tables, which writes them as C into src/gen/ with the system font and the key table. Row 2: 55 of the disk's files go into step 2, which packs them into one blob with a directory. Row 3: the C, written by hand, goes into step 3, and a wire brings the tables of src/gen/ down into step 3 from its side, which compiles the core with zig for wasm32-freestanding into dist/core.wasm. Row 4: web/, the HTML template, the stylesheet and eight modules, goes into step 4, which also takes the blob and the core, joins seven modules into one script, carries the eighth, the worklet, as text, and makes dist/wof.html, the one result that is committed. Row 5: the same C with tests/shim.c goes, with --native, through Apple clang into tests/libwofcore.dylib, the library the tests load. A legend names the colours: kept by hand or the original's, a step, made and not committed, made and committed.</desc>
   <style>
     /* The design's colours, each an entry of one of the game's palettes. */
     .kept   { fill: #AAAABB; /* wingspalette 29 */ }
@@ -57,8 +57,7 @@
   <path class="tip" d="M510 211 L510 221 L520 216 Z"/>
   <rect class="kept" x="16" y="268" width="210" height="72" rx="3"/>
   <text class="ink label" x="26" y="288">the C</text>
-  <text class="ink small" x="26" y="306">src/*.c, with src/gen/*.c</text>
-  <text class="ink small" x="26" y="322">from step 1</text>
+  <text class="ink small" x="26" y="306">src/*.c, written by hand</text>
   <rect class="step" x="262" y="268" width="222" height="72" rx="3"/>
   <text class="ink label" x="272" y="288">3. the core compiled</text>
   <text class="ink small" x="272" y="306">zig cc for wasm32-freestanding,</text>
@@ -70,10 +69,12 @@
   <path class="tip" d="M252 299 L252 309 L262 304 Z"/>
   <path class="wire" d="M484 304 L510 304"/>
   <path class="tip" d="M510 299 L510 309 L520 304 Z"/>
+  <path class="wire" d="M530 164 L530 172 L500 172 L500 280 L494 280"/>
+  <path class="tip" d="M494 275 L494 285 L484 280 Z"/>
   <rect class="kept" x="16" y="356" width="210" height="72" rx="3"/>
   <text class="ink label" x="26" y="376">web/</text>
-  <text class="ink small" x="26" y="394">the template, the stylesheet,</text>
-  <text class="ink small" x="26" y="410">eight modules</text>
+  <text class="ink small" x="26" y="394">the HTML template, the</text>
+  <text class="ink small" x="26" y="410">stylesheet, eight modules</text>
   <rect class="step" x="752" y="180" width="196" height="248" rx="3"/>
   <text class="ink label" x="762" y="200">4. the page assembled</text>
   <text class="ink small" x="762" y="218">the stylesheet inlined;</text>
