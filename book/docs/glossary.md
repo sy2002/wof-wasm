@@ -692,7 +692,7 @@ First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-e
 
 ### Fullscreen (of the page)
 
-The page's own fullscreen, on F, which holds the picture and every layer the shell lays over it; Escape leaves it, as the browser insists, and the game pauses.
+The page's own fullscreen, on F, which holds the picture and every layer the shell lays over it; Escape leaves it, as the browser insists, and a mission pauses.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 23](part-3/shell.md#fullscreen-and-the-hidden-page), "Fullscreen and the hidden page"; [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2; [`web/main.js`](repo:web/main.js).
 
@@ -736,7 +736,7 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes
 
 ### Help screen
 
-The shell's sheet of the port's keys in the player's words, on H; it is up when the page opens, and the first key starts the sound and takes it away.
+The shell's sheet of the port's keys in the player's words, on H; it is up when the page opens, and the first key or click starts the sound and takes it away.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 23](part-3/shell.md#over-the-picture), "Over the picture"; [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2; [`web/index.html`](repo:web/index.html).
 
@@ -852,9 +852,9 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes
 
 ### Instrument
 
-A means of holding the port to the original that does not rest on anyone's reading: the oracle, the headless original, the comparisons, the film of the real machine, a test.
+One of the ways the port was measured rather than read: the oracle, the headless original and the comparisons that run the original beside the port, the replay that holds the page's build to the native one, the page's own tests, and the film of the real machine.
 
-First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 5](part-1/oracle.md), [chapter 6](part-1/headless.md), [chapter 7](part-1/time.md) and [chapter 8](part-1/mission.md).
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 5](part-1/oracle.md), [chapter 6](part-1/headless.md), [chapter 7](part-1/time.md), [chapter 8](part-1/mission.md) and [chapter 24](part-3/tests.md).
 
 ### int (the C type)
 
