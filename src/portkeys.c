@@ -38,7 +38,7 @@
 #define RAW_P      0x19
 #define RAW_ESCAPE 0x45
 
-/* The one qualifier bit the game reads (re/notes/keys.md). */
+/* The one qualifier bit the command readers test (re/notes/keys.md). */
 #define IEQUALIFIER_CONTROL 0x0008u
 
 /* The shell's entry.  The state that decides what happens here - the line editor, the
