@@ -406,7 +406,7 @@ tick while one runs.
 |---|---|---|
 | `select` | the weapon menu in the hold: the stick back three times, forward four times, back once, each a step of the menu with its pause; the torpedo chosen; the lift, the roll and the climb | 410 |
 | `turns` | turns both ways low and high, level, climbing and diving; one in the eighth-scale view, one at the ceiling; a glide with the stick left alone, in which the airspeed falls to its floor of 1000 and the aircraft sinks; the stick forward alone while flying left, which sets `0x025AAA` | 887 |
-| `landing` | out to the right, back from the right low over the bow, a touch-down with the stick forward alone, the fourth cable, the taxi to the lift, the lift down, the next weapon in the hold, the lift up and a second take-off | 767 |
+| `landing` | out to the right, back from the right low over the deck's east end, a touch-down with the stick forward alone, the fourth cable, the taxi to the lift, the lift down, the next weapon in the hold, the lift up and a second take-off | 767 |
 | `fuel` | back and forth over the sea east of the carrier at y 400 until the tank is empty, the fall into the sea and the next aircraft | 5,778 |
 | `island` | the flight to the island of map a and across it at y 412 without the button | 960 |
 
@@ -417,7 +417,7 @@ flies the same way without it (it is deterministic for a given schedule).
 
 - **The landing** was found by observation in a few rounds of the policy. What makes it
   work: the approach from the right with the aircraft facing left (the manual, page 6),
-  a glide path to the bow at 0.08 pixels of height per pixel of distance, the stick
+  a glide path to the deck's east end (whether `fcar` and `rcar` are the bow and the stern is not established) at 0.08 pixels of height per pixel of distance, the stick
   forward alone at the bow, and the stick forward held after the touch-down. The last is
   what the hook needs: on the deck `0x01C4E8` sets `0x025A9C` whenever the airspeed is
   above 600 and the stick is not forward, and the hook (`0x01B92E`) catches only while
@@ -474,7 +474,7 @@ state found that case.
 | 1 | on the deck or in the hold: the deck's controls, the roll, its ends, the hook | every script |
 | 4 | coming down: out of fuel or oil, or the ground touched away from the deck | fuel, lost, gameover, the page |
 | 6 | in the sea, sinking a pixel every third tick | lost, gameover, fuel, the page |
-| 7 | held by a cable: the airspeed falls by `0x6E` a tick, then 1 | landing |
+| 7 | held by a cable: the airspeed falls by `0x6E` a tick to 0, then state 1 | landing |
 | 8 | burning, a wreck at rest on land or on a ship above y `0x14` | read, and the oracle test of the crash |
 | 11 | the lift moving; the height follows the lift until `0x025394` is 0 | every script |
 | 2, 3, 5, 10 | the lift's case as well; never set | read |

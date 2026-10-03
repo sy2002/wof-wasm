@@ -41,6 +41,9 @@ made and the command that remakes it, and writes PNG files:
                set bytes, the rule checked against the port's blit through the native library
     mirror     one shape as stored and as shape_mirror_x leaves it, the hotspot framed in
                both, checked against the pixels reversed and against the port's mirror
+    path       the player's flight over a stretch of a run, the height over the world x a
+               dot a tick in the colour of the record's state, the deck, the lift's column
+               and the four cables marked, and the moments the state changes numbered
 
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native

@@ -321,8 +321,8 @@ numbers.
 
 ## What is open
 
-- `0x025AAA`, which `player_motion` reads and which no flight of `re/notes/objects.md` ever
-  saw set.
+- `0x025AAA` is `landing_stall`: set while the stick is forward alone and the aircraft flies
+  left, observed in the turns and landing scripts (`re/notes/objects.md`, "The player's record").
 - The condition codes cannot be read out of the emulator at a hook: Unicorn keeps them
   lazily and hands back whatever was last materialised. Both the oracle and the observers
   read them by running a move from SR inside the emulation, which is exact; anything that
