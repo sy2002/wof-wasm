@@ -891,6 +891,12 @@ First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amig
 
 Elsewhere: [Machine code](https://en.wikipedia.org/wiki/Machine%5Fcode), Wikipedia.
 
+### Manifest
+
+The list of what the build reads out of the original's files, [`re/tables.toml`](repo:re/tables.toml): 122 entries, each with a name, a kind and where to read it, from the program, the music player and the ROM; the build writes them as C tables, so that no number of the game is typed again.
+
+First met and defined in [chapter 21](part-3/repository.md). The detail: [`re/tables.toml`](repo:re/tables.toml); [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py); [`SPEC.md`](repo:SPEC.md#5-build), section 5.
+
 ### Manx Aztec C
 
 The C compiler the game's C was built with: its int, as the game was built, is 16 bits, its code reaches the variables through A4, and each of its routines keeps a stack frame on A5.
