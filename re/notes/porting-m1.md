@@ -167,8 +167,9 @@ worth doing when `line_draw` is ported, which needs the blitter's line mode anyw
 
 - **`shapes/broderbund` is not the publisher's logo on this disk.** It decodes to a
   "MicroTech presents" screen, and `shapes/wingstitle` carries "CopyRight 1992, MicroTech
-  Software Inc" along its bottom edge. The crack replaced the artwork as well as the
-  protection check. `SPEC.md` section 3.1 and section 9 call the first picture the
+  Software Inc" along its bottom edge; `shapes/selectrank`, the rank selection's picture,
+  carries three lines of the group's above the menu (chapter 19 of the book decoded it). The
+  crack replaced the artwork as well as the protection check. `SPEC.md` section 3.1 and section 9 call the first picture the
   publisher logo; what the port shows is what the file holds.
 - **Two files decode to one byte more than they declare** (`cruiseship.shp` and
   `japplane.shp`, already in `SPEC.md` section 3.5). The original writes that byte past

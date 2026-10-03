@@ -69,8 +69,9 @@ dimension.
 
 `test_the_generated_table_is_what_the_roms_own_routine_returns` runs the ROM's routine again
 over all 2,048 combinations and compares every one; it skips when `original/kick.rom` is
-absent. Without the ROM the build says so and writes what the positions of the raw codes
-give: letters, digits and the space bar. Return, Escape, Backspace, Delete and the cursor
+absent. Without the ROM the build stops at the ROM check (`tools/rom.py`); `tools/extract_tables.py`
+run alone then says so and writes what the positions of the raw codes give: letters, digits and the
+space bar. Return, Escape, Backspace, Delete and the cursor
 keys are tested by their raw code before `key_to_char` is reached, so the menus and the line
 editor still work without the ROM; what is lost is typing anything but a letter or a digit.
 
@@ -101,13 +102,13 @@ With the keyboard assist on, which the page always switches on, the layer also s
 cursor keys `0x4C` and `0x4D` while the weapon menu in the hold has the stick, because the
 assist steps that menu with the stick alone (`re/notes/porting-m4.md`, "The keyboard assist").
 
-**What the decision costs.** Five keys — P, F, G, L and M — carry a command in every state
+**What the decision costs.** Five keys — P, V, G, L and M (F until 2026-09-30, when F became the shell's fullscreen key and V the flip's) — carry a command in every state
 outside the line editor, so a plain press of them never reaches a reader as a plain letter
 (`test_the_letters_the_layer_always_takes_are_exactly_four`). Nothing the manual describes
 is affected, because a plain letter does nothing in the original either. Two things that are
 not in the manual are: the cheat sequence `c o l i n` (`re/notes/keys.md`) cannot be typed,
-because its `l` is the load command; and of the debug keys the cheat unlocks, `f` and `m`
-would be taken as well. Both belong to `ingame_keys`, which M4 ports as it is
+because its `l` is the load command; and of the debug keys the cheat unlocks, `m` and `p`
+would be taken by the layer and `f` by the shell's fullscreen key. Both belong to `ingame_keys`, which M4 ports as it is
 (`re/notes/porting-m4.md`, "`ingame_keys` and the pause").
 
 ### The vertical flip

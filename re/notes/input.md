@@ -60,7 +60,7 @@ The index is bit 9, bit 8, bit 1, bit 0 of the register, in that order. That is 
 
 If `opt_invert_vertical` (`0x0254F6`) is set and at least one of the vertical bits is set, the routine applies `eori #3`, which swaps up and down. This is the reversed-vertical-control option. The guard matters: without it, `eori #3` on a neutral stick would produce up **and** down at once.
 
-`read_joy_dir8` (`0x020488`) decodes the same register into a single direction code (0 centre, then clockwise from 1 up, which is the stick forward: 2 up-right, 3 right, 4 down-right, 5 down, 6 down-left, 7 left, 8 up-left) through `joy_dir8_table` (`0x0204B0`). It feeds `joy_dir8` (`0x027742`) and is used outside the tick path, presumably by menus.
+`read_joy_dir8` (`0x020488`) decodes the same register into a single direction code (0 centre, then clockwise from 1 up, which is the stick forward: 2 up-right, 3 right, 4 down-right, 5 down, 6 down-left, 7 left, 8 up-left) through `joy_dir8_table` (`0x0204B0`). It feeds `joy_dir8` (`0x027742`) and is used outside the tick path by the menus' pollers, which `menu_input`, `wait_input_release` and `text_input` call (chapter 19 of the book).
 
 ## Fire button and the tap/hold discrimination
 

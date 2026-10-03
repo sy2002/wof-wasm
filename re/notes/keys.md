@@ -33,7 +33,7 @@ from the qualifier it returns.
 
 ## Control, and the two masks
 
-The game reads exactly one qualifier bit: **`IEQUALIFIER_CONTROL`, `0x0008`**, tested as
+The command readers read exactly one qualifier bit (the line editor also tests the two Shifts and right Amiga, below): **`IEQUALIFIER_CONTROL`, `0x0008`**, tested as
 `and.w #8` on the qualifier word by `ingame_keys` (`0x01CD24`) and as `btst #3` by
 `mission_briefing` (`0x018712`). The Control key's own raw code, `0x63`, is appended to the buffer
 like any other key, but `key_to_char` gives it no character, so it matches no command and is
@@ -128,7 +128,7 @@ description and the test are named in the last column.
 | Key | Effect | M | Shown by |
 |---|---|---|---|
 | — | no key is read | | `test_the_story_scroller_reads_no_key` |
-| fire | skips the rest of the sequence, one picture at a time | 2 | `test_fire_skips_the_front_end` |
+| fire | skips the rest of the sequence at once: every wait's branch goes to the last `fade_out` at `0x018114` (chapter 19 of the book) | 2 | `test_fire_skips_the_front_end` |
 
 ### Rank selection (`rank_select` `0x018262`)
 

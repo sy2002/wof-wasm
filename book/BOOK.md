@@ -55,7 +55,7 @@ Three parts, in the owner's arc: the story and the method first, then the game i
 17. *The campaign.* Ranks, missions, promotion, the night, the saved game's bytes, the demo and the attract mode, the high scores; the game that never ends.
 18. *Sound and music.* Paula, the effects engine's slots, the music player and its timer, the tempo that rests on one assumption.
 19. *The front end and the keys.* The scroller, the title, the menus, the line editor, the keymap from the ROM; the port's keys and the assist.
-20. *The original's quirks.* The wreck's explosion and the address it takes for an x, the directory order, what a real Amiga does differently and what the port keeps on purpose.
+20. *The original's quirks.* The wreck's explosion and the address it takes for an x, the directory order, the key buffer's off-by-one, the arguments nothing reads, the manual's Control-D, what a real Amiga does differently and what the port keeps on purpose.
 
 **Part III: The code, the tools and the build.**
 
@@ -130,5 +130,6 @@ The fact-check and the readability read are fresh Opus agents the controller spa
 | 16. The enemy | merged, awaiting the owner's read |
 | 17. The campaign | merged, awaiting the owner's read |
 | 18. Sound and music | merged, awaiting the owner's read |
+| 19. The front end and the keys | merged, awaiting the owner's read |
 
 A chapter not listed is a stub. The states, in order: drafted (on its branch); reviewed (the fact-check, the readability read and the controller's read done and folded in); merged, awaiting the owner's read; final (the owner's read done and folded in).

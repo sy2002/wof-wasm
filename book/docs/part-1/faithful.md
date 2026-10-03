@@ -90,7 +90,7 @@ Code and content are kept apart, so that nothing of the game can be typed wrong 
 
 ## What was left out
 
-The disk the port was made from is not quite the disk Broderbund sold. Its executable carries a [**crack**](../glossary.md#crack): a change made to a program to remove its copy protection. The game's logic is the retail code; the crack disabled the protection check, added a text screen of its own to the executable and overwrote two picture files. Two things are left out of the port, and one is missing from the disk.
+The disk the port was made from is not quite the disk Broderbund sold. Its executable carries a [**crack**](../glossary.md#crack): a change made to a program to remove its copy protection. The game's logic is the retail code; the crack disabled the protection check, added a text screen of its own to the executable and overwrote three picture files. Two things are left out of the port, and one is missing from the disk.
 
 - **The copy protection.** The original checked that its player owned the printed manual, by asking for something only the manual could answer. On this disk the crack had already disabled the check, and the port does not bring it back.
 - **The crack's own additions.** The crack's intro and its text screen in the executable are dropped, being the crack's and not the game's; the picture files it overwrote are shown as the disk holds them.
