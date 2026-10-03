@@ -1,6 +1,6 @@
 # The glossary
 
-Every term the book introduces, in alphabetical order. An entry gives the term, its definition in one line, the chapter where you first meet it and the chapter that defines it, the note of the repository that holds the detail, and, where a good page exists, where to read more elsewhere.
+Every term the book introduces, in alphabetical order. An entry gives the term, its definition in one line, the chapter where you first meet it and the chapter that defines it, the file of the repository that holds the detail, and, where a good page exists, where to read more elsewhere.
 
 ### 3-D view
 
@@ -504,6 +504,12 @@ A line of the picture counted from its top, as the game's records count them; di
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
 
+### Display list
+
+The core's list, made in every pass, of every shape drawn, with its name, place, layer, flags and owner, for a renderer not yet written; the page ignores it.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`SPEC.md`](repo:SPEC.md#64-video-model), section 6.4; [`src/wof.h`](repo:src/wof.h), `wof_draw_t`.
+
 ### Double buffering
 
 Drawing into a hidden picture and showing it only when it is whole; the game keeps two screens, each with its own copper list, and swaps them with one register write.
@@ -589,6 +595,12 @@ Elsewhere: [Linear congruential generator](https://en.wikipedia.org/wiki/Linear%
 The log of every sound sample started and of every restart at a cycle's end, with its channel, period, volume and instant, which the headless original and the port keep alike and the tests compare; chapter 1 calls it the sound event log.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#the-audio-channels), "The audio channels".
+
+### Fact sheet
+
+Every claim a chapter of this book makes, one line each with its source in the repository, kept under [`book/facts/`](repo:book/facts/) and brought along at every change of the chapter.
+
+First met and defined in [chapter 10](part-1/making.md). The detail: [`book/BOOK.md`](repo:book/BOOK.md#6-the-way-of-working), section 6.
 
 ### Fade
 
@@ -678,6 +690,12 @@ The game's screens before and between missions, from the story scroller and the 
 
 First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#the-timetable-left-alone), "The timetable, left alone"; [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
 
+### Fullscreen (of the page)
+
+The page's own fullscreen, on F, which holds the picture and every layer the shell lays over it; Escape leaves it, as the browser insists, and the game pauses.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 23](part-3/shell.md#fullscreen-and-the-hidden-page), "Fullscreen and the hidden page"; [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2; [`web/main.js`](repo:web/main.js).
+
 ### Game over
 
 The end of a game, when the last Hellcat is lost or the carrier has sunk; the high scores follow, unless a demo was played, and then the rank selection.
@@ -715,6 +733,12 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/he
 The original program run from its `main` routine on under emulation without a screen, the operating system's calls answered by stubs, the ROM's floating point, its key conversion and the game's music player run for real: the reference the port is compared with.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md).
+
+### Help screen
+
+The shell's sheet of the port's keys in the player's words, on H; it is up when the page opens, and the first key starts the sound and takes it away.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 23](part-3/shell.md#over-the-picture), "Over the picture"; [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2; [`web/index.html`](repo:web/index.html).
 
 ### Hexadecimal
 
@@ -825,6 +849,12 @@ Elsewhere: [FIFO (computing and electronics)](https://en.wikipedia.org/wiki/FIFO
 The taking of one input byte, which the game does every fourth VBlank, and the byte so taken; never a sound.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/input.md`](repo:re/notes/input.md).
+
+### Instrument
+
+A means of holding the port to the original that does not rest on anyone's reading: the oracle, the headless original, the comparisons, the film of the real machine, a test.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 5](part-1/oracle.md), [chapter 6](part-1/headless.md), [chapter 7](part-1/time.md) and [chapter 8](part-1/mission.md).
 
 ### int (the C type)
 
@@ -1243,6 +1273,12 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/so
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Pause sign
+
+The shell's sign over the middle of the picture while a mission is paused, whatever asked for the pause: `PAUSED` and, smaller, `Press P to continue`.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 23](part-3/shell.md#over-the-picture), "Over the picture"; [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2.
+
 ### Period
 
 Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second on a PAL Amiga, each byte of a sound sample is held; a smaller period plays higher.
@@ -1491,6 +1527,12 @@ First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/video.
 
 Elsewhere: [WebGL: 2D and 3D graphics for the web](https://developer.mozilla.org/en-US/docs/Web/API/WebGL%5FAPI), MDN.
 
+### Replay
+
+A demo the port recorded, played back in the native build and in WebAssembly against a fingerprint of the whole game state after every input sample, which holds the page's build to the native one.
+
+First met and defined in [chapter 1](part-1/faithful.md). The detail: [chapter 17](part-2/campaign.md#the-demo), "The demo"; [chapter 24](part-3/tests.md#the-whole-game-replayed), "The whole game, replayed"; [`tests/test_replays.py`](repo:tests/test%5Freplays.py).
+
 ### Resume point
 
 The number a coroutine keeps of where it waits: the line number of the wait in its source file, 0 for not started; the next call jumps back to it through a `switch`.
@@ -1540,6 +1582,12 @@ The core's whole state as bytes, copied out and loaded back so that the game goe
 First met and defined in [chapter 22](part-3/core.md). The detail: [`SPEC.md`](repo:SPEC.md#61-core), section 6.1; [`src/core.c`](repo:src/core.c); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#save-states-and-the-mirror-markers), "Save states and the mirror markers".
 
 Elsewhere: [Saved game](https://en.wikipedia.org/wiki/Saved%5Fgame), Wikipedia, whose save states are an emulator's.
+
+### Saved game
+
+The file the game writes when a game is saved: its memory as it stood, its pieces one after another without headers, which a load puts back.
+
+First met and defined in [chapter 3](part-1/disk.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-layout), "The layout"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5; [chapter 17](part-2/campaign.md#the-saved-game), "The saved game".
 
 ### Saved game's walker
 
@@ -1729,6 +1777,12 @@ The column of the routine inventory kept by hand, which says where the port stan
 
 First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4, step 5; [`re/functions.csv`](repo:re/functions.csv).
 
+### Step S
+
+The moment a mission's setup is done and its inner loop is reached, after the tick `main` runs itself at the mission's start; the headless original's dump keeps a record there, marked S.
+
+First met in [chapter 6](part-1/headless.md), defined in [chapter 8](part-1/mission.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump"; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
+
 ### Story scroller
 
 The first screen of the front end: the game's story, drawn a line at a time in the game's font into a bitmap used as a ring, rising up the screen behind song 2.
@@ -1820,6 +1874,14 @@ The shell's scaling of the picture: an enlargement by whole numbers with nearest
 First met and defined in [chapter 23](part-3/shell.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2, "Video"; [`re/notes/page-video.md`](repo:re/notes/page-video.md#the-webgl-path), "The WebGL path".
 
 Elsewhere: [Image scaling](https://en.wikipedia.org/wiki/Image%5Fscaling), Wikipedia.
+
+### Unicorn
+
+A library that imitates processors, built on QEMU's processor emulation, on which the oracle and the headless original run the original's code as a 68000; the project pins version 2.1.4 and corrects by a hook the memory-form shift it gets wrong.
+
+First met and defined in [chapter 5](part-1/oracle.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here"; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-emulators-memory-form-shift-observed), "The emulator's memory-form shift (observed)"; [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py).
+
+Elsewhere: [Unicorn Engine](https://www.unicorn-engine.org/).
 
 ### Upper word
 
