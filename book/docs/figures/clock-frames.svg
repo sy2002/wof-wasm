@@ -44,19 +44,19 @@
   <line class="ruler" x1="182" y1="144" x2="812" y2="144"/>
   <line class="vblank" x1="308" y1="134" x2="308" y2="154"/>
   <text class="light small" x="308" y="172" text-anchor="middle">VBlank 1</text>
-  <line class="issue" x1="308" y1="132" x2="287" y2="80"/>
+  <line class="issue" x1="308" y1="132" x2="392" y2="80"/>
   <line class="vblank" x1="434" y1="134" x2="434" y2="154"/>
   <text class="light small" x="434" y="172" text-anchor="middle">VBlank 2</text>
-  <line class="issue" x1="434" y1="132" x2="392" y2="80"/>
+  <line class="issue" x1="434" y1="132" x2="497" y2="80"/>
   <line class="vblank" x1="560" y1="134" x2="560" y2="154"/>
   <text class="light small" x="560" y="172" text-anchor="middle">VBlank 3</text>
-  <line class="issue" x1="560" y1="132" x2="497" y2="80"/>
+  <line class="issue" x1="560" y1="132" x2="602" y2="80"/>
   <line class="vblank" x1="686" y1="134" x2="686" y2="154"/>
   <text class="light small" x="686" y="172" text-anchor="middle">VBlank 4</text>
-  <line class="issue" x1="686" y1="132" x2="602" y2="80"/>
+  <line class="issue" x1="686" y1="132" x2="707" y2="80"/>
   <line class="vblank" x1="812" y1="134" x2="812" y2="154"/>
   <text class="light small" x="812" y="172" text-anchor="middle">VBlank 5</text>
-  <line class="issue" x1="812" y1="132" x2="707" y2="80"/>
+  <line class="issue" x1="812" y1="132" x2="812" y2="80"/>
   <!-- What each animation frame does, in order, top to bottom -->
   <text class="light" x="10" y="205">VBlank, then pass entry</text>
   <text class="light" x="10" y="243">present the picture</text>

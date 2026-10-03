@@ -128,7 +128,7 @@ First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/audio.
 
 ### Audio worklet
 
-A small program the browser runs on its audio thread beside the page; the shell's plays the blocks of audio frames the page posts and reports how much it has played.
+A small program the browser runs on its audio thread, a second line of work beside the page's; the shell's plays the blocks of audio frames the page posts and reports how much it has played.
 
 First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/worklet.js`](repo:web/worklet.js); [`web/audio.js`](repo:web/audio.js).
 
