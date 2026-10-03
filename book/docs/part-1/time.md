@@ -71,7 +71,7 @@ Each of those is a [**coupling**](../glossary.md#coupling): a piece of state tha
 | the byte of an object's record that says what the object is | records the pass has freed or changed |
 | the pass counter, which runs from 0 to 99, and a flag that a picture was drawn | counts that the objects and the lift go by |
 | a distance worked out while drawing the world | a value the ground guns' sound uses |
-| the pools of splashes and smoke, whose records it counts down, frees and, for smoke, claims | free records of the splashes' pool, for the splashes of its bullets |
+| the pools of splashes, smoke and balloons, whose records it draws, counts down and frees, and claims for its smoke | free records of the splashes' and smoke's pools, for the tick's splashes and the engine's smoke, and the balloons' records it steps |
 | the soldiers' table | the soldiers, who live in the pass, for the tick's shots to hit |
 | the score and an island's count of soldiers | a soldier who died, and scored, in a pass |
 | the aircraft's oil and fuel | what a gun's fire took from them in a pass |
