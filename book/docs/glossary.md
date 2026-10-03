@@ -184,6 +184,12 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [Calling convention](https://en.wikipedia.org/wiki/Calling%5Fconvention), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Campaign
+
+The run of missions from the rank chosen at the rank selection to the game's end, through the fifteen maps in a fixed order by rank and mission number; it has no last mission.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-order-of-the-maps), "The order of the maps", and ["The rank's cap, and no end"](repo:re/notes/campaign.md#the-ranks-cap-and-no-end).
+
 ### Change report
 
 A list a run of the headless original can write: for every record of its dump, each range of memory that changed, with the old and the new bytes, a name and the routines that wrote it.
@@ -518,6 +524,14 @@ The game's screens before and between missions: the story, the title, the rank s
 
 First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md).
 
+### Game over
+
+The end of a game, when the last Hellcat is lost or the carrier has sunk; the high scores follow, unless a demo was played, and then the rank selection.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-ends-a-mission), "What ends a mission"; [`re/notes/frontend.md`](repo:re/notes/frontend.md#the-outer-loop-as-a-state-diagram), "The outer loop, as a state diagram".
+
+Elsewhere: [Game over](https://en.wikipedia.org/wiki/Game%5Fover), Wikipedia.
+
 ### Ground height
 
 How high what stands at a map record reaches, which a tick asks for under an object: a class's height less the record's height field, a ship's deck from the ship's record, or zero; in flight without weapons, the one thing the tick reads from the map.
@@ -557,6 +571,14 @@ The Amiga's mode of 640 pixels across a line, each half as wide as a low-resolut
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#screens), "Screens".
 
 Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
+
+### High-score file
+
+The file `highscore`, 360 bytes: ten rows of 36, each a score, the rank reached and a name, best first, read and written by the high-score screen at a game's end.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/highscore.md`](repo:re/notes/highscore.md).
+
+Elsewhere: [Score (video games)](https://en.wikipedia.org/wiki/Score%5F(video%5Fgames)), Wikipedia.
 
 ### Hit count
 
@@ -820,6 +842,12 @@ The word at `+8` of each shape record of the player's aircraft and its weapons, 
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
 
+### Mission number
+
+The mission within the current rank, counted from 1, which a won mission counts on and a promotion sets back to 1; with the rank it picks the map.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#a-mission-won), "A mission won".
+
 ### Mission script
 
 A recorded sequence of stick and key inputs that flies a mission the same way every time, for the original and the port alike.
@@ -962,6 +990,12 @@ The play screen's upper area, where the game is played: 320 by 162 in low resolu
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`re/notes/display.md`](repo:re/notes/display.md#the-play-screen-line-by-line), "The play screen line by line".
 
+### Pointer field
+
+One of the four kinds of field in a saved game's raw part that hold an address of the saving machine's memory: the player's shape, a shape the tick keeps for level flight, the torpedo's shape and a ship's gun list; the port derives them when it loads a game.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#what-the-port-writes-in-the-raw-part), "What the port writes in the raw part", and ["The loader"](repo:re/notes/campaign.md#the-loader).
+
 ### Pointer table
 
 The array of shape-record pointers a name list becomes when its container is loaded, in the list's order, null where a name is absent; the port keeps an array of shape numbers instead.
@@ -992,6 +1026,12 @@ First met in [chapter 3](part-1/disk.md), defined in [chapter 4](part-1/reading.
 
 Elsewhere: [Program counter](https://en.wikipedia.org/wiki/Program%5Fcounter), Wikipedia; [*M68000 Family Programmer's Reference Manual*](https://archive.org/details/m68000familyprog0000unse), Internet Archive.
 
+### Promotion
+
+The step from a rank's last mission to the next rank's first: the rank one up, at most to 6, the balloons over the carrier and a Hellcat more at the next mission.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-promotion-the-extra-hellcat-and-the-balloons), "The promotion, the extra Hellcat and the balloons".
+
 ### Pure routine
 
 A routine that computes from its inputs alone, without touching anything else; every pure routine is held to the original under the oracle.
@@ -999,6 +1039,18 @@ A routine that computes from its inputs alone, without touching anything else; e
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
 Elsewhere: [Pure function](https://en.wikipedia.org/wiki/Pure%5Ffunction), Wikipedia.
+
+### Rank
+
+One of the campaign's seven stages, 0 to 6, each a fixed run of maps; the player chooses the first at the rank selection, a promotion moves it on, and a high-score row records the rank reached.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-order-of-the-maps), "The order of the maps".
+
+### Raw part
+
+The first piece of a saved game: 2,122 bytes of the game's memory from the object records on, as they stand, which hold the counts the later pieces need.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-raw-part), "The raw part"; [`tools/savegame.py`](repo:tools/savegame.py).
 
 ### Reach map
 
@@ -1083,6 +1135,14 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 The order of a run's VBlanks, passes and logic ticks as they happened; the VBlanks a pass takes are a setting of the run, so the schedule is an input of the simulation.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/passes.md`](repo:re/notes/passes.md#what-the-question-is), "What the question is"; [`re/notes/headless.md`](repo:re/notes/headless.md#scheduling), "Scheduling".
+
+### Seed file
+
+The port's file `wofdemo.seed`, 12 bytes written beside a recorded demo: the entropy stream's state, a hash of the demo, the swell's phase and the night flag, from which a playback of that demo starts.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/demo.md`](repo:re/notes/demo.md#the-port), "The port"; [`re/notes/random.md`](repo:re/notes/random.md#the-seed), "The seed".
+
+Elsewhere: [Random seed](https://en.wikipedia.org/wiki/Random%5Fseed), Wikipedia.
 
 ### Session
 
@@ -1294,6 +1354,14 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 
 Elsewhere: [Busy waiting](https://en.wikipedia.org/wiki/Busy%5Fwaiting), Wikipedia.
 
+### Walker
+
+The routine that hands a callback a saved game's pieces in a fixed order, each as a file, an address, a length and a mode, so that the write and the read of a saved game take the same path.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-layout), "The layout"; [`tools/savegame.py`](repo:tools/savegame.py).
+
+Elsewhere: [Saved game](https://en.wikipedia.org/wiki/Saved%5Fgame), Wikipedia.
+
 ### Water line
 
 The sea's surface in a mission's world, where world y is zero; at full scale it lies 11 rows below the horizon's row.
@@ -1309,6 +1377,12 @@ WebAssembly is a compact binary form of program with an instruction set of its o
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#5-build), section 5.
 
 Elsewhere: [WebAssembly](https://en.wikipedia.org/wiki/WebAssembly), Wikipedia; [webassembly.org](https://webassembly.org/).
+
+### Won flag
+
+The word that only `mission_won` sets when a mission is won; once the next aircraft stands in the hold, the game goes on to the next mission.
+
+First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#a-mission-won), "A mission won", and ["The next mission"](repo:re/notes/campaign.md#the-next-mission).
 
 ### Word masks
 

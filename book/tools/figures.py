@@ -45,6 +45,11 @@ made and the command that remakes it, and writes PNG files:
     path       the player's flight over a stretch of a run, the height over the world x a
                dot a tick in the colour of the record's state, the deck, the lift's column
                and the four cables marked, and the moments the state changes numbered
+    savegame   a saved game to scale through tools/savegame.py: the walker's pieces in their
+               order, and the raw part enlarged with its regions, each checked against the
+               registered fields, the bytes of no field and the pointer fields with their values
+    demo       a demo file as a hexadecimal dump: its first rows, the rows around its 0xFF and
+               its last row, by role, and the input bytes' values with the bits they carry
 
 A run of the core may poke the registered state at the rank selection's end, as the
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
@@ -1556,6 +1561,258 @@ def make_path(figure, spec, ticks, path):
     image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
 
 
+def ink_of(entry):
+    """A colour of the manifest: [palette file, entry]."""
+    return palette(entry[0])[entry[1]]
+
+
+def place_labels(wanted, gap):
+    """The y of labels that want to stand at `wanted` (ascending), pushed down so that no two
+    stand closer than `gap`."""
+    out, last = [], None
+    for y in wanted:
+        y = y if last is None else max(y, last + gap)
+        out.append(y)
+        last = y
+    return out
+
+
+def make_savegame(figure, path):
+    """A saved game drawn to scale through tools/savegame.py: on the left the walker's pieces
+    in their order, a column of the file's bytes; on the right the raw part enlarged, its
+    regions as the manifest names them from their first addresses, each checked to be the
+    first byte of a registered field (savegame.registry()), the bytes no field covers dark,
+    and the pointer fields, the registry's fields that are no plain value, marked with the
+    values the file holds."""
+    from PIL import Image, ImageDraw
+    import savegame
+    source = ROOT / figure['source']
+    data = source.read_bytes()
+    parts, exact = savegame.sections(data)
+    if not exact:
+        raise Failure('%s: the walker\'s pieces do not account for its %d bytes'
+                      % (figure['source'], len(data)))
+    raw = parts['raw']
+    fields = savegame.registry()
+    firsts = {first for first, _, _, _ in fields}
+    regions = figure['regions']
+    if regions[0][0] != savegame.RAW_START:
+        raise Failure('the first region must begin at the raw part\'s start, 0x%06X'
+                      % savegame.RAW_START)
+    for (a, _), (b, _) in zip(regions, regions[1:]):
+        if not a < b:
+            raise Failure('the regions must ascend: 0x%06X before 0x%06X' % (a, b))
+    for address, label in regions:
+        if address not in firsts:
+            raise Failure('region "%s": 0x%06X is no registered field\'s first byte' % (label, address))
+    names = figure['pointers']
+    pointers = [(first, last, name) for first, last, name, kind in fields if kind != 'plain']
+    shapes = [p for p in pointers if not name_is_pool(p[2])]
+    pools = [p for p in pointers if name_is_pool(p[2])]
+    for first, _, name in shapes:
+        if '%06X' % first not in names:
+            raise Failure('the pointer field %s at 0x%06X has no label in the manifest' % (name, first))
+    covered = set()
+    for first, last, _, _ in fields:
+        covered.update(range(first, last + 1))
+    gaps = [a for a in range(savegame.RAW_START, savegame.RAW_END) if a not in covered]
+
+    def value(first, last):
+        return int.from_bytes(raw[first - savegame.RAW_START:last - savegame.RAW_START + 1], 'big')
+
+    piece_inks = [ink_of(e) for e in figure['piece_inks']]
+    region_inks = [ink_of(e) for e in figure['region_inks']]
+    mark = ink_of(figure['pointer_ink'])
+    dark = PANEL
+    margin, gap, bar_w, height = 6, 13, 26, figure['height']
+    top, bottom = 40, 40 + height
+
+    # The labels first, so that the columns can be laid out by their widths.
+    pieces = savegame.layout(raw)
+    names_of = figure['pieces']
+    left = []                                   # (y wanted, words, anchor y)
+    at, raw_span, spans = 0, None, []
+    for name, size in pieces:
+        y0 = top + round(at * height / len(data))
+        y1 = top + round((at + size) * height / len(data))
+        spans.append((y0, y1))
+        key = 'guns' if name.startswith('guns ') else name
+        label = names_of[key] + (' (%s)' % name[5:] if key == 'guns' else '')
+        left.append(((y0 + y1) // 2 - 5, '%s  %s' % (label, format(size, ',')), (y0 + y1) // 2))
+        if name == 'raw':
+            raw_span = (y0, y1)
+        at += size
+    if not any(name.startswith('guns ') for name, _ in pieces):
+        index = [name for name, _ in pieces].index('map') + 1
+        y = top + round(sum(s for _, s in pieces[:index]) * height / len(data))
+        left.insert(index, (y - 5, '%s: none' % names_of['guns'], y))
+
+    def y_of(address):
+        return top + round((address - savegame.RAW_START) * height / savegame.RAW_LENGTH)
+
+    ends = [a for a, _ in regions[1:]] + [savegame.RAW_END]
+    right = []                                  # (y wanted, words, colour, anchor y)
+    for (address, label), end in zip(regions, ends):
+        loose = sum(1 for a in gaps if address <= a < end)
+        right.append((y_of(address), '+0x%03X  %s, %s bytes%s' % (
+            address - savegame.RAW_START, label, format(end - address, ','),
+            ', %d of no field' % loose if loose else ''), LABEL, y_of(address)))
+    for first, last, name in shapes:
+        right.append((y_of(first), '+0x%03X  %s: 0x%08X' % (
+            first - savegame.RAW_START, names['%06X' % first], value(first, last)), mark, y_of(first)))
+    if pools:
+        values = sorted({value(f, l) for f, l, _ in pools})
+        right.append((y_of(pools[0][0]), '+0x%03X to +0x%03X  %s: %s' % (
+            pools[0][0] - savegame.RAW_START, pools[-1][0] - savegame.RAW_START,
+            figure['pool_label'] % len(pools), ', '.join('0x%X' % v for v in values)),
+            mark, y_of(pools[0][0])))
+    right.sort(key=lambda r: (r[0], r[2] != LABEL))
+    left_y = place_labels([r[0] for r in left], gap)
+    right_y = place_labels([r[0] for r in right], gap)
+
+    left_w = max(len(r[1]) for r in left) * 6
+    left_bar = margin + left_w + 14
+    right_bar = left_bar + bar_w + 90
+    image_w = right_bar + bar_w + 8 + max(len(r[1]) for r in right) * 6 + margin
+    legend_y = max(bottom, left_y[-1] + 13, right_y[-1] + 13) + 12
+    image = Image.new('RGB', (image_w, legend_y + 2 * 16 + 4), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s, %s bytes: the walker\'s pieces in their order, to scale'
+         % (source.name, format(len(data), ',')))
+    text(draw, (right_bar, margin + 14), 'the raw part, %s bytes, enlarged'
+         % format(savegame.RAW_LENGTH, ','))
+
+    # The file, a column of its bytes, a piece at a time, a line of the ground between pieces.
+    for i, (y0, y1) in enumerate(spans):
+        draw.rectangle((left_bar, y0, left_bar + bar_w, max(y0, y1 - 1)),
+                       fill=piece_inks[i % len(piece_inks)])
+        if i:
+            draw.line((left_bar, y0, left_bar + bar_w, y0), fill=GROUND)
+    for (want, words, anchor), y in zip(left, left_y):
+        draw.line((left_bar - 2, anchor, left_bar - 10, y + 5), fill=AXIS)
+        text(draw, (left_bar - 14 - 6 * len(words), y), words)
+
+    # The zoom from the raw part's piece to the enlarged column.
+    draw.line((left_bar + bar_w + 2, raw_span[0], right_bar - 2, top), fill=AXIS)
+    draw.line((left_bar + bar_w + 2, raw_span[1] - 1, right_bar - 2, bottom - 1), fill=AXIS)
+
+    # The raw part: its regions, the bytes of no field, the pointer fields.
+    for i, ((address, label), end) in enumerate(zip(regions, ends)):
+        draw.rectangle((right_bar, y_of(address), right_bar + bar_w,
+                        max(y_of(address), y_of(end) - 1)), fill=region_inks[i % len(region_inks)])
+    for a in gaps:
+        draw.line((right_bar, y_of(a), right_bar + bar_w, y_of(a)), fill=dark)
+    for first, last, name in shapes + pools:
+        draw.rectangle((right_bar - 3, y_of(first), right_bar + bar_w + 3, y_of(first) + 1), fill=mark)
+    for (want, words, colour, anchor), y in zip(right, right_y):
+        draw.line((right_bar + bar_w + 2, anchor, right_bar + bar_w + 6, y + 5), fill=AXIS)
+        draw.text((right_bar + bar_w + 8, y), words, fill=colour, font=ppkc().FONT)
+
+    for i, (colour, words) in enumerate((
+            (mark, 'a pointer field: an address of the saving machine'),
+            (dark, '%d bytes of no field, a line at least a pixel each' % len(gaps)))):
+        draw.rectangle((margin, legend_y + i * 16 + 2, margin + 15, legend_y + i * 16 + 9), fill=colour)
+        text(draw, (margin + 22, legend_y + i * 16), words)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
+def name_is_pool(name):
+    """A pointer field of a ship's gun list (src/records.def's kind pool) rather than a shape."""
+    return name.startswith('ship_records[')
+
+
+INPUT_BITS = ('forward', 'back', 'right', 'left', 'fire held', 'fire tapped')   # re/notes/input.md
+
+
+def make_demo(figure, path):
+    """A demo file as a hexadecimal dump, from the file itself: its first rows, the rows
+    around the 0xFF that ends the recording, and its last row; entry 0 the rank, then the
+    input bytes, the 0xFF, the zeros to the end, each in an ink of its own; under it the input
+    bytes' values found, each with the bits of the input byte it carries (re/notes/input.md)."""
+    import json
+    from PIL import Image, ImageDraw
+    source = ROOT / figure['source']
+    if figure.get('member'):
+        holder = json.loads(source.read_text())
+        for key in figure['member']:
+            holder = holder[key]
+        data = bytes.fromhex(holder)
+        title = '%s in %s' % (figure['member'][-1], figure['source'])
+    else:
+        data = source.read_bytes()
+        title = figure['source']
+    if len(data) != 0x1388:
+        raise Failure('%s is %d bytes, not the 0x1388 of a demo' % (title, len(data)))
+    end = data.index(0xFF, 1)
+    if any(data[end + 1:]):
+        raise Failure('%s: bytes after its 0xFF at %d are not all zero' % (title, end))
+    inks = {'rank': ink_of(figure['rank_ink']), 'input': LABEL, 'end': ink_of(figure['end_ink']),
+            'zero': MUTED}
+
+    def role(i):
+        return 'rank' if i == 0 else 'input' if i < end else 'end' if i == end else 'zero'
+
+    first_rows = figure['first_rows']
+    end_row = end // 16
+    shown = set(range(first_rows)) | {end_row - 1, end_row, end_row + 1, (len(data) - 1) // 16}
+    for value in sorted(set(data[1:end])):          # a row for each value not shown yet
+        if not any(value in data[max(16 * r, 1):min(16 * r + 16, end)] for r in shown):
+            shown.add(data.index(value, 1) // 16)
+    rows = []
+    for r in sorted(shown):
+        if rows and rows[-1] is not None and r != rows[-1] + 1:
+            rows.append(None)
+        rows.append(r)
+    taps = {r: 'a tap of the button' for r in shown
+            if any(b & 0x20 for b in data[max(16 * r, 1):min(16 * r + 16, end)])}
+    notes = dict(taps)
+    notes.update({0: 'entry 0: the rank, %d' % data[0], 1: 'entries 1 on: the input bytes',
+                  end_row: 'entry %s: 0xFF, the end; %s input bytes before it' % (
+                      format(end, ','), format(end - 1, ',')),
+                  end_row + 1: 'zeros to the end',
+                  (len(data) - 1) // 16: 'the last entry, %s: %s bytes in all' % (
+                      format(len(data) - 1, ','), format(len(data), ','))})
+    margin, line, cell = 6, 13, 18
+    dump_x = margin + 42
+    note_x = dump_x + 16 * cell + 6
+    counts = collections.Counter(data[1:end])
+    legend = ['0x%02X: %s, %s' % (v, ' and '.join(INPUT_BITS[b] for b in range(6) if v >> b & 1)
+                                  or 'nothing', 'once' if n == 1 else '%d times' % n)
+              for v, n in sorted(counts.items(), key=lambda vn: -vn[1])]
+    roles = ((inks['rank'], 'the rank'), (inks['input'], 'an input byte'),
+             (inks['end'], 'the end'), (inks['zero'], 'zeros'))
+    width = max(note_x + max(len(n) for n in notes.values()) * 6,
+                margin + max(len(l) for l in legend) * 6 + 22, margin + 4 * 130) + margin
+    height = margin + 20 + len(rows) * line + 12 + 16 + 8 + 16 * len(legend) + 8
+    image = Image.new('RGB', (width, height), GROUND)
+    draw = ImageDraw.Draw(image)
+    text(draw, (margin, margin - 2), '%s, %s bytes, the rows at their offsets in hexadecimal'
+         % (title, format(len(data), ',')))
+    y = margin + 20
+    for r in rows:
+        if r is None:
+            draw.text((dump_x, y), '...', fill=MUTED, font=ppkc().FONT)
+            y += line
+            continue
+        draw.text((margin, y), '+%04X' % (16 * r), fill=MUTED, font=ppkc().FONT)
+        for c, b in enumerate(data[16 * r:16 * r + 16]):
+            draw.text((dump_x + c * cell, y), '%02X' % b, fill=inks[role(16 * r + c)],
+                      font=ppkc().FONT)
+        if r in notes:
+            text(draw, (note_x, y), notes[r])
+        y += line
+    y += 12
+    for i, (colour, words) in enumerate(roles):
+        draw.rectangle((margin + i * 130, y + 2, margin + i * 130 + 15, y + 9), fill=colour)
+        text(draw, (margin + i * 130 + 22, y), words)
+    y += 24
+    for i, words in enumerate(legend):
+        text(draw, (margin, y + i * 16), words)
+    scale = figure.get('scale', 1)
+    image.resize((image.width * scale, image.height * scale), Image.NEAREST).save(path)
+
+
 # ------------------------------------------------------------------ the manifest
 
 def figures_of(names=None):
@@ -1629,6 +1886,10 @@ def generate(out, names=None, log=print):
             make_mirror(figure, path)
         elif maker == 'path':
             make_path(figure, runs[figure['run']], shots[figure['run']]['ticks'], path)
+        elif maker == 'savegame':
+            make_savegame(figure, path)
+        elif maker == 'demo':
+            make_demo(figure, path)
         else:
             raise Failure('%s: no maker %s' % (figure['name'], maker))
         if log:

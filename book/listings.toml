@@ -649,3 +649,76 @@ file = "tools/m6_autopilot.py"
 from = "# The chase."
 to = "return push + fire"
 as = "dogfight_chase"
+
+# Chapter 17: a mission won: the mission number counted on, the rank's count by address, the
+# promotion capped at 6, and the message appended over the ticker's last character.
+[[listing]]
+kind = "asm"
+name = "mission_won"
+
+[[listing]]
+kind = "c"
+name = "wof_mission_won"
+file = "src/targets.c"
+
+# Chapter 17: main's way to the next mission, the extra Hellcat and the branch into the first
+# mission's reset, beside the mission coroutine's continuation with its goto.
+[[listing]]
+kind = "asm"
+name = "main"
+from = 0x010132
+to = 0x01018A
+as = "main_next_mission"
+
+[[listing]]
+kind = "c"
+name = "mission"
+file = "src/front.c"
+from = "if (wof_g.g_025364 && wof_g.g_0253bc) {"
+to = "goto next_mission;"
+as = "main_next_mission_c"
+
+# Chapter 17: the saved game's walker, its empty call, the pillboxes and the soldiers, a count
+# sign-extended, multiplied unsigned and cut to a word, beside the port's whole walker.
+[[listing]]
+kind = "asm"
+name = "save_walk"
+from = 0x015F9A
+to = 0x015FE2
+as = "save_walk_tables"
+
+[[listing]]
+kind = "c"
+name = "save_walk"
+file = "src/dialog.c"
+
+# Chapter 17: the shape at 0x02541A of a loaded game, from where the saving machine's pointer
+# lies beside the player's.
+[[listing]]
+kind = "c"
+name = "saved_hellcat_shape"
+file = "src/dialog.c"
+lines = 45
+
+# Chapter 17: a demo's playback in the VBlank server: a byte from the buffer only while the pass
+# still wants one, the 0xFF and the count at entry 0x1386, beside the port's.
+[[listing]]
+kind = "asm"
+name = "vblank_server"
+from = 0x011786
+to = 0x0117D0
+as = "vblank_server_playback"
+
+[[listing]]
+kind = "c"
+name = "wof_vblank"
+file = "src/input.c"
+from = "if (wof_g.demo_mode == 1) {"
+to = "wof_g.input_byte = d0;"
+as = "wof_vblank_playback"
+
+# Chapter 17: save_a's saved file against the original's, every differing byte named by its field.
+[[listing]]
+kind = "py"
+name = "test_the_saved_file_is_the_originals_but_for_its_pointers"
+file = "tests/test_campaign.py"

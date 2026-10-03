@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 530" width="1000" height="530" role="img" aria-labelledby="title desc">
+  <title id="title">The course of a campaign</title>
+  <desc id="desc">The course of a campaign as the code runs it. From the rank selection a rank chosen, or a saved game loaded without the mission&#39;s reset, leads to a mission, whose map follows from the rank and the mission number. When the last island is neutralised, or the last enemy ship sunk with no island left, the mission is won and the mission number counts on: within the rank&#39;s count the next mission follows, with the next map and its briefing, then step S; after the rank&#39;s last mission a promotion raises the rank by one, at most to 6, sends the balloons up and gives the next mission a Hellcat more; at rank 6 the promotion after map o leads to map m again. Control-L in flight loads a saved game and the mission goes on. When the last Hellcat is lost, or the carrier has sunk, the game is over, the high scores follow, with a name asked for only when the score beats the tenth, and the rank selection comes again. Left alone for 1,800 rounds, the rank selection plays the attract demo, and at its end returns without the high scores.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .menu   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .fly    { fill: #77AACC; /* wingspalette 22 */ }
+    .won    { fill: #44AA44; /* iff-dash 6 */ }
+    .promo  { fill: #FFBB00; /* wingstitle 25 */ }
+    .over   { fill: #EE6622; /* wingspalette 2 */ }
+    .demo   { fill: #AAAABB; /* wingspalette 29 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="16" y="24">The course of a campaign</text>
+  <text class="muted small" x="16" y="44">what the code does, from the rank selection to the game&#39;s end</text>
+
+  <!-- The boxes -->
+  <rect class="demo" x="30" y="90" width="180" height="64" rx="4"/>
+  <text class="ink name" x="120" y="113" text-anchor="middle">the attract demo</text>
+  <text class="ink small" x="120" y="129" text-anchor="middle">a recorded game</text>
+  <rect class="won" x="420" y="90" width="190" height="64" rx="4"/>
+  <text class="ink name" x="515" y="113" text-anchor="middle">the next mission</text>
+  <text class="ink small" x="515" y="129" text-anchor="middle">the fade, the next map</text>
+  <rect class="promo" x="730" y="90" width="200" height="64" rx="4"/>
+  <text class="ink name" x="830" y="105" text-anchor="middle">a promotion</text>
+  <text class="ink small" x="830" y="121" text-anchor="middle">the rank + 1, at most 6</text>
+  <text class="ink small" x="830" y="137" text-anchor="middle">balloons rise</text>
+  <rect class="menu" x="30" y="270" width="180" height="64" rx="4"/>
+  <text class="ink name" x="120" y="293" text-anchor="middle">the rank selection</text>
+  <text class="ink small" x="120" y="309" text-anchor="middle">seven ranks, a load</text>
+  <rect class="fly" x="420" y="270" width="190" height="64" rx="4"/>
+  <text class="ink name" x="515" y="293" text-anchor="middle">a mission</text>
+  <text class="ink small" x="515" y="309" text-anchor="middle">its map by rank and number</text>
+  <rect class="won" x="730" y="270" width="200" height="64" rx="4"/>
+  <text class="ink name" x="830" y="293" text-anchor="middle">mission won</text>
+  <text class="ink small" x="830" y="309" text-anchor="middle">the mission number + 1</text>
+  <rect class="over" x="420" y="440" width="190" height="64" rx="4"/>
+  <text class="ink name" x="515" y="463" text-anchor="middle">game over</text>
+  <text class="ink small" x="515" y="479" text-anchor="middle">no Hellcat, or no carrier</text>
+  <rect class="menu" x="30" y="440" width="180" height="64" rx="4"/>
+  <text class="ink name" x="120" y="463" text-anchor="middle">the high scores</text>
+  <text class="ink small" x="120" y="479" text-anchor="middle">a name above the tenth</text>
+
+  <!-- The rank selection to a mission, a rank chosen or a saved game loaded -->
+  <path class="light" d="M420.0 302.0 L411.0 307.0 L411.0 297.0 Z"/>
+  <path class="wire" d="M210 302 L411.0 302.0"/>
+  <text class="light small" x="315" y="294" text-anchor="middle">a rank chosen</text>
+  <text class="light small" x="315" y="320" text-anchor="middle">or a saved game,</text>
+  <text class="light small" x="315" y="334" text-anchor="middle">without the reset</text>
+  <!-- A mission won: the last island, or the last ship with no island left -->
+  <path class="light" d="M730.0 302.0 L721.0 307.0 L721.0 297.0 Z"/>
+  <path class="wire" d="M610 302 L721.0 302.0"/>
+  <text class="light small" x="670" y="280" text-anchor="middle">last island</text>
+  <text class="light small" x="670" y="294" text-anchor="middle">or last ship</text>
+  <!-- Within the rank, the next mission; past its count, the promotion -->
+  <path class="light" d="M600.0 154.0 L610.2 155.6 L604.1 163.5 Z"/>
+  <path class="wire" d="M750 270 L607.1 159.5"/>
+  <text class="light small" x="650" y="234" text-anchor="end">within the rank</text>
+  <path class="light" d="M840.0 154.0 L845.0 163.0 L835.0 163.0 Z"/>
+  <path class="wire" d="M840 270 L840.0 163.0"/>
+  <text class="light small" x="832" y="206" text-anchor="end">the rank&#39;s</text>
+  <text class="light small" x="832" y="220" text-anchor="end">last mission</text>
+  <!-- The promotion gives the next mission a Hellcat more -->
+  <path class="light" d="M610.0 122.0 L619.0 117.0 L619.0 127.0 Z"/>
+  <path class="wire" d="M730 122 L619.0 122.0"/>
+  <text class="light small" x="670" y="114" text-anchor="middle">a Hellcat more</text>
+  <text class="light small" x="730" y="76">at rank 6: after o, m again</text>
+  <!-- The next mission: its briefing, the setup, step S -->
+  <path class="light" d="M470.0 270.0 L465.0 261.0 L475.0 261.0 Z"/>
+  <path class="wire" d="M470 154 L470.0 261.0"/>
+  <text class="light small" x="462" y="206" text-anchor="end">its briefing,</text>
+  <text class="light small" x="462" y="220" text-anchor="end">then step S</text>
+  <!-- Control-L in flight: a saved game, and the same mission loop goes on -->
+  <path class="light" d="M450.0 334.0 L455.0 343.0 L445.0 343.0 Z"/>
+  <path class="wire" d="M420 320 L400 320 L400 362 L450 362 L450.0 343.0"/>
+  <text class="light small" x="392" y="374" text-anchor="end">Control-L: a saved game,</text>
+  <text class="light small" x="392" y="388" text-anchor="end">the mission goes on</text>
+  <!-- The game over, the high scores, and back -->
+  <path class="light" d="M515.0 440.0 L510.0 431.0 L520.0 431.0 Z"/>
+  <path class="wire" d="M515 334 L515.0 431.0"/>
+  <text class="light small" x="523" y="382">the last Hellcat lost,</text>
+  <text class="light small" x="523" y="396">or the carrier sunk</text>
+  <path class="light" d="M210.0 472.0 L219.0 467.0 L219.0 477.0 Z"/>
+  <path class="wire" d="M420 472 L219.0 472.0"/>
+  <path class="light" d="M120.0 334.0 L125.0 343.0 L115.0 343.0 Z"/>
+  <path class="wire" d="M120 440 L120.0 343.0"/>
+  <!-- The attract demo, after 1,800 idle rounds, and back without the high scores -->
+  <path class="light" d="M90.0 154.0 L95.0 163.0 L85.0 163.0 Z"/>
+  <path class="wire" d="M90 270 L90.0 163.0"/>
+  <text class="light small" x="98" y="200">1,800 idle</text>
+  <text class="light small" x="98" y="214">rounds</text>
+  <path class="light" d="M180.0 270.0 L175.0 261.0 L185.0 261.0 Z"/>
+  <path class="wire" d="M180 154 L180.0 261.0"/>
+  <text class="light small" x="188" y="200">its end: no</text>
+  <text class="light small" x="188" y="214">high scores</text>
+</svg>

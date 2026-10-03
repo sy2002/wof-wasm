@@ -1,0 +1,26 @@
+; re/Wings.lst 0x010132-0x01018A: main [asm], a part of 0x010006-0x01020D
+010132  426ca3be             clr.w      -$5c42(a4)                             ; g_0253bc
+010136  422ca366             clr.b      -$5c9a(a4)                             ; weapon_menu_up
+01013a  4eac8062             jsr        -$7f9e(a4)                             ; -> sound_slots_clear
+01013e  42aca7b8             clr.l      -$5848(a4)                             ; ticker_message
+010142  4eba6a78             jsr        $16bbc(pc)                             ; ticker_clear
+010146  3f3c0001             move.w     #$1, -(a7)
+01014a  4eba729a             jsr        $173e6(pc)                             ; fade_out_pair
+01014e  544f                 addq.w     #$2, a7
+010150  4eba10e2             jsr        $11234(pc)                             ; free_mission_assets
+010154  4a2ca35f             tst.b      -$5ca1(a4)                             ; balloons_on
+010158  67000006             beq.w      $10160
+01015c  522ca35e             addq.b     #$1, -$5ca2(a4)                        ; lives
+loc_010160:
+010160  4eba109a             jsr        $111fc(pc)                             ; choose_night
+010164  4eac8272             jsr        -$7d8e(a4)                             ; -> dashboard_invalidate
+010168  4eac808c             jsr        -$7f74(a4)                             ; -> map_load
+01016c  4eac81be             jsr        -$7e42(a4)                             ; -> mission_briefing
+010170  4a00                 tst.b      d0
+010172  6600fef2             bne.w      $10066
+010176  4eba63c4             jsr        $1653c(pc)                             ; load_dash_assets
+01017a  4eac81ca             jsr        -$7e36(a4)                             ; -> mission_display_setup
+01017e  4eac8098             jsr        -$7f68(a4)                             ; -> load_ship_shapes
+010182  4eba51d6             jsr        $1535a(pc)                             ; build_master_lists
+010186  4eac809e             jsr        -$7f62(a4)                             ; -> sounds_load
+01018a  6000ff46             bra.w      $100d2

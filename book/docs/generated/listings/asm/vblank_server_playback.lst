@@ -1,0 +1,23 @@
+; re/Wings.lst 0x011786-0x0117D0: vblank_server [asm], a part of 0x011754-0x011965
+011786  0c6c0001bd4e         cmpi.w     #$1, -$42b2(a4)                        ; demo_mode
+01178c  66000046             bne.w      $117d4
+011790  4a6cbd56             tst.w      -$42aa(a4)                             ; demo_step_s
+011794  670000ac             beq.w      $11842
+011798  4a6cbd46             tst.w      -$42ba(a4)                             ; demo_bytes_owed
+01179c  670000a4             beq.w      $11842
+0117a0  536cbd46             subq.w     #$1, -$42ba(a4)                        ; demo_bytes_owed
+0117a4  206cbd50             movea.l    -$42b0(a4), a0                         ; demo_buffer_ptr
+0117a8  322cbd54             move.w     -$42ac(a4), d1                         ; demo_index
+0117ac  7000                 moveq      #$0, d0
+0117ae  10301000             move.b     (a0, d1.w), d0
+0117b2  b03c00ff             cmp.b      #$ff, d0
+0117b6  67000010             beq.w      $117c8
+0117ba  5241                 addq.w     #$1, d1
+0117bc  3941bd54             move.w     d1, -$42ac(a4)                         ; demo_index
+0117c0  b27c1386             cmp.w      #$1386, d1
+0117c4  65000006             bcs.w      $117cc
+loc_0117c8:
+0117c8  50eca3c4             st.b       -$5c3c(a4)                             ; quit_flag
+loc_0117cc:
+0117cc  3940c368             move.w     d0, -$3c98(a4)                         ; input_byte
+0117d0  60000006             bra.w      $117d8

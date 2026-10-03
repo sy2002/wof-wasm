@@ -1,0 +1,25 @@
+; re/Wings.lst 0x015F9A-0x015FE2: save_walk [C], a part of 0x015EC2-0x016031
+015f9a  4ebafdc6             jsr        $15d62(pc)                             ; save_nothing
+015f9e  3f3c0001             move.w     #$1, -(a7)
+015fa2  102ca387             move.b     -$5c79(a4), d0                         ; target_count_f
+015fa6  4880                 ext.w      d0
+015fa8  c0fc000e             mulu.w     #$e, d0
+015fac  7200                 moveq      #$0, d1
+015fae  3200                 move.w     d0, d1
+015fb0  2f01                 move.l     d1, -(a7)
+015fb2  486ca506             pea.l      -$5afa(a4)                             ; target_records_f
+015fb6  2f2d000c             move.l     $c(a5), -(a7)
+015fba  206d0008             movea.l    $8(a5), a0
+015fbe  4e90                 jsr        (a0)
+015fc0  4fef000e             lea.l      $e(a7), a7
+015fc4  3f3c0001             move.w     #$1, -(a7)
+015fc8  302ca3c6             move.w     -$5c3a(a4), d0                         ; soldier_count
+015fcc  e740                 asl.w      #$3, d0
+015fce  7200                 moveq      #$0, d1
+015fd0  3200                 move.w     d0, d1
+015fd2  2f01                 move.l     d1, -(a7)
+015fd4  486ca502             pea.l      -$5afe(a4)                             ; soldier_records
+015fd8  2f2d000c             move.l     $c(a5), -(a7)
+015fdc  206d0008             movea.l    $8(a5), a0
+015fe0  4e90                 jsr        (a0)
+015fe2  4fef000e             lea.l      $e(a7), a7

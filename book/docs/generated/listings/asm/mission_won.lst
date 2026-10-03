@@ -1,0 +1,40 @@
+; re/Wings.lst 0x015694-0x01570E: mission_won [asm]
+mission_won:
+015694  48e780e0             movem.l    d0/a0-a2, -(a7)
+015698  526ca3c2             addq.w     #$1, -$5c3e(a4)                        ; mission_number
+01569c  41eca54a             lea.l      -$5ab6(a4), a0                         ; missions_per_rank
+0156a0  302ca3c0             move.w     -$5c40(a4), d0                         ; rank_played
+0156a4  d040                 add.w      d0, d0
+0156a6  30300000             move.w     (a0, d0.w), d0
+0156aa  b06ca3c2             cmp.w      -$5c3e(a4), d0                         ; mission_number
+0156ae  6c000038             bge.w      $156e8
+0156b2  397c0001a3c2         move.w     #$1, -$5c3e(a4)                        ; mission_number
+0156b8  526ca3c0             addq.w     #$1, -$5c40(a4)                        ; rank_played
+0156bc  0c6c0006a3c0         cmpi.w     #$6, -$5c40(a4)                        ; rank_played
+0156c2  6f000008             ble.w      $156cc
+0156c6  397c0006a3c0         move.w     #$6, -$5c40(a4)                        ; rank_played
+loc_0156cc:
+0156cc  50eca35f             st.b       -$5ca1(a4)                             ; balloons_on
+0156d0  41ec8a5c             lea.l      -$75a4(a4), a0                         ; msg_promotion
+0156d4  93c9                 suba.l     a1, a1
+0156d6  45ecc16c             lea.l      -$3e94(a4), a2                         ; ticker_text
+loc_0156da:
+0156da  4a1a                 tst.b      (a2)+
+0156dc  66fc                 bne.b      $156da
+0156de  554a                 subq.w     #$2, a2
+0156e0  4ebaf996             jsr        $15078(pc)                             ; format_to
+0156e4  60000016             bra.w      $156fc
+loc_0156e8:
+0156e8  41ec89a0             lea.l      -$7660(a4), a0                         ; msg_next_mission
+0156ec  93c9                 suba.l     a1, a1
+0156ee  45ecc16c             lea.l      -$3e94(a4), a2                         ; ticker_text
+loc_0156f2:
+0156f2  4a1a                 tst.b      (a2)+
+0156f4  66fc                 bne.b      $156f2
+0156f6  554a                 subq.w     #$2, a2
+0156f8  4ebaf97e             jsr        $15078(pc)                             ; format_to
+loc_0156fc:
+0156fc  297c0002716aa7b8     move.l     #$2716a, -$5848(a4)                    ; ticker_message | ticker_text
+015704  397cffffa3be         move.w     #$ffff, -$5c42(a4)                     ; g_0253bc
+01570a  4cdf0701             movem.l    (a7)+, d0/a0-a2
+01570e  4e75                 rts

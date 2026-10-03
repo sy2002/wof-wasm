@@ -38,6 +38,11 @@
 #            path       the player's flight over a stretch of a run, tick by tick: the height over
 #                       the world x in the colour of the record's state, the carrier's deck, its
 #                       lift and its cables, the moments the state changes numbered
+#            savegame   a saved game to scale through tools/savegame.py: the walker's pieces in
+#                       their order, the raw part enlarged with its regions (checked against the
+#                       registered fields), the bytes of no field and the pointer fields' values
+#            demo       a demo file as a hexadecimal dump by role, its first rows, the rows around
+#                       its 0xFF and its last row, with the input bytes' values and their bits
 #   shows    what the figure shows, for the caption and the alt text
 #   how      how it is made, beyond what the maker and the run say
 
@@ -797,3 +802,41 @@ size = [560, 240]
 shows = "The dashboard's 3-D view in the countdown run at VBlank 7720, map b: the sky of the window, the cursor in its middle, the torpedo plane ahead of the player coming at him, a small white shape below the cursor, and the red arrow at the top pointing east to it."
 how = "VBlank 7720 of the countdown run, 7276 VBlanks after the mission began; the box of the 640 x 214 picture from x 250 and row 166, 140 by 32, the window's background spanning columns 258 to 380 and rows 170 to 194 (the clip's rows 7 to 31 of the dashboard), shown at the page's PAL proportions, 1.6 times as wide and 3 times as tall, enlarged two and a half times, 560 x 240. The run checks there the torpedo plane's record, aircraft_records[3]: state 2, mode 4 (before its drop), relation 2 (the other way, east of the player), x 9273 and height 50; and the player's record's x (8768) and facing (1, east). The aircraft is drawn by window_strip (0x014206) on the row of the window that holds its distance; the arrow by enemy_arrows (0x01F21A), dash shape 9 because the plane is east of the player."
 command = ".venv/bin/python book/tools/figures.py enemy-window"
+
+[[figure]]
+name = "savegame-disk"
+file = "savegame-disk.png"
+maker = "savegame"
+source = "original/disk/Wings_of_Fury/wof.mission 3"
+height = 440
+pieces = {raw = "the raw part", length = "the map's length", map = "the map's records", guns = "the ships' gun lists", f = "the pillboxes", soldiers = "the soldiers", 3 = "the dug-outs", 4 = "the barracks"}
+regions = [[0x024CAE, "the object records"], [0x024F24, "a byte nothing sets"], [0x024F30, "the view"],
+           [0x024F38, "the ship blocks as drawn"], [0x025078, "the player's record"],
+           [0x025096, "the ship blocks"], [0x0251D6, "the enemy aircraft and wrecks"],
+           [0x0252FA, "the airfields"], [0x02534A, "the score, the lives, the flags"],
+           [0x0253BE, "the rank, the mission, the controls"],
+           [0x025430, "the islands' lists"], [0x025460, "the ship records"],
+           [0x0254F6, "the two options"]]
+pointers = {"02507C" = "the player's shape", "02541A" = "a shape of the tick", "02541E" = "the torpedo's shape"}
+pool_label = "the %d ship records' gun lists"
+piece_inks = [["wingspalette", 22], ["wingspalette", 29], ["wingspalette", 23]]
+region_inks = [["wingspalette", 22], ["wingspalette", 29]]
+pointer_ink = ["wingstitle", 25]
+scale = 2
+shows = "The disk's saved game, wof.mission 3, to scale: on the left its 6,866 bytes as the walker's pieces in their order, the raw part, the map's length, the map's records, no gun list, the pillboxes, the soldiers, the dug-outs and the barracks; on the right the raw part enlarged, its regions from the object records to the two options, the bytes no field covers drawn dark, and the four kinds of pointer field marked in gold with the addresses the saving machine left in them."
+how = "tools/savegame.py's sections() and layout() over the file, which must account for every byte; the regions' first addresses from this manifest, each the first byte of a field of savegame.registry() (src/globals.def, src/mission.def, src/records.def); the bytes no registered field covers from the same registry; the pointer fields the registry's fields of kind shape and pool, with the values the file holds; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py savegame-disk"
+
+[[figure]]
+name = "demo-file"
+file = "demo-file.png"
+maker = "demo"
+source = "tests/replays/demo_a.json"
+member = ["files", "wofdemo"]
+first_rows = 3
+rank_ink = ["wingstitle", 25]
+end_ink = ["wingspalette", 2]
+scale = 2
+shows = "The demo the port recorded for its replay test, as a hexadecimal dump: entry 0 the rank, the first input bytes, the rows around the 0xFF that ends the recording, and the last row of the 5,000 bytes; under it the values the input bytes take, each with the stick's and the button's bits it carries."
+how = "The wofdemo of tests/replays/demo_a.json, which must be 0x1388 bytes with nothing but zeros after its first 0xFF past entry 0; the rows shown and every count from the file; the bits named after the input byte's table (re/notes/input.md): 0 forward, 1 back, 2 right, 3 left, 4 fire held, 5 fire tapped; the whole twice enlarged."
+command = ".venv/bin/python book/tools/figures.py demo-file"
