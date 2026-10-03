@@ -56,6 +56,8 @@
 # (tests/libwofcore.dylib), seed 1, PAL (wof_set_video_hz 50), two VBlanks a fade step as the
 # page has them, on the files packed into dist/wof.html; one wof_vblank and one wof_pass per
 # VBlank, as the page's clock issues them.  Fire is the raw byte 16.
+# A run's `schedule` is the raw byte of every VBlank as runs of [VBlanks, byte] from the
+# program's start, recorded by the headless original or written by hand.
 [run.front]
 what = """The front end left to itself after the story scroller: fire held for three VBlanks from
 VBlank 30, which ends the scroller, and nothing after it, so that the first picture, the
@@ -227,6 +229,29 @@ schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1,
 expect = [{vblank = 7720, "aircraft_records[3].state" = 2, "aircraft_records[3].mode" = 4},
           {vblank = 7720, "aircraft_records[3].relation" = 2, "aircraft_records[3].x" = 9273},
           {vblank = 7720, "aircraft_records[3].y" = 50, record_x = 8768, record_facing = 1}]
+
+[run.story]
+what = """The front end left alone from the program's start: a schedule written by hand, every VBlank's
+raw byte 0, so that the story scroller runs as it does without input (re/notes/frontend.md, "The
+story scroller")."""
+schedule = [[1000, 0]]
+
+[run.rank]
+what = """A schedule written by hand, runs of [VBlanks, raw byte] from the program's start: fire for
+three VBlanks from VBlank 30, which ends the story scroller, and again from 300, which skips the
+rest of the title sequence; then the stick pulled back (raw byte 2) for three VBlanks from 501,
+once the rank selection's menu reads the stick, which moves the highlight from the first item to
+the second. `expect` checks the cursor there."""
+schedule = [[29, 0], [3, 16], [267, 0], [3, 16], [198, 0], [3, 2], [200, 0]]
+expect = [{vblank = 540, rank_cursor = 1}]
+
+[run.load]
+what = """As the run rank, but the stick pushed forward (raw byte 1) for three VBlanks from 501, which
+wraps the highlight from the first item to the load item, the eighth, and fire for three VBlanks
+from 544, which chooses it: the load and save dialog opens in load mode on the disk's one saved
+game. `expect` checks the cursor there."""
+schedule = [[29, 0], [3, 16], [267, 0], [3, 16], [198, 0], [3, 1], [40, 0], [3, 16], [200, 0]]
+expect = [{vblank = 640, rank_cursor = 7}]
 
 [[figure]]
 name = "title-logo"
@@ -878,4 +903,38 @@ scale = 2
 shows = "The first four bars of song 0, the high-score screen's, as the player plays them: its four tracks, each note a bar from its start to its release, its height its pitch, its ink its voice, the rest voice a gap."
 how = "The song's sequences and patterns decoded by tools/song_decode.py (Songs()), walked as track_read, note_start and note_release take them (src/music.c): a note's length and release tick from the player's durations, a tied note never released and a run of tied notes one bar, a note of the rest voice nothing; one pixel a tick of the timer, the quarters of 24 ticks and the bars of 96 ruled; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py song-highscore"
+
+[[figure]]
+name = "story-scroller"
+file = "story-scroller.png"
+maker = "screen"
+run = "story"
+vblank = 780
+size = [1024, 642]
+shows = "The story scroller at VBlank 780 of the front end left alone: the story's heading dimmed by the top grey ramp, the first paragraph white and justified to 615 pixels, its last line not stretched and dimmed by the bottom ramp."
+how = "VBlank 780 of the story run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the picture goes through 17 palettes, the 16 greys of the two ramps and black. The scroller's own counts are the front end's state, not registered, so nothing is checked but the VBlank: by then the first lines have risen to the window's top, so that both ramps carry text."
+command = ".venv/bin/python book/tools/figures.py story-scroller"
+
+[[figure]]
+name = "rank-select"
+file = "rank-select.png"
+maker = "screen"
+run = "rank"
+vblank = 540
+crop = [0, 68, 640, 108]
+size = [1024, 324]
+shows = "The rank selection with its highlight on the second item, moved there by the stick: the heading, the seven ranks and the load item below them, in the frame of the picture."
+how = "VBlank 540 of the rank run, where the run checks rank_cursor 1; the box of the 640 x 214 picture from row 68, 640 by 108, the heading and the eight items, shown at the page's PAL proportions, 1.6 times as wide and 3 times as tall."
+command = ".venv/bin/python book/tools/figures.py rank-select"
+
+[[figure]]
+name = "load-dialog"
+file = "load-dialog.png"
+maker = "screen"
+run = "load"
+vblank = 640
+size = [1024, 642]
+shows = "The load and save dialog in load mode, drawn with graphics.library in topaz 8: the mode's word and its label at the top, six slots, the first holding the disk's saved game and selected, and the two buttons at the bottom."
+how = "VBlank 640 of the load run, where the run checks rank_cursor 7, the load item; the 640 x 214 picture shown in the PAL box of 1024 x 642."
+command = ".venv/bin/python book/tools/figures.py load-dialog"
 

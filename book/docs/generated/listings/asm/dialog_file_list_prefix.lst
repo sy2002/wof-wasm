@@ -1,0 +1,40 @@
+; re/Wings.lst 0x018A7E-0x018AFA: dialog_file_list [C], a part of 0x018A06-0x018B95
+loc_018a7e:
+018a7e  0c6d0006fffe         cmpi.w     #$6, -$2(a5)
+018a84  6c0000c8             bge.w      $18b4e
+018a88  2f2dfff4             move.l     -$c(a5), -(a7)
+018a8c  2f2dfff8             move.l     -$8(a5), -(a7)
+018a90  4eac83da             jsr        -$7c26(a4)                             ; -> os_dos_ex_next
+018a94  504f                 addq.w     #$8, a7
+018a96  4a40                 tst.w      d0
+018a98  670000b4             beq.w      $18b4e
+018a9c  206dfff4             movea.l    -$c(a5), a0
+018aa0  10280008             move.b     $8(a0), d0
+018aa4  4880                 ext.w      d0
+018aa6  3f00                 move.w     d0, -(a7)
+018aa8  4eac8398             jsr        -$7c68(a4)                             ; -> tolower
+018aac  544f                 addq.w     #$2, a7
+018aae  b07c0077             cmp.w      #$77, d0
+018ab2  66000096             bne.w      $18b4a
+018ab6  206dfff4             movea.l    -$c(a5), a0
+018aba  10280009             move.b     $9(a0), d0
+018abe  4880                 ext.w      d0
+018ac0  3f00                 move.w     d0, -(a7)
+018ac2  4eac8398             jsr        -$7c68(a4)                             ; -> tolower
+018ac6  544f                 addq.w     #$2, a7
+018ac8  b07c006f             cmp.w      #$6f, d0
+018acc  667c                 bne.b      $18b4a
+018ace  206dfff4             movea.l    -$c(a5), a0
+018ad2  1028000a             move.b     $a(a0), d0
+018ad6  4880                 ext.w      d0
+018ad8  3f00                 move.w     d0, -(a7)
+018ada  4eac8398             jsr        -$7c68(a4)                             ; -> tolower
+018ade  544f                 addq.w     #$2, a7
+018ae0  b07c0066             cmp.w      #$66, d0
+018ae4  6664                 bne.b      $18b4a
+018ae6  206dfff4             movea.l    -$c(a5), a0
+018aea  0c28002e000b         cmpi.b     #$2e, $b(a0)
+018af0  6658                 bne.b      $18b4a
+018af2  206dfff4             movea.l    -$c(a5), a0
+018af6  4a28000c             tst.b      $c(a0)
+018afa  674e                 beq.b      $18b4a

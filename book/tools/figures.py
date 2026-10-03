@@ -60,9 +60,9 @@ A run of the core may poke the registered state at the rank selection's end, as 
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
 library's test hook; the pokes are cleared when the run ends.  After the mission begins a run
 may move the stick by a schedule of letters, as the mission scripts are written, or replay from
-the start a schedule the headless original recorded; it may name registered globals, the
-player's record's height, x, state and facing as record_y, record_x, record_state and
-record_facing, and a field of a registered table's record by its index, as
+the start a schedule the headless original recorded, or one written by hand; it may name
+registered globals, the player's record's height, x, state and facing as record_y, record_x,
+record_state and record_facing, and a field of a registered table's record by its index, as
 "aircraft_records[3].mode", with the values they must have at a VBlank, which the run checks.
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)

@@ -1,0 +1,56 @@
+; re/Wings.lst 0x01819C-0x018222: menu_input [C], a part of 0x018194-0x018227
+loc_01819c:
+01819c  4eac82fc             jsr        -$7d04(a4)                             ; -> key_available
+0181a0  4a40                 tst.w      d0
+0181a2  6736                 beq.b      $181da
+0181a4  4eac8302             jsr        -$7cfe(a4)                             ; -> key_get
+0181a8  3b40fffc             move.w     d0, -$4(a5)
+0181ac  0c6d004cfffc         cmpi.w     #$4c, -$4(a5)
+0181b2  6606                 bne.b      $181ba
+0181b4  70ff                 moveq      #$ff, d0
+loc_0181b6:
+0181b6  4e5d                 unlk       a5
+0181b8  4e75                 rts
+loc_0181ba:
+0181ba  0c6d004dfffc         cmpi.w     #$4d, -$4(a5)
+0181c0  6604                 bne.b      $181c6
+0181c2  7001                 moveq      #$1, d0
+0181c4  60f0                 bra.b      $181b6
+loc_0181c6:
+0181c6  0c6d0044fffc         cmpi.w     #$44, -$4(a5)
+0181cc  6708                 beq.b      $181d6
+0181ce  0c6d0043fffc         cmpi.w     #$43, -$4(a5)
+0181d4  6604                 bne.b      $181da
+loc_0181d6:
+0181d6  7000                 moveq      #$0, d0
+0181d8  60dc                 bra.b      $181b6
+loc_0181da:
+0181da  4eac82c6             jsr        -$7d3a(a4)                             ; -> poll_joy_dir8
+0181de  3b40fffe             move.w     d0, -$2(a5)
+0181e2  0c6d0001fffe         cmpi.w     #$1, -$2(a5)
+0181e8  6604                 bne.b      $181ee
+0181ea  70ff                 moveq      #$ff, d0
+0181ec  60c8                 bra.b      $181b6
+loc_0181ee:
+0181ee  0c6d0005fffe         cmpi.w     #$5, -$2(a5)
+0181f4  6604                 bne.b      $181fa
+0181f6  7001                 moveq      #$1, d0
+0181f8  60bc                 bra.b      $181b6
+loc_0181fa:
+0181fa  4eac82c0             jsr        -$7d40(a4)                             ; -> poll_fire
+0181fe  4a40                 tst.w      d0
+018200  6704                 beq.b      $18206
+018202  7000                 moveq      #$0, d0
+018204  60b0                 bra.b      $181b6
+loc_018206:
+018206  4eac8452             jsr        -$7bae(a4)                             ; -> gfx_WaitTOF
+01820a  526dfffa             addq.w     #$1, -$6(a5)
+01820e  4a6d0008             tst.w      $8(a5)
+018212  670e                 beq.b      $18222
+018214  0c6d0708fffa         cmpi.w     #$708, -$6(a5)
+01821a  6f06                 ble.b      $18222
+01821c  303c03e8             move.w     #$3e8, d0
+018220  6094                 bra.b      $181b6
+loc_018222:
+018222  6000ff78             bra.w      $1819c
+loc_018226:        ; (found by gap sweep)

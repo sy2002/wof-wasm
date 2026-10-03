@@ -1,0 +1,22 @@
+; re/Wings.lst 0x0207F2-0x02082C: key_get [asm], a part of 0x0207E4-0x020847
+loc_0207f2:
+0207f2  4eac8404             jsr        -$7bfc(a4)                             ; -> os_disable
+0207f6  7000                 moveq      #$0, d0
+0207f8  41ecbca4             lea.l      -$435c(a4), a0                         ; key_qualifier_buffer
+0207fc  3010                 move.w     (a0), d0
+0207fe  4840                 swap       d0
+020800  41ecbc9a             lea.l      -$4366(a4), a0                         ; key_buffer
+020804  8010                 or.b       (a0), d0
+020806  2f00                 move.l     d0, -(a7)
+020808  536cbcb8             subq.w     #$1, -$4348(a4)                        ; key_count
+02080c  4241                 clr.w      d1
+02080e  4242                 clr.w      d2
+020810  41ecbc9a             lea.l      -$4366(a4), a0                         ; key_buffer
+020814  43ecbca4             lea.l      -$435c(a4), a1                         ; key_qualifier_buffer
+loc_020818:
+020818  11b010011000         move.b     $1(a0, d1.w), (a0, d1.w)
+02081e  33b120022000         move.w     $2(a1, d2.w), (a1, d2.w)
+020824  5241                 addq.w     #$1, d1
+020826  5442                 addq.w     #$2, d2
+020828  b26cbcb8             cmp.w      -$4348(a4), d1                         ; key_count
+02082c  6fea                 ble.b      $20818

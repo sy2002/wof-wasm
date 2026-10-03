@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 516" width="1000" height="516" role="img" aria-labelledby="title desc">
+  <title id="title">The outer loop</title>
+  <desc id="desc">The front end as the code joins its screens. The title sequence, the story scroller and three pictures, runs once at the program&#39;s start and leads to the rank selection, which follows the outer loop&#39;s head. A rank chosen, or 1,800 rounds left alone, which asks for the demo, leads to the briefing after the map is loaded. The load item opens the load and save dialog: a cancel goes back to the rank selection, a game loaded goes to the briefing with no map loaded and no reset of the mission, as the rank selection returns with it. The briefing goes on to a mission after 240 rounds or on fire; its Control-R goes back to the rank selection. A mission, the inner loop, runs a pass a round until the game is over or a quit, Control-R in flight among them, ends it. At the mission&#39;s end the screen fades and a recording is written; then the high-score screen, which asks for a name only when the score beats the tenth row, unless a demo was played back, which goes straight back; and the rank selection comes again.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .menu   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .once   { fill: #AAAABB; /* wingspalette 29 */ }
+    .dialog { fill: #FFBB00; /* wingstitle 25 */ }
+    .fly    { fill: #77AACC; /* wingspalette 22 */ }
+    .end    { fill: #EE6622; /* wingspalette 2 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="16" y="24" text-anchor="start">The outer loop</text>
+  <text class="muted small" x="16" y="44" text-anchor="start">the front end&#39;s screens as main joins them</text>
+
+  <!-- The boxes: the title sequence, the rank selection, the dialog, the briefing, a mission, its end, the high scores -->
+  <rect class="once" x="20" y="64" width="240" height="60" rx="4"/>
+  <text class="ink name" x="140" y="91" text-anchor="middle">the title sequence</text>
+  <text class="ink small" x="140" y="107" text-anchor="middle">the story and three pictures, once</text>
+  <rect class="menu" x="20" y="214" width="240" height="64" rx="4"/>
+  <text class="ink name" x="140" y="243" text-anchor="middle">the rank selection</text>
+  <text class="ink small" x="140" y="259" text-anchor="middle">seven ranks and the load item</text>
+  <rect class="dialog" x="20" y="400" width="190" height="60" rx="4"/>
+  <text class="ink name" x="115" y="427" text-anchor="middle">the load and save dialog</text>
+  <text class="ink small" x="115" y="443" text-anchor="middle">in load mode</text>
+  <rect class="menu" x="400" y="214" width="200" height="64" rx="4"/>
+  <text class="ink name" x="500" y="243" text-anchor="middle">the briefing</text>
+  <text class="ink small" x="500" y="259" text-anchor="middle">the rank, the mission, two counts</text>
+  <rect class="fly" x="740" y="214" width="200" height="64" rx="4"/>
+  <text class="ink name" x="840" y="243" text-anchor="middle">a mission</text>
+  <text class="ink small" x="840" y="259" text-anchor="middle">the inner loop, a pass a round</text>
+  <rect class="menu" x="400" y="384" width="200" height="64" rx="4"/>
+  <text class="ink name" x="500" y="413" text-anchor="middle">the high-score screen</text>
+  <text class="ink small" x="500" y="429" text-anchor="middle">a name if above the tenth row</text>
+  <rect class="end" x="740" y="384" width="200" height="64" rx="4"/>
+  <text class="ink name" x="840" y="413" text-anchor="middle">the mission&#39;s end</text>
+  <text class="ink small" x="840" y="429" text-anchor="middle">the fade out, a recording written</text>
+
+  <!-- The title sequence once, into the loop's head -->
+  <path class="wire" d="M140 124 L140.0 205.0"/>
+  <path class="light" d="M140 214 L135.0 205.0 L145.0 205.0 Z"/>
+  <text class="light small" x="148" y="150" text-anchor="start">the outer loop&#39;s head:</text>
+  <text class="light small" x="148" y="164" text-anchor="start">flags cleared, the campaign reset</text>
+  <!-- A rank chosen, a game loaded, or the demo asked for after 1,800 rounds -->
+  <path class="wire" d="M260 234 L391.0 234.0"/>
+  <path class="light" d="M400 234 L391.0 239.0 L391.0 229.0 Z"/>
+  <text class="light small" x="330" y="180" text-anchor="middle">a rank chosen,</text>
+  <text class="light small" x="330" y="194" text-anchor="middle">a game loaded, or</text>
+  <text class="light small" x="330" y="208" text-anchor="middle">1,800 rounds alone:</text>
+  <text class="light small" x="330" y="222" text-anchor="middle">the demo asked for</text>
+  <!-- The briefing's Control-R back to the rank selection -->
+  <path class="wire" d="M400 262 L269.0 262.0"/>
+  <path class="light" d="M260 262 L269.0 257.0 L269.0 267.0 Z"/>
+  <text class="light small" x="330" y="280" text-anchor="middle">Control-R</text>
+  <!-- The load item, and back on a cancel or with a game loaded -->
+  <path class="wire" d="M60 286 L60.0 391.0"/>
+  <path class="light" d="M60 400 L55.0 391.0 L65.0 391.0 Z"/>
+  <path class="light" d="M60 278 L65 287 L55 287 Z"/>
+  <text class="light small" x="68" y="332" text-anchor="start">the load item;</text>
+  <text class="light small" x="68" y="346" text-anchor="start">back on a cancel</text>
+  <text class="light small" x="68" y="360" text-anchor="start">or a game loaded</text>
+  <!-- The briefing to the mission -->
+  <path class="wire" d="M600 246 L731.0 246.0"/>
+  <path class="light" d="M740 246 L731.0 251.0 L731.0 241.0 Z"/>
+  <text class="light small" x="670" y="238" text-anchor="middle">240 rounds or fire</text>
+  <!-- The mission's end: the game over or a quit -->
+  <path class="wire" d="M840 278 L840.0 375.0"/>
+  <path class="light" d="M840 384 L835.0 375.0 L845.0 375.0 Z"/>
+  <text class="light small" x="832" y="324" text-anchor="end">the game over,</text>
+  <text class="light small" x="832" y="338" text-anchor="end">or a quit</text>
+  <!-- The high scores, unless a demo was played back, which goes straight back -->
+  <path class="wire" d="M740 416 L609.0 416.0"/>
+  <path class="light" d="M600 416 L609.0 411.0 L609.0 421.0 Z"/>
+  <text class="light small" x="670" y="404" text-anchor="middle">unless a demo</text>
+  <text class="light small" x="670" y="436" text-anchor="middle">was played back</text>
+  <path class="wire" d="M840 448 L840 496 L248 496 L248.0 287.0"/>
+  <path class="light" d="M248 278 L253.0 287.0 L243.0 287.0 Z"/>
+  <text class="light small" x="544" y="488" text-anchor="middle">a demo played back: no high scores</text>
+  <!-- The next campaign -->
+  <path class="wire" d="M400 416 L220 416 L220.0 287.0"/>
+  <path class="light" d="M220 278 L225.0 287.0 L215.0 287.0 Z"/>
+  <text class="light small" x="310" y="408" text-anchor="middle">the next campaign</text>
+</svg>

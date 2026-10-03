@@ -1,0 +1,42 @@
+; re/Wings.lst 0x0162A2-0x016322: text_input [C], a part of 0x016086-0x01653B
+0162a2  0c6d0044ffa0         cmpi.w     #$44, -$60(a5)
+0162a8  6700019a             beq.w      $16444
+0162ac  0c6d0043ffa0         cmpi.w     #$43, -$60(a5)
+0162b2  67000190             beq.w      $16444
+0162b6  0c6d004fffa0         cmpi.w     #$4f, -$60(a5)
+0162bc  661c                 bne.b      $162da
+0162be  536dffae             subq.w     #$1, -$52(a5)
+0162c2  4a6dffae             tst.w      -$52(a5)
+0162c6  6d0a                 blt.b      $162d2
+0162c8  302dff9e             move.w     -$62(a5), d0
+0162cc  c07c0003             and.w      #$3, d0
+0162d0  6704                 beq.b      $162d6
+loc_0162d2:
+0162d2  426dffae             clr.w      -$52(a5)
+loc_0162d6:
+0162d6  60000168             bra.w      $16440
+loc_0162da:
+0162da  0c6d004effa0         cmpi.w     #$4e, -$60(a5)
+0162e0  6632                 bne.b      $16314
+0162e2  526dffae             addq.w     #$1, -$52(a5)
+0162e6  2f2d0008             move.l     $8(a5), -(a7)
+0162ea  4eac8392             jsr        -$7c6e(a4)                             ; -> strlen
+0162ee  584f                 addq.w     #$4, a7
+0162f0  322dffae             move.w     -$52(a5), d1
+0162f4  b240                 cmp.w      d0, d1
+0162f6  6e0a                 bgt.b      $16302
+0162f8  302dff9e             move.w     -$62(a5), d0
+0162fc  c07c0003             and.w      #$3, d0
+016300  670e                 beq.b      $16310
+loc_016302:
+016302  2f2d0008             move.l     $8(a5), -(a7)
+016306  4eac8392             jsr        -$7c6e(a4)                             ; -> strlen
+01630a  584f                 addq.w     #$4, a7
+01630c  3b40ffae             move.w     d0, -$52(a5)
+loc_016310:
+016310  6000012e             bra.w      $16440
+loc_016314:
+016314  0c6d004cffa0         cmpi.w     #$4c, -$60(a5)
+01631a  660a                 bne.b      $16326
+01631c  3b7cffffff9c         move.w     #$ffff, -$64(a5)
+016322  60000120             bra.w      $16444

@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 626" width="1000" height="626" role="img" aria-labelledby="title desc">
+  <title id="title">From a key to a character</title>
+  <desc id="desc">How a key reaches the game, on the Amiga on the left and in the port on the right; the middle is kept. On the Amiga a key sends its raw key code, which names its position; the game&#39;s handler on input.device, at priority 127, keeps the key going down, appends the code and the qualifier word to the key buffer and swallows the event. In the port a key in the browser arrives as its KeyboardEvent.code, also a position; the shell&#39;s map turns it into the raw code with the Shift and Caps Lock bits and never Control; the key layer rewrites the seven command keys into the codes and the Control bit the readers expect, and hands the key to the port of the handler. Both fill the same key buffer of ten codes and ten qualifier words, which the same five readers empty. To turn a key into a character, the original calls console.device&#39;s RawKeyConvert with the system&#39;s keymap in the ROM and takes one character or none; the port looks the key up in a table of 2,048 bytes, which the build made once by running the ROM&#39;s own routine over every code and qualifier.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
+    .orig  { fill: #77AACC; /* wingspalette 22 */ }
+    .port  { fill: #44AA44; /* iff-dash 6 */ }
+    .kept  { fill: #CCCCDD; /* wingspalette 30 */ }
+    .rom   { fill: #FFBB00; /* wingstitle 25 */ }
+    .ink   { fill: #111122; /* wingspalette 6 */ }
+    .light { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire  { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    .build { stroke: #FFBB00; /* wingstitle 25 */ stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .code  { font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="16" y="24" text-anchor="start">From a key to a character</text>
+  <text class="muted small" x="16" y="44" text-anchor="start">the original&#39;s path on the left, the port&#39;s on the right; the middle is kept</text>
+  <text class="light label" x="210" y="76" text-anchor="middle">on the Amiga</text>
+  <text class="light label" x="730" y="76" text-anchor="middle">in the port</text>
+
+  <!-- The keys -->
+  <rect class="orig" x="20" y="92" width="380" height="50" rx="4"/>
+  <text class="ink name" x="210" y="114" text-anchor="middle">a key on the Amiga&#39;s keyboard</text>
+  <text class="ink small" x="210" y="130" text-anchor="middle">its raw key code: where it is, not what it says</text>
+  <rect class="port" x="540" y="92" width="380" height="50" rx="4"/>
+  <text class="ink name" x="730" y="114" text-anchor="middle">a key in the browser</text>
+  <text class="ink small" x="730" y="130" text-anchor="middle">KeyboardEvent.code: where it is, too</text>
+  <!-- The original handler; the shell and the key layer -->
+  <rect class="orig" x="20" y="188" width="380" height="66" rx="4"/>
+  <text class="ink code" x="210" y="210" text-anchor="middle">input_handler</text>
+  <text class="ink small" x="210" y="226" text-anchor="middle">on input.device, priority 127: a key going down</text>
+  <text class="ink small" x="210" y="242" text-anchor="middle">only, code and qualifier kept, the event swallowed</text>
+  <rect class="port" x="540" y="172" width="380" height="50" rx="4"/>
+  <text class="ink name" x="730" y="194" text-anchor="middle">the shell&#39;s map</text>
+  <text class="ink small" x="730" y="210" text-anchor="middle">the raw code; Shift and Caps Lock, never Control</text>
+  <rect class="port" x="540" y="252" width="380" height="50" rx="4"/>
+  <text class="ink name" x="730" y="274" text-anchor="middle">the key layer</text>
+  <text class="ink small" x="730" y="290" text-anchor="middle">wof_port_key: seven keys rewritten for the readers</text>
+  <path class="wire" d="M210 142 L210.0 179.0"/>
+  <path class="light" d="M210 188 L205.0 179.0 L215.0 179.0 Z"/>
+  <path class="wire" d="M730 142 L730.0 163.0"/>
+  <path class="light" d="M730 172 L725.0 163.0 L735.0 163.0 Z"/>
+  <path class="wire" d="M730 222 L730.0 243.0"/>
+  <path class="light" d="M730 252 L725.0 243.0 L735.0 243.0 Z"/>
+  <!-- The key buffer and its readers, kept -->
+  <rect class="kept" x="200" y="348" width="540" height="50" rx="4"/>
+  <text class="ink name" x="470" y="370" text-anchor="middle">the key buffer</text>
+  <text class="ink small" x="470" y="386" text-anchor="middle">ten raw key codes and ten qualifier words, a count</text>
+  <path class="wire" d="M210 254 L210 300 L290 300 L290.0 339.0"/>
+  <path class="light" d="M290 348 L285.0 339.0 L295.0 339.0 Z"/>
+  <text class="light small" x="218" y="292" text-anchor="start">appended</text>
+  <path class="wire" d="M730 302 L730 324 L650 324 L650.0 339.0"/>
+  <path class="light" d="M650 348 L645.0 339.0 L655.0 339.0 Z"/>
+  <text class="light small" x="658" y="341" text-anchor="start">wof_key: the handler, ported</text>
+  <rect class="kept" x="200" y="440" width="540" height="50" rx="4"/>
+  <text class="ink name" x="470" y="462" text-anchor="middle">the five readers</text>
+  <text class="ink small" x="470" y="478" text-anchor="middle">menu_input, wait_input_release, text_input, mission_briefing, ingame_keys</text>
+  <path class="wire" d="M470 398 L470.0 431.0"/>
+  <path class="light" d="M470 440 L465.0 431.0 L475.0 431.0 Z"/>
+  <text class="light small" x="478" y="424" text-anchor="start">key_available, key_get</text>
+  <!-- A key to a character -->
+  <rect class="orig" x="20" y="540" width="360" height="66" rx="4"/>
+  <text class="ink code" x="200" y="562" text-anchor="middle">key_to_char</text>
+  <text class="ink small" x="200" y="578" text-anchor="middle">console.device&#39;s RawKeyConvert with the ROM&#39;s</text>
+  <text class="ink small" x="200" y="594" text-anchor="middle">keymap: one character, or none</text>
+  <rect class="port" x="560" y="540" width="360" height="66" rx="4"/>
+  <text class="ink code" x="740" y="562" text-anchor="middle">wof_key_to_char</text>
+  <text class="ink small" x="740" y="578" text-anchor="middle">a table of 2,048 bytes: 128 codes</text>
+  <text class="ink small" x="740" y="594" text-anchor="middle">under 16 qualifier combinations</text>
+  <path class="wire" d="M290 490 L290.0 531.0"/>
+  <path class="light" d="M290 540 L285.0 531.0 L295.0 531.0 Z"/>
+  <path class="wire" d="M650 490 L650.0 531.0"/>
+  <path class="light" d="M650 540 L645.0 531.0 L655.0 531.0 Z"/>
+  <!-- The build: the ROM's own routine run once over every code and qualifier -->
+  <path class="build" d="M380 573 L551.0 573.0"/>
+  <path class="rom" d="M560 573 L551.0 578.0 L551.0 568.0 Z"/>
+  <text class="light small" x="470" y="562" text-anchor="middle">the build runs it</text>
+  <text class="light small" x="470" y="594" text-anchor="middle">once, from the ROM</text>
+</svg>

@@ -160,6 +160,12 @@ The controller's short account to the owner: where things stand, in a few lines,
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CONTROLLER.md`](repo:CONTROLLER.md#the-users-conventions), "The user's conventions".
 
+### Briefing
+
+The screen before every mission that shows the rank's name, the mission number and the mission's two counts, for 240 rounds or until fire; Control-R goes back to the rank selection.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/front.c`](repo:src/front.c).
+
 ### BSS
 
 A hunk of memory that starts at zero and is given in the program's file by its size alone; the game's is 4 bytes at `0x028000`.
@@ -554,9 +560,9 @@ Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-p
 
 ### Front end
 
-The game's screens before and between missions: the story, the title, the rank selection, the briefing, the high scores and the dialogs.
+The game's screens before and between missions, from the story scroller and the title sequence to the rank selection, the briefing, the dialogs and the high-score screen, and the outer loop that joins them.
 
-First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md).
+First met in [chapter 3](part-1/disk.md), defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#the-timetable-left-alone), "The timetable, left alone"; [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
 
 ### Game over
 
@@ -613,6 +619,12 @@ The file `highscore`, 360 bytes: ten rows of 36, each a score, the rank reached 
 First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/highscore.md`](repo:re/notes/highscore.md).
 
 Elsewhere: [Score (video games)](https://en.wikipedia.org/wiki/Score%5F(video%5Fgames)), Wikipedia.
+
+### High-score screen
+
+The screen at a game's end that shows the ten rows of the high-score file in the game's font, outlined in black, behind the music's song 0.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/hiscore.c`](repo:src/hiscore.c).
 
 ### Hit count
 
@@ -716,11 +728,31 @@ First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/h
 
 Elsewhere: [Interrupt request](https://en.wikipedia.org/wiki/Interrupt%5Frequest), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Key buffer
+
+The game's ten raw key codes and ten qualifier words with a count, filled by its handler on input.device and emptied by the five readers.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-chain-from-a-key-press-to-an-effect), "The chain from a key press to an effect"; [`src/keys.c`](repo:src/keys.c).
+Elsewhere: [Keyboard buffer](https://en.wikipedia.org/wiki/Keyboard%5Fbuffer), Wikipedia.
+
+### Key layer
+
+The port's own routine in front of the key buffer that rewrites its seven command keys into the codes and the Control bit the original's readers expect; policy, not a port.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-ports-own-layer), "The port's own layer"; [`src/portkeys.c`](repo:src/portkeys.c).
+
 ### Keyboard assist
 
 The port's switch that makes one key press one step in the weapon menu and lets a short tap reach the game exactly once everywhere else; off in every comparison with the original.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-keyboard-assist), "The keyboard assist".
+
+### Keymap
+
+The system's table that turns a raw key code and its qualifier into characters; the default one lies in the Kickstart ROM, and the port's build runs the ROM's own routine over it once.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#raw-code-to-character-consoledevice), "Raw code to character: console.device"; [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-key-conversion-table), "The key conversion table".
+Elsewhere: [Keyboard layout](https://en.wikipedia.org/wiki/Keyboard%5Flayout), Wikipedia.
 
 ### Kickstart
 
@@ -780,6 +812,12 @@ The carrier's lift, which carries the player's aircraft between the deck and the
 
 First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#landing-refuelling-rearming), "Landing, refuelling, rearming".
 
+### Line editor
+
+The routine that edits a line of text for the name entry and the dialog's file names, with a caret, the cursor keys and the deletes, and no filter on what goes in.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-commands), "The commands"; [`src/dialog.c`](repo:src/dialog.c).
+
 ### Listing
 
 The game's program written out as assembly language by the disassembler, each instruction with its address, its bytes and the names of what it touches: [`re/Wings.lst`](repo:re/Wings.lst).
@@ -795,6 +833,13 @@ The byte order that stores the least significant byte of a number first: that of
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py).
 
 Elsewhere: [Endianness](https://en.wikipedia.org/wiki/Endianness), Wikipedia.
+
+### Load and save dialog
+
+The screen that lists the saved games of the game's directory in the file system's own order and loads one, or saves the game under a typed name, drawn with graphics.library in topaz 8.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/dialog.c`](repo:src/dialog.c).
+Elsewhere: [Saved game](https://en.wikipedia.org/wiki/Saved%5Fgame), Wikipedia.
 
 ### LoadSeg
 
@@ -916,6 +961,12 @@ The game's second sound engine, `songplay`, a small program of its own that the 
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-games-calls), "The game's calls".
 
+### Name entry
+
+The dialog before the high-score screen that asks for the player's name with the line editor, only when the score beats the tenth row's.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/hiscore.c`](repo:src/hiscore.c).
+
 ### Name list
 
 A list of four-character shape names in the program's data, ended by a zero, which the game resolves in its container at load into a pointer table.
@@ -975,6 +1026,12 @@ The original runs under the emulator Unicorn with the program at the fixed load 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [7.4](repo:SPEC.md#74-working-method) and [8](repo:SPEC.md#8-verification); [`tools/oracle.py`](repo:tools/oracle.py); [chapter 5](part-1/oracle.md).
 
 Elsewhere: [Test oracle](https://en.wikipedia.org/wiki/Test%5Foracle), Wikipedia.
+
+### Outer loop
+
+The loop of the game's `main` that runs the rank selection, the briefing, a mission and the high-score screen again and again, after the title sequence has run once.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#the-outer-loop-as-a-state-diagram), "The outer loop, as a state diagram".
 
 ### PAL
 
@@ -1102,11 +1159,37 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`
 
 Elsewhere: [Pure function](https://en.wikipedia.org/wiki/Pure%5Ffunction), Wikipedia.
 
+### Push (of the keyboard assist)
+
+The keyboard assist's stick, forward or back, held for exactly twelve VBlanks in the weapon menu in place of a key's press: three input samples, one step.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-the-assist-does), "What the assist does"; [`src/assist.c`](repo:src/assist.c).
+
+### Qualifier
+
+The word of bits that comes with a raw key code and says which of Shift, Caps Lock, Control, Alt and the Amiga keys were held; the game reads only Control's.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#control-and-the-two-masks), "Control, and the two masks".
+Elsewhere: [Modifier key](https://en.wikipedia.org/wiki/Modifier%5Fkey), Wikipedia.
+
 ### Rank
 
 One of the campaign's seven stages, 0 to 6, each a fixed run of maps; the player chooses the first at the rank selection, a promotion moves it on, and a high-score row records the rank reached.
 
 First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/notes/campaign.md`](repo:re/notes/campaign.md#the-order-of-the-maps), "The order of the maps".
+
+### Rank selection
+
+The menu of the seven ranks and the load item below them, between the title sequence and the briefing, its highlight a shape drawn in exclusive-or.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/front.c`](repo:src/front.c).
+
+### Raw key code
+
+The number from 0 to 127 that the Amiga's keyboard sends for a key's place, not for what is printed on it, with bit 7 set when the key goes up.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-chain-from-a-key-press-to-an-effect), "The chain from a key press to an effect".
+Elsewhere: [Scancode](https://en.wikipedia.org/wiki/Scancode), Wikipedia.
 
 ### Raw part
 
@@ -1121,6 +1204,12 @@ The record of which routines, and which of their instructions, the mission scrip
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/reach_observe.py`](repo:tools/reach%5Fobserve.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
 
 Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikipedia.
+
+### Reader (of the key buffer)
+
+One of the five routines that take keys out of the key buffer: the menus' reader, the wait for a release, the line editor, the briefing and the commands in flight.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#the-five-readers), "The five readers".
 
 ### Register
 
@@ -1358,6 +1447,12 @@ A marked place in the port's C where the original has code the port does not car
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-stands-in-and-where), "What stands in, and where".
 
+### Story scroller
+
+The first screen of the front end: the game's story, drawn a line at a time in the game's font into a bitmap used as a ring, rising up the screen behind song 2.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-story-scrollers-ring-and-its-ramps), "The story scroller's ring and its ramps".
+
 ### Stub
 
 A substitute that answers for something a routine calls but that is not under test, such as a call into the operating system.
@@ -1393,6 +1488,12 @@ Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commo
 One run-out of the CIA timer the music player takes, at which the player runs its song routine once, every 14,592 counts of the E clock for four of the five songs; not the [logic tick](#logic-tick).
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-tick-songint), "The tick: SongInt".
+
+### Title sequence
+
+The routine that runs the story scroller and then three pictures at the program's start, each decoded out of sight, faded in, waited on and faded out.
+
+First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#screen-by-screen), "Screen by screen"; [`src/front.c`](repo:src/front.c).
 
 ### Topaz 8
 

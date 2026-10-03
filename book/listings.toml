@@ -808,3 +808,83 @@ file = "src/music.c"
 kind = "py"
 name = "test_the_timer_ticks_at_the_songs_tempo"
 file = "tests/test_music.py"
+
+# Chapter 19, the keys: key_get pops the oldest key and shifts the buffer down, the loop
+# running up to and including the new count; beside it the port's reads one past the end,
+# kept as the values the machine finds there.
+[[listing]]
+kind = "asm"
+name = "key_get"
+from = 0x0207F2
+to = 0x02082C
+as = "key_get_shift"
+
+[[listing]]
+kind = "c"
+name = "key_code_at"
+file = "src/keys.c"
+
+# The rank selection's and the dialog's reader: the cursor keys and Return from the buffer, the
+# stick and the button polled, one WaitTOF a round and the time-out after 1,800 rounds.
+[[listing]]
+kind = "asm"
+name = "menu_input"
+from = 0x01819C
+to = 0x018222
+lines = 55
+as = "menu_input_loop"
+
+[[listing]]
+kind = "c"
+name = "wof_menu_input"
+file = "src/fade.c"
+from = "for (;;) {"
+to = "CO_END(c);"
+as = "wof_menu_input_loop"
+
+# The line editor's first key tests: Return and Enter, the cursor left and right, which
+# with either Shift (qualifier bits 0 and 1) jump to the line's ends, and the cursor up.
+[[listing]]
+kind = "asm"
+name = "text_input"
+from = 0x0162A2
+to = 0x016322
+lines = 41
+as = "text_input_keys"
+
+[[listing]]
+kind = "c"
+name = "wof_text_input"
+file = "src/dialog.c"
+from = "if (code == 0x44 || code == 0x43)"
+to = "if (code == 0x4C)"
+as = "text_input_keys_c"
+
+# The dialog's file list: ExNext's next entry and the test of its name's first five bytes;
+# beside it the port's directory in ExNext's order, computed from the names.
+[[listing]]
+kind = "asm"
+name = "dialog_file_list"
+from = 0x018A7E
+to = 0x018AFA
+as = "dialog_file_list_prefix"
+
+[[listing]]
+kind = "c"
+name = "wof_fs_dir_entry"
+file = "src/fs.c"
+lines = 47
+
+# The port's key layer: seven keys rewritten into the codes and the Control bit the original's
+# readers expect, outside the line editor.
+[[listing]]
+kind = "c"
+name = "wof_port_key"
+file = "src/portkeys.c"
+lines = 50
+
+# A key run and its controls: Control-F, the plain F key, Control-F twice, and no key at all.
+[[listing]]
+kind = "py"
+name = "test_control_f_flips_the_vertical_control"
+file = "tests/test_frontend.py"
