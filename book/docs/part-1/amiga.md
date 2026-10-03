@@ -163,7 +163,7 @@ That queue makes the VBlank the game's beat. The logic runs one logic tick for e
 |---|---|
 | The stick read, a byte into the queue | every 4th VBlank, 12.5 a second |
 | A pass, quiet scene | every 2nd VBlank, 2 to a tick |
-| A pass longer than four VBlanks | finds 1 or 2 bytes, runs as many ticks |
+| A pass longer than four VBlanks | finds the bytes that queued, one or two in a quiet scene, and runs a tick for each |
 | Bytes the queue holds | 6 at most |
 ///
 
