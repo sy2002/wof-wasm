@@ -1,0 +1,34 @@
+; re/Wings.lst 0x01E86A-0x01E8B6: enemy_aircraft_step [C], a part of 0x01E7D6-0x01E8B7
+loc_01e86a:
+01e86a  5380                 subq.l     #$1, d0
+01e86c  67e0                 beq.b      $1e84e
+01e86e  5380                 subq.l     #$1, d0
+01e870  67ae                 beq.b      $1e820
+01e872  5580                 subq.l     #$2, d0
+01e874  679e                 beq.b      $1e814
+01e876  5980                 subq.l     #$4, d0
+01e878  67ec                 beq.b      $1e866
+01e87a  5180                 subq.l     #$8, d0
+01e87c  67dc                 beq.b      $1e85a
+01e87e  60e8                 bra.b      $1e868
+loc_01e880:
+01e880  2f2dfffc             move.l     -$4(a5), -(a7)
+01e884  4ebafdc8             jsr        $1e64e(pc)                             ; aircraft_speed
+01e888  584f                 addq.w     #$4, a7
+01e88a  206dfffc             movea.l    -$4(a5), a0
+01e88e  0c500010             cmpi.w     #$10, (a0)
+01e892  670a                 beq.b      $1e89e
+01e894  2f2dfffc             move.l     -$4(a5), -(a7)
+01e898  4ebaeefc             jsr        $1d796(pc)                             ; aircraft_motion
+01e89c  584f                 addq.w     #$4, a7
+loc_01e89e:
+01e89e  2f2dfffc             move.l     -$4(a5), -(a7)
+01e8a2  4ebaeab6             jsr        $1d35a(pc)                             ; aircraft_frame_index
+01e8a6  584f                 addq.w     #$4, a7
+loc_01e8a8:
+01e8a8  5244                 addq.w     #$1, d4
+01e8aa  b87c0004             cmp.w      #$4, d4
+01e8ae  6d00ff32             blt.w      $1e7e2
+01e8b2  281f                 move.l     (a7)+, d4
+01e8b4  4e5d                 unlk       a5
+01e8b6  4e75                 rts

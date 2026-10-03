@@ -1,0 +1,54 @@
+; re/Wings.lst 0x01B6A2-0x01B75C: guns [C], a part of 0x01B682-0x01B7BB
+loc_01b6a2:
+01b6a2  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b6a6  0c6800030004         cmpi.w     #$3, $4(a0)
+01b6ac  660000f0             bne.w      $1b79e
+01b6b0  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b6b4  226ccdf2             movea.l    -$320e(a4), a1                         ; g_027df0
+01b6b8  30280002             move.w     $2(a0), d0
+01b6bc  90690020             sub.w      $20(a1), d0
+01b6c0  3b40fff4             move.w     d0, -$c(a5)
+01b6c4  4a40                 tst.w      d0
+01b6c6  6c04                 bge.b      $1b6cc
+01b6c8  446dfff4             neg.w      -$c(a5)
+loc_01b6cc:
+01b6cc  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01b6d0  226ccdf2             movea.l    -$320e(a4), a1                         ; g_027df0
+01b6d4  3a10                 move.w     (a0), d5
+01b6d6  9a690026             sub.w      $26(a1), d5
+01b6da  4a45                 tst.w      d5
+01b6dc  6c02                 bge.b      $1b6e0
+01b6de  4445                 neg.w      d5
+loc_01b6e0:
+01b6e0  0c6d00a0fff4         cmpi.w     #$a0, -$c(a5)
+01b6e6  6c0000b6             bge.w      $1b79e
+01b6ea  ba7c0014             cmp.w      #$14, d5
+01b6ee  6c0000ae             bge.w      $1b79e
+01b6f2  4a6ca404             tst.w      -$5bfc(a4)                             ; pitch_target
+01b6f6  660000a6             bne.w      $1b79e
+01b6fa  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b6fe  317c00010006         move.w     #$1, $6(a0)
+01b704  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b708  5368000a             subq.w     #$1, $a(a0)
+01b70c  4a68000a             tst.w      $a(a0)
+01b710  6e00008c             bgt.w      $1b79e
+01b714  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b718  30280026             move.w     $26(a0), d0
+01b71c  d07c000a             add.w      #$a, d0
+01b720  3f00                 move.w     d0, -(a7)
+01b722  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b726  30280020             move.w     $20(a0), d0
+01b72a  907c0010             sub.w      #$10, d0
+01b72e  3f00                 move.w     d0, -(a7)
+01b730  3f3c0006             move.w     #$6, -(a7)
+01b734  4267                 clr.w      -(a7)
+01b736  4eba13a8             jsr        $1cae0(pc)                             ; burn_smoke
+01b73a  504f                 addq.w     #$8, a7
+01b73c  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b740  51680008             subq.w     #$8, $8(a0)
+01b744  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b748  0c6800600008         cmpi.w     #$60, $8(a0)
+01b74e  6c36                 bge.b      $1b786
+01b750  06ac0000015ea34e     addi.l     #$15e, -$5cb2(a4)                      ; player_score
+01b758  206ccdf2             movea.l    -$320e(a4), a0                         ; g_027df0
+01b75c  30bc0004             move.w     #$4, (a0)

@@ -49,9 +49,10 @@ A run of the core may poke the registered state at the rank selection's end, as 
 comparisons reach the night mission (re/notes/porting-m4.md, "Night"), through the native
 library's test hook; the pokes are cleared when the run ends.  After the mission begins a run
 may move the stick by a schedule of letters, as the mission scripts are written, or replay from
-the start a schedule the headless original recorded; it may name registered globals, and the
+the start a schedule the headless original recorded; it may name registered globals, the
 player's record's height, x, state and facing as record_y, record_x, record_state and
-record_facing, with the values they must have at a VBlank, which the run checks.
+record_facing, and a field of a registered table's record by its index, as
+"aircraft_records[3].mode", with the values they must have at a VBlank, which the run checks.
 
 It needs the built repository (tools/build.py --native: dist/wof.html and the native library)
 and runs on macOS, as the tests do; never the ROM at the time the site is built, because the
@@ -168,6 +169,31 @@ def player_reader(ported):
     return read
 
 
+def table_reader(ported):
+    """A function that reads a field of a registered table's record, named as
+    "aircraft_records[3].mode" (src/mission.def's table, src/records.def's field), from the port's
+    mission state through tests/m4state.py's layout, as a signed number of the field's width."""
+    import re
+    import struct
+    import m4state
+    layout = m4state.Layout(ported)
+    tables = {t['name']: t for t in layout.tables}
+
+    def read(name):
+        m = re.fullmatch(r'(\w+)\[(\d+)\]\.(\w+)', name)
+        if not m or m.group(1) not in tables:
+            raise Failure('%s names no registered table\'s field' % name)
+        table, index = tables[m.group(1)], int(m.group(2))
+        record = layout.records[table['record']]
+        field = next((f for f in record['fields'] if f[0] == m.group(3)), None)
+        if field is None or index >= table['count']:
+            raise Failure('%s names no field of %s' % (name, table['record']))
+        at = table['port_offset'] + index * record['port_size'] + field[3]
+        return struct.unpack_from({1: '<b', 2: '<h', 4: '<i'}[field[4]],
+                                  layout.port_mission(), at)[0]
+    return read
+
+
 def capture(lib, width, height):
     """The core's present picture: the indexed framebuffer, each row's palette and the
     palettes, read the way tests/m4_renders.py's picture() reads them."""
@@ -241,11 +267,12 @@ def run_core(name, spec, wanted, until=0, ticks=False):
                 if expect['vblank'] == vblank:
                     record = player_reader(ported)() if any(
                         f.startswith('record_') for f in expect) else {}
+                    table = table_reader(ported) if any('[' in f for f in expect) else None
                     for field, value in expect.items():
                         if field == 'vblank':
                             continue
                         found = (record[field[len('record_'):]] if field.startswith('record_')
-                                 else ported.g(field))
+                                 else table(field) if '[' in field else ported.g(field))
                         if found != value:
                             raise Failure('run %s: %s is %d at VBlank %d, the manifest says %d'
                                           % (name, field, found, vblank, value))

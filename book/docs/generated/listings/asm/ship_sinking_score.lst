@@ -1,0 +1,24 @@
+; re/Wings.lst 0x011CD8-0x011D2C: ship_sinking [asm], a part of 0x011CD8-0x011DE3
+ship_sinking:
+011cd8  48e7c0e0             movem.l    d0-d1/a0-a2, -(a7)
+011cdc  53690016             subq.w     #$1, $16(a1)
+011ce0  6e0000fc             bgt.w      $11dde
+011ce4  52690014             addq.w     #$1, $14(a1)
+011ce8  336900180016         move.w     $18(a1), $16(a1)
+011cee  67000006             beq.w      $11cf6
+011cf2  53690018             subq.w     #$1, $18(a1)
+loc_011cf6:
+011cf6  0c6900010014         cmpi.w     #$1, $14(a1)
+011cfc  30290012             move.w     $12(a1), d0
+011d00  6700002e             beq.w      $11d30
+011d04  0c69000a0014         cmpi.w     #$a, $14(a1)
+011d0a  66000052             bne.w      $11d5e
+011d0e  48c0                 ext.l      d0
+011d10  d1aca34e             add.l      d0, -$5cb2(a4)                         ; player_score
+011d14  4eba392a             jsr        $15640(pc)                             ; ship_sunk_message
+011d18  532ca373             subq.b     #$1, -$5c8d(a4)                        ; ships_left
+011d1c  6e000034             bgt.w      $11d52
+011d20  4a2ca385             tst.b      -$5c7b(a4)                             ; islands_left
+011d24  6600002c             bne.w      $11d52
+011d28  4eac8170             jsr        -$7e90(a4)                             ; -> mission_won
+011d2c  600000b0             bra.w      $11dde

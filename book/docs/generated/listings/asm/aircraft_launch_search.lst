@@ -1,0 +1,41 @@
+; re/Wings.lst 0x01E4D0-0x01E534: aircraft_launch [C], a part of 0x01E4D0-0x01E607
+aircraft_launch:
+01e4d0  4e55fffc             link.w     a5, #$fffc
+01e4d4  48e70e00             movem.l    d4-d6, -(a7)
+01e4d8  7800                 moveq      #$0, d4
+01e4da  7aff                 moveq      #$ff, d5
+01e4dc  7c00                 moveq      #$0, d6
+01e4de  6038                 bra.b      $1e518
+loc_01e4e0:
+01e4e0  3004                 move.w     d4, d0
+01e4e2  c1fc0034             muls.w     #$34, d0
+01e4e6  41eca22c             lea.l      -$5dd4(a4), a0                         ; aircraft_records
+01e4ea  4a700800             tst.w      (a0, d0.l)
+01e4ee  6602                 bne.b      $1e4f2
+01e4f0  3a04                 move.w     d4, d5
+loc_01e4f2:
+01e4f2  3004                 move.w     d4, d0
+01e4f4  c1fc0034             muls.w     #$34, d0
+01e4f8  41eca22e             lea.l      -$5dd2(a4), a0                         ; g_02522c
+01e4fc  083000020801         btst.b     #$2, $1(a0, d0.l)
+01e502  6712                 beq.b      $1e516
+01e504  3004                 move.w     d4, d0
+01e506  c1fc0034             muls.w     #$34, d0
+01e50a  41eca22c             lea.l      -$5dd4(a4), a0                         ; aircraft_records
+01e50e  4a700800             tst.w      (a0, d0.l)
+01e512  6702                 beq.b      $1e516
+01e514  7c01                 moveq      #$1, d6
+loc_01e516:
+01e516  5244                 addq.w     #$1, d4
+loc_01e518:
+01e518  b87c0004             cmp.w      #$4, d4
+01e51c  6dc2                 blt.b      $1e4e0
+01e51e  ba7cffff             cmp.w      #$ffff, d5
+01e522  670000dc             beq.w      $1e600
+01e526  4a6d0008             tst.w      $8(a5)
+01e52a  6704                 beq.b      $1e530
+01e52c  4a46                 tst.w      d6
+01e52e  6708                 beq.b      $1e538
+loc_01e530:
+01e530  4a6d0008             tst.w      $8(a5)
+01e534  660000ca             bne.w      $1e600

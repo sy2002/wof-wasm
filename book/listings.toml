@@ -576,3 +576,92 @@ file = "tools/m5_autopilot.py"
 kind = "py"
 name = "test_the_drop_matches_the_original"
 file = "tests/test_oracle_m5.py"
+
+# Chapter 16: the walk's switch on the state, a chain of subtractions, and what follows for every
+# record, beside the port's walk, orig 0x01E7D6.
+[[listing]]
+kind = "asm"
+name = "enemy_aircraft_step"
+from = 0x01E86A
+to = 0x01E8B6
+as = "enemy_aircraft_step_states"
+
+[[listing]]
+kind = "c"
+name = "wof_enemy_aircraft_step"
+file = "src/enemy.c"
+
+# Chapter 16: a fighter on the tail fires while first, level, near and at the player's height.
+[[listing]]
+kind = "asm"
+name = "fighter_attack"
+from = 0x01DDDA
+to = 0x01DE30
+as = "fighter_attack_fire"
+
+[[listing]]
+kind = "c"
+name = "fighter_attack"
+file = "src/enemy.c"
+from = "if (on && a->order == 1"
+to = "a->firing = 0;"
+as = "fighter_attack_fire_c"
+
+# Chapter 16: a launch takes the last free record, a torpedo plane only while none flies.
+[[listing]]
+kind = "asm"
+name = "aircraft_launch"
+from = 0x01E4D0
+to = 0x01E534
+as = "aircraft_launch_search"
+
+[[listing]]
+kind = "c"
+name = "wof_aircraft_launch"
+file = "src/enemy.c"
+from = "int16_t free = -1"
+to = "return;"
+as = "wof_aircraft_launch_search"
+
+# Chapter 16: the guns at an enemy aircraft, by its relation alone, to the shooting down.
+[[listing]]
+kind = "asm"
+name = "guns"
+from = 0x01B6A2
+to = 0x01B75C
+as = "guns_hit"
+lines = 53
+
+[[listing]]
+kind = "c"
+name = "wof_guns"
+file = "src/player.c"
+from = "if (a->relation != 3)"
+to = "a->state = 4;"
+as = "wof_guns_hit"
+
+# Chapter 16: a ship's sinking, the score's flags and the last ship's subq.b and bgt, beside the
+# port's test before the decrement.
+[[listing]]
+kind = "asm"
+name = "ship_sinking"
+from = 0x011CD8
+to = 0x011D2C
+as = "ship_sinking_score"
+
+[[listing]]
+kind = "c"
+name = "ship_sinking"
+file = "src/tick.c"
+from = "} else if (s->w14 == 10) {"
+to = "wof_mission_won();"
+as = "ship_sinking_score_c"
+
+# Chapter 16: the autopilot's dogfight, the close chase behind an enemy aircraft.
+[[listing]]
+kind = "py"
+name = "dogfight"
+file = "tools/m6_autopilot.py"
+from = "# The chase."
+to = "return push + fire"
+as = "dogfight_chase"

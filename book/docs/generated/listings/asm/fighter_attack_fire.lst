@@ -1,0 +1,24 @@
+; re/Wings.lst 0x01DDDA-0x01DE30: fighter_attack [C], a part of 0x01DCCC-0x01DEA3
+01ddda  4a6dfffc             tst.w      -$4(a5)
+01ddde  670000b8             beq.w      $1de98
+01dde2  206d0008             movea.l    $8(a5), a0
+01dde6  0c680001000c         cmpi.w     #$1, $c(a0)
+01ddec  660000aa             bne.w      $1de98
+01ddf0  0c6d0008fffe         cmpi.w     #$8, -$2(a5)
+01ddf6  6c0000a0             bge.w      $1de98
+01ddfa  206d0008             movea.l    $8(a5), a0
+01ddfe  4a680016             tst.w      $16(a0)
+01de02  66000094             bne.w      $1de98
+01de06  206d0008             movea.l    $8(a5), a0
+01de0a  0c6800a00028         cmpi.w     #$a0, $28(a0)
+01de10  6c000086             bge.w      $1de98
+01de14  4a6dfffa             tst.w      -$6(a5)
+01de18  677e                 beq.b      $1de98
+01de1a  206ccdee             movea.l    -$3212(a4), a0                         ; player_record
+01de1e  302dfff8             move.w     -$8(a5), d0
+01de22  32280014             move.w     $14(a0), d1
+01de26  b141                 eor.w      d0, d1
+01de28  4a41                 tst.w      d1
+01de2a  6c6c                 bge.b      $1de98
+01de2c  206d0008             movea.l    $8(a5), a0
+01de30  317c00010012         move.w     #$1, $12(a0)

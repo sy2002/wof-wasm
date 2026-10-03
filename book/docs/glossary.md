@@ -2,6 +2,12 @@
 
 Every term the book introduces, in alphabetical order. An entry gives the term, its definition in one line, the chapter where you first meet it and the chapter that defines it, the note of the repository that holds the detail, and, where a good page exists, where to read more elsewhere.
 
+### 3-D view
+
+The window in the middle of the dashboard that shows, as from the cockpit, the sky, the sea and the map ahead of the aircraft, with a cursor for the horizon and the enemy aircraft ahead drawn in it.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#the-pass), "The pass"; [`re/notes/porting-m6.md`](repo:re/notes/porting-m6.md#the-pass-what-part-1-ports), "The pass: what part 1 ports".
+
 ### 68000
 
 Motorola's processor, the chip in the Amiga that runs the program: sixteen registers of 32 bits, eight for data and eight for addresses, and instructions that work on bytes, words of 16 bits and longs of 32.
@@ -416,6 +422,24 @@ First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.m
 
 Elsewhere: [Emulator](https://en.wikipedia.org/wiki/Emulator), Wikipedia.
 
+### Enemy aircraft record
+
+One of four records of 52 bytes in which an enemy fighter or torpedo plane flies: its state word says free, flying, shot down and falling, or burning on land, and its mode, relation and order what it does and where it is against the player.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-record), "The record".
+
+### Enemy plane counter
+
+The dashboard's count of the enemy aircraft shot down: two digits, at most 99, and a kill icon for each plane, seven to a row in two rows.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/porting-m6.md`](repo:re/notes/porting-m6.md#the-pass-what-part-1-ports), "The pass: what part 1 ports".
+
+### Enemy's countdown
+
+The field of the player's record that counts the ticks to the next torpedo plane: 1,350 for each new aircraft, held back by the fire button, and 500 again after each torpedo dropped.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-launches-one), "What launches one".
+
 ### Entropy stream
 
 The reproducible stream of values that stands in for the beam's position, one value for every read; the headless original and the port draw from the same one, so that both meet the same chance.
@@ -451,6 +475,14 @@ Motorola's floating-point format of 32 bits, whose routines live in the Amiga's 
 A number in fast floating point fills one 32-bit register: a mantissa of 24 bits, a sign bit and an exponent of 7 bits, with no infinity and no NaN ([`re/notes/ffp.md`](repo:re/notes/ffp.md#the-format), "The format"). The game computes with it in two routines of its tick, the player's motion and an enemy aircraft's, which use six of the library's nine operations ([`SPEC.md`](repo:SPEC.md#34-operating-system-and-hardware-use), section 3.4). The port does the same arithmetic in integer code, instruction for instruction from the ROM's own routines, because a browser's floating point rounds differently and the game's state would drift ([`SPEC.md`](repo:SPEC.md#71-arithmetic), section 7.1); every operation is tested against the ROM under the oracle.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/ffp.md`](repo:re/notes/ffp.md).
+
+### Fighter
+
+An enemy aircraft that hunts the player's: sent up by an airfield or a ship, it closes from behind, gets on his tail and fires.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop), "What each state and mode does".
+
+Elsewhere: [Fighter aircraft](https://en.wikipedia.org/wiki/Fighter%5Faircraft), Wikipedia, the real kind.
 
 ### Fixed load layout
 
@@ -782,6 +814,12 @@ A recorded sequence of stick and key inputs that flies a mission the same way ev
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original".
 
+### Mode (of an enemy aircraft)
+
+The word of an enemy aircraft record that says what it does while it flies: 1 a fighter cruising, 2 a fighter on the player's tail, 4 a torpedo plane, `0x10` a torpedo plane after its drop, with 8 added while it turns.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-record), "The record", and ["What each state and mode does"](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop).
+
 ### Name list
 
 A list of four-character shape names in the program's data, ended by a zero, which the game resolves in its container at load into a pointer table.
@@ -972,6 +1010,12 @@ The blitter's registers as they stand when a blit starts, its pointers, modulos,
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/blitter.py`](repo:tests/blitter.py); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#how-the-tests-establish-it), "How the tests establish it".
 
+### Relation (to the player)
+
+The word of an enemy aircraft record, worked out every tick, that says where it is against the player: 1 behind him the same way, 3 ahead of him the same way, 2 and 4 the other way, east and west of him.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-record), "The record".
+
 ### Relocation
 
 An entry in a hunk file that names a place in a hunk holding an address, which the loader corrects by where its target hunk landed.
@@ -1051,6 +1095,12 @@ First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/
 The thin layer of JavaScript around the core: the clock that paces it, the screen, a loudspeaker for the sound the core mixes, the keys, a place for saved games, and the help screen, the pause sign and fullscreen.
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#62-shell), section 6.2.
+
+### Ship record
+
+One of five records of 30 bytes, the destroyer's, the battleship's, the cruise ship's, the Japanese carrier's and the carrier's: its span on the map, its guns with an entry of 14 bytes for each, its hits left, its deck's height, its score and its sinking.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#the-ships), "The ships" and ["Its guns"](repo:re/notes/enemy.md#its-guns).
 
 ### Sign extension
 
@@ -1162,6 +1212,14 @@ The Amiga's standard font, eight pixels high, in the Kickstart ROM; the game's d
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/system-font.md`](repo:re/notes/system-font.md).
 
+### Torpedo plane
+
+An enemy aircraft that the enemy's countdown sends against the carrier: it comes down low before the carrier's deck and drops a torpedo, which runs on in the sea into the carrier.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-each-state-and-mode-does-read-and-held-by-the-oracle-and-the-closed-loop), "What each state and mode does".
+
+Elsewhere: [Torpedo bomber](https://en.wikipedia.org/wiki/Torpedo%5Fbomber), Wikipedia, the real kind.
+
 ### Upper word
 
 The upper 16 bits of a 32-bit value; in a data register an instruction on a word leaves them as they were, so a value one routine leaves there reaches the next.
@@ -1267,3 +1325,9 @@ First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md
 Positions in a mission's world: x in pixels from the map's west end, eight to a map record, and y in pixels upward from the [water line](#water-line).
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#world-coordinates), "World coordinates".
+
+### Wreck's word
+
+The word an enemy aircraft burnt out on land leaves in a list of forty, its x, negative when it faced west, by which the pass draws its wreck; it is written by the list's count, whatever the count.
+
+First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#shot-down-and-what-it-scores), "Shot down, and what it scores".

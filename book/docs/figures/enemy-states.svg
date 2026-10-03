@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" role="img" aria-labelledby="title desc">
+  <title id="title">An enemy aircraft&#39;s states and modes</title>
+  <desc id="desc">An enemy aircraft record&#39;s state word and, while it flies, its mode word, with what changes them. Free, state 0, at the left. A launch by an airfield or a ship makes a fighter cruising, state 2 and mode 1; a launch when the enemy&#39;s countdown reaches 0 makes a torpedo plane, mode 4. Inside the box of the flying state, state 2: a cruising fighter that is first in the order, its order word 1, and within 0xA0 pixels behind the player goes onto his tail, mode 2, where it fires, and goes back to mode 1 when it is no longer behind him; a torpedo plane comes down low before the carrier&#39;s deck, drops its torpedo there and becomes mode 0x10, and more than 0xA28 pixels from the player it is freed. While an aircraft turns, its mode is 9, 0x0A, 0x0C or 0x18. From any mode, the guns shoot it down when its health falls below 0x60: state 4, falling. At rest on land under a speed of 100 it burns, state 0x10, for about 100 ticks, then leaves the wreck&#39;s word and is freed; at rest anywhere else it is freed at once. States 1 and 8 are cases of the step that nothing sets.</desc>
+  <style>
+    /* The book's colours (stylesheets/book.css) and the game's, each an entry of one of its palettes. */
+    .free   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .fight  { fill: #77AACC; /* wingspalette 22 */ }
+    .torp   { fill: #44AA44; /* iff-dash 6 */ }
+    .fall   { fill: #EE6622; /* wingspalette 2 */ }
+    .burn   { fill: #FFBB00; /* wingstitle 25 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .frame  { stroke: #888899; /* wingspalette 28 */ stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 2; fill: none; }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label { font-size: 15px; font-weight: 700; }
+    .name  { font-size: 13px; font-weight: 700; }
+    .small { font-size: 12px; }
+  </style>
+  <text class="light label" x="16" y="24">An enemy aircraft&#39;s states and modes</text>
+  <text class="muted small" x="16" y="44">the record&#39;s state word; while it flies, its mode word</text>
+  <text class="muted small" x="16" y="60">states 1 and 8: cases of the step that nothing sets</text>
+
+  <!-- Free, state 0, and the two launches -->
+  <rect class="free" x="16" y="300" width="130" height="60" rx="4"/>
+  <text class="ink name" x="81" y="327" text-anchor="middle">free</text>
+  <text class="ink small" x="81" y="346" text-anchor="middle">state 0</text>
+  <text class="light small" x="16" y="236">launched by an</text>
+  <text class="light small" x="16" y="251">airfield or a ship</text>
+  <path class="light" d="M234.0 136.0 L234.3 146.3 L225.4 141.7 Z"/>
+  <path class="wire" d="M146 306 L229.9 144.0"/>
+  <text class="light small" x="92" y="386">launched at the</text>
+  <text class="light small" x="92" y="401">countdown&#39;s 0</text>
+  <path class="light" d="M234.0 280.0 L229.7 289.3 L223.8 281.2 Z"/>
+  <path class="wire" d="M146 344 L226.7 285.3"/>
+
+  <!-- Flying, state 2: the four modes -->
+  <rect class="frame" x="210" y="80" width="520" height="312" rx="6"/>
+  <text class="light label" x="222" y="100">flying, state 2</text>
+  <rect class="fight" x="236" y="112" width="190" height="60" rx="4"/>
+  <text class="ink name" x="331" y="139" text-anchor="middle">a fighter, cruising</text>
+  <text class="ink small" x="331" y="158" text-anchor="middle">mode 1</text>
+  <rect class="fight" x="526" y="112" width="190" height="60" rx="4"/>
+  <text class="ink name" x="621" y="139" text-anchor="middle">a fighter on his tail</text>
+  <text class="ink small" x="621" y="158" text-anchor="middle">mode 2: it fires</text>
+  <rect class="torp" x="236" y="248" width="190" height="60" rx="4"/>
+  <text class="ink name" x="331" y="275" text-anchor="middle">a torpedo plane</text>
+  <text class="ink small" x="331" y="294" text-anchor="middle">mode 4: at the carrier</text>
+  <rect class="torp" x="526" y="248" width="190" height="60" rx="4"/>
+  <text class="ink name" x="621" y="275" text-anchor="middle">after its drop</text>
+  <text class="ink small" x="621" y="294" text-anchor="middle">mode 0x10</text>
+  <text class="light small" x="476" y="110" text-anchor="middle">order 1, and</text>
+  <text class="light small" x="476" y="124" text-anchor="middle">within 0xA0</text>
+  <path class="light" d="M522.0 134.0 L513.0 139.0 L513.0 129.0 Z"/>
+  <path class="wire" d="M430 134 L513.0 134.0"/>
+  <path class="light" d="M430.0 156.0 L439.0 151.0 L439.0 161.0 Z"/>
+  <path class="wire" d="M522 156 L439.0 156.0"/>
+  <text class="light small" x="476" y="174" text-anchor="middle">no longer</text>
+  <text class="light small" x="476" y="188" text-anchor="middle">behind</text>
+  <text class="light small" x="476" y="254" text-anchor="middle">the drop, before</text>
+  <text class="light small" x="476" y="268" text-anchor="middle">the deck</text>
+  <path class="light" d="M522.0 282.0 L513.0 287.0 L513.0 277.0 Z"/>
+  <path class="wire" d="M430 282 L513.0 282.0"/>
+  <text class="muted small" x="236" y="340">turning: the mode 9, 0x0A, 0x0C or 0x18</text>
+
+  <!-- Shot down and falling, state 4; burning on land, state 0x10 -->
+  <text class="light small" x="765" y="152" text-anchor="middle">the guns:</text>
+  <text class="light small" x="765" y="166" text-anchor="middle">health</text>
+  <text class="light small" x="765" y="180" text-anchor="middle">below 0x60</text>
+  <path class="light" d="M798.0 196.0 L789.0 201.0 L789.0 191.0 Z"/>
+  <path class="wire" d="M732 196 L789.0 196.0"/>
+  <rect class="fall" x="800" y="166" width="140" height="60" rx="4"/>
+  <text class="ink name" x="870" y="193" text-anchor="middle">shot down</text>
+  <text class="ink small" x="870" y="212" text-anchor="middle">falling, state 4</text>
+  <text class="light small" x="862" y="262" text-anchor="end">at rest on land,</text>
+  <text class="light small" x="862" y="276" text-anchor="end">under 100</text>
+  <text class="light small" x="862" y="290" text-anchor="end">of speed</text>
+  <path class="light" d="M870.0 328.0 L865.0 319.0 L875.0 319.0 Z"/>
+  <path class="wire" d="M870 226 L870.0 319.0"/>
+  <rect class="burn" x="800" y="330" width="140" height="60" rx="4"/>
+  <text class="ink name" x="870" y="357" text-anchor="middle">burning on land</text>
+  <text class="ink small" x="870" y="376" text-anchor="middle">state 0x10</text>
+
+  <!-- Back to free: after the drop far away, after the burning, at rest elsewhere -->
+  <text class="light small" x="613" y="420" text-anchor="end">more than</text>
+  <text class="light small" x="613" y="434" text-anchor="end">0xA28 away</text>
+  <path class="wire" d="M621 308 L621 470"/>
+  <text class="light small" x="862" y="420" text-anchor="end">about 100 ticks,</text>
+  <text class="light small" x="862" y="434" text-anchor="end">then the</text>
+  <text class="light small" x="862" y="448" text-anchor="end">wreck&#39;s word</text>
+  <path class="wire" d="M870 390 L870 470"/>
+  <path class="wire" d="M940 196 L956 196 L956 470"/>
+  <text class="light small" x="930" y="490" text-anchor="end">at rest elsewhere: freed at once</text>
+  <path class="light" d="M50.0 360.0 L55.0 369.0 L45.0 369.0 Z"/>
+  <path class="wire" d="M956 470 L50 470 L50.0 369.0"/>
+</svg>

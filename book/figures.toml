@@ -151,6 +151,35 @@ schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [30, 0], [1,
 expect = [{vblank = 2803, player_score = 200, flash_colour = 3840, flash_count = 2},
           {vblank = 2803, weapon_count = 13, record_y = 41, record_x = 3198}]
 
+[run.oil]
+what = """The script oil_d of tools/m6_scripts.py, which the autopilot of tools/m6_autopilot.py flew
+with its plan oil_d: the second rank chosen in the rank selection and the mission number poked to 1
+at its end (tools/m6_scripts.py, POKES: 0x0253C0, a word), so that the mission is map d's; the
+aircraft back and forth over the airfield west of the carrier, whose fighter takes off, gets on its
+tail and fires until the oil is gone. It is replayed as the run rockets is: `schedule` is the raw
+byte of every VBlank the headless original recorded when it flew the script with that poke
+(tools/headless.py, its schedule's V entries, 4230 VBlanks from the program's start as runs of
+[VBlanks, byte]), the fades taking no time (`fade_vblanks` 0), as in the headless original, which
+the port meets at the same VBlanks (re/notes/porting-m6.md, "How the port is held to the
+original": every M6 script in the closed loop). `expect` checks a moment of the fighter on the
+tail: its record's state, mode, relation and firing word, its x and height, and the player's."""
+fade_vblanks = 0
+mission_at = 430
+pokes = [[0x0253C0, 2, 1]]
+schedule = [[30, 0], [3, 16], [134, 0], [2, 16], [104, 0], [1, 16], [4, 0], [2, 2], [10, 0],
+            [1, 16], [104, 0], [2, 16], [30, 0], [3, 16], [83, 0], [3, 16], [126, 0], [415, 4],
+            [173, 5], [1, 8], [22, 10], [8, 8], [4, 26], [4, 24], [4, 25], [48, 24], [4, 25],
+            [8, 24], [4, 25], [20, 24], [4, 25], [16, 24], [4, 25], [8, 24], [8, 25], [8, 9],
+            [8, 8], [12, 10], [12, 8], [4, 10], [36, 8], [4, 9], [1536, 8], [28, 4], [4, 5],
+            [8, 20], [4, 21], [24, 20], [8, 21], [32, 20], [4, 21], [8, 20], [4, 21], [24, 20],
+            [20, 21], [4, 4], [32, 6], [924, 4], [65, 8], [20, 0]]
+# The airfield's fighter on the tail, firing: state 2, mode 2, behind the player the same way
+# (relation 1), its guns' word set, 145 pixels behind him at his height.
+expect = [{vblank = 3323, "aircraft_records[3].state" = 2, "aircraft_records[3].mode" = 2},
+          {vblank = 3323, "aircraft_records[3].relation" = 1, "aircraft_records[3].firing" = 1},
+          {vblank = 3323, "aircraft_records[3].x" = 2755, "aircraft_records[3].y" = 156},
+          {vblank = 3323, record_x = 2900, record_y = 156}]
+
 [[figure]]
 name = "title-logo"
 file = "title-logo.png"
@@ -688,3 +717,34 @@ size = [1024, 642]
 shows = "The rockets run at VBlank 2803: the two rockets fired in a dive have come down on the dug-out at world x 3224 of map a and are going out in their explosions, the aircraft 41 pixels above the water behind them, the sky red with the flash of a rocket's hit on a target; the dashboard counts 13 rockets and 200 points."
 how = "VBlank 2803 of the rockets run, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the score (200, the dug-out's hit), the flash's colour (0x0F00) and count (2), the rockets left (13) and the player's record's height (41) and x (3198). The flash's count of 5 counts down a pass at a time, and the passes that take it from 5, 3 and 1 show the colour (re/notes/porting-m5.md, \"The sky's flash (observed)\")."
 command = ".venv/bin/python book/tools/figures.py rocket-flash"
+
+[[figure]]
+name = "enemy-frames"
+file = "enemy-frames.png"
+maker = "shapes"
+pick = [["japplane.shp", "jp1a"], ["japplane.shp", "jp19"], ["japplane.shp", "jp18"],
+        ["japplane.shp", "jp1b"], ["japplane.shp", "jp1c"], ["japplane.shp", "jp1d"],
+        ["japplane.shp", "jp1e"], ["japplane.shp", "jp1f"], ["japplane.shp", "jp12"],
+        ["japplane.shp", "jp11"], ["japplane.shp", "jp10"],
+        ["japplane.shp", "jp10"], ["japplane.shp", "jp11"], ["japplane.shp", "jp12"],
+        ["japplane.shp", "jp13"], ["japplane.shp", "jp14"], ["japplane.shp", "jp15"],
+        ["japplane.shp", "jp16"], ["japplane.shp", "jp17"], ["japplane.shp", "jp18"],
+        ["japplane.shp", "jp19"], ["japplane.shp", "jp1a"],
+        ["japplane.shp", "jt1a"], ["japplane.shp", "jt10"], ["japplane.shp", "jc1a"],
+        ["japplane.shp", "jc10"], [], [], [], [], [], [], []]
+columns = 11
+palette = "wingspalette"
+shows = "The frames an enemy aircraft flies with: a turn from facing west to facing east in the order the attitude shows them, jp1a level to jp1d before the facing changes and jp1e to jp10 after it; a turn from east to west, jp10 to jp15 and jp16 to jp1a; the two turns go through different frames and share six; below, a torpedo plane level, jt1a facing west and jt10 east, and the wreck, jc1a and jc10. Each name is shown once where the attitude holds it for two or three steps."
+how = "The names of the two frame tables at 0x025F58 (facing west) and 0x025FC8 (facing east), 28 longs each (re/tables.toml, japplane_frames_left and _right, read from the executable), which enemy_frames (0x01D1EA) resolves in japplane.shp: the frame +0x30 is the attitude, 28 further facing east, 26 a torpedo plane level and 27 a wreck (aircraft_frame_index, 0x01D35A). A turn from west to east takes the west table at attitudes 0 to 13 and the east table at 14 to 25, the facing changing at 14; from east to west the other way round; each name once in that order. tools/ppkc.py's parse() and sheet(), eleven to a row, the last row ended by empty cells, in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
+command = ".venv/bin/python book/tools/figures.py enemy-frames"
+
+[[figure]]
+name = "enemy-tail"
+file = "enemy-tail.png"
+maker = "screen"
+run = "oil"
+vblank = 3323
+size = [1024, 642]
+shows = "The oil run at VBlank 3323, map d: the airfield's fighter at the left edge on the player's tail at the same height, its guns' flash at its nose, and the player's Hellcat ahead, flying east and trailing smoke from its engine; below, the dashboard with the 3-D view in its middle."
+how = "VBlank 3323 of the oil run, 2893 VBlanks after the mission began, the 640 x 214 picture shown in the PAL box of 1024 x 642; the run checks there the fighter's record, aircraft_records[3]: state 2, mode 2 (on the tail), relation 1 (behind the player the same way), its firing word 1, x 2755 and height 156; and the player's record's x (2900) and height (156). The flash is drawn on the odd counts of the record's flash word (draw_enemy_aircraft, 0x010DA6), which is 43 here."
+command = ".venv/bin/python book/tools/figures.py enemy-tail"
