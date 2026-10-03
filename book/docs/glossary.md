@@ -70,7 +70,7 @@ Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the re
 
 One call the browser makes of a page's drawing routine just before it repaints, at the display's refresh rate, and none while the page is hidden; the shell's clock runs in them.
 
-First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/clock.js`](repo:web/clock.js).
+First met in [chapter 7](part-1/time.md), defined in [chapter 23](part-3/shell.md). The detail: [`web/clock.js`](repo:web/clock.js).
 
 Elsewhere: [Window: requestAnimationFrame() method](https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame), MDN.
 
@@ -124,7 +124,7 @@ Elsewhere: [Attract mode](https://en.wikipedia.org/wiki/Attract%5Fmode), Wikiped
 
 One instant of the mixed sound, a value for the left and one for the right; the core hands out as many as the emulated time lasts at the rate the shell asks for.
 
-First met and defined in [chapter 23](part-3/shell.md). The detail: [`web/audio.js`](repo:web/audio.js); [`SPEC.md`](repo:SPEC.md#61-core), section 6.1.
+First met in [chapter 18](part-2/sound.md), defined in [chapter 23](part-3/shell.md). The detail: [`web/audio.js`](repo:web/audio.js); [`SPEC.md`](repo:SPEC.md#61-core), section 6.1.
 
 ### Audio worklet
 
@@ -296,7 +296,7 @@ First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/
 
 The rectangle of the screen a draw may change, its left and right edges rounded down to multiples of 16; the blit writes the pixels of a shape's box that lie inside it, and no others.
 
-First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library"; [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#the-blit-is-per-pixel-and-why), "The blit is per-pixel, and why".
+First met in [chapter 5](part-1/oracle.md), defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/drawing.md`](repo:re/notes/drawing.md#the-blitter-library), "The blitter library"; [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#the-blit-is-per-pixel-and-why), "The blit is per-pixel, and why".
 
 Elsewhere: [Clipping (computer graphics)](https://en.wikipedia.org/wiki/Clipping%5F(computer%5Fgraphics)), Wikipedia.
 
@@ -416,7 +416,7 @@ A routine that can stop at a wait, give control back and go on from there at its
 
 The port's are stackless, in the style of protothreads: the routine's body sits inside a `switch` on its resume point, the locals it keeps across a wait live in the front end's part of the core's state, beside the routine's context, and one wait is one VBlank ([`SPEC.md`](repo:SPEC.md#63-blocking-code-becomes-coroutines), section 6.3).
 
-First met and defined in [chapter 22](part-3/core.md). The detail: [`src/coro.h`](repo:src/coro.h); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
+First met in [chapter 14](part-2/player.md), defined in [chapter 22](part-3/core.md). The detail: [`src/coro.h`](repo:src/coro.h); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
 
 Elsewhere: [Coroutine](https://en.wikipedia.org/wiki/Coroutine), Wikipedia; [Protothread](https://en.wikipedia.org/wiki/Protothread), Wikipedia.
 
@@ -580,7 +580,7 @@ First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/p
 
 The field of the player's record that counts the ticks to the next torpedo plane: 1,350 for each new aircraft, held back by the fire button, and 500 again after each torpedo dropped.
 
-First met and defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-launches-one), "What launches one".
+First met in [chapter 14](part-2/player.md), defined in [chapter 16](part-2/enemy.md). The detail: [`re/notes/enemy.md`](repo:re/notes/enemy.md#what-launches-one), "What launches one".
 
 ### Entropy stream
 
@@ -708,7 +708,7 @@ Elsewhere: [Game over](https://en.wikipedia.org/wiki/Game%5Fover), Wikipedia.
 
 A file of the repository that a tool makes from others, committed so that a reader sees it without running the tool, and held byte for byte to what the tool makes again: the listing, the routine inventory, the contact sheets and this book's listings and figures among them.
 
-First met and defined in [chapter 21](part-3/repository.md). The detail: [`tests/test_generated.py`](repo:tests/test%5Fgenerated.py); [`book/tools/build.py`](repo:book/tools/build.py); [`CLAUDE.md`](repo:CLAUDE.md#rules), "Rules".
+First met in [chapter 10](part-1/making.md), defined in [chapter 21](part-3/repository.md). The detail: [`tests/test_generated.py`](repo:tests/test%5Fgenerated.py); [`book/tools/build.py`](repo:book/tools/build.py); [`CLAUDE.md`](repo:CLAUDE.md#rules), "Rules".
 
 ### Ground height
 
@@ -796,7 +796,7 @@ Elsewhere: [Hooking](https://en.wikipedia.org/wiki/Hooking), Wikipedia.
 
 The point of a shape, counted from its top left corner, that lands on the position the shape is drawn at; the routines that draw a shape from a table or a lookup subtract it from the position first.
 
-First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
+First met in [chapter 3](part-1/disk.md), defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#record-header-complete), "Record header, complete".
 
 ### Hunk
 
@@ -946,7 +946,7 @@ First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/inp
 
 A group of the suite's tests that holds the port at one scale against one reference, from one routine under the oracle to the page in a browser.
 
-First met and defined in [chapter 24](part-3/tests.md). The detail: [`SPEC.md`](repo:SPEC.md#8-verification), section 8; [`book/suite.toml`](repo:book/suite.toml).
+First met in [chapter 21](part-3/repository.md), defined in [chapter 24](part-3/tests.md). The detail: [`SPEC.md`](repo:SPEC.md#8-verification), section 8; [`book/suite.toml`](repo:book/suite.toml).
 
 ### Leave rule
 
@@ -1057,7 +1057,7 @@ Elsewhere: [Machine code](https://en.wikipedia.org/wiki/Machine%5Fcode), Wikiped
 
 The list of what the build reads out of the original's files, [`re/tables.toml`](repo:re/tables.toml): 122 entries, each with a name, a kind and where to read it, from the program, the music player and the ROM; the build writes them as C tables, so that no number of the game is typed again.
 
-First met and defined in [chapter 21](part-3/repository.md). The detail: [`re/tables.toml`](repo:re/tables.toml); [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py); [`SPEC.md`](repo:SPEC.md#5-build), section 5.
+First met in [chapter 3](part-1/disk.md), defined in [chapter 21](part-3/repository.md). The detail: [`re/tables.toml`](repo:re/tables.toml); [`tools/extract_tables.py`](repo:tools/extract%5Ftables.py); [`SPEC.md`](repo:SPEC.md#5-build), section 5.
 
 ### Manx Aztec C
 
@@ -1077,7 +1077,7 @@ First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/m
 
 One word of a map file, two bytes for eight pixels of the world from west to east: the draw flag, the height field, the slot of its shape and what lies under it, land, a ship's deck or open sea.
 
-First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
+First met in [chapter 3](part-1/disk.md), defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record"; [`SPEC.md`](repo:SPEC.md#35-file-formats), section 3.5.
 
 ### Marker (of a test)
 
@@ -1375,7 +1375,7 @@ Elsewhere: [Object pool pattern](https://en.wikipedia.org/wiki/Object%5Fpool%5Fp
 
 A note of [`re/notes/`](repo:re/notes/) written for a milestone: what was ported, how it is held to the original and what stands in, each statement marked as observed, with the test or tool that shows it, or as read from the listing alone.
 
-First met and defined in [chapter 21](part-3/repository.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original", and the other milestones' notes in [`re/notes/`](repo:re/notes/).
+First met in [chapter 10](part-1/making.md), defined in [chapter 21](part-3/repository.md). The detail: [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#how-the-port-is-held-to-the-original), "How the port is held to the original", and the other milestones' notes in [`re/notes/`](repo:re/notes/).
 
 ### Program counter
 
@@ -1447,7 +1447,7 @@ First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/note
 
 The record of which routines, and which of their instructions, the mission scripts execute in the headless original, counted by the window of the run and the phase; what it shows the game runs is what the port carries.
 
-First met and defined in [chapter 8](part-1/mission.md). The detail: [`tools/reach_observe.py`](repo:tools/reach%5Fobserve.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
+First met in [chapter 6](part-1/headless.md), defined in [chapter 8](part-1/mission.md). The detail: [`tools/reach_observe.py`](repo:tools/reach%5Fobserve.py); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
 
 Elsewhere: [Code coverage](https://en.wikipedia.org/wiki/Code%5Fcoverage), Wikipedia.
 
@@ -1487,7 +1487,7 @@ First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/bli
 
 The variables, tables and records the registries list, kept as members of the core's state, each tied to its address in the original, so that the tests copy and compare it field by field and a save state cannot leave any of it out.
 
-First met and defined in [chapter 22](part-3/core.md). The detail: [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def), [`src/records.def`](repo:src/records.def); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#where-mission-memory-lives), "Where mission memory lives".
+First met in [chapter 17](part-2/campaign.md), defined in [chapter 22](part-3/core.md). The detail: [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def), [`src/records.def`](repo:src/records.def); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#where-mission-memory-lives), "Where mission memory lives".
 
 ### Registry
 
@@ -1693,7 +1693,7 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 
 A fixed position in a pointer table, by which the game's code and the map's records name a shape.
 
-First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
+First met in [chapter 3](part-1/disk.md), defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/shapes.md`](repo:re/notes/shapes.md#masterlist-and-athlist), "MasterList and AthList".
 
 ### Small-data base
 
@@ -1775,13 +1775,13 @@ First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`]
 
 The column of the routine inventory kept by hand, which says where the port stands with a routine: `verified`, `ported`, `partial`, `replace`, `drop` or `todo`; the disassembler carries it over at every regeneration.
 
-First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4, step 5; [`re/functions.csv`](repo:re/functions.csv).
+First met in [chapter 4](part-1/reading.md), defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4, step 5; [`re/functions.csv`](repo:re/functions.csv).
 
 ### Step S
 
 The moment a mission's setup is done and its inner loop is reached, after the tick `main` runs itself at the mission's start; the headless original's dump keeps a record there, marked S.
 
-First met in [chapter 6](part-1/headless.md), defined in [chapter 8](part-1/mission.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump"; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
+First met and defined in [chapter 8](part-1/mission.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#dump), "Dump"; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-decides-what-is-ported-the-reach-map), "What decides what is ported: the reach map".
 
 ### Story scroller
 
@@ -1793,7 +1793,7 @@ First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/not
 
 A substitute that answers for something a routine calls but that is not under test, such as a call into the operating system.
 
-First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tests/original.py`](repo:tests/original.py); [`re/notes/headless.md`](repo:re/notes/headless.md#the-stubs), "The stubs".
+First met in [chapter 1](part-1/faithful.md), defined in [chapter 5](part-1/oracle.md). The detail: [`tests/original.py`](repo:tests/original.py); [`re/notes/headless.md`](repo:re/notes/headless.md#the-stubs), "The stubs".
 
 Elsewhere: [Test stub](https://en.wikipedia.org/wiki/Test%5Fstub), Wikipedia.
 
@@ -2001,7 +2001,7 @@ First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md
 
 The six steps every routine of the port went through: its skeleton read, its names given, its C written with the original's address, an oracle test for a pure routine, its status set, and a note once a part is understood.
 
-First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
+First met in [chapter 10](part-1/making.md), defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
 ### World coordinates
 
