@@ -8,3 +8,7 @@
 | the core itself | [`test_core_native.py`](repo:tests/test%5Fcore%5Fnative.py) 8, [`test_core_wasm.py`](repo:tests/test%5Fcore%5Fwasm.py) 20, [`test_state_m4.py`](repo:tests/test%5Fstate%5Fm4.py) 5, [`test_dist.py`](repo:tests/test%5Fdist.py) 6, [`test_isolation.py`](repo:tests/test%5Fisolation.py) 3, [`test_assist.py`](repo:tests/test%5Fassist.py) 47, [`test_generated.py`](repo:tests/test%5Fgenerated.py) 2, [`test_rom.py`](repo:tests/test%5From.py) 3 | 94 |
 | the page | [`test_page.py`](repo:tests/test%5Fpage.py) 65, [`test_firefox.py`](repo:tests/test%5Ffirefox.py) 58 | 123 |
 | the suite | 34 modules | 930 |
+
+/// caption
+The test modules by what they compare, each layer's with its tests, counted from pytest's collection at the book's build.
+///

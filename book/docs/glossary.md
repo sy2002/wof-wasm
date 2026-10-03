@@ -754,6 +754,8 @@ First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/
 
 A routine of the instrument's own that the emulator calls whenever the program reaches a chosen instruction or touches chosen memory; the oracle corrects the emulator with hooks, and the headless original watches the game through them.
 
+Not the same as pytest's hooks, the suite's functions pytest calls at fixed points, such as the collection hook that groups and skips the tests (chapter 24).
+
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`tools/m68k_fix.py`](repo:tools/m68k%5Ffix.py); [`re/notes/headless.md`](repo:re/notes/headless.md#unicorn-as-it-behaves-here), "Unicorn, as it behaves here".
 
 Elsewhere: [Hooking](https://en.wikipedia.org/wiki/Hooking), Wikipedia.
@@ -1243,6 +1245,8 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/so
 
 One of the two parts the suite is run in, one after the other: the emulator tests spread over the processor cores, then the page tests alone, which load from outside would disturb.
 
+Not the same as the phase of a write in the reach map, a VBlank server, the tick, the pass or the main program (chapters 7 and 8).
+
 First met and defined in [chapter 24](part-3/tests.md). The detail: [`re/notes/testing.md`](repo:re/notes/testing.md#why-the-page-tests-run-alone), "Why the page tests run alone".
 
 ### Pillbox
@@ -1403,7 +1407,7 @@ First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/not
 
 ### Recording (of a script)
 
-A mission script run once under the headless original with a dump after every pass and tick, the drawing calls, the entropy reads and the addresses each tick wrote, which the port's loops replay; made once in a test process and shared by every test of its script.
+A mission script run once under the headless original with a dump after every pass and tick, the drawing calls, the entropy reads and the addresses each tick wrote, which the port's loops replay; made once in a test process, kept under its script, the VBlanks of a pass and its pokes, and shared by every test that needs it.
 
 First met and defined in [chapter 24](part-3/tests.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`re/notes/testing.md`](repo:re/notes/testing.md#duplicate-recordings), "Duplicate recordings".
 

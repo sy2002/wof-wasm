@@ -1,13 +1,17 @@
-# The layers of the suite, for chapter 24's table of the test modules by layer.
+# The layers of the suite, for chapter 24's table of the test modules by what they compare.
 #
 # book/tools/suite.py collects the suite with pytest (--collect-only, which runs no test),
 # counts the tests of each module and writes docs/generated/tables/suite-layers.md: one row a
-# layer, in this order, its modules in the order given with their tests, and a last row for
-# the whole suite.  Every test module of tests/ (tests/test_*.py) belongs to exactly one layer;
-# a module in none or in two, or a module named here that has no tests, fails the run.
+# layer, in this order, its modules in the order given with their tests, a last row for the
+# whole suite, and the title as its caption.  Every test module of tests/ (tests/test_*.py)
+# belongs to exactly one layer; a module in none or in two, or a module named here that has no
+# tests, fails the run.
 #
+#   title    the table's caption, a line under it
 #   name     the layer, as the chapter's table of the layers names it
 #   modules  the test modules, by their file names without the directory
+
+title = "The test modules by what they compare, each layer's with its tests, counted from pytest's collection at the book's build."
 
 [[layer]]
 name = "one routine"

@@ -13,7 +13,8 @@ the browsers, whose absence marks tests skipped and leaves them collected, so th
 suite's wherever it is made.  The layers and their modules are book/suite.toml's.
 
 The file is a Markdown table, one row a layer, its modules linked into the repository with
-their tests, and a last row for the whole suite; the chapter includes it with a snippet.  A test
+their tests, a last row for the whole suite, and the manifest's title as its caption; the
+chapter includes it with a snippet.  A test
 module of tests/ in no layer or in two, a module of the manifest with no tests, or a collection
 that fails stops the run.
 
@@ -70,8 +71,9 @@ def layers(counts):
     return rows
 
 
-def table(rows):
-    """The Markdown table, the module names as repo: links (an underscore written %5F)."""
+def table(rows, title):
+    """The Markdown table, the module names as repo: links (an underscore written %5F), and
+    the manifest's title as its caption."""
     def link(module):
         return '[`%s`](repo:tests/%s)' % (module, module.replace('_', '%5F'))
     out = ['| Layer | Modules, with their tests | Tests |', '|---|---|---|']
@@ -80,6 +82,7 @@ def table(rows):
                                          '{:,}'.format(sum(n for _, n in modules))))
     every = [n for _, modules in rows for _, n in modules]
     out.append('| the suite | %d modules | %s |' % (len(every), '{:,}'.format(sum(every))))
+    out += ['', '/// caption', title, '///']
     return '\n'.join(out) + '\n'
 
 
@@ -87,7 +90,7 @@ def generate(folder):
     path = pathlib.Path(folder) / FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = layers(collected())
-    path.write_text(table(rows), encoding='utf-8')
+    path.write_text(table(rows, manifest('suite.toml')['title']), encoding='utf-8')
     return path, rows
 
 
