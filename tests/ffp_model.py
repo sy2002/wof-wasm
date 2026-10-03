@@ -115,10 +115,10 @@ class Calls:
 def model_01bdfa(entry, engine):
     """orig 0x01BDFA, called once per tick from 0x01C70E.
 
-    It moves the wind (0x025AA2) a quarter of the way towards its target (0x025402), turns
+    It moves the pitch (0x025AA2) a quarter of the way towards its target (0x025402), turns
     the sum of wind and the player's own drift into a pair of table entries, and from those
     and the airspeed (0x025414) computes the player aircraft's two speed components,
-    +0x16 and +0x18, its position +0x00 and +0x02, and the fuel at 0x027DEA.
+    +0x16 and +0x18, its position +0x00 and +0x02, and the airspeed's step at 0x027DEA.
 
     Returns the calls it makes and the values it leaves.
     """
@@ -139,7 +139,7 @@ def model_01bdfa(entry, engine):
     player_c    = memory.sw('player', 0x0C)
     player_14   = memory.sw('player', 0x14)
 
-    # 0x01BE02: the wind creeps a quarter of the way towards its target, which is 0xFCE0
+    # 0x01BE02: the pitch creeps a quarter of the way towards its target, which is 0xFCE0
     # while 0x025AAA is set and 0x025402 stands at 0x258.
     if g_025aaa != 0 and g_025402 == 0x258:
         step = divs_w(s16(0xFCE0 - g_025aa2), 4)
@@ -155,11 +155,11 @@ def model_01bdfa(entry, engine):
     across = SINE[divs_w(angle, 100)]                                   # -0x4(a5)
     along = SINE[divs_w(s16(0x2328 - angle), 100)]                      # -0x8(a5)
 
-    # 0x01BE80: the across component takes the sign of the wind and the drift.
+    # 0x01BE80: the across component takes the sign of the pitch and the tick's pitch offset.
     if g_025aa2 < 0 or g_025408 < 0:
         across = ffp(0x01BE90, 'neg', across)
 
-    # 0x01BE98: the fuel goes down by it, and by a further tenth while the aircraft is
+    # 0x01BE98: the airspeed's step goes down by it, and by a further tenth while the aircraft is
     # airborne and the airspeed is below 0x3E8.
     g_027dea = s16(g_027dea - u16(ffp(0x01BE9C, 'fix', across)))
     if player_14 > 0 and g_025414 < 0x3E8:
@@ -184,7 +184,7 @@ def model_01bdfa(entry, engine):
                 g_025402 = s16(0xEE6C)
         player_18 = s16(player_18 - divs_w(s16(0x3E8 - g_025414), 100))
 
-    # 0x01BFA0: the height follows, bounded above at 0x44C, where the wind reverses and the
+    # 0x01BFA0: the height follows, bounded above at 0x44C, where the pitch target reverses and the
     # climb is halved and turned round, and below at -4.
     player_0 = s16(player_0 + player_18)
     if player_0 > 0x44C:

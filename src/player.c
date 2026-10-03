@@ -1,5 +1,5 @@
-/* The player's aircraft in the tick (M4 part 2): the C routines of the original from
- * 0x01AA6E to 0x01CB74, in address order.  logic_tick (src/tick.c) calls 0x01C660 once per
+/* The player's aircraft in the tick (M4 part 2): the original's C routines 0x01AA6E to 0x01CBB2
+ * in their order, two helpers first, the update last.  logic_tick (src/tick.c) calls 0x01C660 once per
  * tick; everything here hangs off it.  The record is wof_m.player[0] (0x025078, the one
  * player_record always points at); g_027df4 always points at player_start_x, so what the
  * original reads at +2 of it is g_025394, the word behind (re/notes/porting-m4.md).
@@ -492,8 +492,8 @@ void wof_guns(void)
     }
 }
 
-/* orig 0x01B8C4 - whether the aircraft touches what is below it: its wheels at or below the
- * ground under the point it will be at, x plus its speed and 8 ahead. */
+/* orig 0x01B8C4 - whether the aircraft touches what is below it: its wheels below the ground
+ * under its x, or at or below the water line; the look-ahead x (`ahead`) is computed and never used. */
 static int16_t touches(void)
 {
     int16_t ahead = (int16_t)(P.x + (int16_t)((int16_t)(P.speed_x + 8) * P.facing));
