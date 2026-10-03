@@ -1178,6 +1178,12 @@ The word of bits that comes with a raw key code and says which of Shift, Caps Lo
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/keys.md`](repo:re/notes/keys.md#control-and-the-two-masks), "Control, and the two masks".
 Elsewhere: [Modifier key](https://en.wikipedia.org/wiki/Modifier%5Fkey), Wikipedia.
 
+### Quirk
+
+A place where the original's code does something odd, reading past a table, handing a routine the wrong thing, keeping code nothing runs or disagreeing with the game's manual, which the port keeps because the original does it.
+
+First met and defined in [chapter 20](part-2/quirks.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-wrecks-explosion-and-the-map-lists-address-observed), "The wreck's explosion and the map list's address"; [`re/notes/porting-m6.md`](repo:re/notes/porting-m6.md#flags-that-decide-in-the-tick), "Flags that decide in the tick".
+
 ### Rank
 
 One of the campaign's seven stages, 0 to 6, each a fixed run of maps; the player chooses the first at the rank selection, a promotion moves it on, and a high-score row records the rank reached.
