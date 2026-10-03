@@ -1,0 +1,11 @@
+# re/names.txt, lines 1-10
+# <hex addr> <name> [; comment]        - read by tools/disasm.py, regenerate re/Wings.lst after editing
+
+# ---- program structure
+010000 entry                 ; jmp to the C runtime startup
+010006 main                  ; asm. init, outer loop loc_010066 (title/menus/mission), inner per-frame loop loc_01010e
+010228 frame_update          ; asm. per-frame pipeline: fixed sequence of subsystem updates (asm + C)
+021f2e c_startup             ; Aztec C runtime startup: clears BSS, opens dos.library, calls main
+021fa0 geta4                 ; lea $2affe,a4
+012570 open_libraries        ; asm. intuition + graphics
+01259e close_libraries

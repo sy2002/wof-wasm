@@ -30,9 +30,14 @@ book/docs/generated/listings/<kind>/<name>.<ext>, from:
     json a JSON file the entry's `file` names (a run description of tests/runs/, say), the
          whole of it, laid out one key of the top-level object a line and one element of a
          top-level list a line, so that a script of many short lists reads as one line each
+    text any text file of the repository the entry's `file` names (CLAUDE.md, a note, the
+         names file), the whole of it or its lines from the first that holds the text `from`
+         to the first at or after it that holds the text `to`, both inclusive, as they stand;
+         with `head` also the file's first line above the part (a CSV file's column names)
 
 The first line of every file names the source and the line range (or the address range), in
-the comment syntax of its language (`//` for JSON, which the highlighter's JSON lexer takes),
+the comment syntax of its language (`//` for JSON, which the highlighter's JSON lexer takes,
+`#` for a text file),
 so that a chapter shows where the extract comes from.  A
 name that does not exist, or exists more than once without a `file` to choose, fails the run
 with the name; so does an extract longer than its limit (40 lines, or the entry's `lines`).
@@ -53,7 +58,8 @@ import tempfile
 from common import LISTINGS, ROOT, Failure, compare, manifest, rel, replace_tree
 
 DEFAULT_LINES = 40
-EXT = {'asm': 'lst', 'skel': 'lst', 'player': 'lst', 'c': 'c', 'js': 'js', 'py': 'py', 'json': 'json'}
+EXT = {'asm': 'lst', 'skel': 'lst', 'player': 'lst', 'c': 'c', 'js': 'js', 'py': 'py', 'json': 'json',
+       'text': 'txt'}
 SKEL = ROOT / 'tools' / 'skel.py'
 SOURCES = {'c': ('src', '*.c'), 'js': ('web', '*.js'), 'py': ('tools', '*.py')}
 LISTING = ROOT / 're' / 'Wings.lst'
@@ -541,13 +547,53 @@ def json_extract(entry):
     return header, lines
 
 
+# ------------------------------------------------------------------ text
+
+def text_extract(entry):
+    """Lines of any text file of the repository as they stand: the whole file, or the part
+    from the first line that holds `from` to the first line at or after it that holds `to`,
+    and with `head` the file's first line above the part."""
+    name = entry['name']
+    if 'file' not in entry:
+        raise Failure('text %s: a text entry names its file' % name)
+    path = ROOT / entry['file']
+    if not path.is_file():
+        raise Failure('text %s: no file %s' % (name, entry['file']))
+    whole = path.read_text(encoding='utf-8').split('\n')
+    if whole and whole[-1] == '':
+        whole.pop()
+    whole = [line.rstrip() for line in whole]
+    if 'from' not in entry and 'to' not in entry:
+        if entry.get('head'):
+            raise Failure('text %s: head is for a part, with from and to' % name)
+        return '# %s, the whole file, lines 1-%d' % (rel(path), len(whole)), whole
+    start, stop = entry.get('from'), entry.get('to')
+    if not isinstance(start, str) or not isinstance(stop, str):
+        raise Failure('text %s: a part takes from and to, both texts of its lines' % name)
+    lo = next((i for i, line in enumerate(whole) if start in line), None)
+    if lo is None:
+        raise Failure('text %s: no line of %s holds %r' % (name, entry['file'], start))
+    hi = next((i for i in range(lo, len(whole)) if stop in whole[i]), None)
+    if hi is None:
+        raise Failure('text %s: no line of %s at or after %r holds %r'
+                      % (name, entry['file'], start, stop))
+    lines = whole[lo:hi + 1]
+    if entry.get('head'):
+        if lo == 0:
+            raise Failure('text %s: head asks for line 1 above a part that begins there' % name)
+        return ('# %s, line 1 and lines %d-%d' % (rel(path), lo + 1, hi + 1),
+                [whole[0]] + lines)
+    return '# %s, lines %d-%d' % (rel(path), lo + 1, hi + 1), lines
+
+
 def extract(entry, table, listing):
     if entry.get('kind') not in EXT:
         raise Failure('%s: the kind must be one of %s' % (entry, ', '.join(EXT)))
-    if 'head' in entry and entry['kind'] != 'asm':
-        raise Failure('%s %s: head is for asm only' % (entry['kind'], entry['name']))
-    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'player', 'py', 'c'):
-        raise Failure('%s %s: from and to are for asm, player, py and c only'
+    if 'head' in entry and entry['kind'] not in ('asm', 'text'):
+        raise Failure('%s %s: head is for asm and text only' % (entry['kind'], entry['name']))
+    if ('from' in entry or 'to' in entry) and entry['kind'] not in ('asm', 'player', 'py', 'c',
+                                                                    'text'):
+        raise Failure('%s %s: from and to are for asm, player, py, c and text only'
                       % (entry['kind'], entry['name']))
     if entry['kind'] == 'asm':
         header, lines = asm_extract(entry, table, listing)
@@ -555,6 +601,8 @@ def extract(entry, table, listing):
         header, lines = player_extract(entry)
     elif entry['kind'] == 'json':
         header, lines = json_extract(entry)
+    elif entry['kind'] == 'text':
+        header, lines = text_extract(entry)
     elif entry['kind'] == 'skel':
         header, lines = skel_extract(entry, table)
     else:

@@ -1,0 +1,10 @@
+# re/functions.csv, line 1 and lines 338-345
+addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,strings,status
+01c982,record_at,C,72,4,8,,9,,,2,,verified
+01c9ca,vblank_every_frame,C,104,2,,-32250,1,poll_fire,,5,,ported
+01ca32,read_joystick,C,112,2,,-32244,1,read_joy_dispatch,,4,,ported
+01caa2,sub_01caa2,C,18,0,,,0,,,1,,todo
+01cab4,flash_set,C,20,0,8 10,,1,,,2,,ported
+01cac8,rand_mod,C,24,0,8,,8,rand_beam,,0,,ported
+01cae0,burn_smoke,C,60,0,10 12 14,,5,sub_0154cc rand_beam,,0,,ported
+01cb1c,sub_01cb1c,asm,4,,,,0,sub_021dce,,0,,todo
