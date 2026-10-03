@@ -62,13 +62,13 @@ tables); a period is in colour clocks, so a byte lasts period / 3,546,895 s on P
 | Slot | Channel | Sample | Period | Volume | Repeat | Switched on by |
 |---|---|---|---|---|---|---|
 | 0 | 0 | `machinegun` | `0xC8` | 64 | -1 | `engine_sound`: the player's guns fire (`guns_firing`, `0x02536A`) |
-| 1 | 0 | `Engine` | eased | eased | -1 | `engine_sound`: the engine, while its eased volume is not 0 |
+| 1 | 0 | `engine` | eased | eased | -1 | `engine_sound`: the engine, while its eased volume is not 0 |
 | 2 | 1 | `machinegun` | `0xA0` | 57 | -1 | `engine_sound`: an enemy aircraft in state 1 or 2 fires (`+0x12`) |
-| 3 | 1 | `Engine` | `0x14A` | by distance | -1 | `engine_sound`: the nearest enemy aircraft in states 1 and 2 |
+| 3 | 1 | `engine` | `0x14A` | by distance | -1 | `engine_sound`: the nearest enemy aircraft in states 1 and 2 |
 | 4 | 2 | `boom` | `0x1F4` | by distance | 1 | `sound_boom` (`0x012324`): a bomb's or a rocket's burst, a wreck at rest (`object_spawn`) |
 | 5 | 2 | `splash` | `0x15E` | by distance | 1 | `sound_splash` (`0x01233E`): something in the sea; aboard the carrier `engine_sound` makes it the sea itself, period `0x320`, volume 34, for ever |
 | 6 | 3 | `machinegun` | `0x140` | by distance | -1 | `engine_sound`: a ground target firing at the aircraft (`target_fire`, `0x014F5C`, keeps the nearest one's distance, which `draw_world` turns into `0x027164` and the loudness `0x027166`) |
-| 7 | 3 | set when used | | | | the lift moving (`Grind.1`, `0x1C2`, 64, for ever); its clang when it stops (`metal.clang.1`, length `0x1646`, `0x1C2`, 64, once); the wheels touching the deck (`screech`, `0x1A5A`, `0x15E`, 64, once); a soldier hit (`scream`, `0x19AC`, `0x17C`, half the distance's loudness, once) |
+| 7 | 3 | set when used | | | | the lift moving (`grind.1`, `0x1C2`, 64, for ever); its clang when it stops (`metal.clang.1`, length `0x1646`, `0x1C2`, 64, once); the wheels touching the deck (`screech`, `0x1A5A`, `0x15E`, 64, once); a soldier hit (`scream`, `0x19AC`, `0x17C`, half the distance's loudness, once) |
 
 The first slot of a pair has priority (**read**, `sound_channels`): the guns drown the
 engine, an enemy's guns its engine, a burst a splash, the ground's guns the lift. The
@@ -170,7 +170,7 @@ flags `0x027F14`-`0x027F16` therefore never act; the port has both, held to the 
 The eight files of `sounds/` are signed 8-bit PCM without a header. `sounds_load`
 (`0x013368`) loads each into chip memory only while its pointer is 0 and keeps the length in
 `sound_length` (`0x025572`); the pointers are at `0x026E3E` (`boom`), `0x026E42`
-(`metal.clang.1`), `0x026E58` (`Engine`), `0x026E7A` (`Grind.1`), `0x026E96`
+(`metal.clang.1`), `0x026E58` (`engine`), `0x026E7A` (`grind.1`), `0x026E96`
 (`machinegun`), `0x026EA8` (`screech`), `0x026EAC` (`scream`) and `0x026EB4` (`splash`).
 `0x01346C` frees all but the engine's between missions; the load and save dialog frees the
 engine's too (`0x0134A4`) and loads it again when it closes (`0x01344E`), after which slot 1

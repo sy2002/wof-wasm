@@ -294,9 +294,10 @@ The effects are part 1's in every script. Three of them take a poke for it: `hig
 `island_a` and `bomb_b`, where soldiers come out of targets. `target_timers` (`0x011E18`,
 `0x011E62`) times that by `vblank_total` (`0x0253CA`), `(vblank_total >> 4) & 31`, and the
 fades' waits before the mission add their 312 VBlanks to that count, so a soldier comes out at
-another tick and what follows differs: without the poke the first soldier of `bomb_b` comes
-out at tick 625 and `island_a` no longer takes the island, nor wins the mission
-(**observed**). The three scripts were made before the music played; they set `vblank_total`
+another tick and what follows differs: without the poke the second soldier of `bomb_b` comes
+out at tick 625 instead of 637 (the first comes at 606 either way, since only a wait after a
+soldier is out reads the count: chapter 18 of the book, two runs with a hook on `soldier_out`)
+and `island_a` no longer takes the island, nor wins the mission (**observed**). The three scripts were made before the music played; they set `vblank_total`
 back at the rank selection's end to what it is there without the fades, 97
 (`tools/m5_scripts.py`, `WITHOUT_THE_FADES`), and their missions are again the ones they were
 made for. The count with the fades is the original's own timing; a real machine leaves each

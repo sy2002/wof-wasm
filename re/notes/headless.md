@@ -126,8 +126,9 @@ then answered as idle, since it needs the model's timer.
 **The registers that can only be read** - `DMACONR`, `ADKCONR`, `INTENAR`, `INTREQR` - ignore
 a write, as on the machine: a write hook keeps what was there and a read hook puts it back
 before the next read, `INTENAR` and `INTREQR` being the model's in any case. The music player
-writes `0x0780` to `INTREQR` in `_OpenTimerInt` and in its stop path (songplay `0x0A3C` and
-`0x04E2`), evidently meaning to clear the audio requests; on the machine the two writes do
+writes `0x0780` to `INTREQR` three times, in `_OpenTimerInt`, in `_CloseTimerInt` and in its
+stop path (songplay `0x0A3C`, `0x0A6C` and `0x04E2`; chapter 18 of the book counted them),
+whatever they were for; on the machine the writes do
 nothing and the requests stay pending, and so here (`tests/test_music.py`).
 
 ### The music's timer

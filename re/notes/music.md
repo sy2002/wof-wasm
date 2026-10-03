@@ -87,7 +87,7 @@ player's goes into the new one's `saved_level4_vector`. Two players' DATA hunks 
 one under the timer and one under the level-4 handler. A later `music_stop` gives command 4 to
 the new player: `RemICRVector` takes the first player's node off timer A, and `0x70` gets
 back the first player's handler, inside a segment that leaked but still holds its code, so
-`audio_irq` never comes back to `0x70`. Nothing reaches it. `opt_music_off` has two writers,
+`audio_irq` never comes back to `0x70`. Nothing reaches it. `opt_music_off` has two writers in the code (and a third in a loaded game's raw part, whose last byte it is, `0x0254F7`: chapter 18 of the book),
 `not.b` at `0x01CD5A` in `ingame_keys`, in flight, where the music is not loaded (`rank_select`
 unloads it at `0x0184D6` before every mission), and `clr.b` at `0x01006A` in `main`, which
 every return to the rank selection passes: the outer loop goes back to `0x010066`, and the
@@ -157,7 +157,7 @@ so notes from 0x1B less 60 on reach it. The period is that divided by the voice'
 `samplesPerHiCycle` shifted by the octave (**read**; **observed**: the period 427, the first
 of song 2, is `0x3572` / 32). The table holds NTSC colour clocks: read with 3,579,545 Hz its
 notes are equal temperament at A 440 Hz within 0.3 cents on average, with PAL's 3,546,895 Hz
-every one is 0.91 percent, 15.9 cents, flat (**observed**, the table against both clocks). So
+every one is 0.92 percent, 15.9 cents, flat (**observed**, the table against both clocks; chapter 18 of the book redid the ratio, 1.0092). So
 on a PAL machine the music plays that much flat, as on a PAL Amiga; the port plays the table as
 it stands.
 
