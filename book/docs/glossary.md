@@ -88,6 +88,14 @@ In the port, a run of consecutive output rows of one viewport that share a set o
 
 First met and defined in [chapter 11](part-2/display.md). The detail: [`src/video.c`](repo:src/video.c), [`src/screen.c`](repo:src/screen.c); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#views-viewports-and-what-reaches-the-output), "Views, viewports and what reaches the output".
 
+### Barracks
+
+A target of an island, slot 4, that holds five soldiers and burns when a weapon hits it, its four map records turned into the burnt barracks.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
+
+Elsewhere: [Barracks](https://en.wikipedia.org/wiki/Barracks), Wikipedia.
+
 ### Beam
 
 The point where the display is drawing the picture, sweeping each line from left to right and the lines from top to bottom; its position, which a register of the custom chips reports, is the game's only source of chance.
@@ -95,6 +103,12 @@ The point where the display is drawing the picture, sweeping each line from left
 First met in [chapter 1](part-1/faithful.md), defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/random.md`](repo:re/notes/random.md).
 
 Elsewhere: [Raster scan](https://en.wikipedia.org/wiki/Raster%5Fscan), Wikipedia.
+
+### Bearing
+
+The aircraft's pitch worked out each tick as an angle of the game's sine tables, which a rocket's thrust and frame and the guns' reach on the ground take.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`src/tick.c`](repo:src/tick.c), `shot_origin`; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-tick-the-drop), "The tick: the drop".
 
 ### Big-endian
 
@@ -375,6 +389,12 @@ Elsewhere: [Multiple buffering](https://en.wikipedia.org/wiki/Multiple%5Fbufferi
 Bit 15 of a map record: only a record that carries it draws its shape, so that a shape wider than eight pixels, whose slot all its records carry, is drawn once.
 
 First met and defined in [chapter 13](part-2/world.md). The detail: [`re/notes/map.md`](repo:re/notes/map.md#the-record), "The record".
+
+### Dug-out
+
+A target of an island, slot 3, that holds five soldiers and fires at the aircraft while it holds any; a hit lets its soldiers out but does not destroy it.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
 
 ### Dump
 
@@ -774,6 +794,18 @@ The port's C compiled by the test machine's own compiler into a library that the
 
 First met and defined in [chapter 5](part-1/oracle.md). The detail: [`SPEC.md`](repo:SPEC.md), sections [5](repo:SPEC.md#5-build) and [8](repo:SPEC.md#8-verification).
 
+### Neutralised island
+
+An island whose two counts, its soldiers alive and its pillboxes standing, have both fallen to zero; it pays its bonus, and the map's last, with no enemy ship left, ends the mission.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
+
+### Object record
+
+One of the fifteen records of 42 bytes in which a bomb, a rocket or the torpedo flies, with a sixteenth for the enemy's torpedo: its kind byte says whether it flies, goes out or is free, its type which weapon it is.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#claiming-and-freeing-a-record), "Claiming and freeing a record" and ["Record layout, the fields that all of them share"](repo:re/notes/objects.md#record-layout-the-fields-that-all-of-them-share).
+
 ### Observer
 
 A hook of the headless original on a routine's first instruction that records every entry with the registers and the arguments, and only reads, so that watching changes nothing.
@@ -846,6 +878,14 @@ Paula's measure of pitch: how many ticks of the colour clock, 3,546,895 a second
 
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md).
 
+### Pillbox
+
+The notes' name for an island's large gun, slots `0x0F` to `0x1E`, which fires at the aircraft and which only a rocket destroys; its slot shows which of its four map records a rocket has hit.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#three-kinds-of-target), "Three kinds of target".
+
+Elsewhere: [Pillbox (military)](https://en.wikipedia.org/wiki/Pillbox%5F(military)), Wikipedia.
+
 ### Pitch (of the aircraft)
 
 The angle of the player's aircraft, not a sound's pitch, in hundredths of a degree, positive with the nose up, which moves each tick a quarter of the way towards a target the stick sets.
@@ -885,6 +925,14 @@ A value written into one address of the game's state at a fixed point of a run, 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`tests/m4compare.py`](repo:tests/m4compare.py); [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-scripts), "The scripts".
 
 Elsewhere: [PEEK and POKE](https://en.wikipedia.org/wiki/PEEK%5Fand%5FPOKE), Wikipedia.
+
+### Pool
+
+One of four tables of small records the game allocates once at its start, Smoke, Splashes, Balloons and Ricochet, each record with a byte or word that says it is in use, claimed by a walk for the first free one.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/objects.md`](repo:re/notes/objects.md#the-inventory), "The inventory"; [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-pools), "The pools".
+
+Elsewhere: [Object pool pattern](https://en.wikipedia.org/wiki/Object%5Fpool%5Fpattern), Wikipedia.
 
 ### Program counter
 
@@ -1043,6 +1091,12 @@ First met and defined in [chapter 12](part-2/shapes.md). The detail: [`re/notes/
 The register A4 in the game's code, holding `0x02AFFE`, 32,766 bytes into the data, from which every variable is reached by an offset of 16 bits.
 
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](repo:SPEC.md#32-executable), section 3.2.
+
+### Soldier
+
+One of the five men of a dug-out or a barracks, a record of eight bytes whose state says free, running, dying or dead; the soldiers alive are what an island counts.
+
+First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes/porting-m5.md`](repo:re/notes/porting-m5.md#the-soldiers), "The soldiers".
 
 ### Sound sample
 

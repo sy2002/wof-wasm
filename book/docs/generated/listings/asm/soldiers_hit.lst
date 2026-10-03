@@ -1,0 +1,29 @@
+; re/Wings.lst 0x011A8C-0x011AD8: soldiers_hit [asm]
+; soldiers_hit   [asm]
+;   asm. D0 = world x, D1 = half width: running soldiers there start dying
+;   callers: object_step, gun_splashes
+soldiers_hit:
+011a8c  48e7f080             movem.l    d0-d3/a0, -(a7)
+011a90  9041                 sub.w      d1, d0
+011a92  d241                 add.w      d1, d1
+011a94  206ca502             movea.l    -$5afe(a4), a0                         ; soldier_records
+011a98  362ca3c6             move.w     -$5c3a(a4), d3                         ; soldier_count
+011a9c  6000002e             bra.w      $11acc
+loc_011aa0:
+011aa0  0c6800010006         cmpi.w     #$1, $6(a0)
+011aa6  66000022             bne.w      $11aca
+011aaa  3410                 move.w     (a0), d2
+011aac  9440                 sub.w      d0, d2
+011aae  b441                 cmp.w      d1, d2
+011ab0  62000018             bhi.w      $11aca
+011ab4  317c00020006         move.w     #$2, $6(a0)
+011aba  117c00050003         move.b     #$5, $3(a0)
+011ac0  117c00020004         move.b     #$2, $4(a0)
+011ac6  4eba08e4             jsr        $123ac(pc)                             ; sound_scream
+loc_011aca:
+011aca  5048                 addq.w     #$8, a0
+loc_011acc:
+011acc  51cbffd2             dbra       d3, $11aa0
+011ad0  4eba0010             jsr        $11ae2(pc)                             ; torpedoes_hit
+011ad4  4cdf010f             movem.l    (a7)+, d0-d3/a0
+011ad8  4e75                 rts

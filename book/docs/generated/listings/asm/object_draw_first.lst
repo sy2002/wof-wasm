@@ -1,0 +1,16 @@
+; re/Wings.lst 0x0107F2-0x01081E: object_draw_first [asm]
+object_draw_first:
+0107f2  48e70700             movem.l    d5-d7, -(a7)
+0107f6  397c0014bf8c         move.w     #$14, -$4074(a4)                       ; drop_debug
+0107fc  4a2ca36f             tst.b      -$5c91(a4)                             ; weapon_count
+010800  67000018             beq.w      $1081a
+010804  41ec9cb0             lea.l      -$6350(a4), a0                         ; object_records
+010808  700e                 moveq      #$e, d0
+loc_01080a:
+01080a  4a280020             tst.b      $20(a0)
+01080e  6700007e             beq.w      $1088e
+010812  d0fc002a             adda.w     #$2a, a0
+010816  51c8fff2             dbra       d0, $1080a
+loc_01081a:
+01081a  4cdf00e0             movem.l    (a7)+, d5-d7
+01081e  4e75                 rts

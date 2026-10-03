@@ -518,3 +518,61 @@ file = "src/mission.c"
 from = "if (wof_g.g_027452 != 0) {"
 to = "} while (wof_g.g_027452 != 0);"
 as = "wof_player_lost_restart_waits"
+
+# Chapter 15: the drop's walk for the first free of the fifteen object records, the launch
+# when it finds one and nothing when it does not, orig 0x0107F2 on both sides.
+[[listing]]
+kind = "asm"
+name = "object_draw_first"
+
+[[listing]]
+kind = "c"
+name = "object_draw_first"
+file = "src/objects.c"
+
+# Chapter 15: the head of object_step's chain of tests, and a rocket's fall, aim and thrust.
+[[listing]]
+kind = "asm"
+name = "object_step"
+from = 0x010AA6
+to = 0x010AF8
+as = "object_step_head"
+
+# Chapter 15: weapon_hit's head and its dug-out, beside the port's from the land's slot on.
+[[listing]]
+kind = "asm"
+name = "weapon_hit"
+from = 0x0146DC
+to = 0x014764
+as = "weapon_hit_land"
+
+[[listing]]
+kind = "c"
+name = "wof_weapon_hit"
+file = "src/targets.c"
+from = "slot &= 0x1FFFu;"
+to = "target_release(t);"
+as = "wof_weapon_hit_land"
+
+# Chapter 15: the running soldiers within a span start dying, orig 0x011A8C on both sides.
+[[listing]]
+kind = "asm"
+name = "soldiers_hit"
+head = true
+
+[[listing]]
+kind = "c"
+name = "wof_soldiers_hit"
+file = "src/tick.c"
+
+# Chapter 15: the autopilot's prediction of where a bomb comes down.
+[[listing]]
+kind = "py"
+name = "fall"
+file = "tools/m5_autopilot.py"
+
+# Chapter 15: the drop under the oracle, with free records and none.
+[[listing]]
+kind = "py"
+name = "test_the_drop_matches_the_original"
+file = "tests/test_oracle_m5.py"

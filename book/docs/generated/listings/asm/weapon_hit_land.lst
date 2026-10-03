@@ -1,0 +1,38 @@
+; re/Wings.lst 0x0146DC-0x014764: weapon_hit [asm], a part of 0x0146DC-0x014A4D
+weapon_hit:
+0146dc  48e7fffe             movem.l    d0-d7/a0-a6, -(a7)
+0146e0  3010                 move.w     (a0), d0
+0146e2  2c48                 movea.l    a0, a6
+0146e4  c0bc0000ffff         and.l      #$ffff, d0
+0146ea  2400                 move.l     d0, d2
+0146ec  4eac80f8             jsr        -$7f08(a4)                             ; -> map_slot_at
+0146f0  b03c0000             cmp.b      #$0, d0
+0146f4  67000290             beq.w      $14986
+0146f8  c27c1fff             and.w      #$1fff, d1
+0146fc  b03c0001             cmp.b      #$1, d0
+014700  67000284             beq.w      $14986
+014704  0c6e00000022         cmpi.w     #$0, $22(a6)
+01470a  6600000e             bne.w      $1471a
+01470e  397c0005a418         move.w     #$5, -$5be8(a4)                        ; flash_count
+014714  397c0fffa41a         move.w     #$fff, -$5be6(a4)                      ; flash_colour
+loc_01471a:
+01471a  b27c0113             cmp.w      #$113, d1
+01471e  66000006             bne.w      $14726
+014722  60000324             bra.w      $14a48
+loc_014726:
+014726  b27c0003             cmp.w      #$3, d1
+01472a  6600003c             bne.w      $14768
+01472e  2002                 move.l     d2, d0
+014730  4eba0422             jsr        $14b54(pc)                             ; target_of
+014734  4a00                 tst.b      d0
+014736  6b000310             bmi.w      $14a48
+01473a  0c6e00000022         cmpi.w     #$0, $22(a6)
+014740  66000008             bne.w      $1474a
+014744  397c0f00a41a         move.w     #$f00, -$5be6(a4)                      ; flash_colour
+loc_01474a:
+01474a  4a280008             tst.b      $8(a0)
+01474e  670002f8             beq.w      $14a48
+014752  317c00c8000e         move.w     #$c8, $e(a0)
+014758  06ac000000c8a34e     addi.l     #$c8, -$5cb2(a4)                       ; player_score
+014760  4eba03de             jsr        $14b40(pc)                             ; target_release
+014764  600002e2             bra.w      $14a48

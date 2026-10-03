@@ -1,0 +1,28 @@
+; re/Wings.lst 0x010AA6-0x010AF8: object_step [asm], a part of 0x010AA6-0x010DA5
+object_step:
+010aa6  48e76420             movem.l    d1-d2/d5/a2, -(a7)
+010aaa  2448                 movea.l    a0, a2
+010aac  0c2a00080020         cmpi.b     #$8, $20(a2)
+010ab2  67000246             beq.w      $10cfa
+010ab6  0c6a00000022         cmpi.w     #$0, $22(a2)
+010abc  66000086             bne.w      $10b44
+010ac0  4a6a0024             tst.w      $24(a2)
+010ac4  67000026             beq.w      $10aec
+010ac8  536a0024             subq.w     #$1, $24(a2)
+010acc  67000018             beq.w      $10ae6
+010ad0  7001                 moveq      #$1, d0
+010ad2  4a6ca08e             tst.w      -$5f72(a4)                             ; player_facing
+010ad6  6a000004             bpl.w      $10adc
+010ada  4440                 neg.w      d0
+loc_010adc:
+010adc  9152                 sub.w      d0, (a2)
+010ade  536a0004             subq.w     #$1, $4(a2)
+010ae2  60000018             bra.w      $10afc
+loc_010ae6:
+010ae6  204a                 movea.l    a2, a0
+010ae8  6100feb0             bsr.w      $1099a
+loc_010aec:
+010aec  202a001a             move.l     $1a(a2), d0
+010af0  d1aa0012             add.l      d0, $12(a2)
+010af4  202a0016             move.l     $16(a2), d0
+010af8  d1aa000e             add.l      d0, $e(a2)
