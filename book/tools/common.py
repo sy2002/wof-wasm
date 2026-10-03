@@ -1,7 +1,7 @@
 """What the book's generators share: the paths, the manifests, the comparison for --check,
 and the port's native core with the game's files loaded.
 
-Nothing here writes a file.  The generators (listings.py, figures.py, webfont.py) each make
+Nothing here writes a file.  The generators (listings.py, figures.py, elements.py, webfont.py, suite.py, routines.py) each make
 their files into a directory they are given, so that --check can make them into a temporary
 directory and compare them with the committed ones byte for byte, the way
 tests/test_generated.py holds the repository's own generated files.
