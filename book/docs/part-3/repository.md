@@ -158,17 +158,17 @@ The decoders serve the tools, the tests and this book; the core uses the game's 
 
 ## tests/: the suite
 
-[`tests/`](repo:tests/) is the suite, about 930 tests run by pytest, with the helpers they share and fourteen scripts in Node, which runs JavaScript outside a browser: the drivers of the core and of the two browsers, and their instruments. The modules by layer:
+[`tests/`](repo:tests/) is the suite, about 930 tests run by pytest, with the helpers they share and fourteen scripts in Node, which runs JavaScript outside a browser: the drivers of the core and of the two browsers, and their instruments. The modules by [layer](../glossary.md#layer-of-the-suite), as chapter 24 arranges them:
 
 | Layer | Modules |
 |---|---|
-| a routine under the oracle | [`test_oracle_m1.py`](repo:tests/test%5Foracle%5Fm1.py) and seven more |
-| the headless original, its instruments, the notes' findings | [`test_headless.py`](repo:tests/test%5Fheadless.py), [`test_frontend.py`](repo:tests/test%5Ffrontend.py) and five more |
-| the port against the original | [`test_world.py`](repo:tests/test%5Fworld.py), [`test_enemy.py`](repo:tests/test%5Fenemy.py) and six more |
-| the core's two forms and the instrumentation | [`test_core_native.py`](repo:tests/test%5Fcore%5Fnative.py), [`test_state_m4.py`](repo:tests/test%5Fstate%5Fm4.py) and three more |
-| the page | [`test_page.py`](repo:tests/test%5Fpage.py), [`test_firefox.py`](repo:tests/test%5Ffirefox.py), [`test_dist.py`](repo:tests/test%5Fdist.py) |
-| the port's own layer | [`test_assist.py`](repo:tests/test%5Fassist.py) |
-| the repository | [`test_generated.py`](repo:tests/test%5Fgenerated.py), [`test_rom.py`](repo:tests/test%5From.py) |
+| one routine | [`test_oracle_m1.py`](repo:tests/test%5Foracle%5Fm1.py) and seven more |
+| the original observed | [`test_headless.py`](repo:tests/test%5Fheadless.py), [`test_frontend.py`](repo:tests/test%5Ffrontend.py) and five more |
+| the front end | [`test_front_port.py`](repo:tests/test%5Ffront%5Fport.py) |
+| the missions | [`test_world.py`](repo:tests/test%5Fworld.py), [`test_enemy.py`](repo:tests/test%5Fenemy.py) and five more |
+| the whole game replayed | [`test_replays.py`](repo:tests/test%5Freplays.py) |
+| the core itself | [`test_core_native.py`](repo:tests/test%5Fcore%5Fnative.py), [`test_state_m4.py`](repo:tests/test%5Fstate%5Fm4.py) and six more |
+| the page | [`test_page.py`](repo:tests/test%5Fpage.py), [`test_firefox.py`](repo:tests/test%5Ffirefox.py) |
 
 [`tests/runs/`](repo:tests/runs/) holds 34 [run descriptions](../glossary.md#run-description), the player's hands VBlank by VBlank, with no game data in them, as no file written by hand has, so that they stand under the code's licence. [`tests/replays/demo_a.json`](repo:tests/replays/demo%5Fa.json) is a demo the port recorded, replayed in both forms of the core, native and WebAssembly. The native library is built from the same C and never committed, and [`tests/shim.c`](repo:tests/shim.c), the tests' way into the core's insides, is compiled into it and nothing else, so the page never carries it. Chapter 24 tells the suite.
 
