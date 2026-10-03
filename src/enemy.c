@@ -1,4 +1,4 @@
-/* The enemy aircraft (M6 part 2): the module of compiled C from 0x01D18C to 0x01E8A7 in the
+/* The enemy aircraft (M6 part 2): the module of compiled C from 0x01D18C to 0x01E8B7 in the
  * original's order, but for the two routines the mission's setup runs, enemy_frames
  * (0x01D1EA) and aircraft_clear (0x01E608), which are src/mission.c's.  What each routine
  * does, and the record's fields, are re/notes/enemy.md; the fields are named in

@@ -4,14 +4,14 @@
 #include "wof.h"
 
 /* The shell puts the packed file blob here (about 530 KB) before wof_init, and M1 adds the
- * converted shapes of all twelve containers (about 525 KB), the viewport surfaces, the
- * pointer tables and the scratch that load_file unpacks a file into.  3 MB leaves room for
+ * converted shapes of all twelve containers (about 525 KB), the pointer tables and the
+ * scratch that load_file unpacks a file into (the display memory is state).  3 MB leaves room for
  * the map, the object pools and the sound buffers of the later milestones.  This is BSS:
  * it costs nothing in dist/core.wasm, only in the page's linear memory. */
 #define WOF_ARENA_SIZE (3u * 1024u * 1024u)
 
 /* The arena has two ends.  Everything that outlives a load - the converted shapes, the
- * pointer tables, the viewport surfaces - grows up from the bottom.  The buffer a file is
+ * pointer tables - grows up from the bottom.  The buffer a file is
  * read and unpacked into is scratch and grows down from the top, so that giving it back is
  * one assignment however much was allocated below it in the meantime.  That is what the
  * original's Free of a just-loaded file amounts to here. */

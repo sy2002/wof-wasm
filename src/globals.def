@@ -11,8 +11,8 @@
  *
  * A name is the one re/names.txt gives the address.  The port's struct order is not the
  * original's memory order; the address in the third column is what ties the two together.
- * The entries are grouped by width, longs first, so that the struct has no padding in it
- * and is exactly the sum of its members, which
+ * The entries are grouped by width, longs first, so that the struct has no padding between
+ * its members, at most two bytes of tail, which
  * tests/test_oracle_m3.py::test_the_globals_struct_is_the_sum_of_its_members holds.  Where
  * the original's adjacency is itself behaviour - key_get reads one entry past the key
  * buffer - the routine says so and spells the neighbour out (src/keys.c).

@@ -1,8 +1,8 @@
 /* src/wof.h, lines 489-524 */
 /* Everything the core may change while running, in one struct, so that wof_state_save is a
  * copy and adding state cannot silently break the round trip.  Neither the framebuffer nor
- * the loaded assets are in here: wof_pass redraws the one from this state and the other is
- * read-only after wof_init.  Both targets are little-endian, so the saved bytes are the
+ * the loaded assets are in here: wof_pass redraws the one from this state; the other changes
+ * only as the mirror markers say.  Both targets are little-endian, so the saved bytes are the
  * struct's bytes; if a big-endian target ever appears this needs accessors. */
 typedef struct {
     uint32_t magic;

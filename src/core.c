@@ -60,8 +60,8 @@ uint32_t wof_pass_count(void)   { return wof_s.passes; }
  * blob, the loaded assets and the framebuffer live outside it, and wof_pass rebuilds the
  * picture from it.  The assets are read-only after wof_init, so leaving them out of the
  * state is not a gap; the one thing that is written after load, the mirror marker of a
- * hellcat or Torpedo record, arrives with the flight model in M4 and has to join the
- * state then. */
+ * hellcat or Torpedo record, is in the state since M4 (marker_hellcat, marker_torpedo)
+ * and follows a load. */
 uint32_t wof_state_size(void)
 {
     return (uint32_t)sizeof(wof_state_t);
