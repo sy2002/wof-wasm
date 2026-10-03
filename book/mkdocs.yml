@@ -23,6 +23,10 @@ copyright: >-
 
 docs_dir: docs
 site_dir: site
+# A generated table (book/tools/suite.py) is Markdown that a chapter includes with a snippet,
+# not a page of its own.
+exclude_docs: |
+  generated/tables/
 use_directory_urls: true
 strict: true
 
@@ -107,7 +111,8 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.superfences
-  # The generated listings and nothing else come in this way; a missing file fails the build.
+  # The generated listings and tables and nothing else come in this way; a missing file fails
+  # the build.
   - pymdownx.snippets:
       base_path:
         - !relative $docs_dir

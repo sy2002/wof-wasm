@@ -1,0 +1,42 @@
+# The layers of the suite, for chapter 24's table of the test modules by layer.
+#
+# book/tools/suite.py collects the suite with pytest (--collect-only, which runs no test),
+# counts the tests of each module and writes docs/generated/tables/suite-layers.md: one row a
+# layer, in this order, its modules in the order given with their tests, and a last row for
+# the whole suite.  Every test module of tests/ (tests/test_*.py) belongs to exactly one layer;
+# a module in none or in two, or a module named here that has no tests, fails the run.
+#
+#   name     the layer, as the chapter's table of the layers names it
+#   modules  the test modules, by their file names without the directory
+
+[[layer]]
+name = "one routine"
+modules = ["test_oracle_m1.py", "test_oracle_m3.py", "test_oracle_m4.py", "test_oracle_m5.py",
+           "test_oracle_m6.py", "test_oracle_m7.py", "test_oracle_m8.py", "test_oracle_ffp.py"]
+
+[[layer]]
+name = "the original observed"
+modules = ["test_headless.py", "test_frontend.py", "test_passes.py", "test_objects.py",
+           "test_map.py", "test_sound.py", "test_music.py"]
+
+[[layer]]
+name = "the front end"
+modules = ["test_front_port.py"]
+
+[[layer]]
+name = "the missions"
+modules = ["test_world.py", "test_weapons.py", "test_enemy.py", "test_campaign.py",
+           "test_loader.py", "test_demo.py", "test_mission.py"]
+
+[[layer]]
+name = "the whole game replayed"
+modules = ["test_replays.py"]
+
+[[layer]]
+name = "the core itself"
+modules = ["test_core_native.py", "test_core_wasm.py", "test_state_m4.py", "test_dist.py",
+           "test_isolation.py", "test_assist.py", "test_generated.py", "test_rom.py"]
+
+[[layer]]
+name = "the page"
+modules = ["test_page.py", "test_firefox.py"]
