@@ -305,17 +305,6 @@ how = "VBlank 640 of the front run, the 640 x 214 picture shown in the PAL box o
 command = ".venv/bin/python book/tools/figures.py title-screen"
 
 [[figure]]
-name = "title-credits"
-file = "title-credits.png"
-maker = "screen"
-run = "front"
-vblank = 1100
-size = [1024, 642]
-shows = "The credit picture of the title sequence, shapes/creditscreen."
-how = "VBlank 1100 of the front run, the 640 x 214 picture shown in the PAL box of 1024 x 642."
-command = ".venv/bin/python book/tools/figures.py title-credits"
-
-[[figure]]
 name = "mission-start"
 file = "mission-start.png"
 maker = "screen"
@@ -341,16 +330,6 @@ areas = [[0, 161, "playfield"], [162, 162, "blank"], [163, 199, "dashboard"],
 # The palette files a band's colours are compared with (original/disk/Wings_of_Fury/shapes/).
 files = ["wingspalette", "ocean.palette", "night.p", "nightocean.p", "iff-dash", "nightdash"]
 command = ".venv/bin/python book/tools/figures.py mission-palettes"
-
-[[figure]]
-name = "shapes-torpedo"
-file = "shapes-torpedo.png"
-maker = "shapes"
-container = "torpedo.shp"
-palette = "wingspalette"
-shows = "Every shape of torpedo.shp with its name: the frames named bom.., hc.., rc.., ro.. and tor., bombs, the player's aircraft, rockets and the torpedo."
-how = "tools/ppkc.py's parse() and sheet(), the shapes' planes to indexed pixels in the colours of wingspalette, twice enlarged, the names in Pillow's bitmap font."
-command = ".venv/bin/python book/tools/figures.py shapes-torpedo"
 
 [[figure]]
 name = "world-island"

@@ -45,16 +45,12 @@
 #   lines   the most lines the extract may have, the first line not counted.  The default is
 #           40; a longer routine fails the run unless its entry asks for more here.
 
-# A ported routine shown as the listing's assembly beside its C: the fade's arithmetic,
-# compiled C in the original, orig 0x016FF6 on both sides.
+# Compiled C in the original, shown beside the hand-written text_width: the fade's
+# arithmetic, orig 0x016FF6.
 [[listing]]
 kind = "asm"
 name = "colour_lerp"
 lines = 45
-
-[[listing]]
-kind = "c"
-name = "wof_colour_lerp"
 
 # Hand-written assembly beside its C: the unpacker of the packed files, orig 0x01FEE0.
 [[listing]]
@@ -73,20 +69,6 @@ name = "text_width"
 [[listing]]
 kind = "c"
 name = "wof_text_width"
-
-# A part of a long routine: draw_world takes one map record, tests the draw flag and looks
-# its slot up in MasterList or AthList, skipping a null (re/notes/map.md, re/notes/shapes.md).
-[[listing]]
-kind = "asm"
-name = "draw_world"
-from = 0x013842
-to = 0x013870
-as = "draw_world_record"
-
-# The shell: the framebuffer through the palette of each row, a function of web/video.js.
-[[listing]]
-kind = "js"
-name = "convert"
 
 # The clock's frame, a function inside createClock in web/clock.js.
 [[listing]]
