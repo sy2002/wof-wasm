@@ -1,0 +1,10 @@
+# re/tables.toml, lines 26-34
+# The nine lists lie back to back at 0x023BC0-0x024628, each ended by a zero long.  The
+# slot order is what game code relies on, so the port builds its pointer tables from these
+# and never from the containers (re/notes/shapes.md).
+
+[[table]]
+name = "battleship_names"
+kind = "names4"
+addr = 0x023BC0
+count = 25

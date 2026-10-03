@@ -1,0 +1,34 @@
+# tools/setup.sh, lines 1-33
+#!/bin/sh
+# Sets a clone of the repository up for building and testing (README.md):
+#
+#     sh tools/setup.sh          the game
+#     sh tools/setup.sh --book   the game and the book
+#
+# makes .venv with the machine's python3 (or $PYTHON) and installs requirements.txt into it,
+# says whether Node and the two browsers the page tests drive are there, checks the Kickstart
+# ROM (tools/rom.py) and builds dist/wof.html and dist/core.wasm, on macOS also
+# tests/libwofcore.dylib, which the tests load and which needs Apple clang.
+# With --book it also installs the book's packages (book/requirements.txt) into the same .venv
+# and builds the book's site into book/site/ with mkdocs build --strict, before the ROM check,
+# because the site is built from committed files and needs no ROM: a clone without the ROM
+# still gets the book. Without --book none of the book's packages is installed.
+# Running it again is harmless: an existing .venv is kept and brought to the pinned versions.
+
+cd "$(dirname "$0")/.." || exit 1
+PYTHON=${PYTHON:-python3}
+BOOK=""
+for arg in "$@"; do
+    case "$arg" in
+        --book) BOOK="yes" ;;
+        *) echo "usage: sh tools/setup.sh [--book]"; exit 2 ;;
+    esac
+done
+
+echo "== Python environment (.venv, requirements.txt)"
+if [ ! -x .venv/bin/python ]; then
+    "$PYTHON" -m venv .venv || { echo "could not make .venv with $PYTHON"; exit 1; }
+fi
+.venv/bin/python -m pip install --quiet --disable-pip-version-check -r requirements.txt \
+    || { echo "could not install requirements.txt into .venv"; exit 1; }
+.venv/bin/python --version

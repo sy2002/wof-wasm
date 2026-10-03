@@ -1,0 +1,16 @@
+; tools/skel.py save_game_read: re/Wings.lst 0x015E1A-0x015E6A, 15 of its 33 lines
+; save_game_read   [C]  frame=6
+;   C. (name) reads a saved game through save_walk and save_read_part (re/notes/campaign.md)
+;   callers: load_save_dialog
+save_game_read:
+  015e26  jsr -$7c14(a4) ; -> os_dos_open
+  015e30  beq.b $15e50
+  015e3a  jsr $15ec2(pc) ; save_walk
+  015e44  jsr -$7c38(a4) ; -> os_dos_close
+loc_015e4c:
+  015e4e  rts
+loc_015e50:
+  015e50  jsr -$7c20(a4) ; -> os_dos_io_err
+  015e5a  jsr -$7c7a(a4) ; -> sub_021dce
+  015e62  jsr $16e96(pc) ; exit_game
+  015e68  bra.b $15e4c

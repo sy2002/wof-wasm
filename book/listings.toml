@@ -1081,3 +1081,47 @@ file = "tests/picture.py"
 kind = "py"
 name = "outcomes"
 file = "tools/junit_compare.py"
+
+# Chapter 25, build it yourself.  The setup's header and the environment it makes.
+[[listing]]
+kind = "text"
+name = "setup-head"
+file = "tools/setup.sh"
+from = "#!/bin/sh"
+to = ".venv/bin/python --version"
+
+# The compiler's flags for the two targets: the page's core and the tests' native library.
+[[listing]]
+kind = "text"
+name = "compile-flags"
+file = "tools/build.py"
+from = "CC_WASM = ["
+to = "CC_NATIVE = ["
+
+# A run description written for the chapter: fire to the rank selection, the cursor key down
+# to the second rank, fire to choose it and on into the mission.
+[[listing]]
+kind = "json"
+name = "second-rank"
+file = "book/runs/second-rank.json"
+
+# The skeleton of a small compiled routine: a saved game read through its walker.
+[[listing]]
+kind = "skel"
+name = "save_game_read"
+
+# The oracle called from Python, as its docstring shows it, with the calling convention.
+[[listing]]
+kind = "text"
+name = "oracle-call"
+file = "tools/oracle.py"
+from = "from oracle import Oracle"
+to = "D0-D3/A0-A3 are scratch"
+
+# One entry of the manifest: the shape name lists' comment and the first list.
+[[listing]]
+kind = "text"
+name = "shape-names-entry"
+file = "re/tables.toml"
+from = "# The nine lists lie back to back"
+to = "count = 25"

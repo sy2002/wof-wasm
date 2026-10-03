@@ -220,6 +220,14 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 
 Elsewhere: [.bss](https://en.wikipedia.org/wiki/.bss), Wikipedia.
 
+### Build (of the page)
+
+The making of the page, `wof.html` in [`dist/`](repo:dist/), by [`tools/build.py`](repo:tools/build.py) in four steps: the tables from the manifest and the ROM, the game's files packed, the core compiled, the page assembled; with `--native` also the tests' native library. The book's own build is another.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#5-build), section 5; [`tools/build.py`](repo:tools/build.py).
+
+Elsewhere: [Reproducible Builds](https://reproducible-builds.org/), on builds that give the same bytes everywhere.
+
 ### ByteRun1
 
 The packing of a picture's rows in IFF ILBM: a control byte says either copy the next bytes as they are or repeat the next byte; the game's reader assumes it, and every picture the game shows uses it.
@@ -1257,6 +1265,14 @@ First met and defined in [chapter 15](part-2/weapons.md). The detail: [`re/notes
 
 Elsewhere: [Pillbox (military)](https://en.wikipedia.org/wiki/Pillbox%5F(military)), Wikipedia, the bunker the notes' name comes from, where the manual's target is a large anti-aircraft gun.
 
+### Pinned package
+
+A package the project's Python environment requires at one exact version, written `==` in a requirements file, so that every clone installs the same.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`requirements.txt`](repo:requirements.txt); [`book/requirements.txt`](repo:book/requirements.txt); [`README.md`](repo:README.md#build-and-verify), "Build and verify".
+
+Elsewhere: ["Repeatable Installs"](https://pip.pypa.io/en/stable/topics/repeatable-installs/), pip's documentation.
+
 ### Pitch (of the aircraft)
 
 The angle of the player's aircraft, not a sound's pitch, in hundredths of a degree, positive with the nose up, which moves each tick a quarter of the way towards a target the stick sets.
@@ -1557,6 +1573,14 @@ One conversation with an AI coding assistant in a terminal opened in the reposit
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#the-arrangement), "The arrangement".
 
+### Setup
+
+The one script that makes a clone ready, [`tools/setup.sh`](repo:tools/setup.sh): the project's Python environment from the pinned packages, a word on what is missing, the ROM's check and the build; with `--book` also the book's site.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`README.md`](repo:README.md#build-and-verify), "Build and verify"; [`tools/setup.sh`](repo:tools/setup.sh).
+
+Elsewhere: ["venv"](https://docs.python.org/3/library/venv.html), Python's documentation, for the environment it makes.
+
 ### Shape container
 
 A file of many shapes, the format that begins with `PPkc`: the number of shapes, a name of four characters for each, where each shape's entry begins, and the entries, each a header and the planes; the disk has twelve.
@@ -1699,6 +1723,12 @@ A marked place in the port's C where the original has code the port does not car
 
 First met and defined in [chapter 8](part-1/mission.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4; [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#what-stands-in-and-where), "What stands in, and where".
 
+### Status (of a routine)
+
+The column of the routine inventory kept by hand, which says where the port stands with a routine: `verified`, `ported`, `partial`, `replace`, `drop` or `todo`; the disassembler carries it over at every regeneration.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4, step 5; [`re/functions.csv`](repo:re/functions.csv).
+
 ### Story scroller
 
 The first screen of the front end: the game's story, drawn a line at a time in the game's font into a bitmap used as a ring, rising up the screen behind song 2.
@@ -1720,6 +1750,14 @@ A name a program file keeps for a routine or a variable, with its address; the g
 First met and defined in [chapter 3](part-1/disk.md). The detail: [`tools/hunk.py`](repo:tools/hunk.py); [`re/notes/music.md`](repo:re/notes/music.md#the-two-files), "The two files".
 
 Elsewhere: [Symbol table](https://en.wikipedia.org/wiki/Symbol%5Ftable), Wikipedia.
+
+### Template (repository)
+
+A repository made to be cloned for another game, "Amiga to Web", carrying this one's instruments, runtime, shell and method: the owner's idea, not started, proven only when a second game has gone through it.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`re/notes/amiga-to-web.md`](repo:re/notes/amiga-to-web.md); [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
+
+Elsewhere: ["Creating a template repository"](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository), GitHub's documentation.
 
 ### Test process
 
@@ -1896,6 +1934,12 @@ Elsewhere: [Workbench (AmigaOS)](https://en.wikipedia.org/wiki/Workbench%5F(Amig
 A session that does the tasks the controller sends it, one at a time, each a milestone or a bounded part of one, on a branch of its own, and reports to the controller alone.
 
 First met and defined in [chapter 10](part-1/making.md). The detail: [`CLAUDE.md`](repo:CLAUDE.md#session-protocol), "Session protocol"; [`CONTROLLER.md`](repo:CONTROLLER.md#what-a-task-contains), "What a task contains".
+
+### Working method
+
+The six steps every routine of the port went through: its skeleton read, its names given, its C written with the original's address, an oracle test for a pure routine, its status set, and a note once a part is understood.
+
+First met and defined in [chapter 25](part-3/build.md). The detail: [`SPEC.md`](repo:SPEC.md#74-working-method), section 7.4.
 
 ### World coordinates
 

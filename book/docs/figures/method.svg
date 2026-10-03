@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 252" width="1000" height="252" role="img" aria-labelledby="title desc">
+  <title id="title">The working method</title>
+  <desc id="desc">Six steps in a loop, each with its instrument. Above, left to right: 1, read: tools/skel.py, then the routine in the listing; 2, name: re/names.txt, then tools/disasm.py again; 3, port: the C with its orig comment, then the loops of the scripts that reach it. Below, right to left: 4, hold: an oracle test, for a pure routine; 5, status: re/functions.csv, and --cold for a partial one; 6, note: re/notes/ once a part is understood, and tools/mdcheck.py. From 6 an arrow goes back up to 1: the next routine.</desc>
+  <style>
+    /* The design's colours, each an entry of one of the game's palettes. */
+    .step   { fill: #FFBB00; /* wingstitle 25 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip    { fill: #EEEEEE; /* wingstitle 31 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label  { font-size: 14px; font-weight: 700; }
+    .small  { font-size: 12px; }
+  </style>
+  <rect class="step" x="60" y="24" width="250" height="72" rx="3"/>
+  <text class="ink label" x="70" y="44">1. read</text>
+  <text class="ink small" x="70" y="62">tools/skel.py, then the</text>
+  <text class="ink small" x="70" y="78">routine in the listing</text>
+  <rect class="step" x="375" y="24" width="250" height="72" rx="3"/>
+  <text class="ink label" x="385" y="44">2. name</text>
+  <text class="ink small" x="385" y="62">re/names.txt, then</text>
+  <text class="ink small" x="385" y="78">tools/disasm.py again</text>
+  <rect class="step" x="690" y="24" width="250" height="72" rx="3"/>
+  <text class="ink label" x="700" y="44">3. port</text>
+  <text class="ink small" x="700" y="62">the C with orig 0x......,</text>
+  <text class="ink small" x="700" y="78">then the loops of its scripts</text>
+  <rect class="step" x="60" y="156" width="250" height="72" rx="3"/>
+  <text class="ink label" x="70" y="176">6. note</text>
+  <text class="ink small" x="70" y="194">re/notes/ once a part is</text>
+  <text class="ink small" x="70" y="210">understood; tools/mdcheck.py</text>
+  <rect class="step" x="375" y="156" width="250" height="72" rx="3"/>
+  <text class="ink label" x="385" y="176">5. status</text>
+  <text class="ink small" x="385" y="194">re/functions.csv;</text>
+  <text class="ink small" x="385" y="210">--cold for a partial one</text>
+  <rect class="step" x="690" y="156" width="250" height="72" rx="3"/>
+  <text class="ink label" x="700" y="176">4. hold</text>
+  <text class="ink small" x="700" y="194">an oracle test, for a</text>
+  <text class="ink small" x="700" y="210">pure routine</text>
+  <path class="wire" d="M310 60 L365 60"/>
+  <path class="tip" d="M365 55 L365 65 L375 60 Z"/>
+  <path class="wire" d="M625 60 L680 60"/>
+  <path class="tip" d="M680 55 L680 65 L690 60 Z"/>
+  <path class="wire" d="M815 96 L815 146"/>
+  <path class="tip" d="M810 146 L820 146 L815 156 Z"/>
+  <path class="wire" d="M690 192 L635 192"/>
+  <path class="tip" d="M635 187 L635 197 L625 192 Z"/>
+  <path class="wire" d="M375 192 L320 192"/>
+  <path class="tip" d="M320 187 L320 197 L310 192 Z"/>
+  <path class="wire" d="M185 156 L185 106"/>
+  <path class="tip" d="M180 106 L190 106 L185 96 Z"/>
+  <text class="muted small" x="197" y="130">the next routine</text>
+</svg>

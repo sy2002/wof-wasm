@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 588" width="1000" height="588" role="img" aria-labelledby="title desc">
+  <title id="title">The build</title>
+  <desc id="desc">The build of the page in rows. Above them, the ROM's check comes first: without the right image nothing is written. Row 1: the manifest, the program and the ROM go into step 1, the tables, which writes them as C into src/gen/ with the system font and the key table. Row 2: 55 of the disk's files go into step 2, which packs them into one blob with a directory. Row 3: the C, src/gen/ included, goes into step 3, which compiles the core with zig for wasm32-freestanding into dist/core.wasm. Row 4: web/, the template, the stylesheet and eight modules, goes into step 4, which also takes the blob and the core, joins seven modules into one script, carries the eighth, the worklet, as text, and makes dist/wof.html, the one result that is committed. Row 5: the same C with tests/shim.c goes, with --native, through Apple clang into tests/libwofcore.dylib, the library the tests load. A legend names the colours: kept by hand or the original's, a step, made and not committed, made and committed.</desc>
+  <style>
+    /* The design's colours, each an entry of one of the game's palettes. */
+    .kept   { fill: #AAAABB; /* wingspalette 29 */ }
+    .step   { fill: #FFBB00; /* wingstitle 25 */ }
+    .made   { fill: #CCCCDD; /* wingspalette 30 */ }
+    .page   { fill: #77AACC; /* wingspalette 22 */ }
+    .gate   { fill: #444455; /* wingspalette 26 */ }
+    .ink    { fill: #111122; /* wingspalette 6 */ }
+    .light  { fill: #EEEEEE; /* wingstitle 31 */ }
+    .muted  { fill: #AAAABB; /* wingspalette 29 */ }
+    .wire   { stroke: #EEEEEE; /* wingstitle 31 */ stroke-width: 1.5; fill: none; }
+    .tip    { fill: #EEEEEE; /* wingstitle 31 */ }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px; }
+    .label  { font-size: 14px; font-weight: 700; }
+    .small  { font-size: 12px; }
+  </style>
+  <text class="muted label" x="16" y="26">what goes in</text>
+  <text class="muted label" x="262" y="26">the step</text>
+  <text class="muted label" x="520" y="26">what it makes</text>
+  <text class="muted label" x="752" y="26">the page</text>
+  <rect class="gate" x="16" y="40" width="700" height="36" rx="3"/>
+  <text class="light label" x="26" y="63">first, the ROM's check (tools/rom.py)</text>
+  <text class="light small" x="285.609" y="63">without the right image, nothing is written</text>
+  <rect class="kept" x="16" y="92" width="210" height="72" rx="3"/>
+  <text class="ink label" x="26" y="112">what is read</text>
+  <text class="ink small" x="26" y="130">re/tables.toml, 122 entries;</text>
+  <text class="ink small" x="26" y="146">the program, Wings; the ROM</text>
+  <rect class="step" x="262" y="92" width="222" height="72" rx="3"/>
+  <text class="ink label" x="272" y="112">1. the tables</text>
+  <text class="ink small" x="272" y="130">tools/extract_tables.py,</text>
+  <text class="ink small" x="272" y="146">the byte order turned round</text>
+  <rect class="made" x="520" y="92" width="196" height="72" rx="3"/>
+  <text class="ink label" x="530" y="112">src/gen/</text>
+  <text class="ink small" x="530" y="130">the tables as C, topaz 8,</text>
+  <text class="ink small" x="530" y="146">the key table</text>
+  <path class="wire" d="M226 128 L252 128"/>
+  <path class="tip" d="M252 123 L252 133 L262 128 Z"/>
+  <path class="wire" d="M484 128 L510 128"/>
+  <path class="tip" d="M510 123 L510 133 L520 128 Z"/>
+  <rect class="kept" x="16" y="180" width="210" height="72" rx="3"/>
+  <text class="ink label" x="26" y="200">the disk's files</text>
+  <text class="ink small" x="26" y="218">55: all but the program</text>
+  <text class="ink small" x="26" y="234">and nine files not the game's</text>
+  <rect class="step" x="262" y="180" width="222" height="72" rx="3"/>
+  <text class="ink label" x="272" y="200">2. the files packed</text>
+  <text class="ink small" x="272" y="218">one blob, with a directory</text>
+  <text class="ink small" x="272" y="234">of names, offsets, lengths</text>
+  <rect class="made" x="520" y="180" width="196" height="72" rx="3"/>
+  <text class="ink label" x="530" y="200">the blob</text>
+  <text class="ink small" x="530" y="218">kept for step 4</text>
+  <path class="wire" d="M226 216 L252 216"/>
+  <path class="tip" d="M252 211 L252 221 L262 216 Z"/>
+  <path class="wire" d="M484 216 L510 216"/>
+  <path class="tip" d="M510 211 L510 221 L520 216 Z"/>
+  <rect class="kept" x="16" y="268" width="210" height="72" rx="3"/>
+  <text class="ink label" x="26" y="288">the C</text>
+  <text class="ink small" x="26" y="306">src/*.c, with src/gen/*.c</text>
+  <text class="ink small" x="26" y="322">from step 1</text>
+  <rect class="step" x="262" y="268" width="222" height="72" rx="3"/>
+  <text class="ink label" x="272" y="288">3. the core compiled</text>
+  <text class="ink small" x="272" y="306">zig cc for wasm32-freestanding,</text>
+  <text class="ink small" x="272" y="322">-O2, no debug information</text>
+  <rect class="made" x="520" y="268" width="196" height="72" rx="3"/>
+  <text class="ink label" x="530" y="288">dist/core.wasm</text>
+  <text class="ink small" x="530" y="306">the core</text>
+  <path class="wire" d="M226 304 L252 304"/>
+  <path class="tip" d="M252 299 L252 309 L262 304 Z"/>
+  <path class="wire" d="M484 304 L510 304"/>
+  <path class="tip" d="M510 299 L510 309 L520 304 Z"/>
+  <rect class="kept" x="16" y="356" width="210" height="72" rx="3"/>
+  <text class="ink label" x="26" y="376">web/</text>
+  <text class="ink small" x="26" y="394">the template, the stylesheet,</text>
+  <text class="ink small" x="26" y="410">eight modules</text>
+  <rect class="step" x="752" y="180" width="196" height="248" rx="3"/>
+  <text class="ink label" x="762" y="200">4. the page assembled</text>
+  <text class="ink small" x="762" y="218">the stylesheet inlined;</text>
+  <text class="ink small" x="762" y="234">seven modules joined into</text>
+  <text class="ink small" x="762" y="250">one script; the eighth,</text>
+  <text class="ink small" x="762" y="266">the worklet, as text; the</text>
+  <text class="ink small" x="762" y="282">core and the blob in base64</text>
+  <text class="ink small" x="762" y="298"></text>
+  <text class="ink small" x="762" y="314">it stops on module syntax</text>
+  <text class="ink small" x="762" y="330">left, a name not defined,</text>
+  <text class="ink small" x="762" y="346">a page over 2 MB</text>
+  <path class="wire" d="M716 216 L742 216"/>
+  <path class="tip" d="M742 211 L742 221 L752 216 Z"/>
+  <path class="wire" d="M716 304 L742 304"/>
+  <path class="tip" d="M742 299 L742 309 L752 304 Z"/>
+  <path class="wire" d="M226 392 L742 392"/>
+  <path class="tip" d="M742 387 L742 397 L752 392 Z"/>
+  <rect class="page" x="752" y="452" width="196" height="72" rx="3"/>
+  <text class="ink label" x="762" y="472">dist/wof.html</text>
+  <text class="ink small" x="762" y="490">the page, committed</text>
+  <path class="wire" d="M850 428 L850 442"/>
+  <path class="tip" d="M845 442 L855 442 L850 452 Z"/>
+  <rect class="kept" x="16" y="452" width="210" height="72" rx="3"/>
+  <text class="ink label" x="26" y="472">the same C</text>
+  <text class="ink small" x="26" y="490">with tests/shim.c, the tests'</text>
+  <text class="ink small" x="26" y="506">way into the core</text>
+  <rect class="step" x="262" y="452" width="222" height="72" rx="3"/>
+  <text class="ink label" x="272" y="472">with --native</text>
+  <text class="ink small" x="272" y="490">Apple clang, the trace on</text>
+  <rect class="made" x="520" y="452" width="196" height="72" rx="3"/>
+  <text class="ink label" x="530" y="472">tests/libwofcore.dylib</text>
+  <text class="ink small" x="530" y="490">the native library the</text>
+  <text class="ink small" x="530" y="506">tests load</text>
+  <path class="wire" d="M226 488 L252 488"/>
+  <path class="tip" d="M252 483 L252 493 L262 488 Z"/>
+  <path class="wire" d="M484 488 L510 488"/>
+  <path class="tip" d="M510 483 L510 493 L520 488 Z"/>
+  <rect class="kept" x="16" y="552" width="14" height="14" rx="2"/>
+  <text class="light small" x="38" y="564">kept by hand, or the original's</text>
+  <rect class="step" x="222.344" y="552" width="14" height="14" rx="2"/>
+  <text class="light small" x="244.344" y="564">a step of the build</text>
+  <rect class="made" x="367.031" y="552" width="14" height="14" rx="2"/>
+  <text class="light small" x="389.031" y="564">made, not committed</text>
+  <rect class="page" x="529.047" y="552" width="14" height="14" rx="2"/>
+  <text class="light small" x="551.047" y="564">made and committed</text>
+</svg>

@@ -1,0 +1,22 @@
+// book/runs/second-rank.json, the whole file, one entry a line
+{
+  "format": "wof-headless-run",
+  "version": 1,
+  "entropy": {"seed": 1},
+  "vblanks_per_pass": 2,
+  "raw": [
+    [30, ""],
+    [3, "F"],
+    [30, ""],
+    [3, "F"],
+    [25, ""],
+    [1, "", [77]],
+    [10, ""],
+    [3, "F"],
+    [30, ""],
+    [3, "F"],
+    [30, ""],
+    [3, "F"]
+  ],
+  "stop": {"ticks": 50}
+}
