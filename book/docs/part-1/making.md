@@ -3,7 +3,7 @@ Chapter 10
 
 # How the port was made
 
-This book is a case study in two things: how a port was made faithful, which chapters 5 to 9 told, and how the work was arranged, which this chapter tells. The port was made by its owner and by the sessions of an AI coding assistant, arranged so that the instruments, not the readers of the listing, would decide. By its end you will know who "we" were, the rules the sessions worked by and why, what a task and a review contained, the milestones in order, which model did which work, and what it all took. It is an overview, not a diary.
+This book is a case study in two things: how a port was made faithful, which chapters 5 to 9 told, and how the work was arranged, which this chapter tells. The port was made by its owner and by the sessions of an AI coding assistant, arranged so that the [instruments](../glossary.md#instrument), not the readers of the listing, would decide. By its end you will know who "we" were, the rules the sessions worked by and why, what a task and a review contained, the milestones in order, which model did which work, and what it all took. It is an overview, not a diary.
 
 ## Who we were
 
@@ -68,7 +68,7 @@ By the owner's rule, a follow-up confined to the port's own key layer, such as t
 
 ## Inside a milestone
 
-Each routine went the same way, in six steps the specification sets out: its [control-flow skeleton](../glossary.md#control-flow-skeleton) read, then the routine in the [listing](../glossary.md#listing); its name given and the listing made again; the C written with the original's address in a comment; a [pure routine](../glossary.md#pure-routine) held by an [oracle](../glossary.md#oracle) test; its status set in the [routine inventory](../glossary.md#routine-inventory); and a note written once a part of the game was understood, for later sessions to start from. Every statement in the milestones' porting notes says how it is known: observed or measured, with the tool or the test that shows it, or read from the listing alone. No session loads the listing whole, about 1.6 megabytes; it reads a skeleton, a search or a range of addresses, and keeps its context for the work.
+Each routine went the same way, in [six steps the specification sets out](../glossary.md#working-method): its [control-flow skeleton](../glossary.md#control-flow-skeleton) read, then the routine in the [listing](../glossary.md#listing); its name given and the listing made again; the C written with the original's address in a comment; a [pure routine](../glossary.md#pure-routine) held by an [oracle](../glossary.md#oracle) test; its status set in the [routine inventory](../glossary.md#routine-inventory); and a note written once a part of the game was understood, for later sessions to start from. Every statement in the milestones' [porting notes](../glossary.md#porting-note) says how it is known: observed or measured, with the tool or the test that shows it, or read from the listing alone. No session loads the listing whole, about 1.6 megabytes; it reads a skeleton, a search or a range of addresses, and keeps its context for the work.
 
 The questions a milestone needed answered were settled before it began, or as the first thing it did. The specification lists thirteen points to establish, each answerable from the listing and due before the milestone that needs it. Four were a task of their own before the missions: what a [pass](../glossary.md#pass) writes and a tick reads, the game's objects and the map's records, answered by watching the [headless original](../glossary.md#headless-original), and the floating point, against the ROM.
 
@@ -89,7 +89,7 @@ The milestones, each ending with a working page and passing tests, in the order 
 | M8 | the sound effects and the music | the sound events equal in every loop, the music VBlank by VBlank, the owner's ears |
 | M7 | the campaign, the saved game and the demo | a full campaign playable; the demo byte for byte, the saved file but for four pointers; a recorded demo played back after a page reload |
 | M9 | the picture drawn by the graphics card | the frame time at the screen's size in both browsers; the owner's look in full screen, asked for |
-| the release groundwork | the page and the game data in the repository, one check of the ROM, the generated files held to their regeneration | a fresh clone, with and without the ROM; one run of the suite |
+| the release groundwork | the page and the game data in the repository, one check of the ROM, the [generated files](../glossary.md#generated-file) held to their regeneration | a fresh clone, with and without the ROM; one run of the suite |
 
 M4 to M8 were each done in two parts, with a review and a merge between them, and each milestone's stand-ins named what the next had to reach (chapter 8). The order was the owner's. The front end came before the missions because it showed progress in the browser early, depended little on the game's objects, and the owner's look at the running page found what tests could not. The sound came before the campaign, to be in the page sooner for the owner's test flights. M9 was to be the shell's polish until the frame rate halved at a large full-screen size; the owner made it the drawing on the graphics card.
 
@@ -136,7 +136,7 @@ The program's routines, by the inventory's status (chapter 4):
 | drop | 36 |
 | todo | 210 |
 
-One routine is partial, the scripts running only part of it; the two stretches they never reach, a debugging line to the console, are ported from reading. A routine starts as `todo`, while `replace` and `drop` mark a decision; most of the 215 are the C library and the system's glue at the end of the code, or code with no caller in the listing, on which nothing had to be decided.
+One routine is partial, the scripts running only part of it; the two stretches they never reach, a debugging line to the console, are ported from reading. A routine starts as `todo`, while `replace` and `drop` mark a decision; most of the 210 are the C library and the system's glue at the end of the code, or code with no caller in the listing, on which nothing had to be decided.
 
 ## What the arrangement learned the hard way
 
@@ -163,7 +163,7 @@ The owner's idea of what may follow is written down, not started: a template, "A
 
 ## The same method for this book
 
-This book is made the same way. Each chapter starts as a fact sheet: every claim it will make, with its source in the repository. A worker writes the draft from it. A reader that had no part in the draft, an agent of the controller's, checks every claim against the notes and the listing, and another, given only the chapter and the glossary, reads it as you do and reports where it lost the thread. The controller reads and edits; the owner's read is the last gate. The order of events comes from a dated record outside the repository; the claims are sourced inside it. At every chapter's merge so far, something in the notes or the specification was corrected: the method checks the record as well as the book.
+This book is made the same way. Each chapter starts as a [**fact sheet**](../glossary.md#fact-sheet): every claim it will make, with its source in the repository. A worker writes the draft from it. A reader that had no part in the draft, an agent of the controller's, checks every claim against the notes and the listing, and another, given only the chapter and the glossary, reads it as you do and reports where it lost the thread. The controller reads and edits; the owner's read is the last gate. The order of events comes from a dated record outside the repository; the claims are sourced inside it. At every chapter's merge so far, something in the notes or the specification was corrected: the method checks the record as well as the book.
 
 ## What comes next
 
