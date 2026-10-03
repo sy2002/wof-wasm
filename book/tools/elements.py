@@ -110,7 +110,7 @@ ISLAND_SLOT = 2                 # map_scan counts an island by a drawn record of
 # coordinates"), the sky's colour 1 of the playfield's palette above it and from it the sea's
 # colour, colour 10 of the ocean's palette, with which the game fills the sea at the eighth
 # scale (0x013E6C).  The records' shapes are drawn in the playfield's palette, as chapter 13's
-# figure draws them.
+# figure draws them, by the blit's rule (blitted below).
 ROWS = 162
 SPLIT_ROW = 151
 SKY, SEA = 1, 10
@@ -349,7 +349,25 @@ def airfields_of(fields):
     return [{'first': a, 'second': b} for a, b in zip(marks[0::2], marks[1::2])]
 
 
-def make_map(chart, slots, colours, sea, out):
+def blitted(shape, mask_buffer):
+    """A shape's pixels as shape_draw leaves them on the playfield's five planes, and whether
+    it is opaque, its whole box written, colour 0 too.  A pixel is the stored planes' colour
+    number with the set byte's planes that no plane mask names; the clear byte takes nothing
+    away that shows, and no plane of the background shows through, because in every shape the
+    plane masks, the clear and the set byte together name all five planes (chapter 12)."""
+    union = 0
+    for m in shape['masks']:
+        union |= m
+    clear, sets = shape['u'][2] >> 8, shape['u'][2] & 0xFF
+    if (union | clear | sets) & 0x1F != 0x1F:
+        raise Failure('%s leaves planes of the background to show' % shape['name'])
+    add = sets & ~union & 0x1F
+    opaque = shape['wbytes'] * shape['h'] > mask_buffer or not shape['masks']
+    pixels = [v | add if v or opaque else 0 for row in ppkc.to_indexed(shape) for v in row]
+    return pixels, opaque
+
+
+def make_map(chart, slots, colours, sea, mask_buffer, out):
     import map_decode
     from PIL import Image
 
@@ -375,8 +393,8 @@ def make_map(chart, slots, colours, sea, out):
             continue                    # a null slot, which draw_world skips
         w, h = 8 * shape['wbytes'], shape['h']
         left, top = x - shape['ox'], y - shape['oy']
-        pixels = [v for row in ppkc.to_indexed(shape) for v in row]
-        mask = Image.frombytes('L', (w, h), bytes(255 if v else 0 for v in pixels))
+        pixels, opaque = blitted(shape, mask_buffer)
+        mask = Image.frombytes('L', (w, h), bytes(255 if v or opaque else 0 for v in pixels))
         picture.paste(indexed_image(w, h, pixels), (left, top), mask)
         shapes[index] = shape['name']
         boxes.append([index, left, top, w, h])
@@ -434,7 +452,8 @@ def make_maps(out):
     colours = palette(on_disk(file_name(('palette_files', 0))).name)
     ocean = file_name(('ocean_palette_files', 0))
     sea = palette(on_disk(ocean).name)[SEA]
-    summary = [make_map(map_decode.load(name), slots, colours, sea, out)
+    mask_buffer = image().u32(MASK_BUFFER_SIZE)
+    summary = [make_map(map_decode.load(name), slots, colours, sea, mask_buffer, out)
                for name in map_decode.NAMES]
     write_json(out / 'index.json', {
         'maps': summary,

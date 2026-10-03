@@ -152,7 +152,7 @@
     fact(table, 'Mask', maskOf(shape));
     fact(table, 'Record', number(shape.record_bytes) + ' bytes: the header of 20 and the planes');
     fact(table, 'Colours', 'the numbers its planes store, through ' + container.palette + ', ' +
-         container.palette_note + '; colour 0 left open' +
+         container.palette_note + '; colour 0 left as the ground' +
          (container.palette_colours < 32 ? ', a number above 15 losing its fifth plane' : ''));
     panel.appendChild(table);
     place(false);
