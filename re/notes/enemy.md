@@ -305,8 +305,8 @@ came down on the sunken deck and into the sea). What defends the carrier is the
 manual's (page 11): shoot the torpedo plane down before it drops, or destroy
 its torpedo on the way - the guns' bullets, a bomb or a rocket within reach, or a ship's
 shell, take out a torpedo in the water (`torpedoes_hit`, `0x011AE2`, which walks the extra
-record whatever its type). An arrow in the 3-D view points to the first torpedo plane in
-the air, west or east of the player (`enemy_arrows`, `0x01F21A`; observed in `enemy_a`,
+record whatever its type). An arrow in the 3-D view points to the first torpedo plane that
+has not yet dropped (the mode's low three bits 4; none after the drop), west or east of the player (`enemy_arrows`, `0x01F21A`; observed in `enemy_a`,
 `countdown_b` and `countdown_c`).
 
 ## The crash on a ship

@@ -188,7 +188,8 @@ The fall on land, the burning and the wreck's word are reached with the poke of
 - **The ships' guns** (`ship_guns_draw`, `0x014C3E`) as `re/notes/enemy.md` says: the
   shells (`ship_gun_shell`, `0x014EFC`), the frame, the fire, the smoke of a destroyed gun.
 - **The 3-D view** (`window_strip`, `0x014206`): an aircraft whose drawing's map offset
-  lies in a row's span is drawn on the row at the window's right edge, `dash_frames` by its
+  lies in a row's span is drawn on the row at x `0x13F`, the window's middle (the window spans
+  columns 256 to 399; chapter 16 of the book found the earlier "right edge" wrong), `dash_frames` by its
   frame turned to the player's facing and the row's set added as a byte, a quarter of its
   height above the row.
 - **The arrows** (`enemy_arrows`, `0x01F21A`) and **the enemy plane counter**: at most 99,
