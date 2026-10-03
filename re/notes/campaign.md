@@ -31,11 +31,12 @@ the map's index, and the map's length is the file's).
 
 ## A mission won
 
-`mission_won` (`0x015694`) is called by the pass when a map's last island is neutralised
-(`soldiers_draw` `0x013EEE`, a soldier's death, and `weapon_hit` `0x0146DC`, the last
-pillbox) and by the tick when the last enemy ship is gone with no island left
+`mission_won` (`0x015694`) is called when a map's last island is neutralised with no enemy
+ship left (`soldiers_draw` `0x013EEE`, a soldier's death, in the pass, and `weapon_hit`
+`0x0146DC`, the last pillbox, in the tick under `object_step`; both test `ships_left` first,
+`0x013F82` and `0x01494E`) and by the tick when the last enemy ship is gone with no island left
 (`ship_sinking` `0x011CD8`) (read; the pass's call observed in every M7 script built on
-`island_a`). It counts `mission_number` on and compares it with
+`island_a`; chapter 17 of the book found the earlier wording short of the ships' test). It counts `mission_number` on and compares it with
 `missions_per_rank[rank_played]`, a word read by address (a rank past 6 reads what follows
 the table):
 
@@ -199,8 +200,8 @@ describes its own layout: `tools/savegame.py` decodes one by it.
 
 **The walker also writes.** After the map it sets `map_extent` (`0x024630`) to `map_length`
 x 4 and `map_records_end` (`0x02462C`) to `map_records` + `map_length`, where `map_load`
-leaves it a word before the list's end: every save moves the running game's
-`map_records_end` two bytes on (read; observed as the closed loop of `save_a` holds the
+leaves it a word before the list's end: the first save after a load moves the running game's
+`map_records_end` two bytes on, a later save leaves it there (chapter 17 of the book) (read; observed as the closed loop of `save_a` holds the
 port's `map_records_end` to the original's after the save, and by the oracle's walker test).
 
 ### The sizes
@@ -273,7 +274,7 @@ walker, is compared with the original's state after the load).
 
 Two paths lead to it (read; observed in the three scripts):
 
-- **From the rank selection**: its seventh entry opens the dialog in load mode; the dialog
+- **From the rank selection**: its last item, index 7 below the seven ranks, opens the dialog in load mode; the dialog
   shows `Loading game...`, stops the music, frees the map (`free_map`) and reads the file,
   and returns 0 without a fade; `rank_select` sets `loaded_game` (`0x0183DE`), fades out
   and stops the music; `main` skips `map_load` (`0x0100A2`), runs the briefing (whose

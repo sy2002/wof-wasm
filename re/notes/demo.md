@@ -37,13 +37,15 @@ then on every rank chosen at the rank selection records (read, `0x018436`; obser
    or the entry the full queue dropped (read, `0x011800` to `0x01183E`);
 5. `run_queued_ticks` first waits VBlank by VBlank until `0x026D44` is 0 (`0x0114E0`), runs
    the queue's ticks, and sets it to 2 again: every pass of a demo has two ticks and its
-   pass waits for their two samples (observed: `demo_record`, 253 passes, 512 ticks with
-   main's own);
+   pass waits for their two samples, and a recording's pass has more when an aircraft is
+   lost, since the restart's samples below are queued and run as ticks but not recorded,
+   which a playback never does (observed: `demo_record`, 253 passes, 512 ticks with
+   main's own, five above two a pass; chapter 17 of the book);
 6. the game's end (a game over, Control-R, the count) runs `demo_end` (`0x01852A`): a
    `0xFF` at the next entry, the whole buffer, `0x1388` bytes, written as `wofdemo`
    (`save_file` `0x01FE50`), the buffer freed and `demo_mode` cleared (observed:
-   `demo_record`'s `wofdemo`, 5,000 bytes, the rank at 0, 507 input bytes, the `0xFF` at
-   entry 507).
+   `demo_record`'s `wofdemo`, 5,000 bytes, the rank at 0, 506 input bytes at entries 1 to 506, the `0xFF` at
+   entry 507; chapter 17 of the book counted them).
 
 Samples the server takes while `0x026D44` is 0 are queued but not recorded: that is inside
 the tick, while the restart after a lost aircraft waits for VBlanks (read).

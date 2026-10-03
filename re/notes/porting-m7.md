@@ -279,7 +279,8 @@ script runs are ported from reading and named in the cold list below.
 ## Part 2: the scripts
 
 Eight raw schedules written by hand in `tools/m7_scripts.py` (`PART2`), each from the
-program's start; the keys go through the game's input handler as a keyboard's would. Two
+program's start, seven in the table below and `demo_record_long`, the recording run to the
+count, 4,999 ticks (`re/notes/demo.md`); the keys go through the game's input handler as a keyboard's would. Two
 use the harness's run description beyond M6's: `files` lays a `wofdemo` over the disk,
 which the harness had (`re/notes/headless.md`), and `argc`, M7 part 2's instrument, gives
 `main` an argument count above one, which makes every rank chosen a recording
