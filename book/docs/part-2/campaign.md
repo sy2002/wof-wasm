@@ -3,7 +3,7 @@ Chapter 17
 
 # The campaign
 
-Chapters 13 to 16 took one mission apart. This chapter is about what holds the missions together and what outlives a mission, a game and a page reload. By its end you will know in which order the maps come, when it is night, and why the game never ends; what a won mission and a promotion change; how the high scores are kept; what a saved game holds and how the port reads one from a real Amiga; and how the game records and replays its own demo. The port and its instruments are gathered at the end.
+Chapters 13 to 16 took one mission apart. This chapter is about what holds the missions together and what outlives a mission, a game and a page reload. By its end you will know in which order the maps come, when it is night, and why the game never ends; what a won mission and a promotion change; how the high scores are kept; what a [saved game](../glossary.md#saved-game) holds and how the port reads one from a real Amiga; and how the game records and replays its own demo. The port and its instruments are gathered at the end.
 
 ## Seven ranks, fifteen maps
 
@@ -217,9 +217,9 @@ The port's milestone asks that a recorded demo replay identically after a page r
 
 ## What the port made of it
 
-The next mission runs in the mission's [coroutine](../part-3/core.md), in the original's order, with a `goto` into the mission's reset (chapter 22). The port reads `mission_won`'s table by address, and `choose_night`'s with the original's signed index, not modulo the table's length, which would differ for a rank past the table, as the oracle's random states give.
+The next mission runs in the mission's [coroutine](../glossary.md#coroutine), in the original's order, with a `goto` into the mission's reset (chapter 22). The port reads `mission_won`'s table by address, and `choose_night`'s with the original's signed index, not modulo the table's length, which would differ for a rank past the table, as the oracle's random states give.
 
-The write callback takes each byte by its address from the port's [registered state](../part-1/oracle.md#calling-a-routine-without-its-program), the variables kept under their original addresses, from the block behind a pointer for a pointed piece, and from the executable's image where nothing writes. A pointer field gets a shape handle, or 1 where a ship's list is set, since the port keeps no address there. The file goes to the file system in one piece, of at most 12,412 bytes, the largest saved game the port's tables allow.
+The write callback takes each byte by its address from the port's [registered state](../glossary.md#registered-state), the variables kept under their original addresses, from the block behind a pointer for a pointed piece, and from the executable's image where nothing writes. A pointer field gets a shape handle, or 1 where a ship's list is set, since the port keeps no address there. The file goes to the file system in one piece, of at most 12,412 bytes, the largest saved game the port's tables allow.
 
 Two [stand-ins](../glossary.md#stand-in) that had marked values the port did not yet produce fell: the score's text and the ticker's message. The score is formatted as the system's formatter, RawDoFmt, does with `%07ld`, the sign inside the zeros, so a negative score, which a file can bring, reads `000-123`; the ticker's message stays in the registered state. The demo's buffer is registered too, so every byte recorded or played is compared. And the save script found the play screen left switched off after a dialog, the fault chapters 4 and 9 told.
 
@@ -237,7 +237,7 @@ The saved file is compared byte for byte with the one the [headless original](..
 
 Under the [oracle](../glossary.md#oracle), `mission_won` and `choose_night` are held over 2,000 random states each, the walker's writes and reads over 600 each, and the score's formatting over 616 scores against the ROM's own RawDoFmt. Eight more scripts load chapter 3's file from the rank selection and a saved game by both paths, record a demo and play it back. After a load the port's state is the original's, the derived fields what the original's first tick makes of them; the port's recording is the original's file, and the original plays it as the port does.
 
-The recording of the figure is replayed in the [native library](../glossary.md#native-library) and in WebAssembly against the state's fingerprint at each of the run's 2,021 input samples, one every fourth VBlank from the program's start through the idle rank selection and the playback. The page tests save, reload and load, and record a game that loses no aircraft, reload, and find both playbacks equal to it at every input sample (chapter 24).
+The recording of the figure is [replayed](../glossary.md#replay) in the [native library](../glossary.md#native-library) and in WebAssembly against the state's fingerprint at each of the run's 2,021 input samples, one every fourth VBlank from the program's start through the idle rank selection and the playback. The page tests save, reload and load, and record a game that loses no aircraft, reload, and find both playbacks equal to it at every input sample (chapter 24).
 
 [Controls](../glossary.md#control), chapter 8's breaks of the port on purpose, were each caught:
 
@@ -253,7 +253,7 @@ The shape the tick keeps for level flight lies at `0x02541A`; a shape's record l
 
 ## What comes next
 
-The chapter in one sentence: two tables of maps by rank and mission number hold the campaign together, and a promotion that stops at rank 6 makes it endless; a reload keeps the high-score file, a saved game's memory and a demo's input bytes, the port's seed file beside them. Chapter 18 takes up the sound: the slots the next mission empties, the music a load stops, and Paula's channels.
+The chapter in one sentence: two tables of maps by rank and mission number hold the campaign together, and a promotion that stops at rank 6 makes it endless; a reload keeps the high-score file, a saved game's memory up to the shell's limit (chapter 23) and a demo's input bytes, the port's seed file beside them. Chapter 18 takes up the sound: the slots the next mission empties, the music a load stops, and Paula's channels.
 
 ## Further reading
 
