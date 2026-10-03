@@ -1,0 +1,20 @@
+{
+ "container": "selectrank.shp",
+ "disk": "selectrank.shp",
+ "palette": "selectrank",
+ "palette_note": "the colours of the rank selection's picture",
+ "palette_colours": 32,
+ "mirrored": false,
+ "sheet": "selectrank.png",
+ "sheet_size": [512, 46],
+ "shapes": [
+  {"number": 0, "name": "rnk0", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [32, -11], "cut": [64, 91], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [2, 2, 192, 9]},
+  {"number": 1, "name": "rnk1", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [34, -11], "cut": [64, 101], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [196, 2, 192, 9]},
+  {"number": 2, "name": "rnk2", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [32, -11], "cut": [64, 111], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [2, 13, 192, 9]},
+  {"number": 3, "name": "rnk3", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [32, -11], "cut": [64, 121], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [196, 13, 192, 9]},
+  {"number": 4, "name": "rnk4", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [32, -11], "cut": [64, 131], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [2, 24, 192, 9]},
+  {"number": 5, "name": "rnk5", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [33, -11], "cut": [64, 141], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [196, 24, 192, 9]},
+  {"number": 6, "name": "rnk6", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [33, -11], "cut": [64, 151], "clear": 0, "set": 0, "planes": 3, "plane_masks": [1, 14, 16], "plane_bytes": 216, "record_bytes": 668, "opaque": null, "mirrored": false, "sheet": [2, 35, 192, 9]},
+  {"number": 7, "name": "rnk7", "width": 192, "height": 9, "width_bytes": 24, "hotspot": [33, -11], "cut": [64, 161], "clear": 16, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 8], "plane_bytes": 216, "record_bytes": 884, "opaque": null, "mirrored": false, "sheet": [196, 35, 192, 9]}
+ ]
+}

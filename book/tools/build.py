@@ -12,6 +12,8 @@ The steps, one line each:
 
     listings  book/tools/listings.py: the listings of book/listings.toml from the real sources
     figures   book/tools/figures.py: the figures of book/figures.toml through the native library
+    elements  book/tools/elements.py: the data of the shape browser and the map viewer from the
+              game's files
     font      book/tools/webfont.py: the game's font as the web font of the headings
     colours   every colour of docs/stylesheets/book.css and of the diagrams docs/figures/*.svg against
               the palette entry its comment names
@@ -23,8 +25,9 @@ The steps, one line each:
     site      mkdocs build --strict in book/, and the game in the site compared with dist/wof.html
 
 The generators need the built repository (tools/build.py --native: dist/wof.html and
-tests/libwofcore.dylib) and run on macOS; what they make is committed, so that mkdocs alone
-needs only the packages of book/requirements.txt.  book/site/ is never committed.
+tests/libwofcore.dylib) and run on macOS, all but elements.py, which reads only the disk's
+files; what they make is committed, so that mkdocs alone needs only the packages of
+book/requirements.txt.  book/site/ is never committed.
 
 Exit status:
     0  done; with --check, every generated file and every colour equal to what its source makes
@@ -136,10 +139,12 @@ def main():
 
     if args.check:
         results = [tool('listings.py', '--check'), tool('figures.py', '--check'),
-                   tool('webfont.py', '--check'), colours(), links.run()]
+                   tool('elements.py', '--check'), tool('webfont.py', '--check'), colours(),
+                   links.run()]
         return max(results)
 
-    for step in (['listings.py'], None if args.no_figures else ['figures.py'], ['webfont.py']):
+    for step in (['listings.py'], None if args.no_figures else ['figures.py'], ['elements.py'],
+                 ['webfont.py']):
         if step is None:
             print('figures   kept as committed (--no-figures)')
             continue

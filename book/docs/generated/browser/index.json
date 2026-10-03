@@ -1,0 +1,19 @@
+{
+ "containers": [
+  {"container": "world.shp", "file": "world", "shapes": 140, "palette": "wingspalette", "mirrored": false, "opaque": 4},
+  {"container": "8thscale.shp", "file": "8thscale", "shapes": 122, "palette": "wingspalette", "mirrored": false, "opaque": 1},
+  {"container": "hellcat.shp", "file": "hellcat", "shapes": 116, "palette": "wingspalette", "mirrored": true, "opaque": 0},
+  {"container": "Torpedo.shp", "file": "torpedo", "shapes": 100, "palette": "wingspalette", "mirrored": true, "opaque": 0},
+  {"container": "japplane.shp", "file": "japplane", "shapes": 27, "palette": "wingspalette", "mirrored": false, "opaque": 0},
+  {"container": "selectrank.shp", "file": "selectrank", "shapes": 8, "palette": "selectrank", "mirrored": false, "opaque": 0},
+  {"container": "dash.shp", "file": "dash", "shapes": 223, "palette": "iff-dash", "mirrored": false, "opaque": 0},
+  {"container": "nightdash.shp", "file": "nightdash", "shapes": 223, "palette": "nightdash", "mirrored": false, "opaque": 0},
+  {"container": "battleship.shp", "file": "battleship", "shapes": 25, "palette": "wingspalette", "mirrored": false, "opaque": 3},
+  {"container": "destroyer.shp", "file": "destroyer", "shapes": 28, "palette": "wingspalette", "mirrored": false, "opaque": 2},
+  {"container": "cruiseship.shp", "file": "cruiseship", "shapes": 25, "palette": "wingspalette", "mirrored": false, "opaque": 1},
+  {"container": "japcarrier.shp", "file": "japcarrier", "shapes": 12, "palette": "wingspalette", "mirrored": false, "opaque": 1}
+ ],
+ "shapes": 1049,
+ "opaque": {"size": 11, "no plane": 1},
+ "mask_buffer": 1040
+}

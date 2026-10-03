@@ -1,0 +1,24 @@
+{
+ "container": "japcarrier.shp",
+ "disk": "japcarrier.shp",
+ "palette": "wingspalette",
+ "palette_note": "the playfield's palette by day",
+ "palette_colours": 32,
+ "mirrored": false,
+ "sheet": "japcarrier.png",
+ "sheet_size": [512, 115],
+ "shapes": [
+  {"number": 0, "name": "flg0", "width": 32, "height": 10, "width_bytes": 4, "hotspot": [22, 77], "cut": [176, 32], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 40, "record_bytes": 180, "opaque": null, "mirrored": false, "sheet": [2, 2, 32, 10]},
+  {"number": 1, "name": "flg1", "width": 32, "height": 10, "width_bytes": 4, "hotspot": [22, 77], "cut": [176, 32], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 40, "record_bytes": 180, "opaque": null, "mirrored": false, "sheet": [36, 2, 32, 10]},
+  {"number": 2, "name": "flg2", "width": 32, "height": 10, "width_bytes": 4, "hotspot": [22, 77], "cut": [176, 32], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 40, "record_bytes": 180, "opaque": null, "mirrored": false, "sheet": [70, 2, 32, 10]},
+  {"number": 3, "name": "flg3", "width": 32, "height": 10, "width_bytes": 4, "hotspot": [22, 77], "cut": [176, 32], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 40, "record_bytes": 180, "opaque": null, "mirrored": false, "sheet": [104, 2, 32, 10]},
+  {"number": 4, "name": "flg4", "width": 32, "height": 28, "width_bytes": 4, "hotspot": [-105, 50], "cut": [272, 43], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 112, "record_bytes": 468, "opaque": null, "mirrored": false, "sheet": [138, 2, 32, 28]},
+  {"number": 5, "name": "flg5", "width": 32, "height": 28, "width_bytes": 4, "hotspot": [-105, 50], "cut": [272, 39], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 112, "record_bytes": 468, "opaque": null, "mirrored": false, "sheet": [172, 2, 32, 28]},
+  {"number": 6, "name": "flg6", "width": 32, "height": 28, "width_bytes": 4, "hotspot": [-105, 50], "cut": [288, 38], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 112, "record_bytes": 468, "opaque": null, "mirrored": false, "sheet": [206, 2, 32, 28]},
+  {"number": 7, "name": "flg7", "width": 32, "height": 28, "width_bytes": 4, "hotspot": [-105, 50], "cut": [288, 38], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 112, "record_bytes": 468, "opaque": null, "mirrored": false, "sheet": [240, 2, 32, 28]},
+  {"number": 8, "name": "jcrb", "width": 256, "height": 23, "width_bytes": 32, "hotspot": [111, 22], "cut": [64, 66], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 736, "record_bytes": 2964, "opaque": null, "mirrored": false, "sheet": [2, 32, 256, 23]},
+  {"number": 9, "name": "jcrf", "width": 208, "height": 23, "width_bytes": 26, "hotspot": [111, 22], "cut": [16, 172], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 598, "record_bytes": 2412, "opaque": null, "mirrored": false, "sheet": [260, 32, 208, 23]},
+  {"number": 10, "name": "jcrm", "width": 176, "height": 23, "width_bytes": 22, "hotspot": [95, 22], "cut": [112, 87], "clear": 0, "set": 24, "planes": 3, "plane_masks": [1, 2, 4], "plane_bytes": 506, "record_bytes": 1538, "opaque": null, "mirrored": false, "sheet": [2, 57, 176, 23]},
+  {"number": 11, "name": "jrmt", "width": 176, "height": 56, "width_bytes": 22, "hotspot": [103, 78], "cut": [112, 31], "clear": 0, "set": 0, "planes": 4, "plane_masks": [1, 2, 4, 24], "plane_bytes": 1232, "record_bytes": 4948, "opaque": "size", "mirrored": false, "sheet": [180, 57, 176, 56]}
+ ]
+}

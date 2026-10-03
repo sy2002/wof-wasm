@@ -1,0 +1,22 @@
+{
+ "maps": [
+  {"map": "a", "extent": 7640, "player_x": 7032, "records": 955, "drawn": 89, "islands": 1, "enemy_ships": [], "airfields": 0},
+  {"map": "b", "extent": 14008, "player_x": 6112, "records": 1751, "drawn": 172, "islands": 2, "enemy_ships": [], "airfields": 0},
+  {"map": "c", "extent": 15608, "player_x": 5880, "records": 1951, "drawn": 238, "islands": 3, "enemy_ships": [], "airfields": 0},
+  {"map": "d", "extent": 14360, "player_x": 7456, "records": 1795, "drawn": 213, "islands": 2, "enemy_ships": [], "airfields": 1},
+  {"map": "e", "extent": 17080, "player_x": 10760, "records": 2135, "drawn": 259, "islands": 3, "enemy_ships": [], "airfields": 1},
+  {"map": "f", "extent": 13952, "player_x": 8416, "records": 1744, "drawn": 157, "islands": 2, "enemy_ships": ["cruise ship"], "airfields": 0},
+  {"map": "g", "extent": 18872, "player_x": 10488, "records": 2359, "drawn": 226, "islands": 3, "enemy_ships": ["cruise ship"], "airfields": 0},
+  {"map": "h", "extent": 22200, "player_x": 12920, "records": 2775, "drawn": 281, "islands": 3, "enemy_ships": ["destroyer"], "airfields": 1},
+  {"map": "i", "extent": 22952, "player_x": 10176, "records": 2869, "drawn": 263, "islands": 3, "enemy_ships": ["destroyer", "cruise ship"], "airfields": 1},
+  {"map": "j", "extent": 7976, "player_x": 3960, "records": 997, "drawn": 19, "islands": 0, "enemy_ships": ["destroyer", "battleship"], "airfields": 0},
+  {"map": "k", "extent": 21200, "player_x": 14408, "records": 2650, "drawn": 215, "islands": 3, "enemy_ships": ["battleship"], "airfields": 1},
+  {"map": "l", "extent": 20184, "player_x": 10184, "records": 2523, "drawn": 222, "islands": 3, "enemy_ships": ["battleship", "destroyer"], "airfields": 2},
+  {"map": "m", "extent": 28552, "player_x": 13760, "records": 3569, "drawn": 282, "islands": 4, "enemy_ships": ["battleship", "Japanese carrier"], "airfields": 2},
+  {"map": "n", "extent": 23456, "player_x": 10904, "records": 2932, "drawn": 183, "islands": 3, "enemy_ships": ["battleship", "destroyer"], "airfields": 1},
+  {"map": "o", "extent": 27744, "player_x": 9696, "records": 3468, "drawn": 251, "islands": 3, "enemy_ships": ["Japanese carrier", "battleship", "destroyer"], "airfields": 1}
+ ],
+ "palette": "wingspalette",
+ "sea": ["ocean.palette", 10],
+ "band": 4096
+}
