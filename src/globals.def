@@ -106,7 +106,7 @@ WOF_GLOBAL(g_026f72,           int16_t,  0x026F72)
 WOF_GLOBAL_ARRAY(island_slot1, uint16_t, 4, 0x025430)  /* map offsets of the slot-1 records */
 WOF_GLOBAL_ARRAY(island_slot2, uint16_t, 4, 0x025438)  /* map offsets of the slot-2 records */
 WOF_GLOBAL_ARRAY(island_span,  uint16_t, 8, 0x025440)  /* first and last target offset per island */
-WOF_GLOBAL_ARRAY(island_score, uint16_t, 8, 0x025450)  /* five per target, and a second word */
+WOF_GLOBAL_ARRAY(island_score, uint16_t, 8, 0x025450)  /* the soldiers alive, the pillboxes standing */
 WOF_GLOBAL(fighters_up,        int16_t,  0x0251D6)  /* the fighters in the air, which a ship or an
                                                      * airfield counts against its most (M6) */
 WOF_GLOBAL(wreck_count,        int16_t,  0x0251D8)  /* the wrecks of enemy aircraft on the water */

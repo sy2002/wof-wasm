@@ -23,9 +23,9 @@ enum { T_WORLD, T_EIGHTH, T_MASTER, T_ATH, T_TORPEDO };
  * frame (0x40 on), the torpedo 0x88 or 0x89 by the side it faces (+0x1F) and nothing once it
  * runs in the water (frame 0x0A), a rocket 0x4C on or 0x74 on while it still falls (+0x24)
  * by its frame; in the eighth-scale view every one is entry 9 of eighth_shapes.  While its
- * drawing kind is 8 it is going out: eight frames from world_shapes counted in +0x21, the
- * explosion 0x5A on over land or a ship, the splash 0x66 on over the sea (+0x1F 0), and
- * after the eighth the pass frees the record by clearing its kind (re/notes/passes.md). */
+ * drawing kind is 8 it is going out: six frames from world_shapes counted in +0x21 (from 1,
+ * one added before each draw): the explosion 0x5B to 0x60 over land or a ship, the splash
+ * 0x67 to 0x6C over the sea (+0x1F 0), and at a count of 8 the pass frees the record. */
 static void object_draw(wof_object_t *o)
 {
     int     table = T_TORPEDO;
