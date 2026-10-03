@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="1000" height="500" role="img" aria-labelledby="title desc">
   <title id="title">Two layers, one sound</title>
-  <desc id="desc">The lift's clang, a sample played once on channel 3, on a ruler of VBlanks. In the logic tick of the pass after VBlank k the clang's setter fills sound slot 7, and sound_channels calls channel_play three times, which leaves the channel record waiting and stamped with the count k. At VBlank k + 1 the sound effects engine's VBlank server finds one VBlank since the stamp and waits. At VBlank k + 2 it finds two, writes the channel's address, length, period and volume and switches the channel on with its one write of DMACON. Paula plays the sample's one cycle from there, raising an interrupt request at the start and again at the cycle's end. The handler audio_irq answers each: at the start the repeat count goes from 1 to 0 and the channel plays on; at the end it goes to -1 and the handler stops the channel, its DMA and its interrupt bit off.</desc>
+  <desc id="desc">The lift's clang, a sample played once on channel 3, on a ruler of VBlanks. In the logic tick of the pass after VBlank k the clang's setter fills sound slot 7, and sound_channels calls channel_play three times, which leaves the channel record waiting and stamped with the count k. At VBlank k + 1 the sound effects engine's VBlank server finds one VBlank since the stamp and waits. At VBlank k + 2 it finds two, writes the channel's address, length, period and volume and switches the channel on with its one write of DMACON. Paula plays the sample's one cycle from there, raising an interrupt request at the start and again at the cycle's end. The handler audio_irq answers each: at the start the repeat count goes from 1 to 0 and the channel plays on; at the end it goes to −1 and the handler stops the channel, its DMA and its interrupt bit off.</desc>
   <style>
     /* The book's colours (stylesheets/book.css), each an entry of one of the game's palettes. */
     .tick   { fill: #FFBB00; /* wingstitle 25 */ }
@@ -72,11 +72,11 @@
   <text class="ink small" x="620" y="348" text-anchor="middle">count 1 to 0:</text>
   <text class="ink small" x="620" y="363" text-anchor="middle">plays on</text>
   <rect class="irq" x="765" y="330" width="140" height="44" rx="3"/>
-  <text class="ink small" x="835" y="348" text-anchor="middle">0 to -1: stopped,</text>
+  <text class="ink small" x="835" y="348" text-anchor="middle">0 to −1: stopped,</text>
   <text class="ink small" x="835" y="363" text-anchor="middle">DMA and bit off</text>
   <path class="wire" d="M540 300 L540 328"/>
   <path class="wire" d="M840 300 L840 328"/>
 
   <text class="light small" x="16" y="450">A sample the tick asks for starts at the second VBlank after the tick.</text>
-  <text class="light small" x="16" y="470">A repeat count of N plays N cycles; a count of -1 plays until the tick stops it.</text>
+  <text class="light small" x="16" y="470">A repeat count of N plays N cycles; a count of −1 plays until the tick stops it.</text>
 </svg>

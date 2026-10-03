@@ -206,7 +206,7 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes
 
 ### Channel record
 
-One of the sound effects engine's four records of `0x1E` bytes, one for each of Paula's channels, holding what the channel was last asked to play, when it last stopped and how many cycles it has left to play.
+One of the sound effects engine's four records of `0x1E` bytes, one for each of Paula's channels, holding what the channel was last asked to play, when it last stopped and the count of cycles the handler takes down.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-channel-layer), "The channel layer".
 
@@ -372,6 +372,12 @@ First met and defined in [chapter 2](part-1/amiga.md). The detail: [`SPEC.md`](r
 
 Elsewhere: [Original Chip Set](https://en.wikipedia.org/wiki/Original%5FChip%5FSet), Wikipedia; [*Amiga Hardware Reference Manual*](https://archive.org/details/commodore-amiga-tech-ref-series-amiga-hardware-reference-manual-3rd-edition), 3rd edition, Internet Archive.
 
+### Cycle
+
+One play of a channel's sound sample by Paula, from its address to the end of its length, after which the channel raises its interrupt request, takes the address and the length again and plays on.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#the-audio-channels), "The audio channels".
+
 ### Dashboard
 
 The play screen's middle area, 640 by 37 in high resolution with four bitplanes: the instruments and the 3-D window, drawn by day and by night from pictures and shapes of their own.
@@ -436,7 +442,7 @@ First met and defined in [chapter 6](part-1/headless.md). The detail: [`tools/he
 
 ### E clock
 
-The clock the Amiga's CIAs count at, the colour clock divided by five: 709,379 cycles a second on a PAL machine; the music's timer counts down at it.
+The clock the Amiga's CIAs count at, the colour clock divided by five: 709,379 counts a second on a PAL machine; the music's timer counts down at it.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
 
@@ -704,7 +710,7 @@ Elsewhere: [Interrupt](https://en.wikipedia.org/wiki/Interrupt), Wikipedia.
 
 ### Interrupt request
 
-The bit by which a chip asks the processor for an interrupt; Paula raises one for a channel at the start and at the end of each cycle, and it reaches the processor only while it is enabled.
+The bit by which a chip asks the processor for an interrupt; Paula raises one for a channel when it is switched on and again at the end of every cycle, and it reaches the processor only while it is enabled.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#the-audio-channels), "The audio channels".
 
@@ -746,7 +752,7 @@ First met and defined in [chapter 7](part-1/time.md). The detail: [`re/notes/inp
 
 ### Level-4 vector
 
-The long at `0x70` holding the address of the routine the 68000 runs for an interrupt of level 4, Paula's channels among them; the sound effects engine puts its handler there, and the music player its own while it is loaded.
+The long at `0x70` holding the address of the routine the 68000 runs for an interrupt of level 4, the level of Paula's four channels among the processor's seven; the sound effects engine puts its handler there, and the music player its own while it is loaded.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-timer), "The timer".
 
@@ -1206,6 +1212,12 @@ First met and defined in [chapter 17](part-2/campaign.md). The detail: [`re/note
 
 Elsewhere: [Random seed](https://en.wikipedia.org/wiki/Random%5Fseed), Wikipedia.
 
+### Sequence
+
+A track's list of patterns, each with a transpose, which the track plays in turn and may start again from its first.
+
+First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-song-format-wofsongss-data-hunk), "The song format".
+
 ### Session
 
 One conversation with an AI coding assistant in a terminal opened in the repository, which only the owner can open: it reads files, runs commands and commits; what it has read and written, its context, has a limit, and a session whose context fills makes way for a fresh one.
@@ -1314,7 +1326,7 @@ Elsewhere: [Pulse-code modulation](https://en.wikipedia.org/wiki/Pulse-code%5Fmo
 
 ### Sound slot
 
-One of eight records of `0x18` bytes, two for each of Paula's channels, in which the logic tick sets what should sound: a sample, its length, period, volume and repeat count; not a shape's [slot](#slot).
+One of eight records of `0x18` bytes, two for each of Paula's channels, in which the logic tick sets what should sound: a sound sample, its length, period, volume and repeat count; not a shape's [slot](#slot).
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#the-slots-and-what-they-play), "The slots and what they play".
 
@@ -1378,7 +1390,7 @@ Elsewhere: [*Amiga Hardware Reference Manual*](https://archive.org/details/commo
 
 ### Timer's tick
 
-One run-out of the CIA timer the music player takes, at which the player runs its song routine once, every 14,592 E cycles for four of the five songs; not the [logic tick](#logic-tick).
+One run-out of the CIA timer the music player takes, at which the player runs its song routine once, every 14,592 counts of the E clock for four of the five songs; not the [logic tick](#logic-tick).
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/music.md`](repo:re/notes/music.md#the-tick-songint), "The tick: SongInt".
 

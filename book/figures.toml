@@ -860,8 +860,8 @@ repeat_ink = ["wingspalette", 22]
 width = 500
 height = 90
 scale = 2
-shows = "The sample of the voice omlead from the song data, wofsongs, as Paula plays it for the first note of song 2: its one-shot part, played once, and its repeat part, looped while the note sounds, the boundary marked; below, the hundred bytes around the boundary enlarged."
-how = "The sample's BODY and the one-shot length of its VHDR as tools/song_decode.py reads the DATA hunk of wofsongs (Songs().form()), the repeat part the rest of the BODY for a sample of one octave; above, one column for every thirteen or so bytes with a tick every 100 ms at period 427, the first note of song 2 on this voice (re/notes/music.md, the period from note_clocks), and PAL's 3,546,895 colour clocks a second; below, bytes 3,384 to 3,483, one step of five pixels each; the whole twice enlarged."
+shows = "The sound sample of the voice omlead from the song data, wofsongs, as Paula plays it at 427, the period of track 0's first note of song 2: its one-shot part, played once, and its repeat part, looped while the note sounds, the boundary marked; below, the hundred bytes around the boundary enlarged."
+how = "The sample's BODY and the one-shot length of its VHDR as tools/song_decode.py reads the DATA hunk of wofsongs (Songs().form()), the repeat part the rest of the BODY for a sample of one octave; above, one column for every thirteen or so bytes with a tick every 100 ms at period 427, the period of track 0's first note of song 2 on this voice, set here (re/notes/music.md, the period from note_clocks), and PAL's 3,546,895 colour clocks a second; below, bytes 3,384 to 3,483, one step of five pixels each; the whole twice enlarged."
 command = ".venv/bin/python book/tools/figures.py sample-omlead"
 
 [[figure]]
