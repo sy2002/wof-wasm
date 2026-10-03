@@ -17,6 +17,8 @@ The steps, one line each:
     font      book/tools/webfont.py: the game's font as the web font of the headings
     suite     book/tools/suite.py: the suite's test modules by layer, from pytest's collection,
               the layers book/suite.toml's
+    routines  book/tools/routines.py: the routine inventory by status and routine by routine,
+              from re/functions.csv
     colours   every colour of docs/stylesheets/book.css and of the diagrams docs/figures/*.svg against
               the palette entry its comment names
     links     book/tools/links.py: every repo: link of the pages resolves, to a file or directory
@@ -28,7 +30,8 @@ The steps, one line each:
 
 The generators need the built repository (tools/build.py --native: dist/wof.html and
 tests/libwofcore.dylib) and run on macOS, all but elements.py, which reads only the disk's
-files, and suite.py, which needs only pytest's collection of tests/; what they make is committed, so that mkdocs alone needs only the packages of
+files, suite.py, which needs only pytest's collection of tests/, and routines.py, which reads
+only re/functions.csv; what they make is committed, so that mkdocs alone needs only the packages of
 book/requirements.txt.  book/site/ is never committed.
 
 Exit status:
@@ -142,12 +145,12 @@ def main():
     if args.check:
         results = [tool('listings.py', '--check'), tool('figures.py', '--check'),
                    tool('elements.py', '--check'), tool('webfont.py', '--check'),
-                   tool('suite.py', '--check'), colours(),
+                   tool('suite.py', '--check'), tool('routines.py', '--check'), colours(),
                    links.run()]
         return max(results)
 
     for step in (['listings.py'], None if args.no_figures else ['figures.py'], ['elements.py'],
-                 ['webfont.py'], ['suite.py']):
+                 ['webfont.py'], ['suite.py'], ['routines.py']):
         if step is None:
             print('figures   kept as committed (--no-figures)')
             continue

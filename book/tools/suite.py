@@ -33,7 +33,7 @@ import tempfile
 from common import GENERATED, ROOT, Failure, compare, manifest, rel, replace_tree
 
 TABLES = GENERATED / 'tables'
-FILE = 'suite-layers.md'
+FILE = 'suite-layers.md'          # the directory is shared with routines.py: each holds its own file
 TOTAL = re.compile(r'^(\d+) tests? collected')
 
 
@@ -104,7 +104,7 @@ def main():
         if args.check:
             with tempfile.TemporaryDirectory() as temp:
                 generate(temp)
-                problems = compare(temp, TABLES)
+                problems = compare(temp, TABLES, only={FILE})
             for line in problems:
                 print(line)
             print('suite     %s' % ('%d differ' % len(problems) if problems
@@ -115,7 +115,7 @@ def main():
         else:
             with tempfile.TemporaryDirectory() as temp:
                 _, rows = generate(temp)
-                replace_tree(temp, TABLES)
+                replace_tree(temp, TABLES, only={FILE})
             path = TABLES / FILE
         tests = sum(n for _, modules in rows for _, n in modules)
         print('suite     %s, %d layers, %d tests' % (rel(path) if not args.out else path,

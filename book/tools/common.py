@@ -51,10 +51,14 @@ def files_under(folder):
                   and p.name != '.DS_Store')
 
 
-def compare(made, committed):
+def compare(made, committed, only=None):
     """The differences between a fresh generation and the committed files, one line each:
-    a file that differs, one that is missing, one that is committed but no longer made."""
+    a file that differs, one that is missing, one that is committed but no longer made.
+    With `only`, the names of a generator's own files in a directory it shares with another
+    (docs/generated/tables/), the committed files outside them are none of its business."""
     made_files, committed_files = files_under(made), files_under(committed)
+    if only is not None:
+        committed_files = [name for name in committed_files if name in only]
     problems = []
     for name in sorted(set(made_files) | set(committed_files)):
         if name not in committed_files:
@@ -67,14 +71,15 @@ def compare(made, committed):
     return problems
 
 
-def replace_tree(made, committed):
+def replace_tree(made, committed, only=None):
     """The committed directory made equal to a fresh generation: files written where they
     differ, removed where they are no longer made, and nothing touched that is equal, so
-    that a second run changes no modification time."""
+    that a second run changes no modification time.  With `only`, as for compare(), no
+    committed file outside those names is removed."""
     made, committed = pathlib.Path(made), pathlib.Path(committed)
     wanted = set(files_under(made))
     for name in files_under(committed):
-        if name not in wanted:
+        if name not in wanted and (only is None or name in only):
             (committed / name).unlink()
     for name in sorted(wanted):
         source, target = made / name, committed / name
