@@ -264,8 +264,9 @@ The fall on land, the burning and the wreck's word are reached with the poke of
 - **The last ship.** `subq.b #1` of `ships_left` and then `bgt` compare the true result, so
   from `0x80` the byte becomes `0x7F` with the overflow flag set and the branch is not
   taken: the mission is won although 127 ships are left. The port tests the byte before the
-  decrement, as signed, against 1 (found by the oracle's case 508 of the sinking; no map has
-  more than three enemy ships, map o).
+  decrement, as signed, against 1, which decides as the `bgt` does, so from `0x80` the port wins
+  the mission too: the quirk is kept, not corrected (found by the oracle's case 508 of the sinking;
+  no map has more than three enemy ships, map o).
 - **A dead floor.** `aircraft_speed`'s floor at 900 when an aircraft slows (`0x01E71A`) is
   never reached: slowing towards a want speed of at least 900 lands half the gap and 5 above
   it (read).

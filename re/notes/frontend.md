@@ -366,10 +366,13 @@ the list of saved games comes out in a different order than on the Amiga. Three 
 **Unobserved.** That a real Kickstart 1.3 `ExNext` visits the chains in this order at all, and
 that a new entry goes to the head of its chain rather than the tail, are both documented
 file-system behaviour; neither was checked against a machine here. `original/wof.adf` does not
-settle the second one. Thirteen of its chains hold two or three entries, and in **every one of
-them the head carries the earlier date**: in `shapes/`, for instance, chain 15 has a `.shp` file
-dated day 0 ahead of an `.info` file dated day 5155, and chain 27 has two files two minutes apart
-in the order they were written. That reads like insertion at the tail — but most of the game's own
+settle the second one. Across the disk's five directories thirteen chains hold two or three
+entries, and in **twelve of them the head carries the earlier date**: in `shapes/`, for instance,
+chain 15 has a `.shp` file dated day 0 ahead of an `.info` file dated day 5155, and chain 27 has
+two files 158 ticks of the same minute apart, about three seconds, in the order they were written.
+That reads like insertion at the tail; in the thirteenth, the top directory's chain 24, a directory
+dated day 5034 stands ahead of a file dated day 0, which reads like insertion at the head (chapter
+20 of the book walked every directory block). But most of the game's own
 files carry a date of 0, which a copier writes when it does not preserve dates, so the entries
 that look oldest may in fact have been written last, and then the same disk reads as insertion at
 the head. The disk cannot tell the two apart. It does not affect anything observed here: the two

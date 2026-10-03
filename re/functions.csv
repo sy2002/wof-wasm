@@ -39,7 +39,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 011754,vblank_server,asm,530,,,-32688,0,input_queue_pop vblank_every_frame read_joystick,,25,,ported
 011966,sub_011966,asm,86,,,,0,,,5,,todo
 0119bc,gun_splashes,asm,88,,,,1,guns_ground_x soldiers_hit map_slot_at splash_spawn,,6,,verified
-011a14,ricochet_spawn,asm,46,,,-32682,0,map_slot_at,,1,,todo
+011a14,ricochet_spawn,asm,46,,,-32682,0,map_slot_at,,1,,drop
 011a42,sub_011a42,asm,4,,,,0,,,0,,todo
 011a46,guns_ground_x,asm,62,,,,2,tangent,,3,,verified
 011a84,soldiers_hit_c,asm,8,,,-32676,2,,,0,,ported
@@ -72,7 +72,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 0124dc,sub_0124dc,asm,4,,,,2,,,0,,todo
 0124e0,mem_free_var,asm,34,,,,9,mem_free,,0,,replace
 012502,shapes_free,asm,28,,,,3,mem_free_var,,0,,todo
-01251e,sub_01251e,asm,14,,,,0,shape_find_c,,0,,todo
+01251e,sub_01251e,asm,14,,,,0,shape_find_c,,0,,drop
 01252c,ship_block,asm,68,,,,1,,,3,,ported
 012570,open_libraries,asm,46,,,,1,sound_init,exec.OpenLibrary,5,,todo
 01259e,close_libraries,asm,38,,,,1,sound_shutdown,exec.CloseLibrary,3,,todo
@@ -422,7 +422,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020220,sub_020220,C,342,18,8 12 16,,2,sub_020874 mem_free os_dos_close os_dos_examine os_dos_io_err os_dos_lock os_dos_open os_dos_read os_dos_unlock sub_022d36 sub_022d86,,3,,todo
 020376,sub_020376,C,26,0,8 12,,0,sub_020220,,0,,todo
 020390,load_file_small,C,26,0,8 12,,3,sub_020220,,0,,replace
-0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,todo
+0203aa,rand_lcg_unused,asm,20,,,,0,,,1,,drop
 0203be,rand_beam,asm,28,,,-32082,18,,,2,,ported
 0203da,rand_set_seed,asm,14,,,-32070,1,,,2,,ported
 0203e8,byterun1_row,asm,76,,,,1,,,0,,verified
@@ -462,7 +462,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 020e0a,shape_draw_xor_c,asm,26,,,-31950,1,shape_draw_xor blit_begin blit_end,,1,,ported
 020e24,shape_draw_xor,asm,304,,,-31944,4,blit_clip_setup,,12,,verified
 020f54,blit_raw_c_unused,asm,40,,,,0,blit_raw_unused blit_begin blit_end,,1,,todo
-020f7c,blit_raw_unused,asm,118,,,,1,,,0,,todo
+020f7c,blit_raw_unused,asm,118,,,,1,,,0,,drop
 020ff2,rect_fill_c,asm,30,,,-31938,0,rect_fill blit_begin blit_end,,1,,todo
 021010,rect_fill,asm,272,,,-31932,8,,,7,,verified
 021120,rect_fill_aligned_c,asm,30,,,-31926,0,rect_fill_aligned blit_begin blit_end,,1,,todo
@@ -481,7 +481,7 @@ addr,name,kind,span,frame,a5_args,far_slot,callers,calls,os_calls,globals,string
 021608,sub_021608,C,28,0,9,,0,,,1,,todo
 021624,sub_021624,C,142,0,8 12 14 18,,1,sub_02240e sub_02241a,,1,,todo
 0216b2,sub_0216b2,C,910,222,8 12 16,,1,sub_021624 format_float,,1,,todo
-021a40,format_float,C,604,8,8 16 20 22,,1,ffp_add ffp_cmp ffp_neg ffp_tst ffp_fix ffp_sub ffp_div ffp_flt ffp_mul,,1,,todo
+021a40,format_float,C,604,8,8 16 20 22,,1,ffp_add ffp_cmp ffp_neg ffp_tst ffp_fix ffp_sub ffp_div ffp_flt ffp_mul,,1,,drop
 021c9c,ffp_add,asm,10,,,,2,,,0,,replace
 021ca6,ffp_cmp,asm,10,,,,1,,,0,,replace
 021cb0,ffp_neg,asm,10,,,,2,,,0,,replace

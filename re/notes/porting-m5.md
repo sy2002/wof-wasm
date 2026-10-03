@@ -451,8 +451,9 @@ at rest) then kills the soldiers within 8 through `0x011A84`.
 
 ### The wreck's explosion and the map list's address (observed)
 
-While the wreck rests on land or a deck, the crash leaves an explosion every tick
-(`0x01B304`). Its C call passes the aircraft's x and y words where `object_spawn` wants the
+While the crashed aircraft still slides on land or a deck (state 4, its airspeed falling by `0x55`
+a tick; at rest, state 8, it burns and makes none: chapter 20 of the book, from the listing's branch
+and a run of the port), the crash leaves an explosion every tick (`0x01B304`). Its C call passes the aircraft's x and y words where `object_spawn` wants the
 map pointer, and nothing where it wants the height, so the record is at the x of the long
 `(x << 16 | y)` less the map list's address (as a word, times four) and at height `0x0C`:
 in `crash_a` at x 12280, from y 2 and the list at `0x24F404`. The address is the machine's:

@@ -131,5 +131,6 @@ The fact-check and the readability read are fresh Opus agents the controller spa
 | 17. The campaign | merged, awaiting the owner's read |
 | 18. Sound and music | merged, awaiting the owner's read |
 | 19. The front end and the keys | merged, awaiting the owner's read |
+| 20. The original's quirks | merged, awaiting the owner's read |
 
 A chapter not listed is a stub. The states, in order: drafted (on its branch); reviewed (the fact-check, the readability read and the controller's read done and folded in); merged, awaiting the owner's read; final (the owner's read done and folded in).
