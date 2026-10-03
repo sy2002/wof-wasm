@@ -67,15 +67,15 @@ Each of those is a [**coupling**](../glossary.md#coupling): a piece of state tha
 
 | A pass writes | What the tick finds |
 |---|---|
-| a drawing copy of each object's position and animation frame, in the object's own record, and of the aircraft's height | the copies, which it reads back |
+| a drawing copy of each object's position and frame, in the object's own record, and of the aircraft's height | the copies, which it reads back |
 | the byte of an object's record that says what the object is | records the pass has freed or changed |
 | the pass counter, which runs from 0 to 99, and a flag that a picture was drawn | counts that the objects and the lift go by |
-| a distance worked out while drawing the world | a value the engine's sound uses |
-| the four pools of ricochets, splashes, smoke and balloons | objects the pass has spawned |
+| a distance worked out while drawing the world | a value the ground guns' sound uses |
+| the pools of splashes and smoke, whose records it counts down, frees and, for smoke, claims | free records of the splashes' pool, for the splashes of its bullets |
 | the soldiers' table | the soldiers, who live in the pass, for the tick's shots to hit |
 | the score and an island's count of soldiers | a soldier who died, and scored, in a pass |
 | the aircraft's oil and fuel | what a gun's fire took from them in a pass |
-| the clip rectangle and where the drawing routines draw | the state it needs to draw itself |
+| the [clip rectangle](../glossary.md#clip-rectangle) and where the drawing routines draw | the state it needs to draw itself |
 
 The table is a lower bound, since a coupling shows only where a script reaches it. Two of its rows, the soldier who scored and the gun's fire, came from scripts written after the seven, for the weapons; the scripts written for the ships found one more writer of the byte that says what an object is, a ship's shell that reaches the torpedoes in a pass. Chapter 8 tells of those scripts.
 
@@ -143,7 +143,7 @@ A busy scene, with many objects, soldiers and explosions in the air, was not fil
 
 ## How the port keeps time
 
-A browser offers animation frames at the monitor's rate, not VBlanks. The port's [shell](../glossary.md#shell), the JavaScript around the game, therefore keeps a clock of its own: it adds up the real time that passes and issues one VBlank of the [core](../glossary.md#core), the game compiled to WebAssembly, for every fiftieth of a second on PAL, and after each VBlank calls the core's pass entry once. What counts is the game's time, its VBlanks, not the monitor's pictures: a monitor of 144 Hz and one of 30 Hz alike get 50 VBlanks a second.
+A browser offers [animation frames](../glossary.md#animation-frame) at the monitor's rate, not VBlanks. The port's [shell](../glossary.md#shell), the JavaScript around the game, therefore keeps a clock of its own: it adds up the real time that passes and issues one VBlank of the [core](../glossary.md#core), the game compiled to WebAssembly, for every fiftieth of a second on PAL, and after each VBlank calls the core's pass entry once. What counts is the game's time, its VBlanks, not the monitor's pictures: a monitor of 144 Hz and one of 30 Hz alike get 50 VBlanks a second.
 
 The core's VBlank entry is the port of `vblank_server` with `vblank_every_frame`, the divider, the input sample and the queue of six included. Its pass entry resumes the port's main program where it waits. Every wait of the [front end](../glossary.md#front-end), the screens before and between missions, is counted in whole VBlanks, one resume per VBlank: a `Delay` of the system one VBlank for each fiftieth of a second on PAL, a round of the music's fade four. So the port and the headless original stay together VBlank for VBlank. In play the program waits at a pass's start until the setting's two VBlanks have gone by, the headless original's rule, and a resume that finds it still waiting does nothing. VBlanks the tick spent waiting in the restart count towards the next pass, as in the original; chapter 22 tells how the port's code stops at such a wait and goes on at the next VBlank.
 
