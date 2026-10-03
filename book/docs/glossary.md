@@ -50,6 +50,14 @@ First met and defined in [chapter 14](part-2/player.md). The detail: [`re/notes/
 
 Elsewhere: [Airspeed](https://en.wikipedia.org/wiki/Airspeed), Wikipedia, the real quantity.
 
+### Arena
+
+The one block of memory, 3 MB, that the core reserves once and hands out zeroed in place of the system's allocator: what lasts from the bottom, a file's scratch from the top, nothing ever freed.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/mem.c`](repo:src/mem.c); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#decisions-the-port-made), "Decisions the port made".
+
+Elsewhere: [Region-based memory management](https://en.wikipedia.org/wiki/Region-based%5Fmemory%5Fmanagement), Wikipedia.
+
 ### Arithmetic shift
 
 A shift of a number's bits that keeps its sign: shifted right, the sign bit is copied into the top, so that a negative number stays negative and is halved, rounded down; shifted left, it differs from a logical shift only in setting the overflow flag when the sign changes. The 68000's `asr` and `asl`.
@@ -356,6 +364,16 @@ The port's game: the ported logic, written in C and compiled to WebAssembly, whi
 
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#61-core), section 6.1.
 
+### Coroutine
+
+A routine that can stop at a wait, give control back and go on from there at its next call: the port's form of every routine of the original that waits, since a page may not block.
+
+The port's are stackless, in the style of protothreads: the routine's body sits inside a `switch` on its resume point, the locals it keeps across a wait live in a context struct beside it, and one wait is one VBlank ([`SPEC.md`](repo:SPEC.md#63-blocking-code-becomes-coroutines), section 6.3).
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/coro.h`](repo:src/coro.h); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-front-end-as-coroutines), "The front end as coroutines".
+
+Elsewhere: [Coroutine](https://en.wikipedia.org/wiki/Coroutine), Wikipedia; [Protothread](https://en.wikipedia.org/wiki/Protothread), Wikipedia.
+
 ### Coupling
 
 A piece of state that a pass writes and a logic tick reads, such as the pass counter or the drawing copy in an object's record; through the couplings, the number of VBlanks a pass takes reaches the simulation.
@@ -563,6 +581,14 @@ A computer rebuilt in programmable hardware, a chip whose circuits are configure
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`README.md`](repo:README.md#amiga-to-web), "Amiga to Web".
 
 Elsewhere: [Field-programmable gate array](https://en.wikipedia.org/wiki/Field-programmable%5Fgate%5Farray), Wikipedia.
+
+### Freestanding
+
+C with no operating system beneath it and only the part of the standard library that needs none: no allocator, no files, no clock. The core is written so, for the page and for the native library alike.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`SPEC.md`](repo:SPEC.md#61-core), section 6.1; [`src/wof.h`](repo:src/wof.h).
+
+Elsewhere: [Conformance](https://en.cppreference.com/w/c/language/conformance), cppreference, on hosted and freestanding implementations.
 
 ### Front end
 
@@ -773,6 +799,12 @@ The heart of AmigaOS, in the ROM of the Amiga 500 and 2000 and loaded from a dis
 First met and defined in [chapter 2](part-1/amiga.md). The detail: [`re/notes/system-font.md`](repo:re/notes/system-font.md#the-rom), "The ROM".
 
 Elsewhere: [Kickstart (Amiga)](https://en.wikipedia.org/wiki/Kickstart%5F(Amiga)), Wikipedia.
+
+### Kind (of a field)
+
+How a field of a registered record travels between the original's big-endian bytes and the port's structure: as the same integer, or as a pointer turned into a shape handle, a sound handle, an offset, a flag or the handler a vector names; seven in all.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/records.def`](repo:src/records.def), its opening comment; [`tests/m4state.py`](repo:tests/m4state.py).
 
 ### Label
 
@@ -1051,6 +1083,14 @@ The loop of the game's `main` that runs the rank selection, the briefing, a miss
 
 First met and defined in [chapter 19](part-2/front-end.md). The detail: [`re/notes/frontend.md`](repo:re/notes/frontend.md#the-outer-loop-as-a-state-diagram), "The outer loop, as a state diagram".
 
+### Overlay (of the file system)
+
+The files the game writes, the high scores and the saved games, kept by the core in front of the read-only disk: a written file shadows the disk's of the same name and a deleted one hides it. It lies outside the core's state, so that loading a save state does not un-write a file; not the shell's diagnostics overlay.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/fs.c`](repo:src/fs.c); [`re/notes/porting-m3.md`](repo:re/notes/porting-m3.md#the-file-systems-write-side), "The file system's write side".
+
+Elsewhere: [Union mount](https://en.wikipedia.org/wiki/Union%5Fmount), Wikipedia, the same idea for directories.
+
 ### PAL
 
 The European television standard, 50 pictures a second, which the Amiga's display follows in Europe; the port's default.
@@ -1255,6 +1295,20 @@ The blitter's registers as they stand when a blit starts, its pointers, modulos,
 
 First met and defined in [chapter 12](part-2/shapes.md). The detail: [`tests/blitter.py`](repo:tests/blitter.py); [`re/notes/porting-m1.md`](repo:re/notes/porting-m1.md#how-the-tests-establish-it), "How the tests establish it".
 
+### Registered state
+
+The variables, tables and records the registries list, kept as members of the core's state, each tied to its address in the original, so that the tests copy and compare it field by field and a save state cannot leave any of it out.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def), [`src/records.def`](repo:src/records.def); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#where-mission-memory-lives), "Where mission memory lives".
+
+### Registry
+
+One of the port's three lists, [`src/globals.def`](repo:src/globals.def), [`src/mission.def`](repo:src/mission.def) and [`src/records.def`](repo:src/records.def), in which every variable, table and record layout taken over from the original is a line of macro calls with its original address or offset; the files that include a list expand it into structures and code.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: the three files' opening comments; [`src/core.c`](repo:src/core.c).
+
+Elsewhere: [X macro](https://en.wikipedia.org/wiki/X%5Fmacro), Wikipedia.
+
 ### Relation (to the player)
 
 The word of an enemy aircraft record, worked out every tick, that says where it is against the player: 1 behind him the same way, 3 ahead of him the same way, 2 flying the other way east of him, 4 flying the other way west of him.
@@ -1276,6 +1330,14 @@ A new program made to look and play like an old one, written from watching the o
 First met and defined in [chapter 1](part-1/faithful.md). The detail: [`SPEC.md`](repo:SPEC.md#1-goal), section 1.
 
 Elsewhere: [Video game remake](https://en.wikipedia.org/wiki/Video%5Fgame%5Fremake), Wikipedia.
+
+### Resume point
+
+The number a coroutine keeps of where it waits: the line number of the wait in its source file, 0 for not started; the next call jumps back to it through a `switch`.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/coro.h`](repo:src/coro.h); [`src/wof.h`](repo:src/wof.h), `wof_ctx_t`.
+
+Elsewhere: [Coroutines in C](https://www.chiark.greenend.org.uk/~sgtatham/coroutines.html), Simon Tatham.
 
 ### Review
 
@@ -1310,6 +1372,14 @@ First met and defined in [chapter 3](part-1/disk.md). The detail: [`SPEC.md`](re
 A small JSON file that says what one run of the headless original is: its script of the stick, the button and the keys by VBlank, its entropy stream, the VBlanks a pass and where it stops.
 
 First met and defined in [chapter 6](part-1/headless.md). The detail: [`re/notes/headless.md`](repo:re/notes/headless.md#run-description), "Run description"; [`tests/runs/`](repo:tests/runs/).
+
+### Save state
+
+The core's whole state as bytes, copied out and loaded back so that the game goes on exactly where it was: the core's counterpart of an emulator's save state, not the game's own saved game, which is a file the game writes (chapter 17) and the overlay keeps.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`SPEC.md`](repo:SPEC.md#61-core), section 6.1; [`src/core.c`](repo:src/core.c); [`re/notes/porting-m4.md`](repo:re/notes/porting-m4.md#save-states-and-the-mirror-markers), "Save states and the mirror markers".
+
+Elsewhere: [Saved game](https://en.wikipedia.org/wiki/Saved%5Fgame), Wikipedia, whose save states are an emulator's.
 
 ### Saved game's walker
 
@@ -1434,6 +1504,14 @@ Elsewhere: [Fade (audio engineering)](https://en.wikipedia.org/wiki/Fade%5F(audi
 The game's code that plays its eight sound effects: the sound slots the logic tick fills and, under them, the channel records, started by a VBlank server and stopped by the audio interrupt's handler.
 
 First met and defined in [chapter 18](part-2/sound.md). The detail: [`re/notes/sound.md`](repo:re/notes/sound.md#two-layers), "Two layers".
+
+### Sound handle
+
+The port's number for a place in one of the sound files, kept where the original keeps a pointer into a sound sample: the file's index plus one in its top byte and the offset into the file below it, 0 for none.
+
+First met and defined in [chapter 22](part-3/core.md). The detail: [`src/wof.h`](repo:src/wof.h), `WOF_SOUND`; [`re/notes/porting-m8.md`](repo:re/notes/porting-m8.md#the-port), "The port".
+
+Elsewhere: [Handle (computing)](https://en.wikipedia.org/wiki/Handle%5F(computing)), Wikipedia.
 
 ### Sound sample
 

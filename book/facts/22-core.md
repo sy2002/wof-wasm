@@ -63,16 +63,16 @@ The reference works:
     - the custom chips, `JOY1DAT`, `VHPOSR`, the audio registers, the vector at `0x70`: the raw controller state, the entropy stream, the Paula model;
     - `COP1LC` and the copper lists: the palette of every row;
     - exec `FindTask`, `SetTaskPri`, `Forbid`, `Permit`, `Supervisor`, `Alert`, `Debug`, intuition `CloseWorkBench`, `OpenWorkBench`: dropped.
-    Source: `SPEC.md` 3.4, the table's rows.
+    Source: `SPEC.md` 3.4, the table's rows. The chapter shows seven of the rows: the dos file calls, `LoadSeg`, `Delay` and `WaitTOF`, `AllocMem`, `AddIntServer`, the copper's lists, and the dropped calls; chapter 2's table ("The little of AmigaOS the game uses") gives the overview, and the chapter says so.
 
 ## 2. The arithmetic
 
 19. Every value of the game has a named width, `int16_t`, `uint16_t`, `int32_t` and their kin, never a plain `int`: Manx Aztec C's int is 16 bits as the game was built, today's compilers' 32. Source: `SPEC.md` 7.1, bullet 1; chapter 3 ("The 16-bit int"). Chapter 3 told it; this chapter puts it in the table.
 20. Every width change of the listing is kept: `ext.l` a sign extension, `muls.w` two words into a long whose next `move` decides whether it is cut, `divs.w` a long by a word into a word quotient rounded toward zero, `swap` after it the remainder used. Source: `SPEC.md` 7.1, bullet 3; chapter 3.
 21. Signedness follows the branch: `blt`, `bge`, `bgt`, `ble` signed; `bcs`, `bcc`, `bhi`, `bls` unsigned. Source: `SPEC.md` 7.1, bullet 4; chapter 3 told the rule.
-22. A branch reads the flags of the last instruction that set them, which need not be the compare: `ship_sinking`'s `beq` at `0x011D00` reads a `move.w`; a `bgt` after `subq.b` judges the result with its overflow. Source: `SPEC.md` 7.1, bullet 5; chapters 16 and 20 told both.
+22. A branch reads the flags of the last instruction that set them, which need not be the compare: in `ship_sinking` (`0x011CD8`) the `beq.w` at `0x011D00` follows `cmpi.w #$1,$14(a1)` at `0x011CF6` and `move.w $12(a1),d0` at `0x011CFC`, so it reads the `move`; a `bgt` after `subq.b` judges the result with its overflow. Source: `SPEC.md` 7.1, bullet 5; `re/Wings.lst` lines 2601 to 2603; chapters 16 and 20 told both. The chapter names no address.
 23. A register's upper word a routine leaves is handed on as a value between the ported routines: `target_refill` (`0x014FEE`) to `target_fire`; never assumed 0 because the scripts found it so; the oracle tests draw it at random. Source: `SPEC.md` 7.1, bullet 6; chapter 9.
-24. A constant table the original indexes past its end is read by its original address, from the registered variable where one covers the byte and from the executable's image elsewhere: the wheel table `0x025E3E` at attitude 9 reads `0x025E50`, which the same routine writes; an oracle test over random states found the case. Source: `SPEC.md` 7.1, bullet 2; chapters 14 and 20 (chapter 20 showed `data_byte`).
+24. A constant table the original indexes past its end is read by its original address, from the registered variable where one covers the byte and from the executable's image elsewhere: `on_the_lift` (`0x01B4DE`) reads the wheel table `0x025E3E` (its base taken at `0x01B522` and `0x01B544`), and at attitude 9 the read reaches `0x025E50`, a variable the deck's routine `deck_state` (`0x01BCCE`) writes (`move.w d0` at `0x01BD4C`); an oracle test over random states found the case. Source: `SPEC.md` 7.1, bullet 2; `re/Wings.lst` lines 15269, 15280, 15996; `re/functions.csv` (the routines' starts); chapters 14 ("a variable the deck's routine writes") and 20 (chapter 20 showed `data_byte`). The chapter gives the rule and no address. (`SPEC.md` 7.1 says "which the same routine writes"; the listing shows `deck_state` writing it, as chapter 14 says: for the controller.)
 25. Wrap-around is behaviour: no variable is widened because it might overflow, and the wrap is written with a cast, because a signed overflow is undefined in C. Source: `SPEC.md` 7.1, bullet 7; the cppreference reference; chapter 3.
 26. An arithmetic shift, `asr`, is written so that it is arithmetic on every compiler, because C leaves the right shift of a negative number to the compiler. Source: `SPEC.md` 7.1, bullet 8; the cppreference reference (implementation-defined). The bounce's `asr.w` is chapter 5's. **(reference)** for the C half.
 27. A division by zero or a quotient too large traps on a 68000: the specification asks for an assertion in the test builds; the port's division of the enemy's routines leaves the dividend's low word and records the trap in the test build (`divs_w`, `src/enemy.c` lines 20 to 35), and the floating point counts its traps in `wof_ffp_traps`, which a test holds to the number the original took. Source: `SPEC.md` 7.1, bullet 9; `src/enemy.c`; `src/ffp.h` (`wof_ffp_traps`); `tests/test_oracle_ffp.py` (`ffp_traps`). (C: "asserted" is the specification's word; the code records and counts.)
@@ -105,7 +105,7 @@ The reference works:
 48. Why the registered state: the harness copies the original's state into the port and compares the two field by field after every pass and tick (chapter 8, the open and the closed loop); and nothing can be forgotten in a save state. Source: `src/globals.def`, `src/mission.def`, `src/records.def` openings; `SPEC.md` 8; `re/notes/porting-m4.md`, "How the port is held to the original".
 49. The **registered state** (the term, defined here): the variables, tables and records the registries list, kept inside the core's state, each tied to its original address. Source: claims 37 to 45. Chapter 5 met it in plain words, chapters 17 and 18 linked its section.
 50. The registered variables start as the original's data hunk starts them: every entry whose address lies in the stored part of the data is loaded from the executable's image (`data_image`, chapter 3), turned to the host's byte order, when `wof_init` runs. Source: `src/wof.h` (comment above `wof_globals_from_image`); `src/core.c` lines 100 to 138; `SPEC.md` 5, step 1.
-51. The registries also let the port read and write by original address: `wof_original_store8` writes a byte into whichever registered variable or fixed table covers the address, as the original's move to that address would, and reports 0 where nothing the port keeps covers it; `wof_original_load8` reads one. The wreck's forty-first word reaches the aircraft records so (chapter 16); the saved game's writer takes its bytes so and the loader puts them back so, which leaves the pointer fields alone (chapter 17). Source: `src/core.c` lines 213 to 312; `re/notes/porting-m7.md`, "The port" and "Part 2: the port"; chapter 16's sidebar (`wof_original_store16`). Listing 4.
+51. The registries also let the port read and write by an address the original computes: `wof_original_store8` writes a byte into whichever registered variable or fixed table covers the address, as the original's move to that address would, and reports 0 where nothing the port keeps covers it; `wof_original_load8` reads one. The wreck's forty-first word reaches the aircraft records so (chapter 16); the saved game's writer takes its bytes so and the loader puts them back so, which leaves the pointer fields alone (chapter 17). Source: `src/core.c` lines 213 to 312; `re/notes/porting-m7.md`, "The port" and "Part 2: the port"; chapter 16's sidebar (`wof_original_store16`). Listing 4.
 
 ## 5. What the state holds, and what lies outside it
 
@@ -218,7 +218,7 @@ The reference works:
 
 | # | File | Kind | What it shows |
 |---|---|---|---|
-| (a) | `docs/figures/core-state.svg` | hand-drawn, new | claims 53 to 59: on the left the core's state as one block of boxes, top to bottom the magic and version, the stream and the counters, the controller and the preferences, the stand-ins and the pass, the assist, Paula, the timer and the vector, the registered variables, the registered tables, the front end; on the right what lies outside, the arena with the files and the assets, the framebuffer and palettes, the queue of audio frames, the overlay of written files, the settings `wof_init` leaves alone, the native library's recording and entries; saved in gold, not saved in grey; no count; viewBox and slack measured at the draft |
+| (a) | `docs/figures/core-state.svg` | hand-drawn, new | claims 53 to 59: on the left the core's state as one block of boxes, top to bottom the magic and version, the stream and the counters, the controller and the preferences, the stand-ins and the pass, the assist, Paula, the timer and the vector, the registered variables, the registered tables, the front end; on the right what lies outside, the arena with the files and the assets, the framebuffer and palettes, the queue of audio frames, the overlay of written files, the settings `wof_init` leaves alone, the native library's recording and entries; saved in gold, not saved in grey; no count. viewBox 1000 x 622, made by a script in the scratchpad that measures every text with Pillow (Arial 14, 15 bold and 12; Menlo Bold 12 for the code) against its box: no label over its box; the rightmost element, the right column's boxes, ends at x 906, 94 units from the viewBox's edge, where the rule asks a sixth of the longest label, the subtitle of 505.5 units, 84.2; the style block's header "The design's colours, each an entry of one of the game's palettes", five classes, each colour commented with its entry (`wingstitle 25`, `wingspalette 29`, `wingspalette 6`, `wingstitle 31`, `wingspalette 29`), held by `book/tools/build.py --check`; rendered with ImageMagick to look at it, no browser |
 
 Figure (b), the arena's two ends, is a figures box instead (claim 88), with a sentence for the two ends; figure (c), the coroutine's resume, is left out: listing 1 and the paragraph carry it.
 
@@ -227,7 +227,7 @@ Figure (b), the arena's two ends, is a figures box instead (claim 88), with a se
 | Box | Rows |
 |---|---|
 | The arena | its size, the blob, in use after `wof_init` (claim 88) |
-| The registries | 252 variables, 30 tables, 21 allocations, 26 record layouts, the state's size about 360 KB with the display memory about 330 KB (claims 43 to 45, 55) |
+| The registered state | 252 variables, 30 tables at fixed addresses, 21 allocations kept at fixed places, 26 record layouts, the whole state about 360 KB with the display memory about 330 KB (claims 43 to 45, 55) |
 
 ## The listings
 
@@ -305,3 +305,33 @@ The shell's clock, picture, sound, keys and storage at work (chapter 23); the su
 - **The arena test's name.** `test_thirty_mission_setups_do_not_grow_the_arena` counts to 31 missions; the note says thirty-one. The chapter says thirty-one.
 - **The module ranges.** The task asks for a table of the modules with their address ranges from the files' openings; three openings name a range (`src/player.c`, `src/enemy.c`, `src/sound.c`), `src/ffp.c` names the glue's, and the blitter library's range is in `re/notes/drawing.md`. The table gives those six, the music player by its offsets, and says the rest follow their routines in order.
 - **Links to re-point, for the controller.** Chapters 17 and 18 link "registered state" to chapter 5's section `calling-a-routine-without-its-program`; chapters 14, 17 and 19 say "coroutine" and link `../part-3/core.md`. With the entries added, those links could go to `../glossary.md#registered-state` and `../glossary.md#coroutine`, which would move both entries' "First met" lines to the lowest chapter linking them.
+
+## The controller's notes on the sheet, folded in
+
+1. The task's glossary clause meant that only Registered state, Save state and Coroutine were not entries: read so; nothing changed.
+2. Save state's entry says in one clause how it differs from the game's own saved game, "a file the game writes (chapter 17) and the overlay keeps"; its Elsewhere line names Wikipedia's "Saved game" with "whose save states are an emulator's".
+3. Kind (of a field) and Overlay (of the file system) keep their qualifiers, as Commit (version control) does. The chapter never says "the overlay" bare near the diagnostics overlay: the interface table's development row says "the diagnostics overlay's lines".
+4. The `text` kind's first line in C's comment syntax for `.c`, `.h` and `.def` stands; `book/BOOK.md` 5 (a) is the controller's at the merge.
+5. Claim 24 now names the reader, `on_the_lift` (`0x01B4DE`, the table's base at `0x01B522` and `0x01B544`), and the writer of `0x025E50`, `deck_state` (`0x01BCCE`, at `0x01BD4C`); not "the same routine". The chapter gives the rule without addresses.
+6. Claim 22 gives the `beq.w` at `0x011D00` with the two instructions before it, from `re/Wings.lst` lines 2601 to 2603.
+7. The chapter says "recorded" and "counted" for the traps and gives no version history; `SPEC.md` 7.1, 6.3 and the two comments are the controller's.
+8. The settings `wof_init` leaves alone are the fade step, the VBlanks a pass and the audio output rate, in the chapter and the figure; the assist's switch is inside the state.
+9. KB at 1,024 bytes throughout: the state about 360 KB (368,080 bytes), the display memory about 330 KB (341,536), the blob about 530 KB (543,240), the arena 3 MB and about 1.1 MB in use (1,128,368 bytes). The chapter says "KB" and "MB" only.
+10. The links of chapters 14, 17, 18 and 19 are left as they are.
+11. This section; the sheet brought to the draft below.
+
+## Draft
+
+`book/docs/part-3/core.md`, 4,167 words by `wc -w`. The order: the opening; one C program and its five bans; the modules with the six sourced ranges and the machine table of seven rows; the arithmetic as a table of ten rules; the data as five rules; the registered state with listing 3 (the player's record), the kinds' table, the figures box of the registries and listing 4 (`wof_original_store8`); inside the state and outside it with listing 2 (the struct's end) and figure (a); save states with listing 6 (`test_state_round_trips`); coroutines with listing 1 (the macros); the arena with listing 5 and its figures box; the file system; the two inputs and the video standard; the interface as a table of eleven rows; the sidebar; what comes next; further reading.
+
+Claims made while drafting that the sheet above did not hold, each with its source:
+
+120. A long campaign cannot exhaust the arena, since nothing is taken from it once the assets are loaded. Source: claim 86; `SPEC.md` 7.2 ("The arena is used only while assets load, so it does not grow from mission to mission").
+121. Chapter 2 gave the overview of what the original asks of the system and what the port does instead. Source: `book/docs/part-1/amiga.md`, "The little of AmigaOS the game uses" (its table).
+122. The assist's watch in `wof_vblank` is the port's own, not the original's. Source: `src/input.c` (`wof_assist_vblank`, "port policy"); `src/assist.c` opening ("not a port of anything: it is policy").
+123. The development entries feed the diagnostics overlay's lines. Source: `src/wof.h` (`wof_dev_player`, `wof_dev_game`: "for the overlay"); `SPEC.md` 6.1.
+124. The page hands the core whatever it needs, through the interface. Source: claim 14; `web/core.js`.
+125. Most fields of the records are plain: 194 of 221. Source: claim 46.
+126. The figure's caption: the core's state, saved and loaded as one block, beside what the core keeps outside it; the alternative text: two columns, the state's members in gold, saved, what lies outside in grey, not saved. Source: claims 52 to 59.
+127. The opening's "how the game's state fits into one block that can be saved" and the hand-off's sentence "the core is one C program that keeps everything it changes in one block tied to the original's addresses, waits by returning, and asks the page for nothing". Source: claims 3, 49, 52, 73, 14.
+
