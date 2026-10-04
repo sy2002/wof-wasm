@@ -1,20 +1,24 @@
 # Wings of Fury
 
-*Broderbund's 1990 Amiga classic, brought back as a single HTML file: not emulated, not remade, but ported routine by routine from the original 68000 executable, and held to the original tick for tick. [Click here to play.](https://sy2002.github.io/wof-wasm/play/wof.html)*
+*This is a special kind of retro-game preservation project: Broderbund's 1990 Amiga classic, brought back as a single HTML file: not emulated, not remade, but ported routine by routine from the original 68000 executable, and held to the original tick for tick. [Click here to play.](https://sy2002.github.io/wof-wasm/play/wof.html)*
 
 ![](ref/title.png)
 
 Open `dist/wof.html` (download it and double-click the `.html` file locally or [click here to play online](https://sy2002.github.io/wof-wasm/play/wof.html)) and you are on the carrier's deck in 1944: the original's artwork, its sound effects and its music, in your browser, nothing to install. Under the hood there is no Amiga emulator. The game's own logic was taken out of the executable's machine code and rewritten in C, one routine at a time, and runs as WebAssembly; a small JavaScript shell gives it a screen, a sound chip and a keyboard.
 
+This is a special kind of retro-game preservation project. A so called **faithful port**:
+
+![](https://sy2002.github.io/wof-wasm/figures/three-ways.svg)
+
 What makes it faithful is the method, not just the care. The original executable itself ran headless under emulation beside the port, and the two were compared after every logic tick and every drawn frame, over more than sixty scripted missions on all fifteen maps, through whole campaigns, saved games and the demo: the same game state, byte for byte; the same drawing calls with the same palettes; the same sound sample started on the same channel at the same moment. The flight model runs on the Amiga's own floating-point arithmetic, bit for bit. The speed is the one measured on a real PAL Amiga. The enemy pilots, the ships' gunners, the soldiers running for the dug-outs do exactly what they did in 1990, down to a bug the game always had. What was changed on purpose fits in one short list: the keys a browser allows, menus that take a tap where the original wanted a held stick, and a remembered preference for the stick's sense.
 
 The picture is as pixel-identical as a modern screen allows: the drawing routines are the original's, ported and held to a model of the Amiga's blitter, and what they draw is shown in the Amiga's own pixel aspect, every pixel crisp, at whatever size your window has. In a way it is better than the disk in an emulator: no emulator in between, no disk to boot, no settings to get right, just the game as it was, at the browser's full frame rate, with the sound and the music played by the original's own sound engine and music player, ported with the rest.
 
-It is a retro preservation project, and a case study in how one can be done today: the tools, the notes, the disassembly and the tests that hold the port to the original are all in this repository, and the book about the way, *Bringing Back Wings of Fury*, is in `book/` (below).
+It is a retro preservation project, and a case study in how one can be done today: the tools, the notes, the disassembly and the tests that hold the port to the original are all in this repository, and **the book about the way**, [Bringing Back Wings of Fury](https://sy2002.github.io/wof-wasm/), is in `book/` (below).
 
 ## Play
 
-Open [https://sy2002.github.io/wof-wasm/play/wof.html](https://sy2002.github.io/wof-wasm/play/wof.html) in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. You can also [download dist/wof.html](dist/wof.html) and run it locally by just double-clicking the `.html` file. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
+This is a quirky little game. It is absolutely not self explanatory, so it makes sense [to have a look at the user's manual](https://github.com/sy2002/wof-wasm/blob/main/original/manual.txt). Then: Open [https://sy2002.github.io/wof-wasm/play/wof.html](https://sy2002.github.io/wof-wasm/play/wof.html) in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. You can also [download dist/wof.html](dist/wof.html) and run it locally by just double-clicking the `.html` file. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
 
 ## Build and verify
 
@@ -54,7 +58,9 @@ The first phase, the emulator tests over the cores, takes about an hour, and the
 
 ## The book
 
-*Bringing Back Wings of Fury* is a book about this port: how a 1990 Amiga game was ported routine by routine and how one knows the port is faithful, then what is inside the game, then the code and the tools. It lives in `book/` as a MkDocs site, with a handbook of its own, `book/BOOK.md`. To read it on your machine:
+[Bringing Back Wings of Fury](https://sy2002.github.io/wof-wasm/) is a book about this port: how a 1990 Amiga game was ported routine by routine and how one knows the port is faithful, then what is inside the game, then the code and the tools. It lives in `book/` as a MkDocs site, with a handbook of its own, `book/BOOK.md`. [Click here to read it online](https://sy2002.github.io/wof-wasm/).
+
+To build and read it on your machine:
 
 ```
 sh tools/setup.sh --book
@@ -64,10 +70,6 @@ cd book && ../.venv/bin/mkdocs serve
 and open `http://127.0.0.1:8000/wof-wasm/`. With `--book` the setup does everything it does for the game, installs the book's packages from `book/requirements.txt` into the same `.venv`, and builds the site once with `mkdocs build --strict`. It does that before it looks for the ROM, so a clone without the ROM still gets the book; without `--book` it installs none of the book's packages.
 
 Reading and building the site need only Python and those packages, no ROM: the listings, the figures and the web font of the headings are generated beforehand from the real sources and committed. Regenerating them, `.venv/bin/python book/tools/build.py`, needs the ROM and the built repository (`python tools/build.py --native`, on macOS), as the tests do, and `book/tools/build.py --check` makes them all again in a temporary directory and holds the committed files to that regeneration, byte for byte. `book/site/` is the built site and is never committed.
-
-The book's packages are pinned whole in `book/requirements.txt`, the ones they pull in as well, so that every clone builds the site with the same set and the engine stays at MkDocs 1.6.1: a future MkDocs 2.0 is never pulled in by accident.
-
-The site is published at [https://sy2002.github.io/wof-wasm/](https://sy2002.github.io/wof-wasm/) by the workflow `.github/workflows/book.yml`. On every push to `main` it installs `book/requirements.txt`, runs `mkdocs build --strict` in `book/` and deploys `book/site/` with GitHub's Actions Pages flow, from the committed files alone, so it needs no ROM, no compiler and no browser; the port's build and tests stay out of CI, since both stop without the ROM. Its actions are pinned to full commit SHAs. For the workflow to deploy, Pages has to be enabled once in the repository's settings (Pages, Build and deployment) with "GitHub Actions" as the source.
 
 ## Where things are
 
