@@ -67,6 +67,8 @@ Reading and building the site need only Python and those packages, no ROM: the l
 
 The book's packages are pinned whole in `book/requirements.txt`, the ones they pull in as well, so that every clone builds the site with the same set and the engine stays at MkDocs 1.6.1: a future MkDocs 2.0 is never pulled in by accident.
 
+The site is published at [https://sy2002.github.io/wof-wasm/](https://sy2002.github.io/wof-wasm/) by the workflow `.github/workflows/book.yml`. On every push to `main` it installs `book/requirements.txt`, runs `mkdocs build --strict` in `book/` and deploys `book/site/` with GitHub's Actions Pages flow, from the committed files alone, so it needs no ROM, no compiler and no browser; the port's build and tests stay out of CI, since both stop without the ROM. Its actions are pinned to full commit SHAs. For the workflow to deploy, Pages has to be enabled once in the repository's settings (Pages, Build and deployment) with "GitHub Actions" as the source.
+
 ## Where things are
 
 - `SPEC.md`: the specification, the porting rules and the milestones.

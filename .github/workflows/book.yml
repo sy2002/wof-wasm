@@ -1,0 +1,64 @@
+# The book's site on GitHub Pages (README.md, The book; book/BOOK.md, section 5).
+#
+# On every push to main, and by hand, it installs the book's pinned packages and runs
+# mkdocs build --strict in book/, as tools/setup.sh --book does, then publishes book/site/
+# with the Actions Pages flow.  The site is built from the committed files alone: the listings,
+# the figures and the web font are generated beforehand and committed, and hooks/game.py takes
+# the committed dist/wof.html.  So nothing here needs the ROM, a compiler or a browser, and the
+# port's build and tests, which stop without the ROM, stay out of CI.
+#
+# Once, in the repository's settings: Pages, Build and deployment, Source "GitHub Actions".
+# Every action is pinned to a full commit SHA, its release in the comment beside it.
+
+name: book
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a run that is under way finishes rather than being cut off, and only
+# the newest of the runs waiting behind it goes on.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      # Fails early, before the install, when Pages is not enabled for the repository.
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Install the book's packages
+        run: python -m pip install --disable-pip-version-check -r book/requirements.txt
+      - name: Build the site
+        working-directory: book
+        env:
+          NO_MKDOCS_2_WARNING: "1"
+        run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: book/site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
