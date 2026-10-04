@@ -121,8 +121,6 @@ markdown_extensions:
 nav:
   - Bringing Back Wings of Fury: index.md
   - Play the game: play.md
-  - The shape browser: browser.md
-  - The map viewer: maps.md
   - "Part I: From the disk to a faithful game":
       - "1. What faithful means": part-1/faithful.md
       - "2. The Amiga in twenty minutes": part-1/amiga.md
@@ -155,4 +153,6 @@ nav:
       - The glossary: glossary.md
       - The keys: keys.md
       - The routine inventory: routines.md
+      - The shape browser: browser.md
+      - The map viewer: maps.md
       - The licence and the game data: licence.md

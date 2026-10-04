@@ -164,6 +164,17 @@
   color: var(--wof-hover);
 }
 
+/* The sidebar's own title repeats the header's on a wide screen, where Material shows both;
+   it goes there with the hairline under it, and the drawer of a narrow screen keeps it. */
+@media screen and (min-width: 76.25em) {
+  .md-nav--primary > .md-nav__title[for="__drawer"] {
+    display: none;
+  }
+  .md-nav--primary > .md-nav__title ~ .md-nav__list {
+    box-shadow: none;
+  }
+}
+
 /* The prose keeps a book's measure; code, figures, tables and the game take the column. */
 .md-typeset > p,
 .md-typeset > ul,

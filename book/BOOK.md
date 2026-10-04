@@ -65,7 +65,7 @@ Three parts, in the owner's arc: the story and the method first, then the game i
 24. *The tests.* The layers, the two phases, the page tests under a true scale factor, the replays; what one run proves.
 25. *Build it yourself.* The setup, the ROM, the build, running the headless original, reading a routine with the tools; how to fix a bug or extend the port.
 
-**Appendices.** The glossary. The keys. The routine inventory. The licence and the game data.
+**Appendices.** The glossary. The keys. The routine inventory. The shape browser and the map viewer. The licence and the game data.
 
 **The writing order:** Part I first (the chronicle and the porting notes are the freshest sources), then Part II, then Part III; the preface last. About 25 chapters of 2,500 to 5,000 words, 60,000 to 90,000 words in all; the owner's read of each chapter is the final gate, which makes their reading time the pace.
 

@@ -62,7 +62,7 @@ The code excerpts, the book's listings (not the original's listing, which the gl
 
 The figures are rendered from the game's own data by the port's library and the project's tools; the diagrams are drawn for the black ground every figure is shown on. Where numbers cluster, a box titled *The figures* holds the numbers.
 
-Every file of the repository the book names is a link to it on GitHub, checked at every build. The appendices are the glossary, the [keys](keys.md), the [routine inventory](routines.md) and the [licence and the game data](licence.md). Two pages let you look into the game's data, the [shape browser](browser.md) and the [map viewer](maps.md); they need the site served, and say so when opened as files.
+Every file of the repository the book names is a link to it on GitHub, checked at every build. The appendices are the glossary, the [keys](keys.md), the [routine inventory](routines.md), two pages that let you look into the game's data, the [shape browser](browser.md) and the [map viewer](maps.md), which need the site served and say so when opened as files, and the [licence and the game data](licence.md).
 
 The titles of the pages and of their sections are set in the game's own font, made into a web font from the game's data:
 
