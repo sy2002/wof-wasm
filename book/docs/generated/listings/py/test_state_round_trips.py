@@ -1,4 +1,4 @@
-# tests/test_core_native.py, lines 44-57
+# tests/test_core_native.py, lines 47-60
 def test_state_round_trips(native_core_factory, blob):
     core = native_core_factory(7, blob)
     core.run(100)

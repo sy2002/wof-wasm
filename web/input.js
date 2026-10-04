@@ -10,12 +10,14 @@
  * port of vblank_every_frame (re/notes/input.md), because they are evaluated per VBlank
  * while the logic samples them only every fourth one.
  *
- * The shell's one addition is the sticky latch.  The original samples a level 60 times a
- * second; a browser can deliver a key press and its release between two of our VBlanks, so
- * a bit that went down since the last sample stays set for exactly one sample.
+ * The shell's one addition is the sticky latch.  The original samples a level once a VBlank,
+ * 50 or 60 times a second; a browser can deliver a key press and its release between two of
+ * our VBlanks, so a bit that went down since the last sample stays set for exactly one
+ * sample.
  *
  * Keys are read from KeyboardEvent.code, which is positional, like the raw Amiga key codes
- * the menus will need in M3. */
+ * that the menus, the briefing, the line editor and the in-flight commands read (the second
+ * path, below). */
 
 /* No Control key is a fire key: with KeyW mapped to up, firing while climbing would be
    Ctrl+W, which closes the tab in every mainstream browser and which a page cannot prevent.
@@ -48,8 +50,10 @@ const PAD_DEADZONE = 0.4;
  * come out of the core's conversion table (re/notes/keys.md, SPEC 6.2).
  *
  * The function keys and Help are deliberately absent.  A page that swallowed F5 or F12
- * would take reload and the developer tools away from the player, and the only reader of
- * them in the whole executable is the cheat debug set, which M4 ports.
+ * would take reload and the developer tools away from the player, and their only readers in
+ * the whole executable are two of the debug keys the cheat sequence unlocks (raw 0x59 and
+ * 0x5F), which are ported with ingame_keys and out of reach on the page, because the
+ * sequence cannot be typed: its l is the load command (re/notes/keys.md).
  */
 const RAW_CODES = {
     Digit1: 0x01, Digit2: 0x02, Digit3: 0x03, Digit4: 0x04, Digit5: 0x05,

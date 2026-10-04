@@ -1,6 +1,7 @@
 /* The AudioWorklet processor.  tools/build.py inlines the text of this file into the
-   bundle as a string, and the shell turns that string into a Blob URL, because a worklet
-   module cannot be loaded from a file:// page any other way.
+   bundle as a string, and the shell hands that string to the browser as a URL made on the
+   spot, a Blob URL or a data: URL where a file:// page refuses Blob URLs (web/audio.js),
+   because a worklet module cannot be a file next to the page.
 
    It owns no state that matters: the main thread renders the samples from the core and
    posts them here, this only hands them to the audio hardware and reports how much it has

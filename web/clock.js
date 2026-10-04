@@ -4,7 +4,7 @@
  * per 1/50 second of emulated time on PAL, 1/60 on NTSC, and one wof_pass after each of
  * them, because the original's inner loop runs one pass per displayed frame and the display
  * is the VBlank.  A 144 Hz monitor therefore still gets 50 passes a second on PAL, and a
- * 30 Hz one still gets 50, two per animation frame.
+ * 30 Hz one still gets 50, one or two per animation frame.
  *
  * The rate is one half of the video standard, which the shell sets as a whole; the other
  * half is the pixel aspect in web/video.js.

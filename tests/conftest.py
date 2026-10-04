@@ -376,6 +376,70 @@ def assert_the_demo_plays_as_it_was_recorded(run):
             at, run['recorded'][max(at - 4, 0):at + 4], run['first'][max(at - 4, 0):at + 4]))
 
 
+# ------------------------- a stored saved game above 8,192 bytes after a reload (pagerestore.mjs)
+
+# The score the stored game carries, which the disk's own saved game (14,225) does not: a
+# load of the disk's file, the dialog's first entry when the stored one is missing, is told
+# from it.
+RESTORE_SCORE = 24680
+SAVE_MAP_M = 11516                       # a save on map m, the largest (re/notes/campaign.md)
+SAVE_MAX = 12412                         # WOF_SAVE_MAX, src/wof.h
+
+
+def restore_files(tmp_path):
+    """The files tests/pagerestore.mjs stores, written to a JSON file, and what the saved game
+    holds (tools/savegame.py): the disk's own saved game (map c, 6,866 bytes, tools/savegame.py --disk) under
+    RESTORE_SCORE and with zeros after it, to 11,516 bytes as wof.abc, the file the dialog
+    lists first and the game loads, and to 12,412 and 12,413 as wof.max and wof.over, which
+    are only counted.  save_game_read reads as far as the counts at the file's start say, so
+    the padding is never read; the port's check before the load asks only that the file is
+    not shorter (src/dialog.c, wof_save_game_fits)."""
+    import savegame
+    data = bytearray(pathlib.Path(savegame.DISK_FILE).read_bytes())
+    at = savegame.PLAYER_SCORE - savegame.RAW_START
+    data[at:at + 4] = RESTORE_SCORE.to_bytes(4, 'big')
+
+    def stored(name, size):
+        return {'name': name, 'data': base64.b64encode(bytes(data) + bytes(size - len(data))).decode()}
+    files = {'counted': [stored('wof.max', SAVE_MAX), stored('wof.over', SAVE_MAX + 1)],
+             'saved': stored('wof.abc', SAVE_MAP_M)}
+    path = tmp_path / 'restore-files.json'
+    path.write_text(json.dumps(files))
+    return path, savegame.summary(bytes(data))
+
+
+def run_restore(page, which, binary, tmp_path):
+    """tests/pagerestore.mjs on `page` in Chrome or Firefox, headless: its report, with what
+    the stored saved game holds."""
+    files, expected = restore_files(tmp_path)
+    finished = subprocess.run(
+        ['node', str(ROOT / 'tests' / 'pagerestore.mjs'), str(page), which, str(files), binary],
+        cwd=ROOT, capture_output=True, text=True)
+    assert finished.returncode == 0, 'tests/pagerestore.mjs failed:\n%s\n%s' % (
+        finished.stdout[-2000:], finished.stderr)
+    report = json.loads(finished.stdout)
+    report['expected'] = expected
+    return report
+
+
+def assert_an_oversized_saved_game_comes_back_after_a_reload(run):
+    """SPEC 6.2, Storage: a saved game above 8,192 bytes, stored by the shell, is in the core's
+    file system again after a reload, up to WOF_SAVE_MAX.  The overlay's files line counts a
+    file of 12,412 bytes and not one of 12,413; the 11,516 of a save on map m is the load
+    dialog's first entry, and the rank selection's seventh entry loads it: the campaign is
+    the stored file's, its own score among it."""
+    assert run['errors'] == [], run['errors']
+    assert run['counted'] == [{'name': 'wof.max', 'inTheCore': 1},
+                              {'name': 'wof.over', 'inTheCore': 0}], run['counted']
+    assert run['inTheCore'] == 1, 'the overlay counts %s files after the reload' % run['inTheCore']
+    assert run['stored'] == [['wof.abc', SAVE_MAP_M]], run['stored']
+    e = run['expected']
+    assert run['loaded'] and run['loaded']['inMission'], run['loaded']
+    assert _campaign(run['loaded']) == (e['rank'], e['mission'], e['lives'], RESTORE_SCORE), (
+        'the game loaded %s, the stored file holds rank %d, mission %d, lives %d, score %d' % (
+            run['loaded'], e['rank'], e['mission'], e['lives'], RESTORE_SCORE))
+
+
 def assert_the_mission_is_flown_from_the_keyboard(flight):
     """M4 on the page, with the keys held in real time and the state read off the overlay:
     the lift brings the aircraft up to the deck, the roll takes it off the deck and the stick

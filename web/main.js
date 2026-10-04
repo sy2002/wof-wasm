@@ -8,9 +8,10 @@ import { createAudio, STEREO_WIDTHS } from './audio.js';
 import { createClock } from './clock.js';
 import { createOverlay } from './overlay.js';
 
-/* A fixed seed, so that the same page always produces the same picture.  The original takes
-   its seed from the beam position at start (re/notes/random.md); which seed the port uses
-   is a front-end question and belongs to M3. */
+/* The seed of the core's entropy stream, the beam positions the port's rand_beam takes where
+   the original reads the raster beam (re/notes/random.md).  It is fixed, so every visit
+   starts the same stream.  A recorded demo keeps the stream's state at its start in its
+   seed file, wofdemo.seed, and its playback starts from that (re/notes/demo.md). */
 const SEED = 0x57494e47;
 
 /* Keys that are only ever held with another one: they are no key of their own, so they

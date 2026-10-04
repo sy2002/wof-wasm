@@ -1,6 +1,9 @@
-/* The diagnostics overlay.  It exists so that the M0 acceptance criteria - a steady
-   emulated 60 Hz, the tick rate, the input bits, sound actually flowing - can be read off
-   the page instead of guessed at.  The backtick key toggles it. */
+/* The diagnostics overlay: what the page is doing, read off the page instead of guessed at -
+   the emulated clock and the rates of VBlanks, ticks and passes, the video path and its
+   cost, the input bits, the sound's backend and queue, the core's counters, the player and
+   the campaign - and the development keys that work while it is up.  The page tests read
+   their numbers off it, where a person reads them.  The key left of 1 toggles it, which
+   arrives as Backquote or IntlBackslash (DIAGNOSTIC_CODES, web/input.js). */
 
 const BIT_NAMES = ['up', 'down', 'right', 'left', 'fire'];      /* bit 0 first, SPEC 6.1 */
 

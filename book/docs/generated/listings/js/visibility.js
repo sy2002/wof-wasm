@@ -1,4 +1,4 @@
-// web/main.js, lines 370-399
+// web/main.js, lines 371-400
 /* A hidden page stops (SPEC 6.2, Pause): no animation frame reaches it, so the clock is
    stopped outright and the sound is held, and a mission comes back from a real absence
    paused.  A page can also be hidden for a few milliseconds only and shown again; a

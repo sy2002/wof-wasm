@@ -1,4 +1,4 @@
-# tests/conftest.py, lines 1256-1292
+# tests/conftest.py, lines 1320-1356
 def fresh_settings():
     """What lives beside the core's state and survives wof_init, put back to what the process
     held before any test ran (re/notes/testing.md, "A fresh core for every test"): the

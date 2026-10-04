@@ -92,6 +92,16 @@ def frames(built):
 
 
 @pytest.fixture(scope='session')
+def restored(built, tmp_path_factory):
+    """Saved games put into browser storage and the page reloaded (tests/pagerestore.mjs), in
+    a browser of its own.  WOF_RESTORE_PAGE runs it on another build instead, which is how
+    the negative control is run."""
+    from conftest import run_restore
+    page = os.environ.get('WOF_RESTORE_PAGE', str(built))
+    return run_restore(page, 'chrome', CHROME, tmp_path_factory.mktemp('restore'))
+
+
+@pytest.fixture(scope='session')
 def loaded(built):
     from conftest import ROOT
     finished = subprocess.run(
@@ -647,6 +657,13 @@ def test_a_game_loaded_with_l_in_flight_resumes_the_save(loaded):
     """L in the air on a fresh page: the save comes back as from the rank selection."""
     from conftest import assert_a_game_loaded_in_flight_resumes_the_save
     assert_a_game_loaded_in_flight_resumes_the_save(loaded['saveLoad'], loaded['flightLoad'])
+
+
+def test_an_oversized_saved_game_is_back_after_a_reload(restored):
+    """A saved game above 8,192 bytes, as a save on one of the seven larger maps is, stored
+    by the shell and put back at the next visit: up to 12,412 bytes, WOF_SAVE_MAX."""
+    from conftest import assert_an_oversized_saved_game_comes_back_after_a_reload
+    assert_an_oversized_saved_game_comes_back_after_a_reload(restored)
 
 
 def test_a_demo_recorded_with_key_4_plays_after_a_reload_as_it_was_recorded(loaded):

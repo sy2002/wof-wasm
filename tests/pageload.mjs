@@ -2,7 +2,8 @@
  * tests/pagecheck_firefox.mjs): a game saved on the carrier with G and loaded after a
  * reload from the rank selection's seventh entry, the same save loaded with L in flight,
  * and a demo recorded from the overlay's key 4, played by the attract mode after a reload
- * and played again.
+ * and played again.  Beside them, run by tests/pagerestore.mjs: saved games up to the
+ * largest the core writes, put into browser storage and back in the core after a reload.
  *
  * The drivers hand in `d`: tap(name, ms), hold(name), release(name), sleep(ms),
  * evaluate(expression) and reload(); key names are the ones both drivers know (backquote,
@@ -20,6 +21,13 @@ export const GAME = `(() => {
     const demo = (text.match(/^demo\\s+(.*)$/m) || [null, null])[1];
     return m ? { rank: +m[1], mission: +m[2], lives: +m[3], score: +m[4], inMission: !m[5],
                  playing: !!m[6], recording: !!m[7], demo } : null;
+})()`;
+
+/* The files in the core's file system that the game wrote or the shell put back at the
+ * page's start, as the overlay's files line counts them. */
+export const FILES_STORED = `(() => {
+    const m = document.getElementById('overlay').textContent.match(/files stored\\s+(\\d+)/);
+    return m ? +m[1] : null;
 })()`;
 
 /* The core's exports, kept when the shell instantiates them, and after every pass that ran
@@ -176,6 +184,37 @@ export async function saveLoadRun(d) {
     out.loadedPlayer = await d.evaluate(PLAYER);
     await d.sleep(2000);
     out.later = await d.evaluate(PLAYER);
+    return out;
+}
+
+/* Saved games put into browser storage in the shell's own format, one list under wof:files
+   with each file's bytes in base64 (web/main.js, storeFiles), and the page reloaded, so that
+   the shell's restore hands them to the core before the first pass.  First each file of
+   `counted` alone, read off the overlay's files line; then `saved`, under the name wof.abc,
+   the dialog's first entry as in saveLoadRun, loaded from the rank selection's seventh
+   entry. */
+export async function restoreRun(d, counted, saved) {
+    const out = { counted: [] };
+    const store = (files) => d.evaluate("(localStorage.setItem('wof:files', " +
+                                        JSON.stringify(JSON.stringify(files)) + '), true)');
+    for (const file of counted) {
+        await store([file]);
+        await d.reload();
+        await soundAndOverlay(d);
+        await d.sleep(600);
+        out.counted.push({ name: file.name, inTheCore: await d.evaluate(FILES_STORED) });
+    }
+    await store([saved]);
+    await d.reload();
+    await toTheRanks(d);
+    out.inTheCore = await d.evaluate(FILES_STORED);
+    await d.tap('up', 80);                          /* the cursor from the first rank to 7 */
+    await d.sleep(800);
+    await d.tap('enter', 80);                       /* the load dialog */
+    await d.sleep(3000);
+    await loadTheFirst(d);
+    out.loaded = await d.evaluate(GAME);
+    out.stored = (await d.evaluate(STORED_FILES)).map((f) => [f.name, f.bytes]);
     return out;
 }
 

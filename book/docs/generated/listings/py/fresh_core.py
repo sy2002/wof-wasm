@@ -1,4 +1,4 @@
-# tests/conftest.py, lines 1295-1309
+# tests/conftest.py, lines 1359-1373
 @pytest.fixture(autouse=True)
 def fresh_core(request):
     """Every test that takes the core starts from a fresh one, whatever ran before it in its

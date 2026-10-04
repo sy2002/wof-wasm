@@ -5,6 +5,14 @@
  * no imports at all: it allocates nothing from the host, reads no clock and makes no call
  * back into JavaScript. */
 
+/* The largest file the core's file system holds: WOF_SAVE_MAX in src/wof.h, a saved game on
+   the largest map the port's tables allow (src/fs.c, FS_FILE_MAX).  The core has no export
+   for it, so the number is written here, and tests/test_core_native.py holds the two equal:
+   it evaluates the macro, reads this line and has the core take a file of this size and
+   refuse one a byte longer.  Every file the game wrote fits, so every file it wrote comes
+   back at the next visit. */
+const FILE_MAX = 12412;
+
 export async function loadCore(wasmBytes, fsBytes, seed) {
     const { instance } = await WebAssembly.instantiate(wasmBytes, {});
     return new Core(instance.exports, fsBytes, seed);
@@ -39,7 +47,7 @@ class Core {
 
         /* Scratch for handing a stored file back to the core's file system: a name and the
            bytes.  One allocation, reused, because the arena is never freed. */
-        this.filePtr = exports.wof_alloc(8192);
+        this.filePtr = exports.wof_alloc(FILE_MAX);
         this.namePtr = exports.wof_alloc(64);
     }
 
@@ -136,7 +144,7 @@ class Core {
     }
 
     fsPut(name, data) {
-        if (data.length > 8192 || name.length > 62) {
+        if (data.length > FILE_MAX || name.length > 62) {
             return false;
         }
         const chars = this.bytes(this.namePtr, 64);
@@ -148,8 +156,9 @@ class Core {
         return this.x.wof_fs_put(this.namePtr, this.filePtr, data.length) !== 0;
     }
 
-    /* Development entries (M3 deliverable 7): not part of the game, and offered by the
-       shell only while the diagnostics overlay is up. */
+    /* Development entries (SPEC 6.1): not part of the game, and offered by the shell only
+       while the diagnostics overlay is up, so that a screen a mission would be needed to
+       reach - the high-score entry, either mode of the dialog - can be looked at. */
     devSetScore(score) {
         this.x.wof_dev_set_score(score >>> 0);
     }
@@ -158,9 +167,9 @@ class Core {
         this.x.wof_dev_open_dialog(mode ? 1 : 0);
     }
 
-    /* main's command-line argument (M7 part 2): on, every rank chosen records a demo, which
-       the game's end writes as wofdemo beside its seed; the stored files go through the
-       written-files list like a saved game. */
+    /* main's command-line argument (re/notes/demo.md): on, every rank chosen records a demo,
+       which the game's end writes as wofdemo beside its seed; the stored files go through
+       the written-files list like a saved game. */
     devDemoRecord(on) {
         this.x.wof_dev_demo_record(on ? 1 : 0);
     }

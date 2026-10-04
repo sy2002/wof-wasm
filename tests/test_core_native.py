@@ -5,8 +5,11 @@ executable under Unicorn, so the path has to work from the first milestone on.
 """
 import ctypes
 import hashlib
+import re
 
 import pytest
+
+from conftest import ROOT
 
 
 def test_native_library_loads_and_reports_the_same_geometry(native_core_factory, wasm, blob):
@@ -81,3 +84,35 @@ def test_native_and_wasm_draw_the_same_picture(native_core_factory, wasm, blob):
     core = native_core_factory(expected['seed'], blob)
     core.run(expected['vblanks'], expected['raw'])
     assert hashlib.sha256(core.framebuffer()).hexdigest() == expected['hash']
+
+
+def test_the_shell_hands_back_every_file_the_core_can_write(native_core_factory):
+    """web/core.js puts a stored file back into the core's file system at a page's start
+    (fsPut) only up to its FILE_MAX, and its scratch buffer has that size.  The core has no
+    export for its own limit, WOF_SAVE_MAX (src/wof.h), the largest saved game its tables
+    allow: so the macro is evaluated here and the shell's number read from its line, and the
+    core takes a file of that size and refuses one a byte longer.  With a smaller number in
+    the shell, a saved game on a large map is stored at the end of a visit and not put back
+    at the next (tests/test_page.py, the oversized saved game)."""
+    header = (ROOT / 'src' / 'wof.h').read_text(encoding='utf-8')
+    found = re.search(r'^#define WOF_SAVE_MAX \((.*)\)$', header, re.M)
+    assert found, 'WOF_SAVE_MAX is not a single-line expression in src/wof.h'
+    expression = re.sub(r'\b(0x[0-9A-Fa-f]+|\d+)u\b', r'\1', found.group(1))
+    assert re.fullmatch(r'[0-9A-Fa-fx+* ()]+', expression), expression
+    save_max = eval(expression)
+
+    shell = re.findall(r'^const FILE_MAX = (\d+);$',
+                       (ROOT / 'web' / 'core.js').read_text(encoding='utf-8'), re.M)
+    assert shell == [str(save_max)], 'web/core.js FILE_MAX %s, WOF_SAVE_MAX %d' % (shell, save_max)
+
+    core = native_core_factory(1)
+    put = core.lib.wof_fs_put
+    put.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32]
+    put.restype = ctypes.c_int
+    core.lib.wof_fs_writes_reset()
+    try:
+        assert put(b'wof.largest', bytes(save_max), save_max) == 1
+        assert put(b'wof.over', bytes(save_max + 1), save_max + 1) == 0
+        assert core.lib.wof_fs_written_count() == 1
+    finally:
+        core.lib.wof_fs_writes_reset()
