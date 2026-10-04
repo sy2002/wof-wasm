@@ -149,7 +149,7 @@ The key left of 1 opens the [**diagnostics overlay**](../glossary.md#diagnostics
 
 ## What the shell stores
 
-What the game writes, the [high-score file](../glossary.md#high-score-file) and the saved games, goes into the core's [overlay](../glossary.md#overlay-of-the-file-system) of written files, and the shell keeps them in the browser's `localStorage`, text under storage keys from one visit to the next, which for a page opened from a file the standard leaves to the browser; Chrome and Firefox keep it, as the tests hold through a reload (chapter 24). The files are stored as one list whenever the core's count of writes moves, because their order is part of the order the [load and save dialog](../glossary.md#load-and-save-dialog) lists them in (chapters 19 and 20), and put back in that order before the next start's first VBlank. The core's overlay takes a file of up to 12,412 bytes (chapter 22); the shell's buffer for putting one back holds 8,192, so a larger saved game is not put back. The demo recorded for the [attract demo](../glossary.md#attract-demo) and its [seed file](../glossary.md#seed-file) are written files too.
+What the game writes, the [high-score file](../glossary.md#high-score-file) and the saved games, goes into the core's [overlay](../glossary.md#overlay-of-the-file-system) of written files, and the shell keeps them in the browser's `localStorage`, text under storage keys from one visit to the next, which for a page opened from a file the standard leaves to the browser; Chrome and Firefox keep it, as the tests hold through a reload (chapter 24). The files are stored as one list whenever the core's count of writes moves, because their order is part of the order the [load and save dialog](../glossary.md#load-and-save-dialog) lists them in (chapters 19 and 20), and put back in that order before the next start's first VBlank. The shell puts back a file of up to 12,412 bytes, the largest the core's overlay takes (chapter 22), so every saved game comes back. The demo recorded for the [attract demo](../glossary.md#attract-demo) and its [seed file](../glossary.md#seed-file) are written files too.
 
 | Storage key | What it holds |
 |---|---|
@@ -159,7 +159,7 @@ What the game writes, the [high-score file](../glossary.md#high-score-file) and 
 
 The video standard is not stored: the page always starts on PAL.
 
-The dialog's Exit Game ends the program on the machine. A page has nothing to end into, so here it reloads the page, a decision of the owner, and the game starts again at the [story scroller](../glossary.md#story-scroller). The high scores and the saved games stay in the browser's storage, and a saved game the shell can put back comes back; a game not saved is lost, as on the Amiga.
+The dialog's Exit Game ends the program on the machine. A page has nothing to end into, so here it reloads the page, a decision of the owner, and the game starts again at the [story scroller](../glossary.md#story-scroller). The high scores and the saved games stay in the browser's storage, and the saved games come back; a game not saved is lost, as on the Amiga.
 
 ## Over the picture
 

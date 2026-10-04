@@ -253,7 +253,7 @@ The shape the tick keeps for level flight lies at `0x02541A`; a shape's record l
 
 ## What comes next
 
-The chapter in one sentence: two tables of maps by rank and mission number hold the campaign together, and a promotion that stops at rank 6 makes it endless; a reload keeps the high-score file, a saved game's memory up to the shell's limit (chapter 23) and a demo's input bytes, the port's seed file beside them. Chapter 18 takes up the sound: the slots the next mission empties, the music a load stops, and Paula's channels.
+The chapter in one sentence: two tables of maps by rank and mission number hold the campaign together, and a promotion that stops at rank 6 makes it endless; a reload keeps the high-score file, a saved game's memory and a demo's input bytes, the port's seed file beside them. Chapter 18 takes up the sound: the slots the next mission empties, the music a load stops, and Paula's channels.
 
 ## Further reading
 

@@ -170,7 +170,10 @@ What the scripts do not reach, after a real attempt:
   overlay full, `wof_fs_can_write`). The file system's largest file is now
   `WOF_SAVE_MAX`, 12,412 bytes, the largest save the port's tables allow (the largest map,
   m, saves 11,516), where it was 8,192 and a save on maps h, i and k to o would not have
-  been kept.
+  been kept. The shell's restore took only 8,192 bytes until 2026-10-04, so a save on those
+  maps was stored at the end of a visit and not put back at the next; since then it takes
+  `WOF_SAVE_MAX` as well (`web/core.js`, `FILE_MAX`; `tests/test_page.py` and
+  `tests/test_firefox.py`, `test_an_oversized_saved_game_is_back_after_a_reload`).
 - **`screen_game_restore`** (`0x016D32`, `src/screen.c`), ported from reading in M4 and
   first run with passes after it by `save_a`: the dialog's own screen had switched the
   port's play-screen model off, and nothing switched it on again, so after a save the
