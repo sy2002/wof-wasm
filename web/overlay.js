@@ -52,7 +52,7 @@ export function createOverlay(element, core, clock, audio, input, video) {
         const css = (n) => (Math.round(n * 10) / 10);
 
         element.innerHTML =
-            '<b>Wings of Fury - M4 diagnostics</b>\n' +
+            '<b>Wings of Fury - diagnostics</b>\n' +
             'clock        ' + s.hz + ' Hz emulated, ' + (s.backlog).toFixed(2) + ' vbl backlog\n' +
             'vblanks/s    ' + s.rate.vblank.toFixed(2) + '   (want ' + s.hz + ')\n' +
             'ticks/s      ' + s.rate.tick.toFixed(2) + '   (want ' + expectedTick + ')\n' +

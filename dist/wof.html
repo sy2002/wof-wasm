@@ -8992,6 +8992,14 @@ YXRhAAAAAAB69gAAAAJfX0gxX2VuZAAAmGwAAAACX19IMl9vcmcAAJhsAAAAAl9fSDJfZW5kAACYbAAA
  * no imports at all: it allocates nothing from the host, reads no clock and makes no call
  * back into JavaScript. */
 
+/* The largest file the core's file system holds: WOF_SAVE_MAX in src/wof.h, a saved game on
+   the largest map the port's tables allow (src/fs.c, FS_FILE_MAX).  The core has no export
+   for it, so the number is written here, and tests/test_core_native.py holds the two equal:
+   it evaluates the macro, reads this line and has the core take a file of this size and
+   refuse one a byte longer.  Every file the game wrote fits, so every file it wrote comes
+   back at the next visit. */
+const FILE_MAX = 12412;
+
 async function loadCore(wasmBytes, fsBytes, seed) {
     const { instance } = await WebAssembly.instantiate(wasmBytes, {});
     return new Core(instance.exports, fsBytes, seed);
@@ -9026,7 +9034,7 @@ class Core {
 
         /* Scratch for handing a stored file back to the core's file system: a name and the
            bytes.  One allocation, reused, because the arena is never freed. */
-        this.filePtr = exports.wof_alloc(8192);
+        this.filePtr = exports.wof_alloc(FILE_MAX);
         this.namePtr = exports.wof_alloc(64);
     }
 
@@ -9123,7 +9131,7 @@ class Core {
     }
 
     fsPut(name, data) {
-        if (data.length > 8192 || name.length > 62) {
+        if (data.length > FILE_MAX || name.length > 62) {
             return false;
         }
         const chars = this.bytes(this.namePtr, 64);
@@ -9135,8 +9143,9 @@ class Core {
         return this.x.wof_fs_put(this.namePtr, this.filePtr, data.length) !== 0;
     }
 
-    /* Development entries (M3 deliverable 7): not part of the game, and offered by the
-       shell only while the diagnostics overlay is up. */
+    /* Development entries (SPEC 6.1): not part of the game, and offered by the shell only
+       while the diagnostics overlay is up, so that a screen a mission would be needed to
+       reach - the high-score entry, either mode of the dialog - can be looked at. */
     devSetScore(score) {
         this.x.wof_dev_set_score(score >>> 0);
     }
@@ -9145,9 +9154,9 @@ class Core {
         this.x.wof_dev_open_dialog(mode ? 1 : 0);
     }
 
-    /* main's command-line argument (M7 part 2): on, every rank chosen records a demo, which
-       the game's end writes as wofdemo beside its seed; the stored files go through the
-       written-files list like a saved game. */
+    /* main's command-line argument (re/notes/demo.md): on, every rank chosen records a demo,
+       which the game's end writes as wofdemo beside its seed; the stored files go through
+       the written-files list like a saved game. */
     devDemoRecord(on) {
         this.x.wof_dev_demo_record(on ? 1 : 0);
     }
@@ -9938,12 +9947,14 @@ function createVideo(canvas, core, sign = null, help = null) {
  * port of vblank_every_frame (re/notes/input.md), because they are evaluated per VBlank
  * while the logic samples them only every fourth one.
  *
- * The shell's one addition is the sticky latch.  The original samples a level 60 times a
- * second; a browser can deliver a key press and its release between two of our VBlanks, so
- * a bit that went down since the last sample stays set for exactly one sample.
+ * The shell's one addition is the sticky latch.  The original samples a level once a VBlank,
+ * 50 or 60 times a second; a browser can deliver a key press and its release between two of
+ * our VBlanks, so a bit that went down since the last sample stays set for exactly one
+ * sample.
  *
  * Keys are read from KeyboardEvent.code, which is positional, like the raw Amiga key codes
- * the menus will need in M3. */
+ * that the menus, the briefing, the line editor and the in-flight commands read (the second
+ * path, below). */
 
 /* No Control key is a fire key: with KeyW mapped to up, firing while climbing would be
    Ctrl+W, which closes the tab in every mainstream browser and which a page cannot prevent.
@@ -9976,8 +9987,10 @@ const PAD_DEADZONE = 0.4;
  * come out of the core's conversion table (re/notes/keys.md, SPEC 6.2).
  *
  * The function keys and Help are deliberately absent.  A page that swallowed F5 or F12
- * would take reload and the developer tools away from the player, and the only reader of
- * them in the whole executable is the cheat debug set, which M4 ports.
+ * would take reload and the developer tools away from the player, and their only readers in
+ * the whole executable are two of the debug keys the cheat sequence unlocks (raw 0x59 and
+ * 0x5F), which are ported with ingame_keys and out of reach on the page, because the
+ * sequence cannot be typed: its l is the load command (re/notes/keys.md).
  */
 const RAW_CODES = {
     Digit1: 0x01, Digit2: 0x02, Digit3: 0x03, Digit4: 0x04, Digit5: 0x05,
@@ -10142,7 +10155,7 @@ function createInput(target, core) {
  * mixed before then is dropped when the sound starts. */
 
 /* tools/build.py replaces this literal with the text of web/worklet.js. */
-const WORKLET_SOURCE = '/* The AudioWorklet processor.  tools/build.py inlines the text of this file into the\n   bundle as a string, and the shell turns that string into a Blob URL, because a worklet\n   module cannot be loaded from a file:// page any other way.\n\n   It owns no state that matters: the main thread renders the samples from the core and\n   posts them here, this only hands them to the audio hardware and reports how much it has\n   played, which is what the shell paces itself by. */\n\nclass WofProcessor extends AudioWorkletProcessor {\n    constructor() {\n        super();\n        this.blocks = [];\n        this.offset = 0;\n        this.consumed = 0;\n        this.underruns = 0;\n        this.sinceReport = 0;\n        this.port.onmessage = (event) => {\n            if (event.data && event.data.left) {\n                this.blocks.push(event.data);\n            } else if (event.data && event.data.flush) {\n                this.blocks.length = 0;\n                this.offset = 0;\n            }\n        };\n    }\n\n    process(inputs, outputs) {\n        const out = outputs[0];\n        const left = out[0];\n        const right = out.length > 1 ? out[1] : out[0];\n        const n = left.length;\n        let i = 0;\n\n        while (i < n) {\n            const block = this.blocks[0];\n            if (!block) {\n                left.fill(0, i);\n                if (right !== left) {\n                    right.fill(0, i);\n                }\n                this.underruns++;\n                break;\n            }\n            const take = Math.min(block.left.length - this.offset, n - i);\n            left.set(block.left.subarray(this.offset, this.offset + take), i);\n            if (right !== left) {\n                right.set(block.right.subarray(this.offset, this.offset + take), i);\n            }\n            this.offset += take;\n            i += take;\n            this.consumed += take;\n            if (this.offset >= block.left.length) {\n                this.blocks.shift();\n                this.offset = 0;\n            }\n        }\n\n        if (++this.sinceReport >= 16) {\n            this.sinceReport = 0;\n            this.port.postMessage({ consumed: this.consumed, underruns: this.underruns });\n        }\n        return true;\n    }\n}\n\nregisterProcessor(\'wof-core\', WofProcessor);\n';
+const WORKLET_SOURCE = '/* The AudioWorklet processor.  tools/build.py inlines the text of this file into the\n   bundle as a string, and the shell hands that string to the browser as a URL made on the\n   spot, a Blob URL or a data: URL where a file:// page refuses Blob URLs (web/audio.js),\n   because a worklet module cannot be a file next to the page.\n\n   It owns no state that matters: the main thread renders the samples from the core and\n   posts them here, this only hands them to the audio hardware and reports how much it has\n   played, which is what the shell paces itself by. */\n\nclass WofProcessor extends AudioWorkletProcessor {\n    constructor() {\n        super();\n        this.blocks = [];\n        this.offset = 0;\n        this.consumed = 0;\n        this.underruns = 0;\n        this.sinceReport = 0;\n        this.port.onmessage = (event) => {\n            if (event.data && event.data.left) {\n                this.blocks.push(event.data);\n            } else if (event.data && event.data.flush) {\n                this.blocks.length = 0;\n                this.offset = 0;\n            }\n        };\n    }\n\n    process(inputs, outputs) {\n        const out = outputs[0];\n        const left = out[0];\n        const right = out.length > 1 ? out[1] : out[0];\n        const n = left.length;\n        let i = 0;\n\n        while (i < n) {\n            const block = this.blocks[0];\n            if (!block) {\n                left.fill(0, i);\n                if (right !== left) {\n                    right.fill(0, i);\n                }\n                this.underruns++;\n                break;\n            }\n            const take = Math.min(block.left.length - this.offset, n - i);\n            left.set(block.left.subarray(this.offset, this.offset + take), i);\n            if (right !== left) {\n                right.set(block.right.subarray(this.offset, this.offset + take), i);\n            }\n            this.offset += take;\n            i += take;\n            this.consumed += take;\n            if (this.offset >= block.left.length) {\n                this.blocks.shift();\n                this.offset = 0;\n            }\n        }\n\n        if (++this.sinceReport >= 16) {\n            this.sinceReport = 0;\n            this.port.postMessage({ consumed: this.consumed, underruns: this.underruns });\n        }\n        return true;\n    }\n}\n\nregisterProcessor(\'wof-core\', WofProcessor);\n';
 
 const TARGET_SECONDS = 0.10;   /* queued ahead of the hardware when the sound starts */
 const LOW_SECONDS = 0.04;      /* below this much queued, silence tops it up to the target */
@@ -10467,7 +10480,7 @@ function createAudio(core, width = 1) {
  * per 1/50 second of emulated time on PAL, 1/60 on NTSC, and one wof_pass after each of
  * them, because the original's inner loop runs one pass per displayed frame and the display
  * is the VBlank.  A 144 Hz monitor therefore still gets 50 passes a second on PAL, and a
- * 30 Hz one still gets 50, two per animation frame.
+ * 30 Hz one still gets 50, one or two per animation frame.
  *
  * The rate is one half of the video standard, which the shell sets as a whole; the other
  * half is the pixel aspect in web/video.js.
@@ -10592,9 +10605,12 @@ function createClock(core, input, video, audio, onFrame) {
 }
 
 /* --- web/overlay.js --- */
-/* The diagnostics overlay.  It exists so that the M0 acceptance criteria - a steady
-   emulated 60 Hz, the tick rate, the input bits, sound actually flowing - can be read off
-   the page instead of guessed at.  The backtick key toggles it. */
+/* The diagnostics overlay: what the page is doing, read off the page instead of guessed at -
+   the emulated clock and the rates of VBlanks, ticks and passes, the video path and its
+   cost, the input bits, the sound's backend and queue, the core's counters, the player and
+   the campaign - and the development keys that work while it is up.  The page tests read
+   their numbers off it, where a person reads them.  The key left of 1 toggles it, which
+   arrives as Backquote or IntlBackslash (DIAGNOSTIC_CODES, web/input.js). */
 
 const BIT_NAMES = ['up', 'down', 'right', 'left', 'fire'];      /* bit 0 first, SPEC 6.1 */
 
@@ -10643,7 +10659,7 @@ function createOverlay(element, core, clock, audio, input, video) {
         const css = (n) => (Math.round(n * 10) / 10);
 
         element.innerHTML =
-            '<b>Wings of Fury - M4 diagnostics</b>\n' +
+            '<b>Wings of Fury - diagnostics</b>\n' +
             'clock        ' + s.hz + ' Hz emulated, ' + (s.backlog).toFixed(2) + ' vbl backlog\n' +
             'vblanks/s    ' + s.rate.vblank.toFixed(2) + '   (want ' + s.hz + ')\n' +
             'ticks/s      ' + s.rate.tick.toFixed(2) + '   (want ' + expectedTick + ')\n' +
@@ -10706,9 +10722,10 @@ function createOverlay(element, core, clock, audio, input, video) {
    clock, video, input, audio and the diagnostics overlay together. */
 
 
-/* A fixed seed, so that the same page always produces the same picture.  The original takes
-   its seed from the beam position at start (re/notes/random.md); which seed the port uses
-   is a front-end question and belongs to M3. */
+/* The seed of the core's entropy stream, the beam positions the port's rand_beam takes where
+   the original reads the raster beam (re/notes/random.md).  It is fixed, so every visit
+   starts the same stream.  A recorded demo keeps the stream's state at its start in its
+   seed file, wofdemo.seed, and its playback starts from that (re/notes/demo.md). */
 const SEED = 0x57494e47;
 
 /* Keys that are only ever held with another one: they are no key of their own, so they
