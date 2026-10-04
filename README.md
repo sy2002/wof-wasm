@@ -1,10 +1,10 @@
 # Wings of Fury
 
-*Broderbund's 1990 Amiga classic, brought back as a single HTML file: not emulated, not remade, but ported routine by routine from the original 68000 executable, and held to the original tick for tick.*
+*Broderbund's 1990 Amiga classic, brought back as a single HTML file: not emulated, not remade, but ported routine by routine from the original 68000 executable, and held to the original tick for tick. [Click here to play.](https://sy2002.github.io/wof-wasm/play/wof.html)*
 
 ![](ref/title.png)
 
-Open `dist/wof.html` and you are on the carrier's deck in 1944: the original's artwork, its sound effects and its music, in your browser, nothing to install. Under the hood there is no Amiga emulator. The game's own logic was taken out of the executable's machine code and rewritten in C, one routine at a time, and runs as WebAssembly; a small JavaScript shell gives it a screen, a sound chip and a keyboard.
+Open `dist/wof.html` (download it and double-click the `.html` file locally or [click here](https://sy2002.github.io/wof-wasm/play/wof.html)) and you are on the carrier's deck in 1944: the original's artwork, its sound effects and its music, in your browser, nothing to install. Under the hood there is no Amiga emulator. The game's own logic was taken out of the executable's machine code and rewritten in C, one routine at a time, and runs as WebAssembly; a small JavaScript shell gives it a screen, a sound chip and a keyboard.
 
 What makes it faithful is the method, not just the care. The original executable itself ran headless under emulation beside the port, and the two were compared after every logic tick and every drawn frame, over more than sixty scripted missions on all fifteen maps, through whole campaigns, saved games and the demo: the same game state, byte for byte; the same drawing calls with the same palettes; the same sound sample started on the same channel at the same moment. The flight model runs on the Amiga's own floating-point arithmetic, bit for bit. The speed is the one measured on a real PAL Amiga. The enemy pilots, the ships' gunners, the soldiers running for the dug-outs do exactly what they did in 1990, down to a bug the game always had. What was changed on purpose fits in one short list: the keys a browser allows, menus that take a tap where the original wanted a held stick, and a remembered preference for the stick's sense.
 
@@ -14,7 +14,7 @@ It is a retro preservation project, and a case study in how one can be done toda
 
 ## Play
 
-Open `dist/wof.html` in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
+Open [https://sy2002.github.io/wof-wasm/play/wof.html](https://sy2002.github.io/wof-wasm/play/wof.html) in Chrome, Firefox or Safari. It runs from the file itself and loads nothing from anywhere. You can also [download dist/wof.html](dist/wof.html) and run it locally by just double-clicking the `.html` file. The keys are on its help screen, which is up at the start and comes back with H; any key starts the sound and the game. Safari keeps the keyboard in its address bar for a page opened from a file, so there click into the page once first.
 
 ## Build and verify
 
